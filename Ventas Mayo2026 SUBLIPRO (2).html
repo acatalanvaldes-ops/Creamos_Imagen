@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SUBLIPRO - Ventas Mayo 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F7F5F0;--surface:#FFFFFF;--dark:#1C1917;--gold:#C8973A;--teal:#0D7A6B;--red:#C0392B;--muted:#78716C;--border:#E7E2D9;--purple:#6D28D9;--webpay:#1E40AF}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--dark);min-height:100vh}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--gold);border-radius:2px}
+input,select,button{font-family:inherit;outline:none}
+.topbar{background:var(--dark);padding:0 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:100}
+.brand{padding:14px 0}
+.brand-tag{font-size:9px;color:var(--gold);letter-spacing:.2em;font-weight:700;text-transform:uppercase;margin-bottom:2px}
+.brand-name{font-family:'DM Serif Display',serif;font-size:22px;color:#fff}
+.brand-name span{color:var(--gold)}
+.tabs{display:flex;gap:2px;flex-wrap:wrap}
+.tab{background:none;border:none;font-size:12px;font-weight:600;color:#888;cursor:pointer;padding:7px 14px;border-radius:6px;transition:all .2s}
+.tab.on{background:#2C2926;color:var(--gold)}
+.banner{background:#FEF3E2;border-bottom:1px solid #F0DEB4;padding:8px 24px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:12px;color:#92400E}
+.banner strong{color:var(--gold);font-size:14px}
+.mod-btn{background:#fff;border:1.5px solid #F0DEB4;color:#92400E;padding:4px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600}
+.kpi-strip{background:#fff;border-bottom:1px solid var(--border);padding:10px 24px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+.kpis{display:flex;flex-wrap:wrap;gap:0}
+.kpi{padding:4px 18px 4px 0;margin-right:18px;border-right:1px solid var(--border)}
+.kpi:last-of-type{border-right:none;margin-right:0}
+.kpi-l{font-size:9px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px}
+.kpi-v{font-size:16px;font-weight:700;line-height:1.15}
+.kpi-u{font-size:9px;color:#aaa}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.act-btn{background:#fff;border:1.5px solid var(--border);color:var(--dark);padding:7px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.act-btn:hover{border-color:var(--gold);color:var(--gold)}
+.act-btn.primary{background:var(--gold);border-color:var(--gold);color:#fff}
+.act-btn.primary:hover{background:#B8872A;transform:translateY(-1px)}
+select.month-sel{background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:7px 12px;font-size:12px;color:var(--dark);cursor:pointer}
+.total-box{margin:14px 24px 0;background:var(--dark);border-radius:12px;padding:16px 22px;display:flex;flex-wrap:wrap;gap:0;align-items:center}
+.tb-col{flex:1;min-width:130px;padding-right:18px;margin-right:18px;border-right:1px solid #2C2926}
+.tb-col:last-child{border-right:none;margin-right:0}
+.tb-lbl{font-size:9px;color:#666;text-transform:uppercase;letter-spacing:.09em;margin-bottom:3px}
+.tb-val{font-size:18px;font-weight:700}
+.tbl-wrap{margin:12px 24px 0;overflow-x:auto;border-radius:12px;border:1px solid var(--border);background:#fff}
+table{width:100%;border-collapse:collapse;min-width:700px}
+thead tr{background:var(--dark)}
+th{padding:10px 12px;text-align:left;font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);white-space:nowrap}
+tbody tr{border-bottom:1px solid #F4F1EB;transition:background .1s}
+tbody tr:nth-child(even){background:#FAFAF8}
+tbody tr:hover td{background:#FEF9EE!important}
+td{padding:9px 12px;vertical-align:middle}
+tfoot tr{background:var(--dark)}
+tfoot td{padding:11px 12px;font-weight:700;white-space:nowrap}
+.kpi-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px}
+.kpi-card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.kpi-card .lbl{font-size:9px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.kpi-card .val{font-size:20px;font-weight:700}
+.tag{background:#EDE9E3;color:var(--dark);padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;display:inline-block}
+.pill{display:inline-block;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:600}
+.empty{text-align:center;padding:60px;color:var(--muted)}
+.msg{background:#FEF9C3;border-bottom:1px solid #FDE68A;padding:9px 24px;font-size:13px;font-weight:600;color:#854D0E}
+.content{padding:0 24px 28px}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:#fff;border-radius:14px;padding:26px;width:100%;max-width:560px;box-shadow:0 24px 60px rgba(0,0,0,.18);max-height:92vh;overflow-y:auto}
+.modal h2{font-family:'DM Serif Display',serif;font-size:20px;margin-bottom:18px;color:var(--gold)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.span2{grid-column:1/-1}
+.fld label{display:block;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--gold);margin-bottom:5px}
+.fld input,.fld select{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:10px 13px;font-size:13px;color:var(--dark);transition:border .2s}
+.fld input:focus,.fld select:focus{border-color:var(--gold);background:#fff}
+.toggle{width:42px;height:24px;background:var(--border);border-radius:12px;position:relative;cursor:pointer;border:none;transition:background .25s;flex-shrink:0}
+.toggle.on{background:var(--purple)}
+.toggle::after{content:'';position:absolute;width:18px;height:18px;background:#fff;border-radius:50%;top:3px;left:3px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle.on::after{left:21px}
+.sub-row{background:#F7F4EE;border-top:2px solid var(--border);border-bottom:3px solid var(--border)}
+.fade{animation:fd .3s ease}
+@keyframes fd{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.preview-dark{background:#1C1917;border-radius:10px;padding:14px 16px;margin-top:4px}
+.preview-grid{display:grid;gap:8px}
+.preview-card{background:#2C2926;border-radius:8px;padding:8px 10px}
+.r{text-align:right;font-weight:600}.c{text-align:center}
+.day-hdr td{background:#1C1917;padding:9px 14px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ============================================================
+// CONSTANTES
+// ============================================================
+var PRODUCTOS   = ["Camisetas","Conjuntos","Sublimacion","Mantas","Banderas","Lienzo","Panhuelos","Banner","Bolsas","Morral","Cortinas","Cuadros","Bandanas","Estampados"];
+var FORMAS_PAGO = ["Efectivo","Transferencia","Webpay"];
+var WEBPAY      = "Webpay";
+var COM_WP_PCT  = 2;
+var IVA         = 1.19;
+var PC = {
+  "Efectivo":      {bg:"#DCFCE7",txt:"#166534"},
+  "Transferencia": {bg:"#FEF9C3",txt:"#854D0E"},
+  "Webpay":        {bg:"#EFF6FF",txt:"#1E40AF"}
+};
+
+// ============================================================
+// LOGICA FINANCIERA
+// ============================================================
+function comWP(base, fp)     { return fp===WEBPAY ? Math.round(base*COM_WP_PCT/100) : 0; }
+function valCli(base, fp)    { return base + comWP(base, fp); }
+function comF(base, pct)     { return Math.round(base*pct/100); }
+function ingF(base, pct)     { return base - comF(base, pct); }
+function fmt(n)              { return n==null ? "" : "$"+Math.round(n).toLocaleString("es-CO"); }
+function fDate(f)            { return new Date(f+"T12:00").toLocaleDateString("es-CO",{day:"2-digit",month:"short",year:"numeric"}); }
+
+// ============================================================
+// PERSISTENCIA (localStorage)
+// ============================================================
+var STORAGE_KEY = "sublipro_v2";
+
+function guardarDatos() {
+  try {
+    var datos = {
+      ventas:    state.ventas,
+      comDefPct: state.comDefPct,
+      filtroMes: state.filtroMes
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(datos));
+  } catch(e) {}
+}
+
+function cargarDatos() {
+  try {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    var datos = JSON.parse(raw);
+    if (datos.ventas && datos.ventas.length > 0) state.ventas = datos.ventas;
+    if (datos.comDefPct) state.comDefPct = datos.comDefPct;
+    if (datos.filtroMes !== undefined) state.filtroMes = datos.filtroMes;
+  } catch(e) {}
+}
+
+function borrarDatos() {
+  if (!confirm("Borrar TODOS los datos guardados? Esta accion no se puede deshacer.")) return;
+  try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+  location.reload();
+}
+
+// ============================================================
+// ESTADO
+// ============================================================
+var state = {
+  ventas:[
+    {id:1, fecha:"2026-05-04",cliente:"Eduardo",   producto:"Banderas",   formaPago:"Transferencia",     montoBase:90000,  comision:6,factura:false},
+    {id:2, fecha:"2026-05-04",cliente:"Nats",      producto:"Estampados", formaPago:"Transferencia",     montoBase:28560,  comision:6,factura:false},
+    {id:3, fecha:"2026-05-04",cliente:"Sally",     producto:"Mantas",     formaPago:"Transferencia",     montoBase:20000,  comision:6,factura:false},
+    {id:4, fecha:"2026-05-04",cliente:"Melany",    producto:"Camisetas",  formaPago:"Transferencia",     montoBase:206500, comision:6,factura:false},
+    {id:5, fecha:"2026-05-04",cliente:"Particular",producto:"Mantas",     formaPago:"Webpay",  montoBase:20000,  comision:6,factura:false},
+    {id:6, fecha:"2026-05-04",cliente:"Esteban",   producto:"Camisetas",  formaPago:"Transferencia",     montoBase:126500, comision:6,factura:false},
+    {id:7, fecha:"2026-05-04",cliente:"Benjamin",  producto:"Mantas",     formaPago:"Transferencia",     montoBase:416500, comision:6,factura:false},
+    {id:8, fecha:"2026-05-04",cliente:"Antonio",   producto:"Mantas",     formaPago:"Transferencia",     montoBase:20000,  comision:6,factura:false},
+    {id:9, fecha:"2026-05-04",cliente:"Tito",      producto:"Estampados", formaPago:"Transferencia",     montoBase:157500, comision:6,factura:false},
+    {id:10,fecha:"2026-05-05",cliente:"Gabriela",  producto:"Mantas",     formaPago:"Transferencia",     montoBase:20000,  comision:6,factura:false},
+    {id:11,fecha:"2026-05-05",cliente:"Gabriela",  producto:"Mantas",     formaPago:"Efectivo",          montoBase:20000,  comision:6,factura:false},
+    {id:12,fecha:"2026-05-05",cliente:"Gabriela",  producto:"Camisetas",  formaPago:"Transferencia",     montoBase:16660,  comision:6,factura:false},
+    {id:13,fecha:"2026-05-05",cliente:"Particular",producto:"Estampados", formaPago:"Transferencia",     montoBase:19040,  comision:6,factura:false},
+    {id:14,fecha:"2026-05-06",cliente:"Particular",producto:"Banderas",   formaPago:"Webpay",  montoBase:35294,  comision:6,factura:false},
+    {id:15,fecha:"2026-05-06",cliente:"Particular",producto:"Mantas",     formaPago:"Webpay",  montoBase:29659,  comision:6,factura:false},
+    {id:16,fecha:"2026-05-06",cliente:"Particular",producto:"Estampados", formaPago:"Webpay",  montoBase:15999,  comision:6,factura:false},
+    {id:17,fecha:"2026-05-06",cliente:"Particular",producto:"Bolsas",     formaPago:"Efectivo",          montoBase:5042,   comision:6,factura:false},
+    {id:18,fecha:"2026-05-06",cliente:"Eduardo",   producto:"Banderas",   formaPago:"Transferencia",     montoBase:180000, comision:6,factura:false},
+    {id:19,fecha:"2026-05-07",cliente:"Sideral",   producto:"Conjuntos",  formaPago:"Transferencia",     montoBase:628500, comision:6,factura:false},
+    {id:20,fecha:"2026-05-07",cliente:"Particular",producto:"Mantas",     formaPago:"Webpay",  montoBase:11765,  comision:6,factura:false},
+    {id:21,fecha:"2026-05-08",cliente:"Liss",      producto:"Mantas",     formaPago:"Webpay",  montoBase:99167,  comision:6,factura:false},
+    {id:22,fecha:"2026-05-08",cliente:"Liss",      producto:"Mantas",     formaPago:"Webpay",  montoBase:16667,  comision:6,factura:false},
+    {id:23,fecha:"2026-05-08",cliente:"Particular",producto:"Sublimación",formaPago:"Webpay",  montoBase:16000,  comision:6,factura:false},
+    {id:24,fecha:"2026-05-08",cliente:"Particular",producto:"Bolsas",     formaPago:"Webpay",  montoBase:5000,   comision:6,factura:false},
+    {id:25,fecha:"2026-05-09",cliente:"Beautystar",producto:"Camisetas",  formaPago:"Efectivo",          montoBase:234000, comision:6,factura:false},
+    {id:26,fecha:"2026-05-09",cliente:"Particular",producto:"Estampados", formaPago:"Transferencia",     montoBase:35081,  comision:6,factura:false},
+    {id:27,fecha:"2026-05-11",cliente:"Melany",    producto:"Camisetas",  formaPago:"Transferencia",     montoBase:156000, comision:6,factura:false},
+    {id:28,fecha:"2026-05-11",cliente:"Esteban",   producto:"Pañuelos",   formaPago:"Transferencia",     montoBase:71700,  comision:6,factura:false},
+    {id:29,fecha:"2026-05-11",cliente:"Cristian",  producto:"Conjuntos",  formaPago:"Transferencia",     montoBase:252280, comision:6,factura:false},
+    {id:30,fecha:"2026-05-12",cliente:"Agrupacion",producto:"Camisetas",  formaPago:"Transferencia",     montoBase:403000, comision:6,factura:false},
+    {id:31,fecha:"2026-05-12",cliente:"Particular",producto:"Estampados", formaPago:"Transferencia",     montoBase:14000,  comision:6,factura:false},
+    {id:32,fecha:"2026-05-12",cliente:"Particular",producto:"Mantas",     formaPago:"Webpay",  montoBase:19608,  comision:6,factura:false},
+    {id:33,fecha:"2026-05-13",cliente:"Eduardo",   producto:"Banderas",   formaPago:"Transferencia",     montoBase:305042, comision:6,factura:false},
+    {id:34,fecha:"2026-05-14",cliente:"Alfredo",   producto:"Mantas",     formaPago:"Transferencia",     montoBase:51000,  comision:6,factura:false},
+    {id:35,fecha:"2026-05-14",cliente:"Particular",producto:"Sublimación",formaPago:"Transferencia",     montoBase:19000,  comision:6,factura:false},
+    {id:36,fecha:"2026-05-14",cliente:"Eduardo S", producto:"Banderas",   formaPago:"Transferencia",     montoBase:195000, comision:6,factura:false},
+    {id:37,fecha:"2026-05-14",cliente:"Particular",producto:"Banner",     formaPago:"Efectivo",          montoBase:5000,   comision:6,factura:false},
+    {id:38,fecha:"2026-05-14",cliente:"Ceyland",   producto:"Sublimación",formaPago:"Transferencia",     montoBase:71115,  comision:6,factura:false},
+    {id:39,fecha:"2026-05-14",cliente:"Particular",producto:"Mantas",     formaPago:"Webpay",  montoBase:11765,  comision:6,factura:false},
+    {id:40,fecha:"2026-05-14",cliente:"Sakura",    producto:"Mantas",     formaPago:"Transferencia",     montoBase:144500, comision:6,factura:false},
+    {id:41,fecha:"2026-05-14",cliente:"Particular",producto:"Mantas",     formaPago:"Transferencia",     montoBase:20000,  comision:6,factura:false},
+    {id:42,fecha:"2026-05-14",cliente:"Particular",producto:"Mantas",     formaPago:"Transferencia",     montoBase:14280,  comision:6,factura:false},
+    {id:43,fecha:"2026-05-15",cliente:"Jose Luis", producto:"Banderas",   formaPago:"Transferencia",     montoBase:36000,  comision:6,factura:false},
+    {id:44,fecha:"2026-05-15",cliente:"Particular",producto:"Mantas",     formaPago:"Webpay",  montoBase:60784,  comision:6,factura:false},
+    {id:45,fecha:"2026-05-15",cliente:"Particular",producto:"Banner",     formaPago:"Webpay",  montoBase:50980,  comision:6,factura:false},
+    {id:46,fecha:"2026-05-15",cliente:"Particular",producto:"Mantas",     formaPago:"Webpay",  montoBase:11765,  comision:6,factura:false},
+    {id:47,fecha:"2026-05-16",cliente:"Particular",producto:"Camisetas",  formaPago:"Webpay",  montoBase:50980,  comision:6,factura:false},
+    {id:48,fecha:"2026-05-18",cliente:"Melany",    producto:"Camisetas",  formaPago:"Transferencia",     montoBase:624000, comision:6,factura:false},
+    {id:49,fecha:"2026-05-18",cliente:"Eduardo",   producto:"Banderas",   formaPago:"Transferencia",     montoBase:210000, comision:6,factura:false},
+    {id:50,fecha:"2026-05-18",cliente:"Quillota",  producto:"Camisetas",  formaPago:"Transferencia",     montoBase:518000, comision:6,factura:false},
+    {id:51,fecha:"2026-05-18",cliente:"Ignacia",   producto:"Sublimación",formaPago:"Webpay",  montoBase:20588,  comision:6,factura:false},
+    {id:52,fecha:"2026-05-18",cliente:"Manuel",    producto:"Mantas",     formaPago:"Transferencia",     montoBase:12000,  comision:6,factura:false},
+    {id:53,fecha:"2026-05-19",cliente:"Gabriela",  producto:"Camisetas",  formaPago:"Transferencia",     montoBase:60000,  comision:6,factura:false},
+    {id:54,fecha:"2026-05-20",cliente:"Eduardo",   producto:"Banderas",   formaPago:"Transferencia",     montoBase:240000, comision:6,factura:false},
+    {id:55,fecha:"2026-05-20",cliente:"Particular",producto:"Banner",     formaPago:"Efectivo",          montoBase:60000,  comision:6,factura:false},
+    {id:56,fecha:"2026-05-20",cliente:"Particular",producto:"Estampados", formaPago:"Webpay",  montoBase:38980,  comision:6,factura:false},
+    {id:57,fecha:"2026-05-22",cliente:"Rai",       producto:"Camisetas",  formaPago:"Transferencia",     montoBase:119715, comision:6,factura:false},
+  ],
+  tab:"ventas",
+  filtroMes:"2026-05",
+  comDefPct:6,
+  showForm:false,
+  editId:null,
+  delId:null,
+  exportMsg:"",
+  xlTab:"detalle",
+  form:{fecha:new Date().toISOString().slice(0,10),cliente:"",producto:PRODUCTOS[0],formaPago:FORMAS_PAGO[0],montoBase:"",comision:"6",factura:false}
+};
+
+// Cargar datos guardados al inicio
+cargarDatos();
+
+// ============================================================
+// ESTADO - funciones
+// ============================================================
+function setState(p) {
+  Object.assign(state, p);
+  if (p.ventas !== undefined || p.comDefPct !== undefined) guardarDatos();
+  render();
+}
+
+function updateForm(k, v) {
+  state.form[k] = v;
+  if (k==="montoBase" || k==="comision") updatePreview();
+  else render();
+}
+
+function updatePreview() {
+  var base = +state.form.montoBase || 0;
+  var pct  = +state.form.comision  || state.comDefPct;
+  var esWP = state.form.formaPago === WEBPAY;
+  var wp   = esWP ? comWP(base, state.form.formaPago) : 0;
+  var co   = base ? comF(base, pct) : 0;
+  var box  = document.getElementById("form-com-box");
+  if (!box) return;
+  if (!base) { box.style.display="none"; return; }
+  box.style.display = "block";
+  var bV  = document.getElementById("fcb-venta");
+  var bC  = document.getElementById("fcb-com");
+  var bWP = document.getElementById("fcb-wp");
+  if (bV)  bV.textContent  = fmt(base);
+  if (bC)  bC.textContent  = fmt(co)+" ("+pct+"%)";
+  if (bWP) { bWP.textContent = esWP ? fmt(wp)+" (2%)" : "No aplica"; bWP.style.color = esWP ? "#5EEAD4" : "#555"; }
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function render() {
+  var s         = state;
+  var filtradas = s.filtroMes ? s.ventas.filter(function(v){ return v.fecha.slice(0,7)===s.filtroMes; }) : s.ventas;
+  var meses0    = s.ventas.map(function(v){ return v.fecha.slice(0,7); });
+  var mesesFijos= ["2026-05","2026-06","2026-07","2026-08","2026-09","2026-10","2026-11","2026-12"];
+  var mesesSet  = {};
+  meses0.concat(mesesFijos).forEach(function(m){ mesesSet[m]=1; });
+  var meses     = Object.keys(mesesSet).sort().reverse();
+  var tV  = filtradas.reduce(function(s,v){ return s+v.montoBase; }, 0);
+  var tC  = filtradas.reduce(function(s,v){ return s+comF(v.montoBase,v.comision); }, 0);
+  var tFact = filtradas.filter(function(v){ return v.factura; }).length;
+
+  var html = buildTopBar(s.tab) +
+    buildBanner(s.comDefPct) +
+    buildKpiStrip(filtradas, tV, tC, s.comDefPct, s.filtroMes, meses) +
+    (s.exportMsg ? '<div class="msg">'+s.exportMsg+'</div>' : '') +
+    (s.tab==='ventas' && filtradas.length>0 ? buildTotalBox(tV, tC, s.comDefPct, filtradas.length, tFact) : '') +
+    '<div class="content" style="margin-top:14px">' +
+      (s.tab==='ventas'  ? buildTabla(filtradas, s.comDefPct)  : '') +
+      (s.tab==='resumen' ? buildResumen(filtradas, s.comDefPct) : '') +
+      (s.tab==='config'  ? buildConfig(s.comDefPct)             : '') +
+      (s.tab==='calc'    ? buildCalc()                          : '') +
+      (s.tab==='vpdf'    ? buildVistaPDF(filtradas, s.comDefPct): '') +
+      (s.tab==='vexcel'  ? buildVistaExcel(filtradas,s.comDefPct,s.xlTab): '') +
+    '</div>' +
+    (s.showForm ? buildForm(s.form, s.editId, s.comDefPct) : '') +
+    (s.delId    ? buildDel() : '');
+
+  document.getElementById("app").innerHTML = html;
+}
+
+// ============================================================
+// COMPONENTES UI
+// ============================================================
+function buildTopBar(tab) {
+  var tabs = [["ventas","Registro"],["resumen","Resumen"],["config","Config"],["calc","Calculador"],["vpdf","PDF"],["vexcel","Excel"]];
+  var tabHtml = tabs.map(function(t){
+    var cls = tab===t[0] ? 'tab on' : 'tab';
+    return '<button class="'+cls+'" data-tab="'+t[0]+'" onclick="goTab(this)">'+t[1]+'</button>';
+  }).join('');
+  return '<div class="topbar"><div class="brand"><div class="brand-tag">Sistema de Ventas</div><div class="brand-name">SUBLI<span>PRO</span></div></div><div class="tabs">'+tabHtml+'</div></div>';
+}
+
+function goTab(el){ setState({tab:el.getAttribute('data-tab')}); }
+function ufld(el){ updateForm(el.getAttribute('data-field'), el.value); }
+function ufldv(el){ updateForm(el.getAttribute('data-field'), el.getAttribute('data-val')==='true'); }
+function setPct(el){ var i=document.getElementById('cc-pct'); if(i){i.value=el.getAttribute('data-pct');calcComAuto();} }
+function doCalc(el){ calcBtn(el.getAttribute('data-btn')); }
+function goXl(el){ state.xlTab=el.getAttribute('data-xl'); render(); }
+
+function buildBanner(cp) {
+  return '<div class="banner"><span>Config</span><span>Comision venta: <strong>'+cp+'%</strong></span>'+
+    '<span style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:3px 10px;color:#1E40AF;font-weight:700">Webpay: +'+COM_WP_PCT+'% comision tarjeta</span>'+
+    '<button class="mod-btn" data-tab="config" onclick="goTab(this)">Modificar</button></div>';
+}
+
+function buildKpiStrip(filt, tV, tC, cp, filtroMes, meses) {
+  var kpis = [
+    {l:"N Ventas",v:""+filt.length,u:"registros",c:"#1E40AF"},
+    {l:"Total Ventas",v:fmt(tV),u:"monto neto",c:"#166534"},
+    {l:"Total Comision",v:fmt(tC),u:cp+"% s/venta",c:"#C8973A"}
+  ];
+  var kHtml = kpis.map(function(k){
+    return '<div class="kpi"><div class="kpi-l">'+k.l+'</div><div class="kpi-v" style="color:'+k.c+'">'+k.v+'</div><div class="kpi-u">'+k.u+'</div></div>';
+  }).join('');
+  var optHtml = meses.map(function(m){
+    var label = new Date(m+'-01T12:00').toLocaleDateString('es-CO',{month:'long',year:'numeric'});
+    label = label.charAt(0).toUpperCase()+label.slice(1);
+    return '<option value="'+m+'" '+(filtroMes===m?'selected':'')+'>'+label+'</option>';
+  }).join('');
+  return '<div class="kpi-strip"><div class="kpis">'+kHtml+'</div><div class="actions">'+
+    '<select class="month-sel" onchange="setState({filtroMes:this.value})"><option value="" '+(filtroMes?'':'selected')+'>Todos los meses</option>'+optHtml+'</select>'+
+    '<button class="act-btn primary" onclick="openForm()">+ Nueva Venta</button>'+
+    '</div></div>';
+}
+
+function buildTotalBox(tV, tC, cp, count, tFact) {
+  return '<div class="total-box">'+
+    '<div class="tb-col"><div class="tb-lbl">Total Ventas (neto)</div><div class="tb-val" style="color:#86EFAC">'+fmt(tV)+'</div></div>'+
+    '<div class="tb-col"><div class="tb-lbl">Total Comision ('+cp+'%)</div><div class="tb-val" style="color:#FCD34D">'+fmt(tC)+'</div></div>'+
+    '<div class="tb-col"><div class="tb-lbl">Ingreso Local</div><div class="tb-val" style="color:#5EEAD4;font-size:24px">'+fmt(tV-tC)+'</div>'+
+    '<div style="font-size:10px;color:#555;margin-top:2px">'+count+' ventas - '+tFact+' con factura</div></div>'+
+    '</div>';
+}
+
+// ============================================================
+// TABLA REGISTRO (agrupada por dia)
+// ============================================================
+function buildTabla(filt, cp) {
+  if (!filt.length) return '<div class="empty"><div style="font-size:36px;margin-bottom:10px">No hay ventas para este periodo.</div></div>';
+  var sorted = filt.slice().sort(function(a,b){ return b.fecha.localeCompare(a.fecha); });
+  var tV = sorted.reduce(function(s,v){ return s+v.montoBase; },0);
+  var tC = sorted.reduce(function(s,v){ return s+comF(v.montoBase,v.comision); },0);
+
+  var porDia = {};
+  sorted.forEach(function(v){ if(!porDia[v.fecha]) porDia[v.fecha]=[]; porDia[v.fecha].push(v); });
+
+  var tbody = Object.keys(porDia).sort().reverse().map(function(dia) {
+    var vv = porDia[dia];
+    var dV = vv.reduce(function(s,v){ return s+v.montoBase; },0);
+    var dC = vv.reduce(function(s,v){ return s+comF(v.montoBase,v.comision); },0);
+    var hdr = '<tr class="day-hdr"><td colspan="4"><span style="font-size:13px;font-weight:700;color:#fff">'+fDate(dia)+'</span> <span style="font-size:10px;color:#666;margin-left:8px">'+vv.length+' venta'+(vv.length!==1?'s':'')+'</span></td>'+
+      '<td style="padding:9px 12px;text-align:right;font-size:13px;font-weight:800;color:#86EFAC;background:#1C1917">'+fmt(dV)+'</td>'+
+      '<td style="padding:9px 12px;text-align:right;font-size:12px;font-weight:700;color:#C8973A;background:#1C1917">'+fmt(dC)+'</td>'+
+      '<td colspan="2" style="background:#1C1917"></td></tr>';
+    var rows = vv.map(function(v) {
+      var pc  = PC[v.formaPago]||{bg:"#f5f5f5",txt:"#555"};
+      var co  = comF(v.montoBase, v.comision);
+      return '<tr class="row-tr"><td style="padding:8px 12px;font-size:11px;color:var(--muted);padding-left:24px">&#8627;</td>'+
+        '<td style="padding:8px 12px;font-weight:600;font-size:13px">'+v.cliente+'</td>'+
+        '<td style="padding:8px 12px"><span class="tag">'+v.producto+'</span></td>'+
+        '<td style="padding:8px 12px"><span class="pill" style="background:'+pc.bg+';color:'+pc.txt+'">'+v.formaPago+'</span></td>'+
+        '<td style="padding:8px 12px;text-align:right;font-size:13px;font-weight:600">'+fmt(v.montoBase)+'</td>'+
+        '<td style="padding:8px 12px;text-align:right;font-size:12px;font-weight:600;color:var(--gold)">'+fmt(co)+'</td>'+
+        '<td style="padding:8px 12px;text-align:center">'+(v.factura?'<span class="pill" style="background:#F3E8FF;color:#6D28D9">Factura</span>':'<span style="color:#ddd">-</span>')+'</td>'+
+        '<td style="padding:8px 7px;white-space:nowrap"><div style="display:flex;gap:4px">'+
+          '<button class="act-btn" style="padding:4px 7px;font-size:11px" onclick="openEdit('+v.id+')">Editar</button>'+
+          '<button class="act-btn" style="padding:4px 7px;font-size:11px;color:var(--red);border-color:#FECACA" onclick="setState({delId:'+v.id+'})">X</button>'+
+        '</div></td></tr>';
+    }).join('');
+    return hdr + rows;
+  }).join('');
+
+  return '<div class="tbl-wrap"><table>'+
+    '<thead><tr><th></th><th>Cliente</th><th>Producto</th><th>Forma Pago</th><th style="text-align:right">Venta</th><th style="text-align:right">Comision ('+cp+'%)</th><th>Factura</th><th></th></tr></thead>'+
+    '<tbody>'+tbody+'</tbody>'+
+    '<tfoot><tr><td colspan="4" style="padding:11px 12px;font-size:9px;font-weight:700;color:#666;text-transform:uppercase">TOTAL - '+filt.length+' ventas</td>'+
+      '<td style="padding:11px 12px;text-align:right;color:#86EFAC;font-size:14px;font-weight:800">'+fmt(tV)+'</td>'+
+      '<td style="padding:11px 12px;text-align:right;color:#C8973A;font-size:14px;font-weight:800">'+fmt(tC)+'</td>'+
+      '<td colspan="2"></td></tr></tfoot>'+
+    '</table></div>';
+}
+
+// ============================================================
+// RESUMEN POR MES
+// ============================================================
+function buildResumen(filt, cp) {
+  if (!filt.length) return '<div class="empty">Sin datos para este periodo.</div>';
+  var porMes = {};
+  filt.forEach(function(v){
+    var m = v.fecha.slice(0,7);
+    if(!porMes[m]) porMes[m]={ventas:0,venta:0,comision:0};
+    porMes[m].ventas++; porMes[m].venta+=v.montoBase; porMes[m].comision+=comF(v.montoBase,v.comision);
+  });
+  var tV = filt.reduce(function(s,v){return s+v.montoBase;},0);
+  var tC = filt.reduce(function(s,v){return s+comF(v.montoBase,v.comision);},0);
+  var cards = [
+    {l:"Total Ventas",v:""+filt.length,c:"#1E40AF"},
+    {l:"Monto Ventas",v:fmt(tV),c:"#166534"},
+    {l:"Total Comision",v:fmt(tC),c:"#C8973A"}
+  ].map(function(k){
+    return '<div class="kpi-card"><div class="lbl">'+k.l+'</div><div class="val" style="color:'+k.c+'">'+k.v+'</div></div>';
+  }).join('');
+  var rows = Object.keys(porMes).sort().reverse().map(function(m){
+    var d = porMes[m];
+    var label = new Date(m+'-01T12:00').toLocaleDateString('es-CO',{month:'long',year:'numeric'});
+    label = label.charAt(0).toUpperCase()+label.slice(1);
+    var pct = tV>0 ? Math.round(d.venta/tV*100) : 0;
+    return '<tr style="border-bottom:1px solid #F4F1EB">'+
+      '<td style="padding:14px 16px"><div style="font-size:14px;font-weight:700">'+label+'</div>'+
+      '<div style="margin-top:6px;height:4px;background:#F0EAE0;border-radius:4px;max-width:200px">'+
+      '<div style="height:100%;width:'+pct+'%;background:var(--gold);border-radius:4px"></div></div></td>'+
+      '<td style="padding:14px 16px;text-align:center"><span style="background:#EFF6FF;color:#1E40AF;padding:4px 14px;border-radius:20px;font-size:14px;font-weight:700">'+d.ventas+'</span></td>'+
+      '<td style="padding:14px 16px;text-align:right;font-size:16px;font-weight:700;color:#166534">'+fmt(d.venta)+'</td>'+
+      '<td style="padding:14px 16px;text-align:right;font-size:16px;font-weight:700;color:var(--gold)">'+fmt(d.comision)+'</td></tr>';
+  }).join('');
+  return '<div class="fade"><div class="kpi-cards">'+cards+'</div>'+
+    '<div class="tbl-wrap"><table>'+
+    '<thead><tr><th>Mes / Ano</th><th style="text-align:center">N Ventas</th><th style="text-align:right">Venta</th><th style="text-align:right">Total Comision</th></tr></thead>'+
+    '<tbody>'+rows+'</tbody>'+
+    '<tfoot><tr><td style="padding:11px 16px;font-size:9px;font-weight:700;color:#666;text-transform:uppercase">TOTAL</td>'+
+    '<td style="padding:11px 16px;text-align:center;font-size:15px;font-weight:800;color:#93C5FD">'+filt.length+'</td>'+
+    '<td style="padding:11px 16px;text-align:right;font-size:16px;font-weight:800;color:#86EFAC">'+fmt(tV)+'</td>'+
+    '<td style="padding:11px 16px;text-align:right;font-size:16px;font-weight:800;color:#C8973A">'+fmt(tC)+'</td></tr></tfoot>'+
+    '</table></div></div>';
+}
+
+// ============================================================
+// CONFIG
+// ============================================================
+function buildConfig(cp) {
+  return '<div class="fade" style="max-width:480px">'+
+    '<div style="background:#fff;border-radius:12px;border:1px solid var(--border);padding:24px;display:flex;flex-direction:column;gap:20px">'+
+    '<div><label style="display:block;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--gold);margin-bottom:8px">Comision de Venta (%)</label>'+
+    '<div style="display:flex;align-items:center;gap:12px">'+
+    '<input type="number" min="0" max="100" step="0.5" value="'+cp+'" style="width:90px;background:var(--bg);border:1.5px solid var(--gold);border-radius:8px;padding:10px;font-size:22px;font-weight:700;color:var(--dark);text-align:center" onchange="setState({comDefPct:+this.value});guardarDatos()">'+
+    '<span style="font-size:13px;color:var(--muted)">Aplicada sobre el monto de venta</span></div></div>'+
+    '<div style="background:#EFF6FF;border:1.5px solid #1E40AF;border-radius:10px;padding:14px">'+
+    '<div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#1E40AF;margin-bottom:6px">Comision Tarjeta Webpay - '+COM_WP_PCT+'%</div>'+
+    '<div style="font-size:12px;color:#1E40AF">Se aplica automaticamente al seleccionar Webpay<br>'+
+    'Base $100.000 + 2% = <strong>Cliente paga $102.000</strong></div></div>'+
+    '<div style="border-top:1px solid var(--border);padding-top:16px">'+
+    '<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Almacenamiento</div>'+
+    '<div style="background:#F7F5F0;border:1px solid var(--border);border-radius:8px;padding:10px 13px;font-size:12px;color:var(--muted);margin-bottom:8px">'+
+    'Datos guardados automaticamente en este navegador.<br><strong style="color:var(--dark)">'+state.ventas.length+' registros guardados.</strong></div>'+
+    '<div style="display:flex;gap:10px;flex-wrap:wrap">'+
+    '<button class="act-btn" style="font-size:12px" onclick="exportCSV()">Exportar respaldo CSV</button>'+
+    '<button class="act-btn" style="font-size:12px;color:var(--red);border-color:#FECACA" onclick="borrarDatos()">Borrar datos guardados</button>'+
+    '</div></div></div></div>';
+}
+
+// ============================================================
+// CALCULADOR
+// ============================================================
+function buildCalc() {
+  var btns = [
+    {l:"C",s:"background:#DC2626;color:#fff;border-color:transparent"},{l:"+-",s:"background:#374151;color:#fff;border-color:transparent"},
+    {l:"%",s:"background:#374151;color:#fff;border-color:transparent"},{l:"/",s:"background:var(--gold);color:#fff;border-color:transparent"},
+    {l:"7",s:""},{l:"8",s:""},{l:"9",s:""},{l:"x",s:"background:var(--gold);color:#fff;border-color:transparent"},
+    {l:"4",s:""},{l:"5",s:""},{l:"6",s:""},{l:"-",s:"background:var(--gold);color:#fff;border-color:transparent"},
+    {l:"1",s:""},{l:"2",s:""},{l:"3",s:""},{l:"+",s:"background:var(--gold);color:#fff;border-color:transparent"},
+    {l:"0",s:"grid-column:span 2"},{l:".",s:""},{l:"=",s:"background:var(--teal);color:#fff;border-color:transparent"}
+  ];
+  var bHtml = btns.map(function(b){
+    return '<button data-btn="'+b.l+'" onclick="doCalc(this)" style="'+b.s+';border:1.5px solid var(--border);border-radius:10px;padding:14px 8px;font-size:18px;font-weight:700;cursor:pointer;font-family:inherit">'+b.l+'</button>';
+  }).join('');
+  return '<div class="fade" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:900px">'+
+    // Calculadora
+    '<div style="background:#fff;border-radius:14px;border:1px solid var(--border);overflow:hidden">'+
+    '<div style="background:var(--dark);padding:14px 18px"><div style="font-size:9px;color:var(--gold);letter-spacing:.15em;font-weight:700;text-transform:uppercase;margin-bottom:2px">Herramienta</div><div style="font-size:17px;font-weight:800;color:#fff">Calculadora</div></div>'+
+    '<div style="padding:16px">'+
+    '<div style="background:#1C1917;border-radius:10px;padding:14px 18px;margin-bottom:12px;text-align:right">'+
+    '<div id="calc-expr" style="font-size:11px;color:#666;min-height:16px;margin-bottom:4px"></div>'+
+    '<div id="calc-display" style="font-size:28px;font-weight:800;color:#fff">0</div></div>'+
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">'+bHtml+'</div></div></div>'+
+    // Bruto/Neto
+    '<div style="background:#fff;border-radius:14px;border:1px solid var(--border);overflow:hidden">'+
+    '<div style="background:var(--dark);padding:14px 18px"><div style="font-size:9px;color:var(--gold);letter-spacing:.15em;font-weight:700;text-transform:uppercase;margin-bottom:2px">Herramienta</div><div style="font-size:17px;font-weight:800;color:#fff">Bruto / Neto IVA 19%</div></div>'+
+    '<div style="padding:16px;display:flex;flex-direction:column;gap:12px">'+
+    '<div style="background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:10px;padding:14px">'+
+    '<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#166534;margin-bottom:8px">Valor con IVA - Sin IVA</div>'+
+    '<div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">'+
+    '<div style="flex:1"><label style="font-size:10px;color:#666;font-weight:600">Ingresa valor bruto ($)</label>'+
+    '<input type="number" id="inp-bruto" placeholder="119000" min="0" style="width:100%;margin-top:4px;background:#fff;border:1.5px solid #BBF7D0;border-radius:8px;padding:10px;font-size:15px;font-weight:700;color:var(--dark);font-family:inherit" oninput="calcBN()"></div>'+
+    '<div style="flex:1"><label style="font-size:10px;color:#666;font-weight:600">Neto (sin IVA)</label>'+
+    '<div id="res-neto" style="margin-top:4px;background:#1C1917;border-radius:8px;padding:10px;font-size:17px;font-weight:800;color:#86EFAC;min-height:42px">-</div></div></div>'+
+    '<div id="det-bruto" style="margin-top:8px;font-size:11px;color:#166534;display:none"></div></div>'+
+    '<div style="background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:10px;padding:14px">'+
+    '<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#1E40AF;margin-bottom:8px">Valor sin IVA - Con IVA</div>'+
+    '<div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">'+
+    '<div style="flex:1"><label style="font-size:10px;color:#666;font-weight:600">Ingresa valor neto ($)</label>'+
+    '<input type="number" id="inp-neto" placeholder="100000" min="0" style="width:100%;margin-top:4px;background:#fff;border:1.5px solid #BFDBFE;border-radius:8px;padding:10px;font-size:15px;font-weight:700;color:var(--dark);font-family:inherit" oninput="calcNB()"></div>'+
+    '<div style="flex:1"><label style="font-size:10px;color:#666;font-weight:600">Bruto (con IVA)</label>'+
+    '<div id="res-bruto" style="margin-top:4px;background:#1C1917;border-radius:8px;padding:10px;font-size:17px;font-weight:800;color:#93C5FD;min-height:42px">-</div></div></div>'+
+    '<div id="det-neto" style="margin-top:8px;font-size:11px;color:#1E40AF;display:none"></div></div>'+
+    '<div style="background:#FEF9C3;border:1px solid #FDE68A;border-radius:8px;padding:10px 13px;font-size:11px;color:#854D0E">IVA 19% - Bruto / 1.19 = Neto - Neto x 1.19 = Bruto</div>'+
+    '</div></div>'+
+    // Comision automatica
+    '<div style="background:#fff;border-radius:14px;border:1px solid var(--border);overflow:hidden;grid-column:1/-1">'+
+    '<div style="background:var(--dark);padding:14px 18px;display:flex;justify-content:space-between;align-items:center">'+
+    '<div><div style="font-size:9px;color:var(--gold);letter-spacing:.15em;font-weight:700;text-transform:uppercase;margin-bottom:2px">Herramienta</div><div style="font-size:17px;font-weight:800;color:#fff">Calculador de Comision</div></div>'+
+    '<div style="font-size:11px;color:#666">Monto + % comision = total automatico</div></div>'+
+    '<div style="padding:20px"><div style="display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:12px;align-items:end">'+
+    '<div><label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;color:var(--gold);margin-bottom:6px">Monto ($)</label>'+
+    '<input type="number" id="cc-monto" placeholder="100000" min="0" style="width:100%;background:#F7F5F0;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-size:18px;font-weight:700;color:var(--dark);font-family:inherit" oninput="calcComAuto()"></div>'+
+    '<div style="text-align:center;font-size:22px;color:#aaa;padding-bottom:10px">x</div>'+
+    '<div><label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;color:#1E40AF;margin-bottom:6px">Comision (%) '+
+    '<button data-pct="2" onclick="setPct(this)" style="background:#EFF6FF;color:#1E40AF;border:1px solid #BFDBFE;border-radius:4px;padding:1px 6px;font-size:9px;font-weight:700;cursor:pointer">2%</button> '+
+    '<button data-pct="6" onclick="setPct(this)" style="background:#FEF3E2;color:#C8973A;border:1px solid #F0DEB4;border-radius:4px;padding:1px 6px;font-size:9px;font-weight:700;cursor:pointer">6%</button> '+
+    '<button data-pct="19" onclick="setPct(this)" style="background:#F3E8FF;color:#6D28D9;border:1px solid #DDD6FE;border-radius:4px;padding:1px 6px;font-size:9px;font-weight:700;cursor:pointer">19%</button></label>'+
+    '<input type="number" id="cc-pct" placeholder="2" min="0" max="100" step="0.5" value="2" style="width:100%;background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:10px;padding:12px 14px;font-size:18px;font-weight:700;color:#1E40AF;font-family:inherit" oninput="calcComAuto()"></div>'+
+    '<div style="text-align:center;font-size:22px;color:#aaa;padding-bottom:10px">=</div>'+
+    '<div><label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;color:var(--teal);margin-bottom:6px">Total con Comision</label>'+
+    '<div id="cc-total" style="background:#1C1917;border-radius:10px;padding:12px 14px;font-size:22px;font-weight:800;color:#5EEAD4;min-height:50px;display:flex;align-items:center">-</div></div></div>'+
+    '<div id="cc-detalle" style="display:none;margin-top:14px">'+
+    '<div style="background:#F7F5F0;border-radius:10px;padding:14px 18px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px">'+
+    '<div style="text-align:center"><div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Monto Base</div><div id="cc-base" style="font-size:18px;font-weight:800">-</div></div>'+
+    '<div style="text-align:center;border-left:1px solid var(--border);border-right:1px solid var(--border)"><div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Comision</div><div id="cc-com" style="font-size:18px;font-weight:800;color:var(--gold)">-</div></div>'+
+    '<div style="text-align:center"><div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Total</div><div id="cc-tot2" style="font-size:18px;font-weight:800;color:var(--teal)">-</div></div>'+
+    '</div></div></div></div>'+
+    '</div>';
+}
+
+// ============================================================
+// VISTA PDF
+// ============================================================
+function buildVistaPDF(filt, cp) {
+  var tV = filt.reduce(function(s,v){return s+v.montoBase;},0);
+  var tC = filt.reduce(function(s,v){return s+comF(v.montoBase,v.comision);},0);
+  var sorted = filt.slice().sort(function(a,b){return b.fecha.localeCompare(a.fecha);});
+  var rows = sorted.map(function(v){
+    var co = comF(v.montoBase,v.comision);
+    return '<tr><td>'+fDate(v.fecha)+'</td><td>'+v.cliente+'</td><td>'+v.producto+'</td><td>'+v.formaPago+'</td>'+
+      '<td class="r">'+fmt(v.montoBase)+'</td><td class="r" style="color:var(--gold)">'+fmt(co)+'</td>'+
+      '<td class="c">'+(v.factura?'Si':'-')+'</td></tr>';
+  }).join('');
+  return '<div class="fade" style="background:#E0DCDC;border-radius:12px;overflow:hidden">'+
+    '<div style="background:#2D2D2D;padding:10px 20px;display:flex;justify-content:space-between;align-items:center">'+
+    '<span style="color:#fff;font-size:12px;font-weight:600">Vista Previa PDF - '+filt.length+' registros</span>'+
+    '<button class="act-btn" style="background:var(--gold);border-color:var(--gold);color:#fff;padding:5px 14px;font-size:11px" onclick="exportPDF()">Descargar PDF</button></div>'+
+    '<div style="padding:24px;display:flex;justify-content:center">'+
+    '<div style="background:#fff;width:100%;max-width:860px;padding:32px 36px;box-shadow:0 4px 24px rgba(0,0,0,.18)">'+
+    '<div style="background:#1C1917;border-radius:6px;padding:16px 20px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">'+
+    '<div><div style="font-size:18px;font-weight:800;color:#fff">SUBLIPRO - VENTAS</div>'+
+    '<div style="font-size:10px;color:#C8973A;margin-top:3px">Comision '+cp+'% - Webpay +'+COM_WP_PCT+'%</div></div>'+
+    '<div style="text-align:right;font-size:10px;color:#C8973A">'+new Date().toLocaleDateString("es-CO")+'</div></div>'+
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">'+
+    '<div style="background:#F7F5F0;border:1px solid #E7E2D9;border-radius:6px;padding:10px 14px"><div style="font-size:9px;color:#888;text-transform:uppercase;margin-bottom:3px">N Ventas</div><div style="font-size:18px;font-weight:800;color:#1E40AF">'+filt.length+'</div></div>'+
+    '<div style="background:#F7F5F0;border:1px solid #E7E2D9;border-radius:6px;padding:10px 14px"><div style="font-size:9px;color:#888;text-transform:uppercase;margin-bottom:3px">Total Ventas</div><div style="font-size:18px;font-weight:800;color:#166534">'+fmt(tV)+'</div></div>'+
+    '<div style="background:#F7F5F0;border:1px solid #E7E2D9;border-radius:6px;padding:10px 14px"><div style="font-size:9px;color:#888;text-transform:uppercase;margin-bottom:3px">Total Comision</div><div style="font-size:18px;font-weight:800;color:#C8973A">'+fmt(tC)+'</div></div>'+
+    '</div>'+
+    '<table style="width:100%;border-collapse:collapse;font-size:11px">'+
+    '<thead><tr style="background:#1C1917"><th style="padding:6px 8px;text-align:left;font-size:9px;color:#C8973A">Fecha</th><th style="padding:6px 8px;text-align:left;font-size:9px;color:#C8973A">Cliente</th><th style="padding:6px 8px;text-align:left;font-size:9px;color:#C8973A">Producto</th><th style="padding:6px 8px;text-align:left;font-size:9px;color:#C8973A">Forma Pago</th><th style="padding:6px 8px;text-align:right;font-size:9px;color:#C8973A">Venta</th><th style="padding:6px 8px;text-align:right;font-size:9px;color:#C8973A">Comision</th><th style="padding:6px 8px;text-align:center;font-size:9px;color:#C8973A">Fact.</th></tr></thead>'+
+    '<tbody>'+rows+'</tbody>'+
+    '<tfoot><tr style="background:#1C1917"><td colspan="4" style="padding:8px;font-size:9px;color:#666;font-weight:700;text-transform:uppercase">TOTALES</td>'+
+    '<td style="padding:8px;text-align:right;font-weight:800;color:#86EFAC">'+fmt(tV)+'</td>'+
+    '<td style="padding:8px;text-align:right;font-weight:800;color:#C8973A">'+fmt(tC)+'</td><td></td></tr></tfoot>'+
+    '</table>'+
+    '<div style="margin-top:16px;text-align:right;font-size:9px;color:#aaa;border-top:1px solid #E7E2D9;padding-top:8px">SUBLIPRO - Informe generado automaticamente</div>'+
+    '</div></div></div>';
+}
+
+// ============================================================
+// VISTA EXCEL
+// ============================================================
+function buildVistaExcel(filt, cp, xlTab) {
+  var tV = filt.reduce(function(s,v){return s+v.montoBase;},0);
+  var tC = filt.reduce(function(s,v){return s+comF(v.montoBase,v.comision);},0);
+  var sorted = filt.slice().sort(function(a,b){return b.fecha.localeCompare(a.fecha);});
+  var rows = sorted.map(function(v,i){
+    var co = comF(v.montoBase,v.comision);
+    return '<tr style="background:'+(i%2===0?'#fff':'#FAFAF8')+'">'+
+      '<td style="padding:5px 10px;font-size:11px;color:#888;border-bottom:1px solid #F0EAE0">'+fDate(v.fecha)+'</td>'+
+      '<td style="padding:5px 10px;font-size:12px;font-weight:600;border-bottom:1px solid #F0EAE0">'+v.cliente+'</td>'+
+      '<td style="padding:5px 10px;border-bottom:1px solid #F0EAE0"><span class="tag">'+v.producto+'</span></td>'+
+      '<td style="padding:5px 10px;font-size:11px;border-bottom:1px solid #F0EAE0">'+v.formaPago+'</td>'+
+      '<td style="padding:5px 10px;text-align:right;font-size:12px;font-weight:600;border-bottom:1px solid #F0EAE0">'+fmt(v.montoBase)+'</td>'+
+      '<td style="padding:5px 10px;text-align:right;font-size:12px;font-weight:600;color:#C8973A;border-bottom:1px solid #F0EAE0">'+fmt(co)+'</td>'+
+      '<td style="padding:5px 10px;text-align:center;font-size:11px;border-bottom:1px solid #F0EAE0">'+(v.factura?'Si':'-')+'</td></tr>';
+  }).join('');
+  var t1 = '<button data-xl="detalle" onclick="goXl(this)" style="background:'+(xlTab==='detalle'?'#fff':'#D0D0D0')+';border:1px solid #aaa;border-bottom:none;padding:5px 16px;font-size:11px;font-weight:'+(xlTab==='detalle'?700:400)+';cursor:pointer;color:'+(xlTab==='detalle'?'#1D6F42':'#555')+';border-radius:4px 4px 0 0">Registro de Ventas</button>';
+  var t2 = '<button data-xl="resumen" onclick="goXl(this)" style="background:'+(xlTab==='resumen'?'#fff':'#D0D0D0')+';border:1px solid #aaa;border-bottom:none;padding:5px 16px;font-size:11px;font-weight:'+(xlTab==='resumen'?700:400)+';cursor:pointer;color:'+(xlTab==='resumen'?'#1D6F42':'#555')+';border-radius:4px 4px 0 0">Resumen</button>';
+  var content = '';
+  if (xlTab==='detalle') {
+    content = '<div style="background:#1C1917;padding:10px 16px"><div style="font-size:13px;font-weight:800;color:#fff">SUBLIPRO - REGISTRO DE VENTAS MAYO 2026</div></div>'+
+      '<table style="width:100%;border-collapse:collapse;min-width:600px">'+
+      '<thead><tr style="background:#C8973A"><th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Fecha</th><th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Cliente</th><th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Producto</th><th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Forma Pago</th><th style="padding:8px 10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Venta</th><th style="padding:8px 10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Comision</th><th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Fact.</th></tr></thead>'+
+      '<tbody>'+rows+'</tbody>'+
+      '<tfoot><tr style="background:#1C1917"><td colspan="4" style="padding:9px 10px;font-size:9px;font-weight:700;color:#666;text-transform:uppercase">TOTALES</td>'+
+      '<td style="padding:9px 10px;text-align:right;font-size:13px;font-weight:800;color:#86EFAC">'+fmt(tV)+'</td>'+
+      '<td style="padding:9px 10px;text-align:right;font-size:13px;font-weight:800;color:#C8973A">'+fmt(tC)+'</td><td></td></tr></tfoot></table>';
+  } else {
+    content = '<div style="background:#1C1917;padding:10px 16px"><div style="font-size:13px;font-weight:800;color:#fff">RESUMEN - MAYO 2026</div></div>'+
+      '<div style="display:grid;grid-template-columns:repeat(3,1fr);border-bottom:2px solid #C8973A">'+
+      '<div style="padding:12px 16px"><div style="font-size:9px;color:#888;text-transform:uppercase;margin-bottom:3px">Total Ventas</div><div style="font-size:18px;font-weight:800;color:#1E40AF">'+filt.length+'</div></div>'+
+      '<div style="padding:12px 16px;border-left:1px solid #E7E2D9"><div style="font-size:9px;color:#888;text-transform:uppercase;margin-bottom:3px">Monto Ventas</div><div style="font-size:18px;font-weight:800;color:#166534">'+fmt(tV)+'</div></div>'+
+      '<div style="padding:12px 16px;border-left:1px solid #E7E2D9"><div style="font-size:9px;color:#888;text-transform:uppercase;margin-bottom:3px">Total Comision</div><div style="font-size:18px;font-weight:800;color:#C8973A">'+fmt(tC)+'</div></div></div>';
+  }
+  return '<div class="fade" style="background:#1D6F42;border-radius:12px;overflow:hidden">'+
+    '<div style="background:#1D6F42;padding:10px 20px;display:flex;justify-content:space-between;align-items:center">'+
+    '<span style="color:#fff;font-size:12px;font-weight:600">Vista Previa Excel - '+filt.length+' registros</span>'+
+    '<button class="act-btn" style="background:#fff;border-color:#fff;color:#1D6F42;padding:5px 14px;font-size:11px;font-weight:700" onclick="exportCSV()">Descargar Excel/CSV</button></div>'+
+    '<div style="background:#F0F0F0;padding:0 16px;display:flex;gap:2px;border-bottom:2px solid #1D6F42">'+t1+t2+'</div>'+
+    '<div style="background:#fff">'+content+'</div></div>';
+}
+
+// ============================================================
+// FORMULARIO MODAL
+// ============================================================
+function buildForm(form, editId, cp) {
+  var base = +form.montoBase || 0;
+  var pct  = +form.comision  || cp;
+  var esWP = form.formaPago === WEBPAY;
+  var wp   = esWP ? comWP(base, form.formaPago) : 0;
+  var co   = base ? comF(base, pct) : 0;
+
+  var prodOpts = PRODUCTOS.map(function(p){ return '<option value="'+p+'" '+(form.producto===p?'selected':'')+'>'+p+'</option>'; }).join('');
+  var fpOpts   = FORMAS_PAGO.map(function(f){ return '<option value="'+f+'" '+(form.formaPago===f?'selected':'')+'>'+f+'</option>'; }).join('');
+
+  var wpAlert = esWP ? '<div class="span2" style="background:#EFF6FF;border:1.5px solid #1E40AF;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px">'+
+    '<div style="font-size:22px">Webpay</div><div style="flex:1">'+
+    '<div style="font-size:12px;font-weight:700;color:#1E40AF;margin-bottom:4px">Comision tarjeta Webpay: '+COM_WP_PCT+'%</div>'+
+    '<div style="font-size:12px">Precio base: <strong>'+fmt(base)+'</strong> + Comision tarjeta: <strong style="color:#1E40AF">'+fmt(wp)+'</strong> = Cliente paga: <strong>'+fmt(base+wp)+'</strong></div>'+
+    '</div></div>' : '';
+
+  var comBox = '<div id="form-com-box" class="span2" style="display:'+(base?'block':'none')+';background:#1C1917;border-radius:10px;padding:14px 18px">'+
+    '<div style="font-size:9px;color:#5EEAD4;text-transform:uppercase;letter-spacing:.09em;font-weight:700;margin-bottom:10px">Resumen antes de guardar</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">'+
+    '<div style="background:#2C2926;border-radius:8px;padding:10px 12px;text-align:center"><div style="font-size:9px;color:#888;margin-bottom:4px;text-transform:uppercase">Venta</div><div id="fcb-venta" style="font-size:18px;font-weight:800;color:#86EFAC">'+fmt(base)+'</div></div>'+
+    '<div style="background:#2C2926;border-radius:8px;padding:10px 12px;text-align:center"><div style="font-size:9px;color:#888;margin-bottom:4px;text-transform:uppercase">Comision</div><div id="fcb-com" style="font-size:18px;font-weight:800;color:#C8973A">'+fmt(co)+' ('+pct+'%)</div></div>'+
+    '<div style="background:#0C3530;border-radius:8px;padding:10px 12px;text-align:center;border:1.5px solid #0D7A6B"><div style="font-size:9px;color:#5EEAD4;margin-bottom:4px;text-transform:uppercase">Webpay 2%</div><div id="fcb-wp" style="font-size:18px;font-weight:800;color:'+(esWP?'#5EEAD4':'#555')+'">'+( esWP?fmt(wp)+' (2%)':'No aplica')+'</div></div>'+
+    '</div></div>';
+
+  return '<div class="modal-bg" id="modal-bg"><div class="modal fade">'+
+    '<h2>'+(editId?'Editar':'Registrar')+' Venta</h2>'+
+    '<div class="grid2">'+
+    '<div class="fld"><label>Fecha</label><input type="date" value="'+form.fecha+'" data-field="fecha"    onchange="ufld(this)"></div>'+
+    '<div class="fld"><label>Forma de Pago</label><select data-field="formaPago" onchange="ufld(this)">'+fpOpts+'</select></div>'+
+    '<div class="fld span2"><label>Cliente</label><input type="text" id="f-cliente" placeholder="Nombre del cliente" value="'+form.cliente+'" oninput="state.form.cliente=this.value"></div>'+
+    '<div class="fld span2"><label>Producto</label><select data-field="producto"  onchange="ufld(this)">'+prodOpts+'</select></div>'+
+    '<div class="fld"><label>Monto ($)</label><input type="number" id="f-monto" placeholder="0" min="0" value="'+form.montoBase+'" oninput="state.form.montoBase=this.value;updatePreview()"></div>'+
+    '<div class="fld"><label>Comision (%) <span style="color:#aaa;font-weight:400;font-size:10px">def. '+cp+'%</span></label>'+
+    '<input type="number" id="f-com" placeholder="'+cp+'" min="0" max="100" step="0.5" value="'+form.comision+'" oninput="state.form.comision=this.value;updatePreview()"></div>'+
+    wpAlert +
+    '<div class="span2" style="background:#F5F3FF;border:1.5px solid #DDD6FE;border-radius:10px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between">'+
+    '<div><div style="font-size:13px;font-weight:600;color:var(--purple)">Requiere factura?</div>'+
+    '<div style="font-size:11px;color:var(--muted);margin-top:2px">Factura electronica</div></div>'+
+    '<button class="toggle '+(form.factura?'on':'')+' fac-toggle" data-field="factura" data-val="'+(form.factura?'false':'true')+'" onclick="ufldv(this)"></button></div>'+
+    comBox +
+    '</div>'+
+    '<div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end">'+
+    '<button class="act-btn" onclick="setState({showForm:false,editId:null})">Cancelar</button>'+
+    '<button class="act-btn primary" onclick="submitForm()">'+(editId?'Guardar Cambios':'Registrar Venta')+'</button>'+
+    '</div></div></div>';
+}
+
+function buildDel() {
+  return '<div class="modal-bg"><div class="modal fade" style="max-width:340px;text-align:center">'+
+    '<div style="font-size:34px;margin-bottom:10px">Eliminar</div>'+
+    '<h3 style="margin-bottom:8px">Eliminar esta venta?</h3>'+
+    '<p style="font-size:13px;color:var(--muted);margin-bottom:18px">Esta accion no se puede deshacer.</p>'+
+    '<div style="display:flex;gap:10px;justify-content:center">'+
+    '<button class="act-btn" onclick="setState({delId:null})">Cancelar</button>'+
+    '<button class="act-btn" style="background:var(--red);border-color:var(--red);color:#fff" onclick="confirmDel()">Eliminar</button>'+
+    '</div></div></div>';
+}
+
+// ============================================================
+// ACCIONES
+// ============================================================
+function openForm() {
+  state.form = {fecha:new Date().toISOString().slice(0,10),cliente:"",producto:PRODUCTOS[0],formaPago:FORMAS_PAGO[0],montoBase:"",comision:""+state.comDefPct,factura:false};
+  setState({showForm:true, editId:null});
+}
+
+function openEdit(id) {
+  var v = state.ventas.find(function(x){return x.id===id;});
+  state.form = {fecha:v.fecha,cliente:v.cliente,producto:v.producto,formaPago:v.formaPago,montoBase:""+v.montoBase,comision:""+v.comision,factura:v.factura};
+  setState({showForm:true, editId:id});
+}
+
+function submitForm() {
+  var ci = document.getElementById('f-cliente');
+  var mi = document.getElementById('f-monto');
+  var coi= document.getElementById('f-com');
+  if (ci)  state.form.cliente   = ci.value;
+  if (mi)  state.form.montoBase = mi.value;
+  if (coi) state.form.comision  = coi.value;
+  var f = state.form;
+  if (!f.fecha || !f.cliente || !f.montoBase) return;
+  var entry = {
+    id:       state.editId || Date.now(),
+    fecha:    f.fecha,
+    cliente:  f.cliente,
+    producto: f.producto,
+    formaPago:f.formaPago,
+    montoBase:+f.montoBase,
+    comision: +f.comision || state.comDefPct,
+    factura:  f.factura
+  };
+  if (state.editId) {
+    state.ventas = state.ventas.map(function(x){ return x.id===state.editId ? entry : x; });
+  } else {
+    state.ventas = state.ventas.concat([entry]);
+  }
+  guardarDatos();
+  setState({showForm:false, editId:null});
+}
+
+function confirmDel() {
+  state.ventas = state.ventas.filter(function(x){ return x.id !== state.delId; });
+  guardarDatos();
+  setState({delId:null});
+}
+
+// ============================================================
+// CALCULADORAS
+// ============================================================
+var calcState = {display:"0", expr:"", prev:null, op:null, reset:false};
+
+function calcBtn(btn) {
+  var s = calcState;
+  var d = document.getElementById("calc-display");
+  var e = document.getElementById("calc-expr");
+  if (!d) return;
+  if (btn==="C") {
+    s.display="0"; s.expr=""; s.prev=null; s.op=null; s.reset=false;
+  } else if (btn==="+-") {
+    s.display = s.display==="0" ? "0" : ""+(-parseFloat(s.display));
+  } else if (btn==="%") {
+    s.display = ""+(parseFloat(s.display)/100);
+  } else if (btn==="/" || btn==="x" || btn==="-" || btn==="+") {
+    s.prev = parseFloat(s.display); s.op = btn;
+    s.expr = s.display+" "+btn; s.reset = true;
+  } else if (btn==="=") {
+    if (s.op && s.prev !== null) {
+      var cur = parseFloat(s.display);
+      var res;
+      if (s.op==="/") res = cur===0 ? "Error" : s.prev/cur;
+      else if (s.op==="x") res = s.prev*cur;
+      else if (s.op==="-") res = s.prev-cur;
+      else res = s.prev+cur;
+      s.expr = s.expr+" "+s.display+" =";
+      s.display = res==="Error" ? "Error" : ""+parseFloat(res.toFixed(10));
+      s.op=null; s.prev=null; s.reset=true;
+    }
+  } else if (btn===".") {
+    if (s.reset) { s.display="0."; s.reset=false; }
+    else if (s.display.indexOf(".")===-1) s.display+=".";
+  } else {
+    if (s.reset || s.display==="0") { s.display=btn; s.reset=false; }
+    else if (s.display.length<15) s.display+=btn;
+  }
+  var num = parseFloat(s.display);
+  var disp = s.display==="Error" ? "Error"
+    : isNaN(num) ? s.display
+    : s.display.slice(-1)==="." ? num.toLocaleString("es-CO")+"."
+    : s.display.indexOf(".")!==-1 ? num.toLocaleString("es-CO",{minimumFractionDigits:s.display.split(".")[1].length})
+    : num.toLocaleString("es-CO");
+  d.textContent = disp;
+  if (e) e.textContent = s.expr;
+}
+
+function calcBN() {
+  var v  = +document.getElementById("inp-bruto").value;
+  var rn = document.getElementById("res-neto");
+  var dd = document.getElementById("det-bruto");
+  if (!v || isNaN(v)) { rn.textContent="-"; if(dd) dd.style.display="none"; return; }
+  var neto = Math.round(v/1.19);
+  var iva  = v - neto;
+  rn.textContent = fmt(neto);
+  if (dd) { dd.innerHTML = "IVA incluido: <strong>"+fmt(iva)+"</strong> Neto: <strong>"+fmt(neto)+"</strong>"; dd.style.display="block"; }
+}
+
+function calcNB() {
+  var v  = +document.getElementById("inp-neto").value;
+  var rb = document.getElementById("res-bruto");
+  var dd = document.getElementById("det-neto");
+  if (!v || isNaN(v)) { rb.textContent="-"; if(dd) dd.style.display="none"; return; }
+  var bruto = Math.round(v*1.19);
+  var iva   = bruto - v;
+  rb.textContent = fmt(bruto);
+  if (dd) { dd.innerHTML = "Neto: <strong>"+fmt(v)+"</strong> + IVA: <strong>"+fmt(iva)+"</strong>"; dd.style.display="block"; }
+}
+
+function calcComAuto() {
+  var monto  = +document.getElementById("cc-monto").value;
+  var pct    = +document.getElementById("cc-pct").value;
+  var tot    = document.getElementById("cc-total");
+  var det    = document.getElementById("cc-detalle");
+  var base   = document.getElementById("cc-base");
+  var com    = document.getElementById("cc-com");
+  var tot2   = document.getElementById("cc-tot2");
+  if (!monto || isNaN(monto) || isNaN(pct)) { if(tot) tot.textContent="-"; if(det) det.style.display="none"; return; }
+  var comVal   = Math.round(monto*pct/100);
+  var totalVal = monto + comVal;
+  if (tot)  tot.textContent  = fmt(totalVal);
+  if (base) base.textContent = fmt(monto);
+  if (com)  com.textContent  = fmt(comVal);
+  if (tot2) tot2.textContent = fmt(totalVal);
+  if (det)  det.style.display = "block";
+}
+
+// ============================================================
+// EXPORTAR
+// ============================================================
+function exportCSV() {
+  var filt = state.filtroMes ? state.ventas.filter(function(v){ return v.fecha.slice(0,7)===state.filtroMes; }) : state.ventas;
+  var cols = ["Fecha","Cliente","Producto","Forma Pago","Venta","Webpay 2%","Comision %","Comision $","Factura"];
+  var rows = filt.slice().sort(function(a,b){return a.fecha.localeCompare(b.fecha);}).map(function(v){
+    var wp = comWP(v.montoBase, v.formaPago);
+    return [v.fecha,v.cliente,v.producto,v.formaPago,v.montoBase,wp>0?wp:"",v.comision+"%",comF(v.montoBase,v.comision),v.factura?"Si":"No"];
+  });
+  var tV = filt.reduce(function(s,v){return s+v.montoBase;},0);
+  var tC = filt.reduce(function(s,v){return s+comF(v.montoBase,v.comision);},0);
+  rows.push(["","","","TOTALES",tV,"","",tC,""]);
+  var csv = [cols].concat(rows).map(function(r){ return r.join(","); }).join("\n");
+  var a = document.createElement("a");
+  a.href = "data:text/csv;charset=utf-8,\uFEFF"+encodeURIComponent(csv);
+  a.download = "SUBLIPRO_Ventas.csv";
+  a.click();
+  setState({exportMsg:"Exportado "+filt.length+" registros"});
+  setTimeout(function(){ setState({exportMsg:""}); }, 3000);
+}
+
+function exportPDF() {
+  var filt = state.filtroMes ? state.ventas.filter(function(v){ return v.fecha.slice(0,7)===state.filtroMes; }) : state.ventas;
+  var tV = filt.reduce(function(s,v){return s+v.montoBase;},0);
+  var tC = filt.reduce(function(s,v){return s+comF(v.montoBase,v.comision);},0);
+  var rows = filt.slice().sort(function(a,b){return b.fecha.localeCompare(a.fecha);}).map(function(v){
+    var co = comF(v.montoBase,v.comision);
+    return "<tr><td>"+fDate(v.fecha)+"</td><td>"+v.cliente+"</td><td>"+v.producto+"</td><td>"+v.formaPago+"</td><td style='text-align:right'>"+fmt(v.montoBase)+"</td><td style='text-align:right;color:#C8973A'>"+fmt(co)+"</td><td style='text-align:center'>"+(v.factura?"Si":"-")+"</td></tr>";
+  }).join("");
+  var html_pdf = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>SUBLIPRO Ventas</title>"+
+    "<style>body{font-family:Arial,sans-serif;padding:20px;font-size:12px}table{width:100%;border-collapse:collapse}"+
+    "th{background:#1C1917;color:#C8973A;padding:7px 8px;text-align:left;font-size:10px}"+
+    "td{padding:5px 8px;border-bottom:1px solid #eee}tr:nth-child(even) td{background:#fafafa}"+
+    ".hdr{background:#1C1917;color:#fff;padding:16px;margin-bottom:12px;display:flex;justify-content:space-between}"+
+    ".kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}"+
+    ".kpi{background:#f5f5f5;padding:10px;border-radius:4px}.kpi .l{font-size:9px;color:#888;text-transform:uppercase}.kpi .v{font-size:16px;font-weight:800}"+
+    "@media print{body{padding:0}}</style></head><body>"+
+    "<div class='hdr'><div><div style='font-size:18px;font-weight:800'>SUBLIPRO - VENTAS</div>"+
+    "<div style='color:#C8973A;font-size:10px'>Comision "+state.comDefPct+"% - Webpay +"+COM_WP_PCT+"%</div></div>"+
+    "<div style='color:#C8973A;font-size:10px'>"+new Date().toLocaleDateString("es-CO")+"</div></div>"+
+    "<div class='kpis'>"+
+    "<div class='kpi'><div class='l'>N Ventas</div><div class='v' style='color:#1E40AF'>"+filt.length+"</div></div>"+
+    "<div class='kpi'><div class='l'>Total Ventas</div><div class='v' style='color:#166534'>"+fmt(tV)+"</div></div>"+
+    "<div class='kpi'><div class='l'>Total Comision</div><div class='v' style='color:#C8973A'>"+fmt(tC)+"</div></div></div>"+
+    "<table><thead><tr><th>Fecha</th><th>Cliente</th><th>Producto</th><th>Forma Pago</th><th style='text-align:right'>Venta</th><th style='text-align:right'>Comision</th><th style='text-align:center'>Fact.</th></tr></thead>"+
+    "<tbody>"+rows+"</tbody>"+
+    "<tfoot><tr style='background:#1C1917'><td colspan='4' style='padding:8px;color:#666;font-weight:700'>TOTALES</td>"+
+    "<td style='padding:8px;text-align:right;color:#86EFAC;font-weight:800'>"+fmt(tV)+"</td>"+
+    "<td style='padding:8px;text-align:right;color:#C8973A;font-weight:800'>"+fmt(tC)+"</td><td></td></tr></tfoot></table>"+
+    "<script>window.onload=function(){window.print();}<\/script></body></html>";
+  var blob = new Blob([html_pdf], {type:"text/html;charset=utf-8"});
+  var url  = URL.createObjectURL(blob);
+  var win  = window.open(url,"_blank");
+  if (!win) alert("Permite las ventanas emergentes para imprimir.");
+  else win.addEventListener("load", function(){ setTimeout(function(){ URL.revokeObjectURL(url); }, 2000); });
+}
+
+// ============================================================
+// INICIO
+// ============================================================
+render();
+</script>
+</body>
+</html>

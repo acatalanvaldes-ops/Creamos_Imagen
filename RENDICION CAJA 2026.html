@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rendición de Cuentas 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f0ede8;--white:#fff;--border:#ddd9d0;--border2:#c8c3b8;
+  --ink:#1e1b16;--muted:#8a8374;--accent:#2c5f2e;--accent-l:#e8f5e9;
+  --green:#1b5e20;--blue:#0d47a1;--amber:#e65100;--red:#b71c1c;
+  --purple:#6a1b9a;--teal:#00695c;
+  --mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;
+}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);min-height:100vh}
+
+/* TOPBAR */
+.topbar{background:var(--accent);color:#fff;display:flex;align-items:center;
+  padding:0 28px;height:52px;gap:20px;position:sticky;top:0;z-index:300;
+  box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.topbar-brand{font-size:15px;font-weight:700;letter-spacing:-.3px;display:flex;align-items:center;gap:9px}
+.topbar-brand .yr{font-family:var(--mono);font-size:12px;background:rgba(255,255,255,.18);padding:2px 8px;border-radius:20px}
+.topbar-tabs{display:flex;height:100%;gap:2px;margin-left:16px}
+.ttab{background:none;border:none;color:rgba(255,255,255,.6);font-family:var(--sans);font-size:13px;
+  font-weight:600;padding:0 18px;cursor:pointer;border-bottom:3px solid transparent;transition:all .15s}
+.ttab:hover{color:rgba(255,255,255,.9)}
+.ttab.on{color:#fff;border-bottom-color:#a5d6a7}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.btn-xl{background:#a5d6a7;color:var(--accent);border:none;font-family:var(--sans);font-size:12px;
+  font-weight:700;padding:7px 15px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .15s}
+.btn-xl:hover{background:#c8e6c9}
+.btn-clear{background:rgba(255,255,255,.12);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.2);
+  font-family:var(--sans);font-size:11px;font-weight:600;padding:5px 12px;border-radius:6px;cursor:pointer;transition:all .15s}
+.btn-clear:hover{background:rgba(255,100,100,.3);color:#fff}
+
+/* PANELS */
+.panel{display:none}.panel.on{display:block}
+#p-rend{display:none;flex-direction:row;height:calc(100vh - 52px)}
+#p-rend.on{display:flex}
+#p-prev{display:none;flex-direction:column;padding:24px 28px;gap:18px;min-height:calc(100vh - 52px);background:var(--bg)}
+#p-prev.on{display:flex}
+#p-summ{display:none;flex-direction:column;padding:24px 28px;gap:20px;min-height:calc(100vh - 52px)}
+#p-summ.on{display:flex}
+
+/* ACCORDION SIDEBAR */
+.months-col{width:200px;min-width:200px;background:var(--white);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
+.months-col-head{padding:14px 16px 8px;font-family:var(--mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);background:#faf9f6}
+.month-acc{border-bottom:1px solid var(--border)}
+.month-acc-hd{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;cursor:pointer;transition:background .12s;user-select:none;gap:8px}
+.month-acc-hd:hover{background:#f5f3ee}
+.month-acc-hd.open{background:var(--accent-l)}
+.month-acc-hd .m-name{font-size:13px;font-weight:600;color:var(--ink);flex:1}
+.month-acc-hd.open .m-name{color:var(--accent)}
+.month-acc-hd .m-badge{font-family:var(--mono);font-size:10px;background:var(--border);color:var(--muted);padding:2px 6px;border-radius:10px}
+.month-acc-hd.open .m-badge{background:var(--accent);color:#fff}
+.month-acc-hd .m-arrow{font-size:10px;color:var(--muted);transition:transform .2s}
+.month-acc-hd.open .m-arrow{transform:rotate(90deg);color:var(--accent)}
+.month-acc-body{display:none;background:#fafaf7;border-top:1px solid var(--border);max-height:260px;overflow-y:auto}
+.month-acc-body.open{display:block}
+.day-item{display:flex;align-items:center;justify-content:space-between;padding:6px 14px 6px 22px;cursor:pointer;font-size:12px;color:var(--muted);transition:background .1s;border-bottom:1px solid #eeeae3;gap:6px}
+.day-item:last-child{border-bottom:none}
+.day-item:hover{background:#eef5ee;color:var(--ink)}
+.day-item.active{background:var(--accent);color:#fff;font-weight:600}
+.day-item .day-label{flex:1;font-family:var(--mono);font-size:11px}
+.day-item .day-count{font-family:var(--mono);font-size:9px;background:rgba(0,0,0,.08);padding:1px 5px;border-radius:8px}
+.day-item.active .day-count{background:rgba(255,255,255,.25)}
+.months-col-footer{margin-top:auto;padding:12px 14px;border-top:1px solid var(--border);background:#faf9f6}
+.mf-lbl{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-family:var(--mono)}
+.mf-val{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--green);margin-top:3px}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;padding:22px 26px;display:flex;flex-direction:column;gap:16px}
+.content-head{display:flex;align-items:flex-end;gap:14px}
+.content-head h2{font-size:22px;font-weight:700;letter-spacing:-.5px}
+.content-head .sub{font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:2px}
+.btn-new{margin-left:auto;background:var(--accent);color:#fff;border:none;font-family:var(--sans);font-size:12px;font-weight:700;padding:8px 16px;border-radius:6px;cursor:pointer;transition:background .15s}
+.btn-new:hover{background:#234f25}
+
+/* CARDS */
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.card{background:var(--white);border:1px solid var(--border);border-radius:8px;padding:13px 15px}
+.card-lbl{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-family:var(--mono);margin-bottom:5px}
+.card-val{font-family:var(--mono);font-size:18px;font-weight:600}
+.g{color:var(--green)}.b{color:var(--blue)}.a{color:var(--amber)}
+
+/* TABLE */
+.tbl-wrap{background:var(--white);border:1px solid var(--border);border-radius:8px;overflow:hidden;flex:1}
+.tbl-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#faf9f6;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.tbl-bar h3{font-size:12px;font-weight:700}
+.cur-date-lbl{font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--border);padding:3px 9px;border-radius:4px}
+.type-pills{display:flex;gap:5px;flex-wrap:wrap}
+.pill{background:var(--white);border:1px solid var(--border);color:var(--muted);font-family:var(--sans);font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;cursor:pointer;transition:all .12s}
+.pill.on,.pill:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+table{width:100%;border-collapse:collapse}
+thead th{background:#f5f3ee;font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-weight:600;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0}
+tbody td{border-bottom:1px solid var(--border);padding:0;font-size:12px}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:#f9f8f4}
+td input,td select{background:transparent;border:none;color:var(--ink);font-family:var(--mono);font-size:12px;padding:8px 12px;width:100%;outline:none;transition:background .12s}
+td input:focus,td select:focus{background:#eef5ee}
+td select option{background:#fff}
+td input[type="number"]{text-align:right}
+td input[type="date"]{color-scheme:light}
+.ef-inp input{color:var(--green);font-weight:600}
+.btn-del{background:none;border:none;color:#ccc;cursor:pointer;padding:8px 10px;font-size:13px;transition:color .12s}
+.btn-del:hover{color:var(--red)}
+tfoot .tot-row td{background:var(--accent-l);font-family:var(--mono);font-size:12px;font-weight:600;padding:9px 12px;border-top:2px solid var(--border2)}
+.tot-ef{color:var(--green);font-size:14px}
+.tot-lc{color:var(--blue);font-size:14px}
+.empty-row td{padding:48px;text-align:center;color:var(--muted);font-size:12px;font-family:var(--mono)}
+
+/* ══ RESUMEN PANEL ══ */
+.summ-header{display:flex;align-items:center;gap:16px}
+.summ-header h2{font-size:22px;font-weight:700;letter-spacing:-.5px}
+.summ-header p{font-size:12px;color:var(--muted);margin-top:2px}
+
+/* KPI row */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.kpi{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:18px 20px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.kpi.k-ef::before{background:var(--green)}
+.kpi.k-tr::before{background:var(--blue)}
+.kpi.k-wp::before{background:var(--amber)}
+.kpi.k-tot::before{background:var(--accent)}
+.kpi-icon{font-size:22px;margin-bottom:8px}
+.kpi-lbl{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-family:var(--mono);margin-bottom:6px}
+.kpi-val{font-family:var(--mono);font-size:24px;font-weight:700}
+.kpi.k-ef .kpi-val{color:var(--green)}
+.kpi.k-tr .kpi-val{color:var(--blue)}
+.kpi.k-wp .kpi-val{color:var(--amber)}
+.kpi.k-tot .kpi-val{color:var(--accent)}
+.kpi-sub{font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:4px}
+
+/* Summary filter tabs */
+.summ-filter{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.summ-filter-lbl{font-size:11px;font-weight:600;color:var(--muted);margin-right:4px}
+.sfbtn{background:var(--white);border:1px solid var(--border);color:var(--muted);font-family:var(--sans);font-size:11px;font-weight:600;padding:5px 13px;border-radius:20px;cursor:pointer;transition:all .12s}
+.sfbtn.on,.sfbtn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* Daily summary table */
+.summ-tbl-wrap{background:var(--white);border:1px solid var(--border);border-radius:10px;overflow:hidden;flex:1}
+.summ-tbl-head{display:flex;align-items:center;padding:13px 18px;background:#faf9f6;border-bottom:1px solid var(--border);gap:12px}
+.summ-tbl-head h3{font-size:13px;font-weight:700}
+.summ-tbl-head .count-badge{font-family:var(--mono);font-size:11px;background:var(--accent-l);color:var(--accent);padding:3px 10px;border-radius:12px;font-weight:600}
+.summ-table{width:100%;border-collapse:collapse}
+.summ-table thead th{background:#2c5f2e;color:#fff;font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;padding:10px 14px;text-align:left;border-right:1px solid rgba(255,255,255,.1);white-space:nowrap;position:sticky;top:0}
+.summ-table thead th:last-child{border-right:none}
+.summ-table tbody td{padding:9px 14px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:12px;border-right:1px solid #f0ede8}
+.summ-table tbody td:last-child{border-right:none}
+.summ-table tbody tr:nth-child(even) td{background:#faf9f6}
+.summ-table tbody tr:hover td{background:var(--accent-l)}
+.summ-table tbody tr:last-child td{border-bottom:none}
+.summ-table .td-date{font-weight:600;color:var(--ink);white-space:nowrap}
+.summ-table .td-day{color:var(--muted);font-size:10px}
+.summ-table .td-ef{color:var(--green);font-weight:600;text-align:right}
+.summ-table .td-tr{color:var(--blue);font-weight:600;text-align:right}
+.summ-table .td-wp{color:var(--amber);font-weight:600;text-align:right}
+.summ-table .td-tot{color:var(--accent);font-weight:700;text-align:right;font-size:13px}
+.summ-table .td-n{text-align:center;color:var(--muted)}
+.summ-table tfoot td{background:#1b5e20;color:#fff;font-family:var(--mono);font-size:12px;font-weight:700;padding:10px 14px;border-top:2px solid var(--border2)}
+.summ-table tfoot .td-ef,.summ-table tfoot .td-tr,.summ-table tfoot .td-wp,.summ-table tfoot .td-tot{color:#fff}
+.no-data-row td{padding:40px;text-align:center;color:var(--muted);font-size:13px;font-family:var(--mono)}
+
+/* Month group header in summary */
+.summ-table .month-group-hd td{background:#e8f5e9;color:var(--accent);font-weight:700;font-size:11px;letter-spacing:1px;text-transform:uppercase;padding:7px 14px;border-top:2px solid var(--border2)}
+
+/* PREVIEW PANEL */
+.prev-head{display:flex;align-items:center;gap:16px}
+.prev-head h2{font-size:20px;font-weight:700}
+.prev-head p{font-size:12px;color:var(--muted)}
+.prev-tabs{display:flex;gap:3px;flex-wrap:wrap;border-bottom:2px solid var(--border);padding-bottom:0}
+.ptab{background:var(--white);border:1px solid var(--border);border-bottom:none;color:var(--muted);font-family:var(--sans);font-size:11px;font-weight:700;padding:6px 14px;border-radius:5px 5px 0 0;cursor:pointer;transition:all .12s;margin-bottom:-2px}
+.ptab:hover{background:#f0ede8;color:var(--ink)}
+.ptab.on{background:#217346;color:#fff;border-color:#217346}
+.excel-wrap{background:var(--white);border:1px solid var(--border);border-radius:0 6px 6px 6px;overflow:auto;max-height:calc(100vh - 270px)}
+.ex-tbl{border-collapse:collapse;min-width:100%;font-size:11px;font-family:var(--mono)}
+.ex-tbl thead th{background:#217346;color:#fff;font-weight:600;padding:7px 14px;border:1px solid #185c37;white-space:nowrap;position:sticky;top:0;font-size:10px}
+.ex-tbl tbody td{padding:5px 14px;border:1px solid #d0d0d0;white-space:nowrap;font-size:11px}
+.ex-tbl tbody tr:nth-child(even) td{background:#f2f2f2}
+.ex-tbl tbody tr:hover td{background:#e8f5e9}
+.ex-tbl .ef-c{color:var(--green);font-weight:600}
+.ex-tbl .tot-r td{background:#c6efce;color:#276221;font-weight:700;border-top:2px solid #217346}
+.prev-actions{display:flex;gap:10px;align-items:center}
+.btn-dl{background:#217346;color:#fff;border:none;font-family:var(--sans);font-size:13px;font-weight:700;padding:10px 22px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .15s}
+.btn-dl:hover{background:#185c37}
+.prev-note{font-size:11px;color:var(--muted);font-family:var(--mono)}
+
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-brand">📋 Rendición de Cuentas <span class="yr">2026</span></div>
+  <div class="topbar-tabs">
+    <button class="ttab on"  onclick="showTab('rend',this)">📝 Registro</button>
+    <button class="ttab"     onclick="showTab('summ',this)">📊 Resumen</button>
+    <button class="ttab"     onclick="showTab('prev',this)">📁 Vista Excel</button>
+  </div>
+  <div class="topbar-right">
+    <button class="btn-clear" onclick="clearAll()">🗑 Borrar datos</button>
+    <button class="btn-xl"    onclick="exportXLSX()">⬇ Guardar Excel</button>
+  </div>
+</div>
+
+<!-- ══ REGISTRO ══ -->
+<div class="panel on" id="p-rend">
+  <div class="months-col">
+    <div class="months-col-head">Meses / Días</div>
+    <div id="acc-list"></div>
+    <div class="months-col-footer">
+      <div class="mf-lbl">Total recaudado</div>
+      <div class="mf-val" id="col-tot">$0</div>
+    </div>
+  </div>
+  <div class="content">
+    <div class="content-head">
+      <div>
+        <div class="sub" id="c-sub">Selecciona un día en el panel izquierdo</div>
+        <h2 id="c-title">—</h2>
+      </div>
+      <button class="btn-new" id="btn-new" onclick="addRow()" style="display:none">＋ Nueva fila</button>
+    </div>
+    <div class="cards">
+      <div class="card"><div class="card-lbl">Registros</div><div class="card-val"   id="cc-n">0</div></div>
+      <div class="card"><div class="card-lbl">Efectivo</div><div class="card-val g"  id="cc-ef">$0</div></div>
+      <div class="card"><div class="card-lbl">Transferencia</div><div class="card-val b" id="cc-tr">$0</div></div>
+      <div class="card"><div class="card-lbl">Webpay</div><div class="card-val a"    id="cc-wp">$0</div></div>
+    </div>
+    <div class="tbl-wrap">
+      <div class="tbl-bar">
+        <h3>Detalle del día</h3>
+        <span class="cur-date-lbl" id="cur-date-lbl">—</span>
+        <div class="type-pills" style="margin-left:auto">
+          <button class="pill on"  onclick="setPill('todos',this)">Todos</button>
+          <button class="pill"     onclick="setPill('origen:Local',this)">🏪 Local</button>
+          <button class="pill"     onclick="setPill('origen:Empresa',this)">🏢 Empresa</button>
+          <button class="pill"     onclick="setPill('Efectivo',this)">💵 Efectivo</button>
+          <button class="pill"     onclick="setPill('Transferencia',this)">🏦 Transfer.</button>
+          <button class="pill"     onclick="setPill('Webpay',this)">💳 Webpay</button>
+        </div>
+      </div>
+      <table>
+        <thead><tr>
+          <th style="width:115px">Fecha</th>
+          <th style="width:170px">Cliente</th>
+          <th style="width:140px">Tipo de Venta</th>
+          <th style="width:110px">Origen</th>
+          <th style="width:135px">Forma de Pago</th>
+          <th style="width:110px;text-align:right">Efectivo ($)</th>
+          <th style="width:115px;text-align:right">Transfer. ($)</th>
+          <th style="width:105px;text-align:right">Webpay ($)</th>
+          <th>Observaciones</th>
+          <th style="width:36px"></th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+        <tfoot><tr class="tot-row">
+          <td colspan="5" style="color:var(--muted);font-size:9px;letter-spacing:1px">TOTAL DÍA</td>
+          <td class="tot-ef" id="tf-ef" style="text-align:right">$0</td>
+          <td class="tot-lc" id="tf-tr" style="text-align:right">$0</td>
+          <td class="tot-ef" id="tf-wp" style="text-align:right;color:var(--amber)">$0</td>
+          <td colspan="2"></td>
+        </tr></tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══ RESUMEN ══ -->
+<div class="panel" id="p-summ">
+  <div class="summ-header">
+    <div>
+      <h2>Resumen de Rendiciones</h2>
+      <p>Totales por día · Todos los meses · 2026</p>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+      <div class="summ-filter">
+        <span class="summ-filter-lbl">Ver:</span>
+        <button class="sfbtn on" onclick="setSummFilter('todos',this)">Todo el año</button>
+        <button class="sfbtn" id="sfbtn-mes" onclick="setSummFilter('mes',this)">Mes actual</button>
+      </div>
+      <select id="summ-mes-sel" onchange="renderSumm()"
+        style="background:var(--white);border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:12px;padding:5px 10px;border-radius:6px;outline:none;display:none">
+      </select>
+    </div>
+  </div>
+
+  <div class="kpi-row" id="kpi-row"></div>
+
+  <div class="summ-tbl-wrap">
+    <div class="summ-tbl-head">
+      <h3>Detalle por día</h3>
+      <span class="count-badge" id="summ-count">0 días con registros</span>
+    </div>
+    <table class="summ-table">
+      <thead><tr>
+        <th style="width:110px">Fecha</th>
+        <th style="width:80px">Día</th>
+        <th style="width:70px;text-align:center">Reg.</th>
+        <th style="width:130px;text-align:right">Efectivo</th>
+        <th style="width:130px;text-align:right">Transferencia</th>
+        <th style="width:120px;text-align:right">Webpay</th>
+        <th style="width:130px;text-align:right">Total día</th>
+        <th>Productos más vendidos</th>
+      </tr></thead>
+      <tbody id="summ-tbody"></tbody>
+      <tfoot><tr id="summ-tfoot">
+        <td colspan="3" style="letter-spacing:1px">TOTAL</td>
+        <td class="td-ef" id="sf-ef">$0</td>
+        <td class="td-tr" id="sf-tr">$0</td>
+        <td class="td-wp" id="sf-wp">$0</td>
+        <td class="td-tot" id="sf-tot">$0</td>
+        <td></td>
+      </tr></tfoot>
+    </table>
+  </div>
+</div>
+
+<!-- ══ PREVIEW EXCEL ══ -->
+<div class="panel" id="p-prev">
+  <div class="prev-head">
+    <div>
+      <h2>Vista Previa Excel</h2>
+      <p>Previsualiza los datos por mes antes de descargar</p>
+    </div>
+    <div class="prev-actions" style="margin-left:auto">
+      <span class="prev-note" id="prev-note"></span>
+      <button class="btn-dl" onclick="exportXLSX()">⬇ Descargar .xlsx</button>
+    </div>
+  </div>
+  <div class="prev-tabs" id="prev-tabs"></div>
+  <div class="excel-wrap">
+    <table class="ex-tbl"><thead id="ex-head"></thead><tbody id="ex-body"></tbody></table>
+  </div>
+</div>
+
+<script>
+const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio",
+               "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+const DIAS_MES = [31,28,31,30,31,30,31,31,30,31,30,31];
+const DOW_NAMES = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+const TIPOS = ["Sublimación","Camiseta","Papel","Conjuntos","Mantas","Pañuelos","Banner","Banderas","Otros"];
+
+const data = {};
+let curDate = null, curMonth = null, typeFilter = 'todos', prevMonth = 0, summFilter = 'todos';
+
+/* ── UTILS ── */
+const fmt  = n => !n||isNaN(+n) ? '$0' : '$'+(+n).toLocaleString('es-CL');
+const pad  = n => String(n).padStart(2,'0');
+function daysKey(m,d){ return `2026-${pad(m+1)}-${pad(d)}`; }
+function dateLabel(key){
+  const [,m,d]=key.split('-');
+  return `${DOW_NAMES[new Date(2026,+m-1,+d).getDay()]} ${+d}`;
+}
+function rowsForDate(k){ return data[k]||(data[k]=[]); }
+function rowsForMonth(mi){ let a=[]; for(let d=1;d<=DIAS_MES[mi];d++) a=a.concat(rowsForDate(daysKey(mi,d))); return a; }
+function totalAll(){ return Object.values(data).flat().reduce((s,r)=>s+(+r.ef||0)+(+r.tr||0)+(+r.wp||0),0); }
+
+/* ── PERSISTENCE ── */
+function saveData(){
+  try{ localStorage.setItem('rendicion2026_v2', JSON.stringify(data)); } catch(e){ console.warn('Save failed',e); }
+}
+function loadData(){
+  try{
+    const saved = localStorage.getItem('rendicion2026_v2');
+    if(saved){ const p=JSON.parse(saved); Object.keys(p).forEach(k=>{ data[k]=p[k]; }); }
+  } catch(e){ console.warn('Load failed',e); }
+}
+function clearAll(){
+  if(!confirm('¿Borrar TODOS los registros guardados? Esta acción no se puede deshacer.')) return;
+  Object.keys(data).forEach(k=>{ data[k]=[]; });
+  localStorage.removeItem('rendicion2026_v2');
+  buildAccordion(); if(curDate) renderContent(); renderSumm();
+}
+
+/* ── TABS ── */
+function showTab(name,btn){
+  document.querySelectorAll('.ttab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  document.getElementById('p-'+name).classList.add('on');
+  if(name==='summ') renderSumm();
+  if(name==='prev') buildPreview();
+}
+
+/* ── ACCORDION ── */
+function buildAccordion(){
+  const list=document.getElementById('acc-list'); list.innerHTML='';
+  MESES.forEach((m,mi)=>{
+    const wrap=document.createElement('div'); wrap.className='month-acc'; wrap.id=`acc-${mi}`;
+    const hd=document.createElement('div'); hd.className='month-acc-hd'; hd.id=`acc-hd-${mi}`;
+    hd.innerHTML=`<span class="m-name">${m}</span><span class="m-badge">${rowsForMonth(mi).length}</span><span class="m-arrow">▶</span>`;
+    hd.onclick=()=>toggleMonth(mi);
+    const body=document.createElement('div'); body.className='month-acc-body'; body.id=`acc-body-${mi}`;
+    for(let d=1;d<=DIAS_MES[mi];d++){
+      const key=daysKey(mi,d), rows=rowsForDate(key);
+      const div=document.createElement('div');
+      div.className='day-item'+(key===curDate?' active':''); div.id=`day-${key}`;
+      div.innerHTML=`<span class="day-label">${dateLabel(key)} ${MESES[mi].slice(0,3)}</span><span class="day-count">${rows.length||''}</span>`;
+      div.onclick=e=>{ e.stopPropagation(); selectDay(key,mi); };
+      body.appendChild(div);
+    }
+    wrap.appendChild(hd); wrap.appendChild(body); list.appendChild(wrap);
+  });
+  document.getElementById('col-tot').textContent=fmt(totalAll());
+}
+
+function toggleMonth(mi){
+  const body=document.getElementById(`acc-body-${mi}`), hd=document.getElementById(`acc-hd-${mi}`);
+  const isOpen=body.classList.contains('open');
+  document.querySelectorAll('.month-acc-body').forEach(b=>b.classList.remove('open'));
+  document.querySelectorAll('.month-acc-hd').forEach(h=>h.classList.remove('open'));
+  if(!isOpen){ body.classList.add('open'); hd.classList.add('open'); }
+}
+
+function refreshAccordion(){
+  MESES.forEach((_,mi)=>{
+    const badge=document.querySelector(`#acc-hd-${mi} .m-badge`);
+    if(badge) badge.textContent=rowsForMonth(mi).length;
+    for(let d=1;d<=DIAS_MES[mi];d++){
+      const key=daysKey(mi,d), el=document.getElementById(`day-${key}`);
+      if(el){ el.querySelector('.day-count').textContent=rowsForDate(key).length||''; el.classList.toggle('active',key===curDate); }
+    }
+  });
+  document.getElementById('col-tot').textContent=fmt(totalAll());
+}
+
+function selectDay(key,mi){
+  curDate=key; curMonth=mi;
+  const body=document.getElementById(`acc-body-${mi}`), hd=document.getElementById(`acc-hd-${mi}`);
+  document.querySelectorAll('.month-acc-body').forEach(b=>b.classList.remove('open'));
+  document.querySelectorAll('.month-acc-hd').forEach(h=>h.classList.remove('open'));
+  body.classList.add('open'); hd.classList.add('open');
+  refreshAccordion(); renderContent();
+}
+
+/* ── REGISTRO CONTENT ── */
+function renderContent(){
+  if(!curDate) return;
+  const [,m,d]=curDate.split('-');
+  document.getElementById('c-title').textContent=`${MESES[+m-1]} — ${+d}`;
+  document.getElementById('c-sub').textContent=`${pad(d)}/${pad(m)}/2026 · ${DOW_NAMES[new Date(2026,+m-1,+d).getDay()]}`;
+  document.getElementById('cur-date-lbl').textContent=`${pad(d)}/${pad(m)}/2026`;
+  document.getElementById('btn-new').style.display='';
+  renderTable(); updateCards();
+}
+
+function getFiltered(){
+  const rows=rowsForDate(curDate);
+  if(typeFilter==='todos') return rows;
+  if(typeFilter==='origen:Local') return rows.filter(r=>r.origen==='Local');
+  if(typeFilter==='origen:Empresa') return rows.filter(r=>r.origen==='Empresa');
+  if(typeFilter==='Efectivo') return rows.filter(r=>(+r.ef||0)>0);
+  if(typeFilter==='Transferencia') return rows.filter(r=>(+r.tr||0)>0);
+  if(typeFilter==='Webpay') return rows.filter(r=>(+r.wp||0)>0);
+  return rows;
+}
+
+function tipoOpts(cur){ return TIPOS.map(t=>`<option value="${t}" ${cur===t?'selected':''}>${t}</option>`).join(''); }
+
+function renderTable(){
+  const tbody=document.getElementById('tbody'); tbody.innerHTML='';
+  const rows=getFiltered();
+  if(!rows.length){
+    tbody.innerHTML=`<tr class="empty-row"><td colspan="10">Sin registros para este día — haz clic en "＋ Nueva fila"</td></tr>`;
+  } else {
+    const all=rowsForDate(curDate);
+    rows.forEach(row=>{
+      const ri=all.indexOf(row);
+      const tr=document.createElement('tr');
+      tr.innerHTML=`
+        <td><input type="date" value="${curDate}" readonly style="color:var(--muted)"></td>
+        <td><input type="text" value="${row.cliente||''}" placeholder="Nombre cliente" oninput="upd('${curDate}',${ri},'cliente',this.value)"></td>
+        <td><select onchange="upd('${curDate}',${ri},'tipo',this.value)">${tipoOpts(row.tipo)}</select></td>
+        <td><select onchange="upd('${curDate}',${ri},'origen',this.value)">
+          <option value="Local"   ${row.origen==='Local'   ?'selected':''}>🏪 Local</option>
+          <option value="Empresa" ${row.origen==='Empresa' ?'selected':''}>🏢 Empresa</option>
+        </select></td>
+        <td><select onchange="upd('${curDate}',${ri},'pago',this.value)">
+          <option value="Efectivo"      ${row.pago==='Efectivo'     ?'selected':''}>💵 Efectivo</option>
+          <option value="Transferencia" ${row.pago==='Transferencia'?'selected':''}>🏦 Transferencia</option>
+          <option value="Webpay"        ${row.pago==='Webpay'       ?'selected':''}>💳 Webpay</option>
+        </select></td>
+        <td class="ef-inp" style="text-align:right"><input type="number" value="${row.ef||''}" placeholder="0" min="0" oninput="upd('${curDate}',${ri},'ef',this.value)"></td>
+        <td style="text-align:right"><input type="number" value="${row.tr||''}" placeholder="0" min="0" oninput="upd('${curDate}',${ri},'tr',this.value)"></td>
+        <td style="text-align:right"><input type="number" value="${row.wp||''}" placeholder="0" min="0" style="color:var(--amber)" oninput="upd('${curDate}',${ri},'wp',this.value)"></td>
+        <td><input type="text" value="${row.obs||''}" placeholder="Observación..." oninput="upd('${curDate}',${ri},'obs',this.value)"></td>
+        <td><button class="btn-del" onclick="delRow('${curDate}',${ri})">✕</button></td>`;
+      tbody.appendChild(tr);
+    });
+  }
+  updateTotals();
+}
+
+function updateCards(){
+  const rows=rowsForDate(curDate);
+  document.getElementById('cc-n').textContent=rows.length;
+  document.getElementById('cc-ef').textContent=fmt(rows.reduce((s,r)=>s+(+r.ef||0),0));
+  document.getElementById('cc-tr').textContent=fmt(rows.reduce((s,r)=>s+(+r.tr||0),0));
+  document.getElementById('cc-wp').textContent=fmt(rows.reduce((s,r)=>s+(+r.wp||0),0));
+}
+function updateTotals(){
+  const rows=rowsForDate(curDate);
+  document.getElementById('tf-ef').textContent=fmt(rows.reduce((s,r)=>s+(+r.ef||0),0));
+  document.getElementById('tf-tr').textContent=fmt(rows.reduce((s,r)=>s+(+r.tr||0),0));
+  document.getElementById('tf-wp').textContent=fmt(rows.reduce((s,r)=>s+(+r.wp||0),0));
+}
+
+/* ── CRUD ── */
+function addRow(){
+  if(!curDate) return;
+  rowsForDate(curDate).push({cliente:'',tipo:'Sublimación',origen:'Local',pago:'Efectivo',ef:'',tr:'',wp:'',obs:''});
+  saveData(); renderContent(); refreshAccordion();
+}
+function upd(key,i,f,v){ if(data[key]) data[key][i][f]=v; saveData(); updateCards(); updateTotals(); refreshAccordion(); }
+function delRow(key,i){ if(data[key]) data[key].splice(i,1); saveData(); renderContent(); refreshAccordion(); }
+function setPill(m,btn){ typeFilter=m; document.querySelectorAll('.pill').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); renderTable(); }
+
+/* ── RESUMEN ── */
+function setSummFilter(v,btn){
+  summFilter=v;
+  document.querySelectorAll('.sfbtn').forEach(b=>b.classList.remove('on')); btn.classList.add('on');
+  const sel=document.getElementById('summ-mes-sel');
+  sel.style.display = v==='mes' ? '' : 'none';
+  renderSumm();
+}
+
+function renderSumm(){
+  // populate month selector
+  const sel=document.getElementById('summ-mes-sel');
+  if(!sel.options.length){ MESES.forEach((m,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=m; sel.appendChild(o); }); }
+  const filterMi = summFilter==='mes' ? +sel.value : null;
+
+  // Collect daily rows
+  const days=[];
+  MESES.forEach((_,mi)=>{
+    if(filterMi!==null && mi!==filterMi) return;
+    for(let d=1;d<=DIAS_MES[mi];d++){
+      const key=daysKey(mi,d), rows=rowsForDate(key);
+      if(!rows.length) continue;
+      const ef=rows.reduce((s,r)=>s+(+r.ef||0),0);
+      const tr=rows.reduce((s,r)=>s+(+r.tr||0),0);
+      const wp=rows.reduce((s,r)=>s+(+r.wp||0),0);
+      // top tipos
+      const tipoCount={};
+      rows.forEach(r=>{ tipoCount[r.tipo||'—']=(tipoCount[r.tipo||'—']||0)+1; });
+      const topTipos=Object.entries(tipoCount).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([t,n])=>`${t}(${n})`).join(' · ');
+      days.push({key,mi,d,ef,tr,wp,total:ef+tr+wp,n:rows.length,topTipos,dow:DOW_NAMES[new Date(2026,mi,d).getDay()]});
+    }
+  });
+
+  // KPIs
+  const totEf=days.reduce((s,r)=>s+r.ef,0);
+  const totTr=days.reduce((s,r)=>s+r.tr,0);
+  const totWp=days.reduce((s,r)=>s+r.wp,0);
+  const totAll=totEf+totTr+totWp;
+  document.getElementById('kpi-row').innerHTML=`
+    <div class="kpi k-ef"><div class="kpi-icon">💵</div><div class="kpi-lbl">Total Efectivo</div><div class="kpi-val">${fmt(totEf)}</div><div class="kpi-sub">${totAll>0?(totEf/totAll*100).toFixed(1)+'% del total':'—'}</div></div>
+    <div class="kpi k-tr"><div class="kpi-icon">🏦</div><div class="kpi-lbl">Transferencia</div><div class="kpi-val">${fmt(totTr)}</div><div class="kpi-sub">${totAll>0?(totTr/totAll*100).toFixed(1)+'% del total':'—'}</div></div>
+    <div class="kpi k-wp"><div class="kpi-icon">💳</div><div class="kpi-lbl">Webpay</div><div class="kpi-val">${fmt(totWp)}</div><div class="kpi-sub">${totAll>0?(totWp/totAll*100).toFixed(1)+'% del total':'—'}</div></div>
+    <div class="kpi k-tot"><div class="kpi-icon">📊</div><div class="kpi-lbl">Total Recaudado</div><div class="kpi-val">${fmt(totAll)}</div><div class="kpi-sub">${days.length} día${days.length!==1?'s':''} con registros</div></div>`;
+
+  document.getElementById('summ-count').textContent=`${days.length} día${days.length!==1?'s':''} con registros`;
+
+  // Table body — group by month
+  const tbody=document.getElementById('summ-tbody'); tbody.innerHTML='';
+  if(!days.length){
+    tbody.innerHTML=`<tr class="no-data-row"><td colspan="8">Sin registros aún — ve a "Registro" e ingresa datos</td></tr>`;
+  } else {
+    let lastMi=-1;
+    days.forEach(r=>{
+      if(r.mi!==lastMi){
+        lastMi=r.mi;
+        const tr=tbody.insertRow(); tr.className='month-group-hd';
+        const td=tr.insertCell(); td.colSpan=8; td.textContent=`— ${MESES[r.mi].toUpperCase()} 2026 —`;
+      }
+      const tr=tbody.insertRow();
+      const dateStr=`${pad(r.d)}/${pad(r.mi+1)}/2026`;
+      tr.innerHTML=`
+        <td class="td-date">${dateStr}</td>
+        <td class="td-day">${r.dow}</td>
+        <td class="td-n">${r.n}</td>
+        <td class="td-ef">${fmt(r.ef)}</td>
+        <td class="td-tr">${fmt(r.tr)}</td>
+        <td class="td-wp">${fmt(r.wp)}</td>
+        <td class="td-tot">${fmt(r.total)}</td>
+        <td style="font-size:11px;color:var(--muted);font-family:var(--mono)">${r.topTipos}</td>`;
+    });
+  }
+
+  // Footer
+  document.getElementById('sf-ef').textContent=fmt(totEf);
+  document.getElementById('sf-tr').textContent=fmt(totTr);
+  document.getElementById('sf-wp').textContent=fmt(totWp);
+  document.getElementById('sf-tot').textContent=fmt(totAll);
+}
+
+/* ── PREVIEW EXCEL ── */
+function buildPreview(){
+  const tabsEl=document.getElementById('prev-tabs'); tabsEl.innerHTML='';
+  MESES.forEach((m,i)=>{ const b=document.createElement('button'); b.className='ptab'+(i===prevMonth?' on':''); b.textContent=m; b.onclick=()=>{ prevMonth=i; buildPreview(); }; tabsEl.appendChild(b); });
+  const br=document.createElement('button'); br.className='ptab'+(prevMonth===12?' on':''); br.textContent='📋 Resumen'; br.onclick=()=>{ prevMonth=12; buildPreview(); }; tabsEl.appendChild(br);
+  const head=document.getElementById('ex-head'), body=document.getElementById('ex-body');
+  head.innerHTML=''; body.innerHTML='';
+  if(prevMonth===12){ buildPrevResumen(head,body); document.getElementById('prev-note').textContent='Vista anual consolidada'; }
+  else { buildPrevMes(head,body,prevMonth); document.getElementById('prev-note').textContent=`${MESES[prevMonth]} — ${rowsForMonth(prevMonth).length} registro(s)`; }
+}
+
+function buildPrevMes(head,body,mi){
+  const hr=head.insertRow();
+  ['Fecha','Día','Cliente','Tipo de Venta','Origen','Forma de Pago','Efectivo ($)','Transfer. ($)','Webpay ($)','Observaciones']
+    .forEach(h=>{ const th=document.createElement('th'); th.textContent=h; hr.appendChild(th); });
+  let tEf=0,tTr=0,tWp=0,has=false;
+  for(let d=1;d<=DIAS_MES[mi];d++){
+    const key=daysKey(mi,d);
+    rowsForDate(key).forEach(r=>{
+      has=true; const ef=+r.ef||0,tr=+r.tr||0,wp=+r.wp||0; tEf+=ef;tTr+=tr;tWp+=wp;
+      const tr2=body.insertRow();
+      [`${pad(d)}/${pad(mi+1)}/2026`,dateLabel(key),r.cliente||'',r.tipo||'Sublimación',r.origen||'Local',r.pago||'Efectivo',fmt(ef),fmt(tr),fmt(wp),r.obs||'']
+        .forEach((v,ci)=>{ const td=tr2.insertCell(); td.textContent=v; if(ci===6) td.className='ef-c'; });
+    });
+  }
+  if(!has){ const tr=body.insertRow(); const td=tr.insertCell(); td.colSpan=10; td.textContent='Sin registros'; td.style.cssText='text-align:center;padding:20px;color:#888'; }
+  const tr=body.insertRow(); tr.className='tot-r';
+  ['TOTAL','','','','','',fmt(tEf),fmt(tTr),fmt(tWp),''].forEach((v,ci)=>{ const td=tr.insertCell(); td.textContent=v; });
+}
+
+function buildPrevResumen(head,body){
+  const hr=head.insertRow();
+  ['Mes','Período','N° Reg.','Efectivo ($)','Transferencia ($)','Webpay ($)','Total ($)']
+    .forEach(h=>{ const th=document.createElement('th'); th.textContent=h; hr.appendChild(th); });
+  let tEf=0,tTr=0,tWp=0,tReg=0;
+  MESES.forEach((m,i)=>{
+    const rows=rowsForMonth(i);
+    const ef=rows.reduce((s,r)=>s+(+r.ef||0),0), tr=rows.reduce((s,r)=>s+(+r.tr||0),0), wp=rows.reduce((s,r)=>s+(+r.wp||0),0);
+    tEf+=ef; tTr+=tr; tWp+=wp; tReg+=rows.length;
+    const row=body.insertRow();
+    [m,`01/${pad(i+1)}/2026 — ${DIAS_MES[i]}/${pad(i+1)}/2026`,rows.length,fmt(ef),fmt(tr),fmt(wp),fmt(ef+tr+wp)]
+      .forEach((v,ci)=>{ const td=row.insertCell(); td.textContent=v; if(ci===3) td.className='ef-c'; });
+  });
+  const tr=body.insertRow(); tr.className='tot-r';
+  ['TOTAL ANUAL','',tReg,fmt(tEf),fmt(tTr),fmt(tWp),fmt(tEf+tTr+tWp)].forEach(v=>{ const td=tr.insertCell(); td.textContent=v; });
+}
+
+/* ── EXPORT XLSX — solo día actual, formato resumen visual ── */
+/* ── XLSX STYLE HELPERS ── */
+function xlsCell(v, opts={}){
+  const {bold=false,italic=false,bg='',fg='000000',sz=11,align='left',numFmt='',border=false,wrap=false}=opts;
+  const cell={v, t: typeof v==='number'?'n':'s'};
+  if(numFmt) cell.z=numFmt;
+  const s={font:{bold,italic,color:{rgb:fg},sz,name:'Arial'},alignment:{horizontal:align,vertical:'center',wrapText:wrap}};
+  if(bg) s.fill={patternType:'solid',fgColor:{rgb:bg}};
+  if(border){
+    const b={style:'thin',color:{rgb:'BBBBBB'}};
+    s.border={top:b,bottom:b,left:b,right:b};
+  }
+  cell.s=s;
+  return cell;
+}
+function xlsMerge(ws,r1,c1,r2,c2){ if(!ws['!merges']) ws['!merges']=[]; ws['!merges'].push({s:{r:r1,c:c1},e:{r:r2,c:c2}}); }
+function xlsSet(ws,r,c,cell){ const ref=XLSX.utils.encode_cell({r,c}); ws[ref]=cell; if(!ws['!ref']) ws['!ref']='A1'; const range=XLSX.utils.decode_range(ws['!ref']); range.e.r=Math.max(range.e.r,r); range.e.c=Math.max(range.e.c,c); ws['!ref']=XLSX.utils.encode_range(range); }
+
+function exportXLSX(){
+  const now=new Date();
+  const d=now.getDate(), mi=now.getMonth();
+  const todayKey=`2026-${pad(mi+1)}-${pad(d)}`;
+  const dateStr=`${pad(d)}/${pad(mi+1)}/2026`;
+  const dowStr=DOW_NAMES[now.getDay()];
+  const rows=rowsForDate(todayKey);
+
+  const wb=XLSX.utils.book_new();
+  // Colors
+  const C_DARK='1B5E20', C_MED='2C5F2E', C_LIGHT='E8F5E9', C_AMBER='E65100',
+        C_AMBER_L='FFF3E0', C_BLUE='0D47A1', C_BLUE_L='E3F2FD',
+        C_GREEN='1B5E20', C_GREEN_L='F1F8E9', C_GRAY='F5F5F5',
+        C_WHITE='FFFFFF', C_TOTAL='C8E6C9', C_HEADER_FG='FFFFFF';
+
+  const ef=rows.reduce((s,r)=>s+(+r.ef||0),0);
+  const trx=rows.reduce((s,r)=>s+(+r.tr||0),0);
+  const wp=rows.reduce((s,r)=>s+(+r.wp||0),0);
+  const tot=ef+trx+wp;
+  const pct=v=>tot>0?(v/tot*100).toFixed(1)+'%':'—';
+
+  // ════════════════════════════════════════════
+  // HOJA 1: RESUMEN
+  // ════════════════════════════════════════════
+  const ws1={};
+  let R=0;
+
+  // Title
+  xlsSet(ws1,R,0,xlsCell(`RENDICIÓN DE CUENTAS — ${dateStr} (${dowStr})`,{bold:true,bg:C_DARK,fg:C_HEADER_FG,sz:14,align:'center'}));
+  for(let c=1;c<5;c++) xlsSet(ws1,R,c,xlsCell('',{bg:C_DARK}));
+  xlsMerge(ws1,R,0,R,4); R++;
+
+  // Subtitle: fecha descarga
+  xlsSet(ws1,R,0,xlsCell(`Descargado el ${dateStr} a las ${now.toTimeString().slice(0,5)}`,{italic:true,bg:C_MED,fg:C_HEADER_FG,sz:10,align:'center'}));
+  for(let c=1;c<5;c++) xlsSet(ws1,R,c,xlsCell('',{bg:C_MED}));
+  xlsMerge(ws1,R,0,R,4); R++;
+  R++; // spacer
+
+  // ── Sección FORMAS DE PAGO ──
+  xlsSet(ws1,R,0,xlsCell('FORMAS DE PAGO',{bold:true,bg:C_MED,fg:C_HEADER_FG,sz:11,align:'center'}));
+  for(let c=1;c<4;c++) xlsSet(ws1,R,c,xlsCell('',{bg:C_MED}));
+  xlsMerge(ws1,R,0,R,3); R++;
+
+  // Headers
+  ['Forma de Pago','Monto ($)','% del Total','N° transacc.'].forEach((h,c)=>{
+    xlsSet(ws1,R,c,xlsCell(h,{bold:true,bg:C_DARK,fg:C_HEADER_FG,sz:10,align:'center',border:true}));
+  }); R++;
+
+  const pagoRows=[
+    ['💵 Efectivo',     ef,  pct(ef),  rows.filter(r=>(+r.ef||0)>0).length,  C_GREEN_L, C_GREEN],
+    ['🏦 Transferencia',trx, pct(trx), rows.filter(r=>(+r.tr||0)>0).length,  C_BLUE_L,  C_BLUE],
+    ['💳 Webpay',       wp,  pct(wp),  rows.filter(r=>(+r.wp||0)>0).length,  C_AMBER_L, C_AMBER],
+  ];
+  pagoRows.forEach(([lbl,monto,ptc,cnt,bgRow,fgColor])=>{
+    xlsSet(ws1,R,0,xlsCell(lbl,   {bold:true,bg:bgRow,fg:fgColor,sz:11,border:true}));
+    xlsSet(ws1,R,1,xlsCell(monto, {bold:true,bg:bgRow,fg:fgColor,sz:11,align:'right',border:true,numFmt:'"$"#,##0'}));
+    xlsSet(ws1,R,2,xlsCell(ptc,   {bg:bgRow,fg:fgColor,sz:10,align:'center',border:true}));
+    xlsSet(ws1,R,3,xlsCell(cnt,   {bg:bgRow,fg:'555555',sz:10,align:'center',border:true}));
+    R++;
+  });
+  // Total pago
+  xlsSet(ws1,R,0,xlsCell('TOTAL',{bold:true,bg:C_DARK,fg:C_HEADER_FG,sz:12,border:true}));
+  xlsSet(ws1,R,1,xlsCell(tot,    {bold:true,bg:C_DARK,fg:C_HEADER_FG,sz:12,align:'right',border:true,numFmt:'"$"#,##0'}));
+  xlsSet(ws1,R,2,xlsCell('100%', {bold:true,bg:C_DARK,fg:C_HEADER_FG,sz:10,align:'center',border:true}));
+  xlsSet(ws1,R,3,xlsCell(rows.length,{bold:true,bg:C_DARK,fg:C_HEADER_FG,sz:10,align:'center',border:true}));
+  R+=2;
+
+  // ── Sección DETALLE POR CLIENTE ──
+  xlsSet(ws1,R,0,xlsCell('DETALLE POR CLIENTE',{bold:true,bg:C_MED,fg:C_HEADER_FG,sz:11,align:'center'}));
+  for(let c=1;c<5;c++) xlsSet(ws1,R,c,xlsCell('',{bg:C_MED}));
+  xlsMerge(ws1,R,0,R,4); R++;
+
+  ['Cliente','Tipo de Venta','Origen','Forma de Pago','Total ($)'].forEach((h,c)=>{
+    xlsSet(ws1,R,c,xlsCell(h,{bold:true,bg:C_DARK,fg:C_HEADER_FG,sz:10,align:'center',border:true}));
+  }); R++;
+
+  if(rows.length){
+    rows.forEach((r,i)=>{
+      const bg=i%2===0?C_WHITE:C_GRAY;
+      const t=(+r.ef||0)+(+r.tr||0)+(+r.wp||0);
+      xlsSet(ws1,R,0,xlsCell(r.cliente||'(sin nombre)',{bg,sz:10,border:true}));
+      xlsSet(ws1,R,1,xlsCell(r.tipo||'—',             {bg,sz:10,border:true,align:'center'}));
+      xlsSet(ws1,R,2,xlsCell(r.origen||'Local',        {bg,sz:10,border:true,align:'center'}));
+      xlsSet(ws1,R,3,xlsCell(r.pago||'Efectivo',       {bg,sz:10,border:true,align:'center'}));
+      xlsSet(ws1,R,4,xlsCell(t,{bold:true,bg,fg:C_GREEN,sz:10,border:true,align:'right',numFmt:'"$"#,##0'}));
+      R++;
+    });
+    // Subtotal clientes
+    xlsSet(ws1,R,0,xlsCell('SUBTOTAL',{bold:true,bg:C_TOTAL,fg:C_GREEN,sz:10,border:true}));
+    for(let c=1;c<4;c++) xlsSet(ws1,R,c,xlsCell('',{bg:C_TOTAL,border:true}));
+    xlsSet(ws1,R,4,xlsCell(tot,{bold:true,bg:C_TOTAL,fg:C_GREEN,sz:11,border:true,align:'right',numFmt:'"$"#,##0'}));
+    R++;
+  } else {
+    xlsSet(ws1,R,0,xlsCell('Sin registros para este día',{italic:true,fg:'888888',sz:10}));
+    xlsMerge(ws1,R,0,R,4); R++;
+  }
+  R++;
+
+  // ── Sección PRODUCTOS VENDIDOS ──
+  xlsSet(ws1,R,0,xlsCell('PRODUCTOS VENDIDOS',{bold:true,bg:C_MED,fg:C_HEADER_FG,sz:11,align:'center'}));
+  xlsSet(ws1,R,1,xlsCell('',{bg:C_MED}));
+  xlsMerge(ws1,R,0,R,1); R++;
+  ['Tipo de Venta','Cantidad'].forEach((h,c)=>{
+    xlsSet(ws1,R,c,xlsCell(h,{bold:true,bg:C_DARK,fg:C_HEADER_FG,sz:10,align:'center',border:true}));
+  }); R++;
+  const tipoCount={};
+  rows.forEach(r=>{ tipoCount[r.tipo||'—']=(tipoCount[r.tipo||'—']||0)+1; });
+  const topTipos=Object.entries(tipoCount).sort((a,b)=>b[1]-a[1]);
+  if(topTipos.length){
+    topTipos.forEach(([t,n],i)=>{
+      const bg=i%2===0?C_WHITE:C_GRAY;
+      xlsSet(ws1,R,0,xlsCell(t,{bg,sz:10,border:true}));
+      xlsSet(ws1,R,1,xlsCell(n,{bold:true,bg,fg:C_MED,sz:10,align:'center',border:true}));
+      R++;
+    });
+  } else {
+    xlsSet(ws1,R,0,xlsCell('—',{sz:10,border:true}));
+    xlsSet(ws1,R,1,xlsCell(0, {sz:10,border:true,align:'center'}));
+    R++;
+  }
+  R++;
+
+  // ── Sección ORIGEN ──
+  xlsSet(ws1,R,0,xlsCell('ORIGEN DEL CLIENTE',{bold:true,bg:C_MED,fg:C_HEADER_FG,sz:11,align:'center'}));
+  for(let c=1;c<3;c++) xlsSet(ws1,R,c,xlsCell('',{bg:C_MED}));
+  xlsMerge(ws1,R,0,R,2); R++;
+  ['Origen','N° registros','Total ($)'].forEach((h,c)=>{
+    xlsSet(ws1,R,c,xlsCell(h,{bold:true,bg:C_DARK,fg:C_HEADER_FG,sz:10,align:'center',border:true}));
+  }); R++;
+  const localRows=rows.filter(r=>r.origen==='Local');
+  const empRows=rows.filter(r=>r.origen==='Empresa');
+  const efLocal=localRows.reduce((s,r)=>s+(+r.ef||0)+(+r.tr||0)+(+r.wp||0),0);
+  const efEmp=empRows.reduce((s,r)=>s+(+r.ef||0)+(+r.tr||0)+(+r.wp||0),0);
+  xlsSet(ws1,R,0,xlsCell('Local',   {bg:C_GREEN_L,fg:C_GREEN,bold:true,sz:10,border:true}));
+  xlsSet(ws1,R,1,xlsCell(localRows.length,{bg:C_GREEN_L,sz:10,align:'center',border:true}));
+  xlsSet(ws1,R,2,xlsCell(efLocal,   {bg:C_GREEN_L,fg:C_GREEN,bold:true,sz:10,align:'right',border:true,numFmt:'"$"#,##0'}));
+  R++;
+  xlsSet(ws1,R,0,xlsCell('Empresa', {bg:C_BLUE_L,fg:C_BLUE,bold:true,sz:10,border:true}));
+  xlsSet(ws1,R,1,xlsCell(empRows.length,{bg:C_BLUE_L,sz:10,align:'center',border:true}));
+  xlsSet(ws1,R,2,xlsCell(efEmp,     {bg:C_BLUE_L,fg:C_BLUE,bold:true,sz:10,align:'right',border:true,numFmt:'"$"#,##0'}));
+  R++;
+  xlsSet(ws1,R,0,xlsCell('TOTAL',{bold:true,bg:C_TOTAL,fg:C_GREEN,sz:10,border:true}));
+  xlsSet(ws1,R,1,xlsCell(rows.length,{bold:true,bg:C_TOTAL,sz:10,align:'center',border:true}));
+  xlsSet(ws1,R,2,xlsCell(tot,{bold:true,bg:C_TOTAL,fg:C_GREEN,sz:10,align:'right',border:true,numFmt:'"$"#,##0'}));
+
+  ws1['!cols']=[{wch:26},{wch:16},{wch:14},{wch:16},{wch:14}];
+  ws1['!rows']=[{hpt:28},{hpt:18}]; // title rows taller
+  XLSX.utils.book_append_sheet(wb,ws1,'Resumen del Día');
+
+  // ════════════════════════════════════════════
+  // HOJA 2: DETALLE DEL DÍA
+  // ════════════════════════════════════════════
+  const ws2={};
+  R=0;
+
+  // Title
+  xlsSet(ws2,R,0,xlsCell(`DETALLE DE VENTAS — ${dateStr} (${dowStr})`,{bold:true,bg:C_DARK,fg:C_HEADER_FG,sz:14,align:'center'}));
+  for(let c=1;c<10;c++) xlsSet(ws2,R,c,xlsCell('',{bg:C_DARK}));
+  xlsMerge(ws2,R,0,R,9); R++;
+
+  xlsSet(ws2,R,0,xlsCell(`Total registros: ${rows.length}   |   Total recaudado: $${tot.toLocaleString('es-CL')}`,{italic:true,bg:C_MED,fg:C_HEADER_FG,sz:10,align:'center'}));
+  for(let c=1;c<10;c++) xlsSet(ws2,R,c,xlsCell('',{bg:C_MED}));
+  xlsMerge(ws2,R,0,R,9); R++;
+  R++; // spacer
+
+  // Headers
+  const detHeaders=['Fecha','Día','Cliente','Tipo de Venta','Origen','Forma de Pago','Efectivo ($)','Transfer. ($)','Webpay ($)','Observaciones'];
+  detHeaders.forEach((h,c)=>{
+    xlsSet(ws2,R,c,xlsCell(h,{bold:true,bg:C_DARK,fg:C_HEADER_FG,sz:10,align:'center',border:true}));
+  }); R++;
+
+  if(rows.length){
+    rows.forEach((r2,i)=>{
+      const bg=i%2===0?C_WHITE:C_GRAY;
+      const e2=+r2.ef||0, t2=+r2.tr||0, w2=+r2.wp||0;
+      xlsSet(ws2,R,0,xlsCell(dateStr,  {bg,sz:10,border:true,align:'center'}));
+      xlsSet(ws2,R,1,xlsCell(dowStr,   {bg,sz:10,border:true,align:'center'}));
+      xlsSet(ws2,R,2,xlsCell(r2.cliente||'',{bg,sz:10,border:true}));
+      xlsSet(ws2,R,3,xlsCell(r2.tipo||'Sublimación',{bg,sz:10,border:true,align:'center'}));
+      xlsSet(ws2,R,4,xlsCell(r2.origen||'Local',     {bg,sz:10,border:true,align:'center'}));
+      xlsSet(ws2,R,5,xlsCell(r2.pago||'Efectivo',    {bg,sz:10,border:true,align:'center'}));
+      xlsSet(ws2,R,6,xlsCell(e2,{bg:e2>0?C_GREEN_L:bg, fg:e2>0?C_GREEN:'555555',bold:e2>0,sz:10,border:true,align:'right',numFmt:'"$"#,##0'}));
+      xlsSet(ws2,R,7,xlsCell(t2,{bg:t2>0?C_BLUE_L:bg,  fg:t2>0?C_BLUE:'555555', bold:t2>0,sz:10,border:true,align:'right',numFmt:'"$"#,##0'}));
+      xlsSet(ws2,R,8,xlsCell(w2,{bg:w2>0?C_AMBER_L:bg, fg:w2>0?C_AMBER:'555555',bold:w2>0,sz:10,border:true,align:'right',numFmt:'"$"#,##0'}));
+      xlsSet(ws2,R,9,xlsCell(r2.obs||'',{bg,sz:10,border:true}));
+      R++;
+    });
+  } else {
+    xlsSet(ws2,R,0,xlsCell('Sin registros para este día',{italic:true,fg:'888888',sz:10}));
+    xlsMerge(ws2,R,0,R,9); R++;
+  }
+
+  // Total row
+  xlsSet(ws2,R,0,xlsCell('TOTAL DÍA',{bold:true,bg:C_DARK,fg:C_HEADER_FG,sz:11,border:true}));
+  for(let c=1;c<6;c++) xlsSet(ws2,R,c,xlsCell('',{bold:true,bg:C_DARK,border:true}));
+  xlsSet(ws2,R,6,xlsCell(ef, {bold:true,bg:C_TOTAL,fg:C_GREEN,sz:11,border:true,align:'right',numFmt:'"$"#,##0'}));
+  xlsSet(ws2,R,7,xlsCell(trx,{bold:true,bg:C_TOTAL,fg:C_BLUE, sz:11,border:true,align:'right',numFmt:'"$"#,##0'}));
+  xlsSet(ws2,R,8,xlsCell(wp, {bold:true,bg:C_TOTAL,fg:C_AMBER,sz:11,border:true,align:'right',numFmt:'"$"#,##0'}));
+  xlsSet(ws2,R,9,xlsCell('',{bg:C_TOTAL,border:true}));
+  R++;
+  // Grand total row
+  xlsSet(ws2,R,0,xlsCell('TOTAL GENERAL',{bold:true,bg:C_MED,fg:C_HEADER_FG,sz:12,border:true}));
+  for(let c=1;c<6;c++) xlsSet(ws2,R,c,xlsCell('',{bold:true,bg:C_MED,border:true}));
+  xlsSet(ws2,R,6,xlsCell(tot,{bold:true,bg:C_MED,fg:C_HEADER_FG,sz:12,border:true,align:'right',numFmt:'"$"#,##0'}));
+  xlsMerge(ws2,R,6,R,8);
+  xlsSet(ws2,R,9,xlsCell('',{bg:C_MED,border:true}));
+
+  ws2['!cols']=[{wch:12},{wch:8},{wch:22},{wch:14},{wch:10},{wch:14},{wch:13},{wch:13},{wch:12},{wch:24}];
+  XLSX.utils.book_append_sheet(wb,ws2,'Detalle del Día');
+
+  XLSX.writeFile(wb,`Rendicion_${dateStr.replace(/\//g,'-')}.xlsx`);
+}
+
+/* ── INIT ── */
+loadData();
+buildAccordion();
+// Month selector for summary
+const sel=document.getElementById('summ-mes-sel');
+MESES.forEach((m,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=m; if(i===new Date().getMonth()) o.selected=true; sel.appendChild(o); });
+// Auto-open current month AND select today
+const nowM=new Date().getMonth();
+const nowD=new Date().getDate();
+toggleMonth(nowM);
+// Auto-select today if it's 2026
+const todayKey=`2026-${pad(nowM+1)}-${pad(nowD)}`;
+selectDay(todayKey, nowM);
+</script>
+</body>
+</html>
