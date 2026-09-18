@@ -326,7 +326,7 @@ function render() {
       (s.tab==='ventas'  ? buildTabla(filtradas, s.comDefPct)  : '') +
       (s.tab==='resumen' ? buildResumen(filtradas, s.comDefPct) : '') +
       (s.tab==='config'  ? buildConfig(s.comDefPct)             : '') +
-      (s.tab==='calc'    ? buildCalc()                   : '') +
+      (s.tab==='calc'    ? buildCalc()                          : '') +
       (s.tab==='vpdf'    ? buildVistaPDF(filtradas, s.comDefPct): '') +
       (s.tab==='vexcel'  ? buildVistaExcel(filtradas,s.comDefPct,s.xlTab): '') +
     '</div>' +
