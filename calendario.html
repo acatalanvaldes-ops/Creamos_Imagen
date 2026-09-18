@@ -597,7 +597,104 @@ function renderStats() {
   });
 }
 
+function exportJSON() {
+  const dataStr = JSON.stringify(productions, null, 2);
+  const blob = new Blob([dataStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'CreamosImagen_Calendario_' + todayStr + '.json';
+  a.click();
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+}
+
+function importJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (!Array.isArray(imported)) throw new Error('Formato inválido');
+      if (!confirm('Se importarán ' + imported.length + ' producciones. Esto reemplazará los datos actuales del calendario. ¿Continuar?')) { event.target.value = ''; return; }
+      productions = imported;
+      productions.sort(function(a,b){ return (a.date||'').localeCompare(b.date||''); });
+      save(); renderAll(); updateDataLists();
+      alert('Importación completada: ' + imported.length + ' producciones.');
+    } catch (err) {
+      alert('El archivo no es un JSON válido de producciones.');
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function shareURL() {
+  try {
+    const json = JSON.stringify(productions);
+    const encoded = btoa(unescape(encodeURIComponent(json)));
+    const url = location.origin + location.pathname + '#data=' + encoded;
+    const done = function(){ alert('Enlace copiado al portapapeles. Al abrirlo se podrán cargar las ' + productions.length + ' producciones actuales.'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done).catch(function(){ prompt('Copia este enlace:', url); });
+    } else {
+      prompt('Copia este enlace:', url);
+    }
+  } catch (e) {
+    alert('No se pudo generar el enlace para compartir.');
+  }
+}
+
+function exportPDF() {
+  const filtered = getFiltered();
+  const rows = filtered.map(function(p) {
+    const ingreso = p.date ? p.date.split('-').reverse().join('/') : '—';
+    const entrega = p.fechaEntrega ? p.fechaEntrega.split('-').reverse().join('/') : '—';
+    return '<tr><td>' + (p.orden||'') + '</td><td>' + p.name + '</td><td>' + (p.tag||'') + '</td><td>' + (p.diseñador||'—') + '</td><td>' + ingreso + '</td><td>' + entrega + '</td>' +
+      '<td style="text-align:right">' + formatPesos(p.monto) + '</td><td style="text-align:right">' + formatPesos(p.saldo) + '</td></tr>';
+  }).join('');
+  const totalMonto = filtered.reduce(function(s,p){ return s+(p.monto||0); }, 0);
+  const totalSaldo = filtered.reduce(function(s,p){ return s+(p.saldo||0); }, 0);
+  const html_pdf = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Creamos Imagen - Calendario</title>" +
+    "<style>body{font-family:Arial,sans-serif;padding:20px;font-size:12px}table{width:100%;border-collapse:collapse}" +
+    "th{background:#1C1917;color:#e8a020;padding:7px 8px;text-align:left;font-size:10px}" +
+    "td{padding:5px 8px;border-bottom:1px solid #eee}tr:nth-child(even) td{background:#fafafa}" +
+    ".hdr{background:#1C1917;color:#fff;padding:16px;margin-bottom:12px;display:flex;justify-content:space-between}" +
+    "@media print{body{padding:0}}</style></head><body>" +
+    "<div class='hdr'><div><div style='font-size:18px;font-weight:800'>CREAMOS IMAGEN - CALENDARIO DE PRODUCCIONES</div>" +
+    "<div style='color:#e8a020;font-size:10px'>" + filtered.length + " producciones</div></div>" +
+    "<div style='color:#e8a020;font-size:10px'>" + new Date().toLocaleDateString("es-CL") + "</div></div>" +
+    "<table><thead><tr><th>N°</th><th>Nombre / Cliente</th><th>Categoría</th><th>Diseñador</th><th>F. Ingreso</th><th>F. Entrega</th><th style='text-align:right'>Monto</th><th style='text-align:right'>Saldo</th></tr></thead>" +
+    "<tbody>" + rows + "</tbody>" +
+    "<tfoot><tr style='background:#1C1917'><td colspan='6' style='padding:8px;color:#666;font-weight:700'>TOTALES</td>" +
+    "<td style='padding:8px;text-align:right;color:#166534;font-weight:800'>" + formatPesos(totalMonto) + "</td>" +
+    "<td style='padding:8px;text-align:right;color:#e84040;font-weight:800'>" + formatPesos(totalSaldo) + "</td></tr></tfoot></table>" +
+    "<div style='margin-top:16px;text-align:right;font-size:9px;color:#aaa'>Creamos Imagen - Informe generado automaticamente</div>" +
+    "<script>window.onload=function(){window.print();}<\/script></body></html>";
+  const blob = new Blob([html_pdf], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, "_blank");
+  if (!win) alert("Permite las ventanas emergentes para imprimir.");
+  else win.addEventListener("load", function(){ setTimeout(function(){ URL.revokeObjectURL(url); }, 2000); });
+}
+
 window.onload = async function() {
+  const hash = location.hash;
+  if (hash && hash.indexOf('#data=') === 0) {
+    try {
+      const encoded = hash.slice(6);
+      const json = decodeURIComponent(escape(atob(encoded)));
+      const shared = JSON.parse(json);
+      if (Array.isArray(shared) && confirm('Este enlace incluye ' + shared.length + ' producciones compartidas. ¿Deseas cargarlas en este calendario?')) {
+        productions = shared;
+        save();
+        history.replaceState(null, '', location.pathname);
+        renderAll(); updateDataLists();
+        return;
+      }
+      history.replaceState(null, '', location.pathname);
+    } catch (e) { console.error('Error leyendo enlace compartido', e); }
+  }
   const cloudData = await loadFromCloud('prods2026');
   if (cloudData) productions = cloudData;
   else productions = JSON.parse(localStorage.getItem('prods2026') || '[]');
