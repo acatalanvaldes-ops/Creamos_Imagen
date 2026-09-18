@@ -24,61 +24,55 @@
   .header-right { text-align: right; }
   .today-badge { display: inline-block; background: var(--accent); color: var(--bg); font-size: 0.65rem; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; padding: 6px 14px; border-radius: 2px; margin-bottom: 8px; }
   .today-date { font-family: 'Playfair Display', serif; font-size: 1.1rem; color: var(--text2); }
+  
   .controls { display: flex; gap: 12px; margin-bottom: 32px; flex-wrap: wrap; align-items: center; }
   .controls-label { font-size: 0.65rem; letter-spacing: 2px; text-transform: uppercase; color: var(--text3); margin-right: 4px; }
   .tag-btn { display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: var(--card); border: 1px solid var(--border); border-radius: 2px; color: var(--text2); font-family: 'DM Mono', monospace; font-size: 0.7rem; cursor: pointer; transition: all 0.2s; letter-spacing: 1px; text-transform: uppercase; }
   .tag-btn:hover { border-color: var(--accent); color: var(--text); }
   .tag-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .tag-btn.active-filter { border-color: var(--accent); color: var(--accent); background: var(--accent)18; }
+  
   .add-form { background: var(--card); border: 1px solid var(--border); border-radius: 4px; padding: 24px; margin-bottom: 32px; display: none; }
   .add-form.open { display: block; animation: slideDown 0.3s ease; }
   @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
   .form-title { font-family: 'Playfair Display', serif; font-size: 1.1rem; margin-bottom: 16px; color: var(--accent); }
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 12px; align-items: end; }
   .form-group label { display: block; font-size: 0.6rem; letter-spacing: 2px; text-transform: uppercase; color: var(--text3); margin-bottom: 6px; }
   .form-group input, .form-group select { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 2px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 0.8rem; padding: 10px 12px; outline: none; transition: border-color 0.2s; }
   .form-group input:focus, .form-group select:focus { border-color: var(--accent); }
-  .form-group select option { background: var(--bg); }
   .btn-add { padding: 10px 20px; background: var(--accent); border: none; border-radius: 2px; color: var(--bg); font-family: 'DM Mono', monospace; font-size: 0.75rem; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
   .btn-add:hover { background: #f0b030; transform: translateY(-1px); }
   .toggle-form-btn { padding: 10px 20px; background: transparent; border: 1px solid var(--accent); border-radius: 2px; color: var(--accent); font-family: 'DM Mono', monospace; font-size: 0.7rem; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
   .toggle-form-btn:hover { background: var(--accent); color: var(--bg); }
-  .year-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 48px; }
-  @media (max-width: 1100px) { .year-grid { grid-template-columns: repeat(3, 1fr); } }
-  @media (max-width: 760px) { .year-grid { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 500px) { .year-grid { grid-template-columns: 1fr; } }
-  .month-card { background: var(--card); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; transition: border-color 0.2s, transform 0.2s; }
-  .month-card:hover { border-color: var(--text3); transform: translateY(-2px); }
-  .month-header { padding: 14px 16px 10px; display: flex; align-items: baseline; justify-content: space-between; border-bottom: 1px solid var(--border); }
-  .month-name { font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: 1px; }
-  .month-num { font-size: 0.6rem; color: var(--text3); letter-spacing: 2px; }
-  .month-body { padding: 12px; }
-  .dow-row { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 4px; }
-  .dow { text-align: center; font-size: 0.55rem; letter-spacing: 1px; text-transform: uppercase; color: var(--text3); padding: 4px 0; }
-  .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
-  .day-cell { position: relative; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; border-radius: 2px; cursor: pointer; transition: background 0.15s; color: var(--text2); user-select: none; }
-  .day-cell:hover:not(.empty) { background: var(--border); color: var(--text); }
-  .day-cell.empty { cursor: default; }
-  .day-cell.today { background: var(--accent); color: var(--bg); font-weight: 600; border-radius: 50%; }
-  .day-cell.has-prod { font-weight: 600; color: var(--text); }
-  .day-dot { position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; border-radius: 50%; }
-  .day-cell.weekend { color: var(--text3); }
-  .day-cell.today.weekend { color: var(--bg); }
+  
+  /* NUEVO DISEÑO CALENDARIO GRANDE */
+  .large-month-card { background: var(--card); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; margin-bottom: 24px; box-shadow: 0 8px 30px rgba(0,0,0,0.4); }
+  .large-month-header { padding: 24px 30px; display: flex; align-items: baseline; justify-content: space-between; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .large-month-name { font-family: 'Playfair Display', serif; font-size: 2.2rem; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: 2px; }
+  .large-month-body { padding: 20px; }
+  .large-dow-row { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 12px; }
+  .large-dow { text-align: center; font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; color: var(--text3); padding: 8px 0; font-weight: bold; border-bottom: 1px solid var(--border); }
+  .large-days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+  .large-day-cell { position: relative; min-height: 110px; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; padding: 10px; font-size: 1.2rem; border-radius: 4px; cursor: pointer; transition: background 0.2s, border-color 0.2s; color: var(--text2); border: 1px solid var(--border); background: var(--surface); }
+  .large-day-cell:hover:not(.empty) { background: var(--border); color: var(--text); }
+  .large-day-cell.empty { cursor: default; background: transparent; border-color: transparent; }
+  .large-day-cell.weekend { color: var(--text3); background: rgba(0,0,0,0.15); }
+  .large-day-cell.today { border-color: var(--accent); color: var(--text); font-weight: 600; background: rgba(232, 160, 32, 0.05); }
+  .large-day-cell.today::after { content: 'HOY'; position: absolute; top: 12px; right: 10px; font-size: 0.55rem; background: var(--accent); color: var(--bg); padding: 2px 6px; border-radius: 10px; font-weight: 700; letter-spacing: 1px; }
+  .large-day-dots { display: flex; flex-direction: column; gap: 4px; margin-top: auto; padding-top: 12px; width: 100%; }
+  .large-day-bar { font-size: 0.55rem; padding: 3px 6px; border-radius: 2px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* NAVEGADOR DE MESES INFERIOR */
+  .month-nav { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 48px; background: var(--surface); padding: 16px; border-radius: 6px; border: 1px solid var(--border); }
+  .month-nav-btn { flex: 1; min-width: 80px; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text3); font-family: 'DM Mono', monospace; font-size: 0.75rem; cursor: pointer; transition: all 0.2s; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; text-align: center; }
+  .month-nav-btn:hover { border-color: var(--text2); color: var(--text); }
+  .month-nav-btn.active { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 700; }
+
   .bottom-section { display: grid; grid-template-columns: 1fr 340px; gap: 24px; }
   @media (max-width: 900px) { .bottom-section { grid-template-columns: 1fr; } }
   .section-title { font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 700; margin-bottom: 16px; color: var(--text); display: flex; align-items: center; gap: 12px; }
   .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
   .timeline { background: var(--card); border: 1px solid var(--border); border-radius: 4px; padding: 20px; }
   .timeline-empty { color: var(--text3); font-size: 0.75rem; text-align: center; padding: 32px; letter-spacing: 1px; }
-  .prod-item { display: flex; gap: 16px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--border); animation: fadeIn 0.3s ease; }
-  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-  .prod-item:last-child { border-bottom: none; }
-  .prod-date-block { flex-shrink: 0; width: 44px; text-align: center; background: var(--surface); border-radius: 3px; padding: 6px 4px; }
-  .prod-day-num { font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 700; line-height: 1; color: var(--text); }
-  .prod-month-abbr { font-size: 0.55rem; letter-spacing: 2px; text-transform: uppercase; color: var(--text3); margin-top: 2px; }
-  .prod-info { flex: 1; min-width: 0; }
-  .prod-name { font-size: 0.85rem; font-weight: 500; color: var(--text); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .prod-meta { display: flex; align-items: center; gap: 8px; }
-  .prod-tag { font-size: 0.55rem; letter-spacing: 1px; text-transform: uppercase; padding: 2px 8px; border-radius: 2px; font-weight: 500; }
   .prod-delete { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 0.9rem; padding: 2px 6px; border-radius: 2px; transition: color 0.2s, background 0.2s; flex-shrink: 0; }
   .prod-delete:hover { color: #e05555; background: rgba(224,85,85,0.1); }
   .stats-panel { display: flex; flex-direction: column; gap: 16px; }
@@ -92,23 +86,17 @@
   .month-bar-track { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
   .month-bar-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.5s ease; }
   .month-bar-count { font-size: 0.6rem; color: var(--text3); width: 16px; text-align: right; }
-  .legend { display: flex; flex-wrap: wrap; gap: 12px; padding: 16px 20px; background: var(--card); border: 1px solid var(--border); border-radius: 4px; margin-bottom: 24px; }
-  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.65rem; color: var(--text2); letter-spacing: 1px; text-transform: uppercase; }
-  .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
   .tooltip { position: fixed; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 12px 16px; font-size: 0.75rem; color: var(--text); pointer-events: none; z-index: 999; min-width: 180px; display: none; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
   .tooltip-date { font-size: 0.6rem; letter-spacing: 2px; text-transform: uppercase; color: var(--text3); margin-bottom: 6px; }
   .tooltip-prod { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
   .tooltip-prod-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-  .tag-btn.active-filter { border-color: var(--accent); color: var(--accent); background: var(--accent)18; }
   .cantidad-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 4px; }
   .cantidad-item label { display: block; font-size: 0.55rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text3); margin-bottom: 4px; }
   .cantidad-item input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 2px; color: var(--accent); font-family: 'DM Mono', monospace; font-size: 0.85rem; font-weight: 500; padding: 7px 10px; outline: none; transition: border-color 0.2s; text-align: center; }
   .cantidad-item input:focus { border-color: var(--accent); }
   .cantidad-total-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--accent)18; border: 1px solid var(--accent)44; border-radius: 2px; padding: 3px 10px; font-size: 0.7rem; color: var(--accent); font-weight: 500; letter-spacing: 1px; margin-top: 2px; }
-  #timeline .prod-nombre-grande { font-size: 0.95rem !important; font-weight: 600 !important; }
-  #timeline .prod-dato-grande { font-size: 0.85rem !important; }
-  #timeline .prod-orden-grande { font-size: 0.75rem !important; }
-  @media print { body::before { display: none; } .controls, .add-form, .toggle-form-btn { display: none !important; } .year-grid { grid-template-columns: repeat(3, 1fr); } }
+  
+  @media print { body::before { display: none; } .controls, .add-form, .toggle-form-btn, .month-nav { display: none !important; } }
 </style>
 </head>
 <body>
@@ -131,57 +119,27 @@
   <div class="controls" style="flex-direction:column;align-items:flex-start;gap:10px">
     <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;width:100%">
       <span class="controls-label">Categoría:</span>
-      <button class="tag-btn active-filter" id="fbtn-" onclick="setFilter('tag','')">
-        <span class="tag-dot" style="background:#a09070"></span> Todas
-      </button>
-      <button class="tag-btn" id="fbtn-tag-Ingreso" onclick="setFilter('tag','Ingreso')">
-        <span class="tag-dot" style="background:var(--prod1)"></span> Ingreso
-      </button>
-      <button class="tag-btn" id="fbtn-tag-Confección" onclick="setFilter('tag','Confección')">
-        <span class="tag-dot" style="background:var(--prod2)"></span> Confección
-      </button>
-      <button class="tag-btn" id="fbtn-tag-Sublimación" onclick="setFilter('tag','Sublimación')">
-        <span class="tag-dot" style="background:var(--prod3)"></span> Sublimación
-      </button>
-      <button class="tag-btn" id="fbtn-tag-Abono" onclick="setFilter('tag','Abono')">
-        <span class="tag-dot" style="background:var(--prod4)"></span> Abono
-      </button>
-      <button class="tag-btn" id="fbtn-tag-Saldo" onclick="setFilter('tag','Saldo')">
-        <span class="tag-dot" style="background:var(--prod5)"></span> Saldo
-      </button>
-      <button class="tag-btn" id="fbtn-tag-Entrega" onclick="setFilter('tag','Entrega')">
-        <span class="tag-dot" style="background:#e84040"></span> Entrega
-      </button>
-      <button class="tag-btn" id="fbtn-tag-Otros" onclick="setFilter('tag','Otros')">
-        <span class="tag-dot" style="background:#6b7280"></span> Otros
-      </button>
+      <button class="tag-btn active-filter" id="fbtn-" onclick="setFilter('tag','')"><span class="tag-dot" style="background:#a09070"></span> Todas</button>
+      <button class="tag-btn" id="fbtn-tag-Ingreso" onclick="setFilter('tag','Ingreso')"><span class="tag-dot" style="background:var(--prod1)"></span> Ingreso</button>
+      <button class="tag-btn" id="fbtn-tag-Confección" onclick="setFilter('tag','Confección')"><span class="tag-dot" style="background:var(--prod2)"></span> Confección</button>
+      <button class="tag-btn" id="fbtn-tag-Sublimación" onclick="setFilter('tag','Sublimación')"><span class="tag-dot" style="background:var(--prod3)"></span> Sublimación</button>
+      <button class="tag-btn" id="fbtn-tag-Abono" onclick="setFilter('tag','Abono')"><span class="tag-dot" style="background:var(--prod4)"></span> Abono</button>
+      <button class="tag-btn" id="fbtn-tag-Saldo" onclick="setFilter('tag','Saldo')"><span class="tag-dot" style="background:var(--prod5)"></span> Saldo</button>
+      <button class="tag-btn" id="fbtn-tag-Entrega" onclick="setFilter('tag','Entrega')"><span class="tag-dot" style="background:#e84040"></span> Entrega</button>
+      <button class="tag-btn" id="fbtn-tag-Otros" onclick="setFilter('tag','Otros')"><span class="tag-dot" style="background:#6b7280"></span> Otros</button>
       <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
         <button class="toggle-form-btn" onclick="toggleForm()"><span id="formBtnTxt">＋ Agregar producción</span></button>
       </div>
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
       <span class="controls-label">Estado:</span>
-      <button class="tag-btn" id="fbtn-estado-" onclick="setFilter('estado','')">
-        <span class="tag-dot" style="background:#a09070"></span> Todos
-      </button>
-      <button class="tag-btn" id="fbtn-estado-saldo" onclick="setFilter('estado','saldo')">
-        <span class="tag-dot" style="background:#e84040"></span> Con saldo pendiente
-      </button>
-      <button class="tag-btn" id="fbtn-estado-abono" onclick="setFilter('estado','abono')">
-        <span class="tag-dot" style="background:var(--prod4)"></span> Con abono registrado
-      </button>
-      <button class="tag-btn" id="fbtn-estado-pagado" onclick="setFilter('estado','pagado')">
-        <span class="tag-dot" style="background:var(--prod3)"></span> Pagadas
-      </button>
-      <button class="tag-btn" id="fbtn-tipo-Confección" onclick="setFilter('tipo','Confección')">
-        <span class="tag-dot" style="background:var(--prod2)"></span> Confección
-      </button>
-      <button class="tag-btn" id="fbtn-tipo-Sublimación" onclick="setFilter('tipo','Sublimación')">
-        <span class="tag-dot" style="background:var(--prod3)"></span> Sublimación
-      </button>
-      <button class="tag-btn" id="fbtn-tipo-Otros" onclick="setFilter('tipo','Otros')">
-        <span class="tag-dot" style="background:#6b7280"></span> Otros
-      </button>
+      <button class="tag-btn" id="fbtn-estado-" onclick="setFilter('estado','')"><span class="tag-dot" style="background:#a09070"></span> Todos</button>
+      <button class="tag-btn" id="fbtn-estado-saldo" onclick="setFilter('estado','saldo')"><span class="tag-dot" style="background:#e84040"></span> Con saldo pendiente</button>
+      <button class="tag-btn" id="fbtn-estado-abono" onclick="setFilter('estado','abono')"><span class="tag-dot" style="background:var(--prod4)"></span> Con abono registrado</button>
+      <button class="tag-btn" id="fbtn-estado-pagado" onclick="setFilter('estado','pagado')"><span class="tag-dot" style="background:var(--prod3)"></span> Pagadas</button>
+      <button class="tag-btn" id="fbtn-tipo-Confección" onclick="setFilter('tipo','Confección')"><span class="tag-dot" style="background:var(--prod2)"></span> Confección</button>
+      <button class="tag-btn" id="fbtn-tipo-Sublimación" onclick="setFilter('tipo','Sublimación')"><span class="tag-dot" style="background:var(--prod3)"></span> Sublimación</button>
+      <button class="tag-btn" id="fbtn-tipo-Otros" onclick="setFilter('tipo','Otros')"><span class="tag-dot" style="background:#6b7280"></span> Otros</button>
     </div>
   </div>
 
@@ -203,40 +161,14 @@
       </div>
     </div>
     <div style="display:grid;grid-template-columns:80px 2fr 1fr 1fr 1fr 1fr;gap:12px;margin-bottom:12px">
-      <div class="form-group">
-        <label>N° Orden</label>
-        <input type="text" id="prodOrden" placeholder="Auto" autocomplete="off" readonly style="opacity:0.7;cursor:not-allowed;text-align:center;font-weight:600;color:var(--accent)">
-      </div>
-      <div class="form-group">
-        <label>Nombre / Cliente</label>
-        <input type="text" id="prodName" placeholder="Nombre de la producción…" list="listNombres" autocomplete="off">
-        <datalist id="listNombres"></datalist>
-      </div>
-      <div class="form-group">
-        <label>Tipo de producción</label>
-        <select id="prodTipo" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.8rem;padding:10px 12px;outline:none;transition:border-color 0.2s">
-          <option value="">— Seleccionar —</option>
-          <option value="Confección">Confección</option>
-          <option value="Sublimación">Sublimación</option>
-          <option value="Otros">Otros</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Diseñador</label>
-        <input type="text" id="prodDiseñador" placeholder="Diseñador…" list="listDiseñadores" autocomplete="off">
-        <datalist id="listDiseñadores"></datalist>
-      </div>
-      <div class="form-group">
-        <label>Fecha Ingreso</label>
-        <input type="date" id="prodDate" min="2026-01-01" max="2026-12-31">
-      </div>
-      <div class="form-group">
-        <label>Fecha Entrega</label>
-        <input type="date" id="prodFechaEntrega" min="2026-01-01" max="2026-12-31">
-      </div>
+      <div class="form-group"><label>N° Orden</label><input type="text" id="prodOrden" placeholder="Auto" autocomplete="off" readonly style="opacity:0.7;cursor:not-allowed;text-align:center;font-weight:600;color:var(--accent)"></div>
+      <div class="form-group"><label>Nombre / Cliente</label><input type="text" id="prodName" placeholder="Nombre de la producción…" list="listNombres" autocomplete="off"><datalist id="listNombres"></datalist></div>
+      <div class="form-group"><label>Tipo de producción</label><select id="prodTipo" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.8rem;padding:10px 12px;outline:none;transition:border-color 0.2s"><option value="">— Seleccionar —</option><option value="Confección">Confección</option><option value="Sublimación">Sublimación</option><option value="Otros">Otros</option></select></div>
+      <div class="form-group"><label>Diseñador</label><input type="text" id="prodDiseñador" placeholder="Diseñador…" list="listDiseñadores" autocomplete="off"><datalist id="listDiseñadores"></datalist></div>
+      <div class="form-group"><label>Fecha Ingreso</label><input type="date" id="prodDate" min="2026-01-01" max="2026-12-31"></div>
+      <div class="form-group"><label>Fecha Entrega</label><input type="date" id="prodFechaEntrega" min="2026-01-01" max="2026-12-31"></div>
     </div>
 
-    <!-- Cantidad de prendas -->
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:14px 16px;margin-bottom:12px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <span style="font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--text3)">Cantidad de prendas</span>
@@ -261,8 +193,11 @@
     </div>
   </div>
 
-  <!-- Year Calendar Grid -->
-  <div class="year-grid" id="yearGrid"></div>
+  <!-- VISTA GRANDE DEL MES ACTUAL -->
+  <div id="largeMonthView"></div>
+  
+  <!-- NAVEGADOR DE MESES INFERIOR -->
+  <div id="monthNav" class="month-nav"></div>
 
   <!-- Bottom section -->
   <div class="bottom-section">
@@ -293,7 +228,7 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbxP5-vB59e80qpXdx4AcCyS28C4H58thdh0XXtLcDWZD8Q_47fDbBvLn1ahqx7RoJor/exec";
 
 async function saveToCloud(key, dataObj) {
-  try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj) }) }); }
+  try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj) }) }); } 
   catch (e) { console.error("Error guardando en la nube", e); }
 }
 
@@ -306,13 +241,15 @@ async function loadFromCloud(key) {
 }
 
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-const MONTHS_SHORT = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const MONTHS_SHORT = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DAYS = ['Lu','Ma','Mi','Ju','Vi','Sa','Do'];
 const TAG_COLORS = { 'Ingreso':'var(--prod1)', 'Confección':'var(--prod2)', 'Sublimación':'var(--prod3)', 'Abono':'var(--prod4)', 'Saldo':'var(--prod5)', 'Entrega':'#e84040', 'Otros':'#6b7280' };
 
 let productions = [];
 const today = new Date();
 const todayStr = today.toISOString().slice(0,10);
+let currentViewMonth = today.getMonth(); // Mes que se mostrará en grande
+
 document.getElementById('todayDisplay').textContent = today.toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long' });
 
 function save() {
@@ -462,50 +399,107 @@ function getProdsForDate(dateStr) { return productions.filter(p => p.date === da
 function renderAll() { renderGrid(); renderTimeline(); renderStats(); }
 
 function renderGrid() {
-  const grid = document.getElementById('yearGrid'); grid.innerHTML = '';
-  for (let m = 0; m < 12; m++) {
-    const card = document.createElement('div'); card.className = 'month-card';
-    const hdr = document.createElement('div'); hdr.className = 'month-header';
-    hdr.innerHTML = `<span class="month-name">${MONTHS[m]}</span><span class="month-num">${String(m+1).padStart(2,'0')}</span>`;
-    card.appendChild(hdr);
-    const body = document.createElement('div'); body.className = 'month-body';
-    const dow = document.createElement('div'); dow.className = 'dow-row';
-    DAYS.forEach(d => { const s = document.createElement('div'); s.className='dow'; s.textContent=d; dow.appendChild(s); });
-    body.appendChild(dow);
-    const daysGrid = document.createElement('div'); daysGrid.className = 'days-grid';
-    const firstDay = new Date(2026, m, 1).getDay();
-    const startOffset = firstDay === 0 ? 6 : firstDay - 1;
-    const daysInMonth = new Date(2026, m+1, 0).getDate();
-    for (let i = 0; i < startOffset; i++) { const empty = document.createElement('div'); empty.className = 'day-cell empty'; daysGrid.appendChild(empty); }
-    for (let d = 1; d <= daysInMonth; d++) {
-      const dateStr = `2026-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-      const filteredProds = getFiltered().filter(p => p.date === dateStr);
-      const cell = document.createElement('div'); cell.className = 'day-cell';
-      const dow_idx = new Date(2026, m, d).getDay();
-      if (dow_idx === 0 || dow_idx === 6) cell.classList.add('weekend');
-      if (dateStr === todayStr) cell.classList.add('today');
-      cell.textContent = d;
-      if (filteredProds.length > 0) {
-        cell.classList.add('has-prod');
-        const dot = document.createElement('div'); dot.className = 'day-dot';
-        dot.style.background = TAG_COLORS[filteredProds[0].tag] || 'var(--accent)';
-        if (filteredProds.length > 1) dot.style.boxShadow = `3px 0 0 ${TAG_COLORS[filteredProds[1].tag] || 'var(--accent)'}`;
-        cell.appendChild(dot);
-        cell.addEventListener('mousemove', (e) => showTooltip(e, dateStr, filteredProds));
-        cell.addEventListener('mouseleave', hideTooltip);
-      }
-      cell.addEventListener('click', () => {
-        // Si hay una producción en edición, un clic en el calendario no debe
-        // pisar su fecha en silencio: se ignora hasta que se cancele o guarde.
-        if (editingId !== null) return;
-        const f = document.getElementById('addForm');
-        if (!f.classList.contains('open')) { toggleForm(); }
-        document.getElementById('prodDate').value = dateStr;
-      });
-      daysGrid.appendChild(cell);
-    }
-    body.appendChild(daysGrid); card.appendChild(body); grid.appendChild(card);
+  const navContainer = document.getElementById('monthNav');
+  const viewContainer = document.getElementById('largeMonthView');
+  if(!navContainer || !viewContainer) return;
+
+  // 1. Renderizar Barra de Navegación de Meses
+  navContainer.innerHTML = '';
+  MONTHS.forEach((mName, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'month-nav-btn' + (i === currentViewMonth ? ' active' : '');
+    btn.textContent = mName;
+    btn.onclick = () => { currentViewMonth = i; renderGrid(); };
+    navContainer.appendChild(btn);
+  });
+
+  // 2. Renderizar Mes Grande
+  viewContainer.innerHTML = '';
+  const m = currentViewMonth;
+
+  const card = document.createElement('div');
+  card.className = 'large-month-card';
+
+  const hdr = document.createElement('div');
+  hdr.className = 'large-month-header';
+  hdr.innerHTML = `<span class="large-month-name">${MONTHS[m]} 2026</span>`;
+  card.appendChild(hdr);
+
+  const body = document.createElement('div');
+  body.className = 'large-month-body';
+
+  const dow = document.createElement('div');
+  dow.className = 'large-dow-row';
+  DAYS.forEach(d => { const s = document.createElement('div'); s.className='large-dow'; s.textContent=d; dow.appendChild(s); });
+  body.appendChild(dow);
+
+  const daysGrid = document.createElement('div');
+  daysGrid.className = 'large-days-grid';
+
+  const firstDay = new Date(2026, m, 1).getDay();
+  const startOffset = firstDay === 0 ? 6 : firstDay - 1;
+  const daysInMonth = new Date(2026, m+1, 0).getDate();
+
+  for (let i = 0; i < startOffset; i++) {
+    const empty = document.createElement('div'); empty.className = 'large-day-cell empty';
+    daysGrid.appendChild(empty);
   }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `2026-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const filteredProds = getFiltered().filter(p => p.date === dateStr);
+
+    const cell = document.createElement('div');
+    cell.className = 'large-day-cell';
+
+    const dow_idx = new Date(2026, m, d).getDay();
+    if (dow_idx === 0 || dow_idx === 6) cell.classList.add('weekend');
+    if (dateStr === todayStr) cell.classList.add('today');
+
+    cell.textContent = d;
+
+    if (filteredProds.length > 0) {
+      const dotsContainer = document.createElement('div');
+      dotsContainer.className = 'large-day-dots';
+      
+      // Mostrar hasta 4 barras de producciones con el nombre del cliente
+      filteredProds.slice(0, 4).forEach(p => {
+        const bar = document.createElement('div');
+        bar.className = 'large-day-bar';
+        bar.style.background = (TAG_COLORS[p.tag] || 'var(--accent)') + '33';
+        bar.style.borderLeft = `3px solid ${TAG_COLORS[p.tag] || 'var(--accent)'}`;
+        bar.textContent = p.name;
+        dotsContainer.appendChild(bar);
+      });
+      
+      if (filteredProds.length > 4) {
+        const extra = document.createElement('div');
+        extra.style.fontSize = '0.6rem';
+        extra.style.marginTop = '2px';
+        extra.style.color = 'var(--text3)';
+        extra.style.fontWeight = 'bold';
+        extra.textContent = `+${filteredProds.length - 4} producciones...`;
+        dotsContainer.appendChild(extra);
+      }
+      
+      cell.appendChild(dotsContainer);
+
+      cell.addEventListener('mousemove', (e) => showTooltip(e, dateStr, filteredProds));
+      cell.addEventListener('mouseleave', hideTooltip);
+    }
+
+    cell.addEventListener('click', () => {
+      const f = document.getElementById('addForm');
+      if (!f.classList.contains('open')) { toggleForm(); }
+      document.getElementById('prodDate').value = dateStr;
+    });
+
+    daysGrid.appendChild(cell);
+  }
+
+  body.appendChild(daysGrid);
+  card.appendChild(body);
+  viewContainer.appendChild(card);
 }
 
 function showTooltip(e, dateStr, prods) {
@@ -560,112 +554,7 @@ function renderStats() {
   });
 }
 
-// ============================================================
-// EXPORTAR / IMPORTAR / COMPARTIR (antes faltaban estas funciones)
-// ============================================================
-
-function exportJSON() {
-  const dataStr = JSON.stringify(productions, null, 2);
-  const blob = new Blob([dataStr], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'calendario_producciones_2026.json';
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function importJSON(event) {
-  const file = event.target.files && event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const imported = JSON.parse(e.target.result);
-      if (!Array.isArray(imported)) throw new Error('Formato inválido');
-      if (!confirm(`Se encontraron ${imported.length} producciones en el archivo. ¿Reemplazar los datos actuales?`)) return;
-      productions = imported;
-      productions.sort((a,b) => (a.date||'').localeCompare(b.date||''));
-      save();
-      renderAll();
-      alert('Importación completada.');
-    } catch (err) {
-      alert('El archivo no es un JSON válido de producciones.');
-    }
-  };
-  reader.readAsText(file);
-  event.target.value = '';
-}
-
-function shareURL() {
-  try {
-    const encoded = btoa(encodeURIComponent(JSON.stringify(productions)));
-    const url = `${location.origin}${location.pathname}#data=${encoded}`;
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(url).then(() => {
-        alert('Enlace copiado al portapapeles (incluye todas las producciones).');
-      }).catch(() => {
-        prompt('Copia este enlace:', url);
-      });
-    } else {
-      prompt('Copia este enlace:', url);
-    }
-  } catch (e) {
-    alert('No se pudo generar el enlace para compartir.');
-  }
-}
-
-function exportPDF() {
-  const filtered = getFiltered();
-  const sorted = filtered.slice().sort((a,b) => (a.date||'').localeCompare(b.date||''));
-  const rows = sorted.map(p => {
-    const [y,m,d] = p.date.split('-');
-    const ingresoLabel = `${parseInt(d)} ${MONTHS_SHORT[parseInt(m)-1]} ${y}`;
-    let entregaLabel = '—';
-    if (p.fechaEntrega) { const [ey,em,ed] = p.fechaEntrega.split('-'); entregaLabel = `${parseInt(ed)} ${MONTHS_SHORT[parseInt(em)-1]} ${ey}`; }
-    return `<tr><td>${p.orden||''}</td><td>${p.name||''}</td><td>${p.tag||''}</td><td>${p.diseñador||'—'}</td><td>${ingresoLabel}</td><td>${entregaLabel}</td><td style="text-align:right">${formatPesos(p.monto)}</td><td style="text-align:right">${formatPesos(p.saldo)}</td></tr>`;
-  }).join('');
-  const totalMonto = sorted.reduce((s,p) => s + (p.monto||0), 0);
-  const totalSaldo = sorted.reduce((s,p) => s + (p.saldo||0), 0);
-  const html_pdf = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Calendario de Producciones 2026</title>
-<style>
-body{font-family:Arial,sans-serif;padding:20px;font-size:12px;color:#1C1917}
-table{width:100%;border-collapse:collapse}
-th{background:#1C1917;color:#e8a020;padding:7px 8px;text-align:left;font-size:10px}
-td{padding:5px 8px;border-bottom:1px solid #eee}
-tr:nth-child(even) td{background:#fafafa}
-tfoot td{font-weight:800;background:#f0ece3}
-h1{font-size:20px;margin-bottom:4px}
-p{color:#78716C;margin-bottom:14px;font-size:11px}
-@media print{body{padding:0}}
-</style></head><body>
-<h1>Calendario de Producciones 2026</h1>
-<p>${sorted.length} producciones — generado el ${new Date().toLocaleDateString('es-CL')}</p>
-<table>
-<thead><tr><th>N°</th><th>Nombre / Cliente</th><th>Categoría</th><th>Diseñador</th><th>F. Ingreso</th><th>F. Entrega</th><th style="text-align:right">Monto</th><th style="text-align:right">Saldo</th></tr></thead>
-<tbody>${rows}</tbody>
-<tfoot><tr><td colspan="6">TOTALES</td><td style="text-align:right">${formatPesos(totalMonto)}</td><td style="text-align:right">${formatPesos(totalSaldo)}</td></tr></tfoot>
-</table>
-<script>window.onload=function(){window.print();}<\/script>
-</body></html>`;
-  const blob = new Blob([html_pdf], { type: 'text/html;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const win = window.open(url, '_blank');
-  if (!win) alert('Permite las ventanas emergentes para imprimir.');
-  else win.addEventListener('load', () => setTimeout(() => URL.revokeObjectURL(url), 2000));
-}
-
 window.onload = async function() {
-  // Si el enlace incluye datos compartidos (#data=...), se cargan esos en vez de la nube/localStorage.
-  if (location.hash.startsWith('#data=')) {
-    try {
-      const encoded = location.hash.slice(6);
-      const decoded = JSON.parse(decodeURIComponent(atob(encoded)));
-      if (Array.isArray(decoded)) productions = decoded;
-    } catch (e) { console.error('Enlace de datos inválido', e); }
-    renderAll(); updateDataLists();
-    return;
-  }
   const cloudData = await loadFromCloud('prods2026');
   if (cloudData) productions = cloudData;
   else productions = JSON.parse(localStorage.getItem('prods2026') || '[]');
