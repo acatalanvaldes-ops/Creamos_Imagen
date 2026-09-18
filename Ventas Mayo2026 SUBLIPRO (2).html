@@ -12,7 +12,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--dark);min
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--gold);border-radius:2px}
 input,select,button{font-family:inherit;outline:none}
 .topbar{background:var(--dark);padding:0 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:100}
-.brand{padding:14px 0}
+.brand{padding:14px 0; margin-left: 120px;} /* Ajustado para dar espacio al botón flotante */
 .brand-tag{font-size:9px;color:var(--gold);letter-spacing:.2em;font-weight:700;text-transform:uppercase;margin-bottom:2px}
 .brand-name{font-family:'DM Serif Display',serif;font-size:22px;color:#fff}
 .brand-name span{color:var(--gold)}
@@ -82,8 +82,27 @@ tfoot td{padding:11px 12px;font-weight:700;white-space:nowrap}
 </style>
 </head>
 <body>
+<a href="index.html" style="position:fixed; top:14px; left:20px; background:#1C1917; color:#C8973A; padding:8px 14px; border-radius:6px; border:1px solid #C8973A; text-decoration:none; font-family:Arial, sans-serif; font-size:11px; font-weight:bold; box-shadow:0 4px 6px rgba(0,0,0,0.2); z-index:9999;">← Menú</a>
 <div id="app"></div>
 <script>
+// ============================================================
+// CONEXIÓN A BASE DE DATOS (NUBE)
+// ============================================================
+const API_URL = "https://script.google.com/macros/s/AKfycbxP5-vB59e80qpXdx4AcCyS28C4H58thdh0XXtLcDWZD8Q_47fDbBvLn1ahqx7RoJor/exec";
+
+async function saveToCloud(key, dataObj) {
+  try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj) }) }); } 
+  catch (e) { console.error("Error guardando en la nube", e); }
+}
+
+async function loadFromCloud(key) {
+  try {
+    const res = await fetch(API_URL + "?key=" + key);
+    const json = await res.json();
+    return json.valor ? JSON.parse(json.valor) : null;
+  } catch (e) { console.error("Error cargando de la nube", e); return null; }
+}
+
 // ============================================================
 // CONSTANTES
 // ============================================================
@@ -109,7 +128,7 @@ function fmt(n)              { return n==null ? "" : "$"+Math.round(n).toLocaleS
 function fDate(f)            { return new Date(f+"T12:00").toLocaleDateString("es-CO",{day:"2-digit",month:"short",year:"numeric"}); }
 
 // ============================================================
-// PERSISTENCIA (localStorage)
+// PERSISTENCIA (localStorage + Nube)
 // ============================================================
 var STORAGE_KEY = "sublipro_v2";
 
@@ -121,6 +140,7 @@ function guardarDatos() {
       filtroMes: state.filtroMes
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(datos));
+    saveToCloud(STORAGE_KEY, datos);
   } catch(e) {}
 }
 
@@ -145,67 +165,9 @@ function borrarDatos() {
 // ESTADO
 // ============================================================
 var state = {
-  ventas:[
-    {id:1, fecha:"2026-05-04",cliente:"Eduardo",   producto:"Banderas",   formaPago:"Transferencia",     montoBase:90000,  comision:6,factura:false},
-    {id:2, fecha:"2026-05-04",cliente:"Nats",      producto:"Estampados", formaPago:"Transferencia",     montoBase:28560,  comision:6,factura:false},
-    {id:3, fecha:"2026-05-04",cliente:"Sally",     producto:"Mantas",     formaPago:"Transferencia",     montoBase:20000,  comision:6,factura:false},
-    {id:4, fecha:"2026-05-04",cliente:"Melany",    producto:"Camisetas",  formaPago:"Transferencia",     montoBase:206500, comision:6,factura:false},
-    {id:5, fecha:"2026-05-04",cliente:"Particular",producto:"Mantas",     formaPago:"Webpay",  montoBase:20000,  comision:6,factura:false},
-    {id:6, fecha:"2026-05-04",cliente:"Esteban",   producto:"Camisetas",  formaPago:"Transferencia",     montoBase:126500, comision:6,factura:false},
-    {id:7, fecha:"2026-05-04",cliente:"Benjamin",  producto:"Mantas",     formaPago:"Transferencia",     montoBase:416500, comision:6,factura:false},
-    {id:8, fecha:"2026-05-04",cliente:"Antonio",   producto:"Mantas",     formaPago:"Transferencia",     montoBase:20000,  comision:6,factura:false},
-    {id:9, fecha:"2026-05-04",cliente:"Tito",      producto:"Estampados", formaPago:"Transferencia",     montoBase:157500, comision:6,factura:false},
-    {id:10,fecha:"2026-05-05",cliente:"Gabriela",  producto:"Mantas",     formaPago:"Transferencia",     montoBase:20000,  comision:6,factura:false},
-    {id:11,fecha:"2026-05-05",cliente:"Gabriela",  producto:"Mantas",     formaPago:"Efectivo",          montoBase:20000,  comision:6,factura:false},
-    {id:12,fecha:"2026-05-05",cliente:"Gabriela",  producto:"Camisetas",  formaPago:"Transferencia",     montoBase:16660,  comision:6,factura:false},
-    {id:13,fecha:"2026-05-05",cliente:"Particular",producto:"Estampados", formaPago:"Transferencia",     montoBase:19040,  comision:6,factura:false},
-    {id:14,fecha:"2026-05-06",cliente:"Particular",producto:"Banderas",   formaPago:"Webpay",  montoBase:35294,  comision:6,factura:false},
-    {id:15,fecha:"2026-05-06",cliente:"Particular",producto:"Mantas",     formaPago:"Webpay",  montoBase:29659,  comision:6,factura:false},
-    {id:16,fecha:"2026-05-06",cliente:"Particular",producto:"Estampados", formaPago:"Webpay",  montoBase:15999,  comision:6,factura:false},
-    {id:17,fecha:"2026-05-06",cliente:"Particular",producto:"Bolsas",     formaPago:"Efectivo",          montoBase:5042,   comision:6,factura:false},
-    {id:18,fecha:"2026-05-06",cliente:"Eduardo",   producto:"Banderas",   formaPago:"Transferencia",     montoBase:180000, comision:6,factura:false},
-    {id:19,fecha:"2026-05-07",cliente:"Sideral",   producto:"Conjuntos",  formaPago:"Transferencia",     montoBase:628500, comision:6,factura:false},
-    {id:20,fecha:"2026-05-07",cliente:"Particular",producto:"Mantas",     formaPago:"Webpay",  montoBase:11765,  comision:6,factura:false},
-    {id:21,fecha:"2026-05-08",cliente:"Liss",      producto:"Mantas",     formaPago:"Webpay",  montoBase:99167,  comision:6,factura:false},
-    {id:22,fecha:"2026-05-08",cliente:"Liss",      producto:"Mantas",     formaPago:"Webpay",  montoBase:16667,  comision:6,factura:false},
-    {id:23,fecha:"2026-05-08",cliente:"Particular",producto:"Sublimación",formaPago:"Webpay",  montoBase:16000,  comision:6,factura:false},
-    {id:24,fecha:"2026-05-08",cliente:"Particular",producto:"Bolsas",     formaPago:"Webpay",  montoBase:5000,   comision:6,factura:false},
-    {id:25,fecha:"2026-05-09",cliente:"Beautystar",producto:"Camisetas",  formaPago:"Efectivo",          montoBase:234000, comision:6,factura:false},
-    {id:26,fecha:"2026-05-09",cliente:"Particular",producto:"Estampados", formaPago:"Transferencia",     montoBase:35081,  comision:6,factura:false},
-    {id:27,fecha:"2026-05-11",cliente:"Melany",    producto:"Camisetas",  formaPago:"Transferencia",     montoBase:156000, comision:6,factura:false},
-    {id:28,fecha:"2026-05-11",cliente:"Esteban",   producto:"Pañuelos",   formaPago:"Transferencia",     montoBase:71700,  comision:6,factura:false},
-    {id:29,fecha:"2026-05-11",cliente:"Cristian",  producto:"Conjuntos",  formaPago:"Transferencia",     montoBase:252280, comision:6,factura:false},
-    {id:30,fecha:"2026-05-12",cliente:"Agrupacion",producto:"Camisetas",  formaPago:"Transferencia",     montoBase:403000, comision:6,factura:false},
-    {id:31,fecha:"2026-05-12",cliente:"Particular",producto:"Estampados", formaPago:"Transferencia",     montoBase:14000,  comision:6,factura:false},
-    {id:32,fecha:"2026-05-12",cliente:"Particular",producto:"Mantas",     formaPago:"Webpay",  montoBase:19608,  comision:6,factura:false},
-    {id:33,fecha:"2026-05-13",cliente:"Eduardo",   producto:"Banderas",   formaPago:"Transferencia",     montoBase:305042, comision:6,factura:false},
-    {id:34,fecha:"2026-05-14",cliente:"Alfredo",   producto:"Mantas",     formaPago:"Transferencia",     montoBase:51000,  comision:6,factura:false},
-    {id:35,fecha:"2026-05-14",cliente:"Particular",producto:"Sublimación",formaPago:"Transferencia",     montoBase:19000,  comision:6,factura:false},
-    {id:36,fecha:"2026-05-14",cliente:"Eduardo S", producto:"Banderas",   formaPago:"Transferencia",     montoBase:195000, comision:6,factura:false},
-    {id:37,fecha:"2026-05-14",cliente:"Particular",producto:"Banner",     formaPago:"Efectivo",          montoBase:5000,   comision:6,factura:false},
-    {id:38,fecha:"2026-05-14",cliente:"Ceyland",   producto:"Sublimación",formaPago:"Transferencia",     montoBase:71115,  comision:6,factura:false},
-    {id:39,fecha:"2026-05-14",cliente:"Particular",producto:"Mantas",     formaPago:"Webpay",  montoBase:11765,  comision:6,factura:false},
-    {id:40,fecha:"2026-05-14",cliente:"Sakura",    producto:"Mantas",     formaPago:"Transferencia",     montoBase:144500, comision:6,factura:false},
-    {id:41,fecha:"2026-05-14",cliente:"Particular",producto:"Mantas",     formaPago:"Transferencia",     montoBase:20000,  comision:6,factura:false},
-    {id:42,fecha:"2026-05-14",cliente:"Particular",producto:"Mantas",     formaPago:"Transferencia",     montoBase:14280,  comision:6,factura:false},
-    {id:43,fecha:"2026-05-15",cliente:"Jose Luis", producto:"Banderas",   formaPago:"Transferencia",     montoBase:36000,  comision:6,factura:false},
-    {id:44,fecha:"2026-05-15",cliente:"Particular",producto:"Mantas",     formaPago:"Webpay",  montoBase:60784,  comision:6,factura:false},
-    {id:45,fecha:"2026-05-15",cliente:"Particular",producto:"Banner",     formaPago:"Webpay",  montoBase:50980,  comision:6,factura:false},
-    {id:46,fecha:"2026-05-15",cliente:"Particular",producto:"Mantas",     formaPago:"Webpay",  montoBase:11765,  comision:6,factura:false},
-    {id:47,fecha:"2026-05-16",cliente:"Particular",producto:"Camisetas",  formaPago:"Webpay",  montoBase:50980,  comision:6,factura:false},
-    {id:48,fecha:"2026-05-18",cliente:"Melany",    producto:"Camisetas",  formaPago:"Transferencia",     montoBase:624000, comision:6,factura:false},
-    {id:49,fecha:"2026-05-18",cliente:"Eduardo",   producto:"Banderas",   formaPago:"Transferencia",     montoBase:210000, comision:6,factura:false},
-    {id:50,fecha:"2026-05-18",cliente:"Quillota",  producto:"Camisetas",  formaPago:"Transferencia",     montoBase:518000, comision:6,factura:false},
-    {id:51,fecha:"2026-05-18",cliente:"Ignacia",   producto:"Sublimación",formaPago:"Webpay",  montoBase:20588,  comision:6,factura:false},
-    {id:52,fecha:"2026-05-18",cliente:"Manuel",    producto:"Mantas",     formaPago:"Transferencia",     montoBase:12000,  comision:6,factura:false},
-    {id:53,fecha:"2026-05-19",cliente:"Gabriela",  producto:"Camisetas",  formaPago:"Transferencia",     montoBase:60000,  comision:6,factura:false},
-    {id:54,fecha:"2026-05-20",cliente:"Eduardo",   producto:"Banderas",   formaPago:"Transferencia",     montoBase:240000, comision:6,factura:false},
-    {id:55,fecha:"2026-05-20",cliente:"Particular",producto:"Banner",     formaPago:"Efectivo",          montoBase:60000,  comision:6,factura:false},
-    {id:56,fecha:"2026-05-20",cliente:"Particular",producto:"Estampados", formaPago:"Webpay",  montoBase:38980,  comision:6,factura:false},
-    {id:57,fecha:"2026-05-22",cliente:"Rai",       producto:"Camisetas",  formaPago:"Transferencia",     montoBase:119715, comision:6,factura:false},
-  ],
+  ventas:[],
   tab:"ventas",
-  filtroMes:"2026-05",
+  filtroMes:"",
   comDefPct:6,
   showForm:false,
   editId:null,
@@ -214,9 +176,6 @@ var state = {
   xlTab:"detalle",
   form:{fecha:new Date().toISOString().slice(0,10),cliente:"",producto:PRODUCTOS[0],formaPago:FORMAS_PAGO[0],montoBase:"",comision:"6",factura:false}
 };
-
-// Cargar datos guardados al inicio
-cargarDatos();
 
 // ============================================================
 // ESTADO - funciones
@@ -471,7 +430,6 @@ function buildCalc() {
     return '<button data-btn="'+b.l+'" onclick="doCalc(this)" style="'+b.s+';border:1.5px solid var(--border);border-radius:10px;padding:14px 8px;font-size:18px;font-weight:700;cursor:pointer;font-family:inherit">'+b.l+'</button>';
   }).join('');
   return '<div class="fade" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:900px">'+
-    // Calculadora
     '<div style="background:#fff;border-radius:14px;border:1px solid var(--border);overflow:hidden">'+
     '<div style="background:var(--dark);padding:14px 18px"><div style="font-size:9px;color:var(--gold);letter-spacing:.15em;font-weight:700;text-transform:uppercase;margin-bottom:2px">Herramienta</div><div style="font-size:17px;font-weight:800;color:#fff">Calculadora</div></div>'+
     '<div style="padding:16px">'+
@@ -479,7 +437,6 @@ function buildCalc() {
     '<div id="calc-expr" style="font-size:11px;color:#666;min-height:16px;margin-bottom:4px"></div>'+
     '<div id="calc-display" style="font-size:28px;font-weight:800;color:#fff">0</div></div>'+
     '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">'+bHtml+'</div></div></div>'+
-    // Bruto/Neto
     '<div style="background:#fff;border-radius:14px;border:1px solid var(--border);overflow:hidden">'+
     '<div style="background:var(--dark);padding:14px 18px"><div style="font-size:9px;color:var(--gold);letter-spacing:.15em;font-weight:700;text-transform:uppercase;margin-bottom:2px">Herramienta</div><div style="font-size:17px;font-weight:800;color:#fff">Bruto / Neto IVA 19%</div></div>'+
     '<div style="padding:16px;display:flex;flex-direction:column;gap:12px">'+
@@ -501,7 +458,6 @@ function buildCalc() {
     '<div id="det-neto" style="margin-top:8px;font-size:11px;color:#1E40AF;display:none"></div></div>'+
     '<div style="background:#FEF9C3;border:1px solid #FDE68A;border-radius:8px;padding:10px 13px;font-size:11px;color:#854D0E">IVA 19% - Bruto / 1.19 = Neto - Neto x 1.19 = Bruto</div>'+
     '</div></div>'+
-    // Comision automatica
     '<div style="background:#fff;border-radius:14px;border:1px solid var(--border);overflow:hidden;grid-column:1/-1">'+
     '<div style="background:var(--dark);padding:14px 18px;display:flex;justify-content:space-between;align-items:center">'+
     '<div><div style="font-size:9px;color:var(--gold);letter-spacing:.15em;font-weight:700;text-transform:uppercase;margin-bottom:2px">Herramienta</div><div style="font-size:17px;font-weight:800;color:#fff">Calculador de Comision</div></div>'+
@@ -588,7 +544,7 @@ function buildVistaExcel(filt, cp, xlTab) {
   var t2 = '<button data-xl="resumen" onclick="goXl(this)" style="background:'+(xlTab==='resumen'?'#fff':'#D0D0D0')+';border:1px solid #aaa;border-bottom:none;padding:5px 16px;font-size:11px;font-weight:'+(xlTab==='resumen'?700:400)+';cursor:pointer;color:'+(xlTab==='resumen'?'#1D6F42':'#555')+';border-radius:4px 4px 0 0">Resumen</button>';
   var content = '';
   if (xlTab==='detalle') {
-    content = '<div style="background:#1C1917;padding:10px 16px"><div style="font-size:13px;font-weight:800;color:#fff">SUBLIPRO - REGISTRO DE VENTAS MAYO 2026</div></div>'+
+    content = '<div style="background:#1C1917;padding:10px 16px"><div style="font-size:13px;font-weight:800;color:#fff">SUBLIPRO - REGISTRO DE VENTAS</div></div>'+
       '<table style="width:100%;border-collapse:collapse;min-width:600px">'+
       '<thead><tr style="background:#C8973A"><th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Fecha</th><th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Cliente</th><th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Producto</th><th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Forma Pago</th><th style="padding:8px 10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Venta</th><th style="padding:8px 10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Comision</th><th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Fact.</th></tr></thead>'+
       '<tbody>'+rows+'</tbody>'+
@@ -596,7 +552,7 @@ function buildVistaExcel(filt, cp, xlTab) {
       '<td style="padding:9px 10px;text-align:right;font-size:13px;font-weight:800;color:#86EFAC">'+fmt(tV)+'</td>'+
       '<td style="padding:9px 10px;text-align:right;font-size:13px;font-weight:800;color:#C8973A">'+fmt(tC)+'</td><td></td></tr></tfoot></table>';
   } else {
-    content = '<div style="background:#1C1917;padding:10px 16px"><div style="font-size:13px;font-weight:800;color:#fff">RESUMEN - MAYO 2026</div></div>'+
+    content = '<div style="background:#1C1917;padding:10px 16px"><div style="font-size:13px;font-weight:800;color:#fff">RESUMEN</div></div>'+
       '<div style="display:grid;grid-template-columns:repeat(3,1fr);border-bottom:2px solid #C8973A">'+
       '<div style="padding:12px 16px"><div style="font-size:9px;color:#888;text-transform:uppercase;margin-bottom:3px">Total Ventas</div><div style="font-size:18px;font-weight:800;color:#1E40AF">'+filt.length+'</div></div>'+
       '<div style="padding:12px 16px;border-left:1px solid #E7E2D9"><div style="font-size:9px;color:#888;text-transform:uppercase;margin-bottom:3px">Monto Ventas</div><div style="font-size:18px;font-weight:800;color:#166534">'+fmt(tV)+'</div></div>'+
@@ -866,9 +822,25 @@ function exportPDF() {
 }
 
 // ============================================================
-// INICIO
+// INICIO Y SINCRONIZACIÓN
 // ============================================================
-render();
+async function initApp() {
+  try {
+    const cloudData = await loadFromCloud(STORAGE_KEY);
+    if (cloudData) {
+      if (cloudData.ventas) state.ventas = cloudData.ventas;
+      if (cloudData.comDefPct) state.comDefPct = cloudData.comDefPct;
+      if (cloudData.filtroMes !== undefined) state.filtroMes = cloudData.filtroMes;
+    } else {
+      cargarDatos();
+    }
+  } catch (e) {
+    cargarDatos();
+  }
+  render();
+}
+
+initApp();
 </script>
 </body>
 </html>
