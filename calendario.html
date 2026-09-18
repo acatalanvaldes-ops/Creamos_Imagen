@@ -266,13 +266,49 @@
 
 <div class="tooltip" id="tooltip"></div>
 
+<div id="cloudSaveBadge" style="position:fixed;bottom:18px;right:18px;z-index:999998;display:none;align-items:center;gap:8px;padding:8px 16px;border-radius:24px;font-family:'DM Mono',monospace;font-size:12px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,0.35);transition:opacity 0.25s ease;letter-spacing:0.3px;"></div>
+
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbxP5-vB59e80qpXdx4AcCyS28C4H58thdh0XXtLcDWZD8Q_47fDbBvLn1ahqx7RoJor/exec";
 const CLOUD_TOKEN = "b5bd161b4ef581c6114b7bb4";
 
 async function saveToCloud(key, dataObj) {
-  try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj), token: CLOUD_TOKEN }) }); } 
-  catch (e) { console.error("Error guardando en la nube", e); }
+  try {
+    const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj), token: CLOUD_TOKEN }) });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return true;
+  } catch (e) { console.error("Error guardando en la nube", e); return false; }
+}
+
+let lastSyncedSnapshot = null;
+let _saveStatusTimer = null;
+
+function showSaveStatus(st) {
+  const el = document.getElementById('cloudSaveBadge');
+  if (!el) return;
+  clearTimeout(_saveStatusTimer);
+  el.style.display = 'flex';
+  el.style.opacity = '1';
+  if (st === 'saving') {
+    el.style.background = '#374151'; el.style.color = '#fff';
+    el.textContent = '⏳ Guardando…';
+  } else if (st === 'saved') {
+    el.style.background = '#166534'; el.style.color = '#fff';
+    el.textContent = '✓ Guardado';
+    _saveStatusTimer = setTimeout(() => { el.style.opacity = '0'; setTimeout(() => { el.style.display = 'none'; }, 300); }, 2200);
+  } else if (st === 'error') {
+    el.style.background = '#b91c1c'; el.style.color = '#fff';
+    el.textContent = '⚠ Error al guardar, revisa tu conexión';
+  }
+}
+
+async function checkForConflict(key) {
+  try {
+    const fresh = await loadFromCloud(key);
+    const freshStr = JSON.stringify(fresh);
+    if (lastSyncedSnapshot !== null && freshStr !== lastSyncedSnapshot) return true;
+    return false;
+  } catch (e) { return false; }
 }
 
 async function loadFromCloud(key) {
@@ -317,8 +353,8 @@ function updateDateInputBounds() {
 async function loadProductionsForYear(year) {
   const key = storageKeyForYear(year);
   const cloudData = await loadFromCloud(key);
-  if (cloudData) productions = cloudData;
-  else productions = JSON.parse(localStorage.getItem(key) || '[]');
+  if (cloudData) { productions = cloudData; lastSyncedSnapshot = JSON.stringify(cloudData); }
+  else { productions = JSON.parse(localStorage.getItem(key) || '[]'); lastSyncedSnapshot = null; }
 }
 
 async function changeYear(y) {
@@ -331,10 +367,18 @@ async function changeYear(y) {
   setFilter('tag','');
 }
 
-function save() {
+async function save() {
   const key = storageKeyForYear(currentYear);
   localStorage.setItem(key, JSON.stringify(productions));
-  saveToCloud(key, productions);
+  showSaveStatus('saving');
+  const conflict = await checkForConflict(key);
+  if (conflict) {
+    const overwrite = confirm('Los datos en la nube cambiaron desde que cargaste esta página (probablemente los editaste desde otro dispositivo, o alguien más lo hizo). ¿Guardar de todas formas y sobrescribir con lo que tienes aquí?\n\nSi cancelas, recarga la página para ver los datos más recientes antes de seguir editando.');
+    if (!overwrite) { showSaveStatus('error'); updateDataLists(); return; }
+  }
+  const ok = await saveToCloud(key, productions);
+  if (ok) lastSyncedSnapshot = JSON.stringify(productions);
+  showSaveStatus(ok ? 'saved' : 'error');
   updateDataLists();
 }
 
