@@ -91,7 +91,7 @@ tfoot td{padding:11px 12px;font-weight:700;white-space:nowrap}
 const API_URL = "https://script.google.com/macros/s/AKfycbxP5-vB59e80qpXdx4AcCyS28C4H58thdh0XXtLcDWZD8Q_47fDbBvLn1ahqx7RoJor/exec";
 
 async function saveToCloud(key, dataObj) {
-  try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj) }) }); } 
+  try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj) }) }); }
   catch (e) { console.error("Error guardando en la nube", e); }
 }
 
@@ -124,8 +124,8 @@ function comWP(base, fp)     { return fp===WEBPAY ? Math.round(base*COM_WP_PCT/1
 function valCli(base, fp)    { return base + comWP(base, fp); }
 function comF(base, pct)     { return Math.round(base*pct/100); }
 function ingF(base, pct)     { return base - comF(base, pct); }
-function fmt(n)              { return n==null ? "" : "$"+Math.round(n).toLocaleString("es-CO"); }
-function fDate(f)            { return new Date(f+"T12:00").toLocaleDateString("es-CO",{day:"2-digit",month:"short",year:"numeric"}); }
+function fmt(n)              { return n==null ? "" : "$"+Math.round(n).toLocaleString("es-CL"); }
+function fDate(f)            { return new Date(f+"T12:00").toLocaleDateString("es-CL",{day:"2-digit",month:"short",year:"numeric"}); }
 
 // ============================================================
 // PERSISTENCIA (localStorage + Nube)
@@ -279,7 +279,7 @@ function buildKpiStrip(filt, tV, tC, cp, filtroMes, meses) {
     return '<div class="kpi"><div class="kpi-l">'+k.l+'</div><div class="kpi-v" style="color:'+k.c+'">'+k.v+'</div><div class="kpi-u">'+k.u+'</div></div>';
   }).join('');
   var optHtml = meses.map(function(m){
-    var label = new Date(m+'-01T12:00').toLocaleDateString('es-CO',{month:'long',year:'numeric'});
+    var label = new Date(m+'-01T12:00').toLocaleDateString('es-CL',{month:'long',year:'numeric'});
     label = label.charAt(0).toUpperCase()+label.slice(1);
     return '<option value="'+m+'" '+(filtroMes===m?'selected':'')+'>'+label+'</option>';
   }).join('');
@@ -368,7 +368,7 @@ function buildResumen(filt, cp) {
   }).join('');
   var rows = Object.keys(porMes).sort().reverse().map(function(m){
     var d = porMes[m];
-    var label = new Date(m+'-01T12:00').toLocaleDateString('es-CO',{month:'long',year:'numeric'});
+    var label = new Date(m+'-01T12:00').toLocaleDateString('es-CL',{month:'long',year:'numeric'});
     label = label.charAt(0).toUpperCase()+label.slice(1);
     var pct = tV>0 ? Math.round(d.venta/tV*100) : 0;
     return '<tr style="border-bottom:1px solid #F4F1EB">'+
@@ -505,7 +505,7 @@ function buildVistaPDF(filt, cp) {
     '<div style="background:#1C1917;border-radius:6px;padding:16px 20px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">'+
     '<div><div style="font-size:18px;font-weight:800;color:#fff">SUBLIPRO - VENTAS</div>'+
     '<div style="font-size:10px;color:#C8973A;margin-top:3px">Comision '+cp+'% - Webpay +'+COM_WP_PCT+'%</div></div>'+
-    '<div style="text-align:right;font-size:10px;color:#C8973A">'+new Date().toLocaleDateString("es-CO")+'</div></div>'+
+    '<div style="text-align:right;font-size:10px;color:#C8973A">'+new Date().toLocaleDateString("es-CL")+'</div></div>'+
     '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">'+
     '<div style="background:#F7F5F0;border:1px solid #E7E2D9;border-radius:6px;padding:10px 14px"><div style="font-size:9px;color:#888;text-transform:uppercase;margin-bottom:3px">N Ventas</div><div style="font-size:18px;font-weight:800;color:#1E40AF">'+filt.length+'</div></div>'+
     '<div style="background:#F7F5F0;border:1px solid #E7E2D9;border-radius:6px;padding:10px 14px"><div style="font-size:9px;color:#888;text-transform:uppercase;margin-bottom:3px">Total Ventas</div><div style="font-size:18px;font-weight:800;color:#166534">'+fmt(tV)+'</div></div>'+
@@ -716,9 +716,9 @@ function calcBtn(btn) {
   var num = parseFloat(s.display);
   var disp = s.display==="Error" ? "Error"
     : isNaN(num) ? s.display
-    : s.display.slice(-1)==="." ? num.toLocaleString("es-CO")+"."
-    : s.display.indexOf(".")!==-1 ? num.toLocaleString("es-CO",{minimumFractionDigits:s.display.split(".")[1].length})
-    : num.toLocaleString("es-CO");
+    : s.display.slice(-1)==="." ? num.toLocaleString("es-CL")+"."
+    : s.display.indexOf(".")!==-1 ? num.toLocaleString("es-CL",{minimumFractionDigits:s.display.split(".")[1].length})
+    : num.toLocaleString("es-CL");
   d.textContent = disp;
   if (e) e.textContent = s.expr;
 }
@@ -728,7 +728,7 @@ function calcBN() {
   var rn = document.getElementById("res-neto");
   var dd = document.getElementById("det-bruto");
   if (!v || isNaN(v)) { rn.textContent="-"; if(dd) dd.style.display="none"; return; }
-  var neto = Math.round(v/1.19);
+  var neto = Math.round(v/IVA);
   var iva  = v - neto;
   rn.textContent = fmt(neto);
   if (dd) { dd.innerHTML = "IVA incluido: <strong>"+fmt(iva)+"</strong> Neto: <strong>"+fmt(neto)+"</strong>"; dd.style.display="block"; }
@@ -739,7 +739,7 @@ function calcNB() {
   var rb = document.getElementById("res-bruto");
   var dd = document.getElementById("det-neto");
   if (!v || isNaN(v)) { rb.textContent="-"; if(dd) dd.style.display="none"; return; }
-  var bruto = Math.round(v*1.19);
+  var bruto = Math.round(v*IVA);
   var iva   = bruto - v;
   rb.textContent = fmt(bruto);
   if (dd) { dd.innerHTML = "Neto: <strong>"+fmt(v)+"</strong> + IVA: <strong>"+fmt(iva)+"</strong>"; dd.style.display="block"; }
@@ -778,7 +778,7 @@ function exportCSV() {
   rows.push(["","","","TOTALES",tV,"","",tC,""]);
   var csv = [cols].concat(rows).map(function(r){ return r.join(","); }).join("\n");
   var a = document.createElement("a");
-  a.href = "data:text/csv;charset=utf-8,\uFEFF"+encodeURIComponent(csv);
+  a.href = "data:text/csv;charset=utf-8,﻿"+encodeURIComponent(csv);
   a.download = "SUBLIPRO_Ventas.csv";
   a.click();
   setState({exportMsg:"Exportado "+filt.length+" registros"});
@@ -803,7 +803,7 @@ function exportPDF() {
     "@media print{body{padding:0}}</style></head><body>"+
     "<div class='hdr'><div><div style='font-size:18px;font-weight:800'>SUBLIPRO - VENTAS</div>"+
     "<div style='color:#C8973A;font-size:10px'>Comision "+state.comDefPct+"% - Webpay +"+COM_WP_PCT+"%</div></div>"+
-    "<div style='color:#C8973A;font-size:10px'>"+new Date().toLocaleDateString("es-CO")+"</div></div>"+
+    "<div style='color:#C8973A;font-size:10px'>"+new Date().toLocaleDateString("es-CL")+"</div></div>"+
     "<div class='kpis'>"+
     "<div class='kpi'><div class='l'>N Ventas</div><div class='v' style='color:#1E40AF'>"+filt.length+"</div></div>"+
     "<div class='kpi'><div class='l'>Total Ventas</div><div class='v' style='color:#166534'>"+fmt(tV)+"</div></div>"+
