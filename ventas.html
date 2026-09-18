@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SUBLIPRO - Reporte de Ventas</title>
+<title>Creamos Imagen - Reporte de Ventas</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#F7F5F0;--surface:#FFFFFF;--dark:#1C1917;--gold:#C8973A;--teal:#0D7A6B;--red:#C0392B;--muted:#78716C;--border:#E7E2D9;--purple:#6D28D9;--webpay:#1E40AF}
@@ -302,7 +302,7 @@ function buildTopBar(tab) {
     var cls = tab===t[0] ? 'tab on' : 'tab';
     return '<button class="'+cls+'" data-tab="'+t[0]+'" onclick="goTab(this)">'+t[1]+'</button>';
   }).join('');
-  return '<div class="topbar"><div class="brand"><div class="brand-tag">Ventas</div><div class="brand-name">Creamos <span>Imagen</span></div></div><div class="tabs">'+tabHtml+'</div></div>';
+  return '<div class="topbar"><div class="brand"><div class="brand-tag">Sistema de Ventas</div><div class="brand-name">SUBLI<span>PRO</span></div></div><div class="tabs">'+tabHtml+'</div></div>';
 }
 
 function goTab(el){ setState({tab:el.getAttribute('data-tab')}); }
@@ -552,7 +552,7 @@ function buildVistaPDF(filt, cp) {
     '<div style="padding:24px;display:flex;justify-content:center">'+
     '<div style="background:#fff;width:100%;max-width:860px;padding:32px 36px;box-shadow:0 4px 24px rgba(0,0,0,.18)">'+
     '<div style="background:#1C1917;border-radius:6px;padding:16px 20px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">'+
-    '<div><div style="font-size:18px;font-weight:800;color:#fff">SUBLIPRO - VENTAS</div>'+
+    '<div><div style="font-size:18px;font-weight:800;color:#fff">CREAMOS IMAGEN - VENTAS</div>'+
     '<div style="font-size:10px;color:#C8973A;margin-top:3px">Comision '+cp+'% - Webpay +'+COM_WP_PCT+'%</div></div>'+
     '<div style="text-align:right;font-size:10px;color:#C8973A">'+new Date().toLocaleDateString("es-CO")+'</div></div>'+
     '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">'+
@@ -567,7 +567,7 @@ function buildVistaPDF(filt, cp) {
     '<td style="padding:8px;text-align:right;font-weight:800;color:#86EFAC">'+fmt(tV)+'</td>'+
     '<td style="padding:8px;text-align:right;font-weight:800;color:#C8973A">'+fmt(tC)+'</td><td></td></tr></tfoot>'+
     '</table>'+
-    '<div style="margin-top:16px;text-align:right;font-size:9px;color:#aaa;border-top:1px solid #E7E2D9;padding-top:8px">SUBLIPRO - Informe generado automaticamente</div>'+
+    '<div style="margin-top:16px;text-align:right;font-size:9px;color:#aaa;border-top:1px solid #E7E2D9;padding-top:8px">Creamos Imagen - Informe generado automaticamente</div>'+
     '</div></div></div>';
 }
 
@@ -593,7 +593,7 @@ function buildVistaExcel(filt, cp, xlTab) {
   var t2 = '<button data-xl="resumen" onclick="goXl(this)" style="background:'+(xlTab==='resumen'?'#fff':'#D0D0D0')+';border:1px solid #aaa;border-bottom:none;padding:5px 16px;font-size:11px;font-weight:'+(xlTab==='resumen'?700:400)+';cursor:pointer;color:'+(xlTab==='resumen'?'#1D6F42':'#555')+';border-radius:4px 4px 0 0">Resumen</button>';
   var content = '';
   if (xlTab==='detalle') {
-    content = '<div style="background:#1C1917;padding:10px 16px"><div style="font-size:13px;font-weight:800;color:#fff">SUBLIPRO - REGISTRO DE VENTAS</div></div>'+
+    content = '<div style="background:#1C1917;padding:10px 16px"><div style="font-size:13px;font-weight:800;color:#fff">CREAMOS IMAGEN - REGISTRO DE VENTAS</div></div>'+
       '<table style="width:100%;border-collapse:collapse;min-width:600px">'+
       '<thead><tr style="background:#C8973A"><th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Fecha</th><th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Cliente</th><th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Producto</th><th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Forma Pago</th><th style="padding:8px 10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Venta</th><th style="padding:8px 10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Comision</th><th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Fact.</th></tr></thead>'+
       '<tbody>'+rows+'</tbody>'+
@@ -828,7 +828,7 @@ function exportCSV() {
   var csv = [cols].concat(rows).map(function(r){ return r.join(","); }).join("\n");
   var a = document.createElement("a");
   a.href = "data:text/csv;charset=utf-8,\uFEFF"+encodeURIComponent(csv);
-  a.download = "SUBLIPRO_Ventas.csv";
+  a.download = "CreamosImagen_Ventas.csv";
   a.click();
   setState({exportMsg:"Exportado "+filt.length+" registros"});
   setTimeout(function(){ setState({exportMsg:""}); }, 3000);
@@ -842,7 +842,7 @@ function exportPDF() {
     var co = comF(v.montoBase,v.comision);
     return "<tr><td>"+fDate(v.fecha)+"</td><td>"+v.cliente+"</td><td>"+v.producto+"</td><td>"+v.formaPago+"</td><td style='text-align:right'>"+fmt(v.montoBase)+"</td><td style='text-align:right;color:#C8973A'>"+fmt(co)+"</td><td style='text-align:center'>"+(v.factura?"Si":"-")+"</td></tr>";
   }).join("");
-  var html_pdf = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>SUBLIPRO Ventas</title>"+
+  var html_pdf = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Creamos Imagen Ventas</title>"+
     "<style>body{font-family:Arial,sans-serif;padding:20px;font-size:12px}table{width:100%;border-collapse:collapse}"+
     "th{background:#1C1917;color:#C8973A;padding:7px 8px;text-align:left;font-size:10px}"+
     "td{padding:5px 8px;border-bottom:1px solid #eee}tr:nth-child(even) td{background:#fafafa}"+
@@ -850,7 +850,7 @@ function exportPDF() {
     ".kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}"+
     ".kpi{background:#f5f5f5;padding:10px;border-radius:4px}.kpi .l{font-size:9px;color:#888;text-transform:uppercase}.kpi .v{font-size:16px;font-weight:800}"+
     "@media print{body{padding:0}}</style></head><body>"+
-    "<div class='hdr'><div><div style='font-size:18px;font-weight:800'>SUBLIPRO - VENTAS</div>"+
+    "<div class='hdr'><div><div style='font-size:18px;font-weight:800'>CREAMOS IMAGEN - VENTAS</div>"+
     "<div style='color:#C8973A;font-size:10px'>Comision "+state.comDefPct+"% - Webpay +"+COM_WP_PCT+"%</div></div>"+
     "<div style='color:#C8973A;font-size:10px'>"+new Date().toLocaleDateString("es-CO")+"</div></div>"+
     "<div class='kpis'>"+
