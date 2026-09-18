@@ -293,7 +293,7 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbxP5-vB59e80qpXdx4AcCyS28C4H58thdh0XXtLcDWZD8Q_47fDbBvLn1ahqx7RoJor/exec";
 
 async function saveToCloud(key, dataObj) {
-  try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj) }) }); } 
+  try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj) }) }); }
   catch (e) { console.error("Error guardando en la nube", e); }
 }
 
@@ -495,6 +495,9 @@ function renderGrid() {
         cell.addEventListener('mouseleave', hideTooltip);
       }
       cell.addEventListener('click', () => {
+        // Si hay una producción en edición, un clic en el calendario no debe
+        // pisar su fecha en silencio: se ignora hasta que se cancele o guarde.
+        if (editingId !== null) return;
         const f = document.getElementById('addForm');
         if (!f.classList.contains('open')) { toggleForm(); }
         document.getElementById('prodDate').value = dateStr;
@@ -557,7 +560,112 @@ function renderStats() {
   });
 }
 
+// ============================================================
+// EXPORTAR / IMPORTAR / COMPARTIR (antes faltaban estas funciones)
+// ============================================================
+
+function exportJSON() {
+  const dataStr = JSON.stringify(productions, null, 2);
+  const blob = new Blob([dataStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'calendario_producciones_2026.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importJSON(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (!Array.isArray(imported)) throw new Error('Formato inválido');
+      if (!confirm(`Se encontraron ${imported.length} producciones en el archivo. ¿Reemplazar los datos actuales?`)) return;
+      productions = imported;
+      productions.sort((a,b) => (a.date||'').localeCompare(b.date||''));
+      save();
+      renderAll();
+      alert('Importación completada.');
+    } catch (err) {
+      alert('El archivo no es un JSON válido de producciones.');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function shareURL() {
+  try {
+    const encoded = btoa(encodeURIComponent(JSON.stringify(productions)));
+    const url = `${location.origin}${location.pathname}#data=${encoded}`;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(() => {
+        alert('Enlace copiado al portapapeles (incluye todas las producciones).');
+      }).catch(() => {
+        prompt('Copia este enlace:', url);
+      });
+    } else {
+      prompt('Copia este enlace:', url);
+    }
+  } catch (e) {
+    alert('No se pudo generar el enlace para compartir.');
+  }
+}
+
+function exportPDF() {
+  const filtered = getFiltered();
+  const sorted = filtered.slice().sort((a,b) => (a.date||'').localeCompare(b.date||''));
+  const rows = sorted.map(p => {
+    const [y,m,d] = p.date.split('-');
+    const ingresoLabel = `${parseInt(d)} ${MONTHS_SHORT[parseInt(m)-1]} ${y}`;
+    let entregaLabel = '—';
+    if (p.fechaEntrega) { const [ey,em,ed] = p.fechaEntrega.split('-'); entregaLabel = `${parseInt(ed)} ${MONTHS_SHORT[parseInt(em)-1]} ${ey}`; }
+    return `<tr><td>${p.orden||''}</td><td>${p.name||''}</td><td>${p.tag||''}</td><td>${p.diseñador||'—'}</td><td>${ingresoLabel}</td><td>${entregaLabel}</td><td style="text-align:right">${formatPesos(p.monto)}</td><td style="text-align:right">${formatPesos(p.saldo)}</td></tr>`;
+  }).join('');
+  const totalMonto = sorted.reduce((s,p) => s + (p.monto||0), 0);
+  const totalSaldo = sorted.reduce((s,p) => s + (p.saldo||0), 0);
+  const html_pdf = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Calendario de Producciones 2026</title>
+<style>
+body{font-family:Arial,sans-serif;padding:20px;font-size:12px;color:#1C1917}
+table{width:100%;border-collapse:collapse}
+th{background:#1C1917;color:#e8a020;padding:7px 8px;text-align:left;font-size:10px}
+td{padding:5px 8px;border-bottom:1px solid #eee}
+tr:nth-child(even) td{background:#fafafa}
+tfoot td{font-weight:800;background:#f0ece3}
+h1{font-size:20px;margin-bottom:4px}
+p{color:#78716C;margin-bottom:14px;font-size:11px}
+@media print{body{padding:0}}
+</style></head><body>
+<h1>Calendario de Producciones 2026</h1>
+<p>${sorted.length} producciones — generado el ${new Date().toLocaleDateString('es-CL')}</p>
+<table>
+<thead><tr><th>N°</th><th>Nombre / Cliente</th><th>Categoría</th><th>Diseñador</th><th>F. Ingreso</th><th>F. Entrega</th><th style="text-align:right">Monto</th><th style="text-align:right">Saldo</th></tr></thead>
+<tbody>${rows}</tbody>
+<tfoot><tr><td colspan="6">TOTALES</td><td style="text-align:right">${formatPesos(totalMonto)}</td><td style="text-align:right">${formatPesos(totalSaldo)}</td></tr></tfoot>
+</table>
+<script>window.onload=function(){window.print();}<\/script>
+</body></html>`;
+  const blob = new Blob([html_pdf], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, '_blank');
+  if (!win) alert('Permite las ventanas emergentes para imprimir.');
+  else win.addEventListener('load', () => setTimeout(() => URL.revokeObjectURL(url), 2000));
+}
+
 window.onload = async function() {
+  // Si el enlace incluye datos compartidos (#data=...), se cargan esos en vez de la nube/localStorage.
+  if (location.hash.startsWith('#data=')) {
+    try {
+      const encoded = location.hash.slice(6);
+      const decoded = JSON.parse(decodeURIComponent(atob(encoded)));
+      if (Array.isArray(decoded)) productions = decoded;
+    } catch (e) { console.error('Enlace de datos inválido', e); }
+    renderAll(); updateDataLists();
+    return;
+  }
   const cloudData = await loadFromCloud('prods2026');
   if (cloudData) productions = cloudData;
   else productions = JSON.parse(localStorage.getItem('prods2026') || '[]');
