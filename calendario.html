@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Calendario de Producciones 2026</title>
+<title>Producciones - Planificador Anual</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Mono:wght@300;400;500&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -24,6 +24,8 @@
   .header-right { text-align: right; }
   .today-badge { display: inline-block; background: var(--accent); color: var(--bg); font-size: 0.65rem; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; padding: 6px 14px; border-radius: 2px; margin-bottom: 8px; }
   .today-date { font-family: 'Playfair Display', serif; font-size: 1.1rem; color: var(--text2); }
+  .year-selector { background: var(--card); border: 1px solid var(--border); border-radius: 2px; color: var(--accent); font-family: 'DM Mono', monospace; font-size: 0.85rem; font-weight: 700; letter-spacing: 1px; padding: 6px 10px; margin-bottom: 10px; cursor: pointer; outline: none; }
+  .year-selector:hover, .year-selector:focus { border-color: var(--accent); }
   
   .controls { display: flex; gap: 12px; margin-bottom: 32px; flex-wrap: wrap; align-items: center; }
   .controls-label { font-size: 0.65rem; letter-spacing: 2px; text-transform: uppercase; color: var(--text3); margin-right: 4px; }
@@ -148,10 +150,11 @@
   <div class="header">
     <div class="header-left">
       <a href="index.html" style="display:inline-block; margin-bottom:12px; color:var(--accent); text-decoration:none; font-size:0.75rem; font-weight:bold; text-transform:uppercase; letter-spacing:1px; transition:opacity 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">← Volver al Menú</a>
-      <h1>Calendario<span>2026</span></h1>
-      <p>Gestor de producciones &mdash; Planificación anual</p>
+      <h1>Producciones<span id="yearSpan">2026</span></h1>
+      <p>Planificador anual</p>
     </div>
     <div class="header-right">
+      <select id="yearSelector" class="year-selector" onchange="changeYear(this.value)"></select>
       <div class="today-badge">Hoy</div>
       <div class="today-date" id="todayDisplay"></div>
     </div>
@@ -207,8 +210,8 @@
       <div class="form-group"><label>Nombre / Cliente</label><input type="text" id="prodName" placeholder="Nombre de la producción…" list="listNombres" autocomplete="off"><datalist id="listNombres"></datalist></div>
       <div class="form-group"><label>Tipo de producción</label><select id="prodTipo" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.8rem;padding:10px 12px;outline:none;transition:border-color 0.2s"><option value="">— Seleccionar —</option><option value="Confección">Confección</option><option value="Sublimación">Sublimación</option><option value="Otros">Otros</option></select></div>
       <div class="form-group"><label>Diseñador</label><input type="text" id="prodDiseñador" placeholder="Diseñador…" list="listDiseñadores" autocomplete="off"><datalist id="listDiseñadores"></datalist></div>
-      <div class="form-group"><label>Fecha Ingreso</label><input type="date" id="prodDate" min="2026-01-01" max="2026-12-31"></div>
-      <div class="form-group"><label>Fecha Entrega</label><input type="date" id="prodFechaEntrega" min="2026-01-01" max="2026-12-31"></div>
+      <div class="form-group"><label>Fecha Ingreso</label><input type="date" id="prodDate"></div>
+      <div class="form-group"><label>Fecha Entrega</label><input type="date" id="prodFechaEntrega"></div>
     </div>
 
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:14px 16px;margin-bottom:12px">
@@ -255,7 +258,7 @@
       </div>
     </div>
     <div class="stats-panel">
-      <div class="stat-card"><div class="stat-label">Total producciones</div><div class="stat-value" id="statTotal">0</div><div class="stat-sub">en todo el año 2026</div></div>
+      <div class="stat-card"><div class="stat-label">Total producciones</div><div class="stat-value" id="statTotal">0</div><div class="stat-sub" id="statYearLabel">en todo el año 2026</div></div>
       <div class="stat-card"><div class="stat-label">Distribución mensual</div><div class="month-bar-list" id="monthBars"></div></div>
     </div>
   </div>
@@ -288,13 +291,50 @@ const TAG_COLORS = { 'Ingreso':'var(--prod1)', 'Confección':'var(--prod2)', 'Su
 let productions = [];
 const today = new Date();
 const todayStr = today.toISOString().slice(0,10);
+let currentYear = today.getFullYear();
 let currentViewMonth = today.getMonth(); // Mes que se mostrará en grande
 
 document.getElementById('todayDisplay').textContent = today.toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long' });
 
+function storageKeyForYear(year) { return 'prods' + year; }
+
+function populateYearSelector() {
+  const sel = document.getElementById('yearSelector');
+  if (!sel) return;
+  const startYear = Math.min(2026, today.getFullYear()) - 1;
+  const endYear = today.getFullYear() + 5;
+  let html = '';
+  for (let y = startYear; y <= endYear; y++) { html += `<option value="${y}"${y===currentYear?' selected':''}>${y}</option>`; }
+  sel.innerHTML = html;
+}
+
+function updateDateInputBounds() {
+  const min = currentYear + '-01-01', max = currentYear + '-12-31';
+  const pd = document.getElementById('prodDate'); if (pd) { pd.min = min; pd.max = max; }
+  const pfe = document.getElementById('prodFechaEntrega'); if (pfe) { pfe.min = min; pfe.max = max; }
+}
+
+async function loadProductionsForYear(year) {
+  const key = storageKeyForYear(year);
+  const cloudData = await loadFromCloud(key);
+  if (cloudData) productions = cloudData;
+  else productions = JSON.parse(localStorage.getItem(key) || '[]');
+}
+
+async function changeYear(y) {
+  currentYear = parseInt(y);
+  const yearSpan = document.getElementById('yearSpan'); if (yearSpan) yearSpan.textContent = currentYear;
+  currentViewMonth = (currentYear === today.getFullYear()) ? today.getMonth() : 0;
+  updateDateInputBounds();
+  await loadProductionsForYear(currentYear);
+  updateDataLists();
+  setFilter('tag','');
+}
+
 function save() {
-  localStorage.setItem('prods2026', JSON.stringify(productions));
-  saveToCloud('prods2026', productions);
+  const key = storageKeyForYear(currentYear);
+  localStorage.setItem(key, JSON.stringify(productions));
+  saveToCloud(key, productions);
   updateDataLists();
 }
 
@@ -404,7 +444,7 @@ function addProduction() {
   const date = document.getElementById('prodDate').value;
   const tag = document.getElementById('prodTag').value;
   if (!name || !date) { alert('Completa el nombre y la fecha.'); return; }
-  if (!date.startsWith('2026')) { alert('Por favor selecciona una fecha dentro de 2026.'); return; }
+  if (!date.startsWith(String(currentYear))) { alert('Por favor selecciona una fecha dentro de ' + currentYear + '.'); return; }
   const monto = parseFloat(document.getElementById('prodMonto').value) || 0;
   const abono = parseFloat(document.getElementById('prodAbono').value) || 0;
   const cantidad = {
@@ -462,7 +502,7 @@ function renderGrid() {
 
   const hdr = document.createElement('div');
   hdr.className = 'large-month-header';
-  hdr.innerHTML = `<span class="large-month-name">${MONTHS[m]} 2026</span>`;
+  hdr.innerHTML = `<span class="large-month-name">${MONTHS[m]} ${currentYear}</span>`;
   card.appendChild(hdr);
 
   const body = document.createElement('div');
@@ -476,9 +516,9 @@ function renderGrid() {
   const daysGrid = document.createElement('div');
   daysGrid.className = 'large-days-grid';
 
-  const firstDay = new Date(2026, m, 1).getDay();
+  const firstDay = new Date(currentYear, m, 1).getDay();
   const startOffset = firstDay === 0 ? 6 : firstDay - 1;
-  const daysInMonth = new Date(2026, m+1, 0).getDate();
+  const daysInMonth = new Date(currentYear, m+1, 0).getDate();
 
   for (let i = 0; i < startOffset; i++) {
     const empty = document.createElement('div'); empty.className = 'large-day-cell empty';
@@ -486,13 +526,13 @@ function renderGrid() {
   }
 
   for (let d = 1; d <= daysInMonth; d++) {
-    const dateStr = `2026-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dateStr = `${currentYear}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const filteredProds = getFiltered().filter(p => p.date === dateStr);
 
     const cell = document.createElement('div');
     cell.className = 'large-day-cell';
 
-    const dow_idx = new Date(2026, m, d).getDay();
+    const dow_idx = new Date(currentYear, m, d).getDay();
     if (dow_idx === 0 || dow_idx === 6) cell.classList.add('weekend');
     if (dateStr === todayStr) cell.classList.add('today');
 
@@ -583,6 +623,7 @@ function renderTimeline() {
 function renderStats() {
   const filtered = getFiltered();
   document.getElementById('statTotal').textContent = filtered.length;
+  const yearLabel = document.getElementById('statYearLabel'); if (yearLabel) yearLabel.textContent = 'en todo el año ' + currentYear;
   const bars = document.getElementById('monthBars'); bars.innerHTML = '';
   const max = Math.max(...MONTHS.map((_,i) => filtered.filter(p=>new Date(p.date).getMonth()===i).length), 1);
   MONTHS_SHORT.forEach((abbr, i) => {
@@ -628,9 +669,10 @@ function exportPDF() {
 }
 
 window.onload = async function() {
-  const cloudData = await loadFromCloud('prods2026');
-  if (cloudData) productions = cloudData;
-  else productions = JSON.parse(localStorage.getItem('prods2026') || '[]');
+  const yearSpan = document.getElementById('yearSpan'); if (yearSpan) yearSpan.textContent = currentYear;
+  populateYearSelector();
+  updateDateInputBounds();
+  await loadProductionsForYear(currentYear);
   renderAll(); updateDataLists();
 };
 </script>
