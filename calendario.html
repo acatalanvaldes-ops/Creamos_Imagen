@@ -270,7 +270,7 @@ function showSaveStatus(st) {
 async function checkForConflict(key) {
   try {
     const fresh = await loadFromCloud(key);
-    const freshStr = JSON.stringify(fresh);
+    const freshStr = JSON.stringify(fresh || []);
     if (lastSyncedSnapshot !== null && freshStr !== lastSyncedSnapshot) return true;
     return false;
   } catch (e) { return false; }
