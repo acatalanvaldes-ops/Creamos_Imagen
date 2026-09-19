@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Creamos Imagen - Reporte de Ventas</title>
+<title>SUBLIPRO - Reporte de Ventas</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#F7F5F0;--surface:#FFFFFF;--dark:#1C1917;--gold:#C8973A;--teal:#0D7A6B;--red:#C0392B;--muted:#78716C;--border:#E7E2D9;--purple:#6D28D9;--webpay:#1E40AF}
@@ -82,100 +82,22 @@ tfoot td{padding:11px 12px;font-weight:700;white-space:nowrap}
 </style>
 </head>
 <body>
-<div id="cimagen-gate" style="position:fixed;inset:0;z-index:999999;background:#111827;display:flex;align-items:center;justify-content:center;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;">
-  <div style="background:#fff;padding:36px 32px;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,0.3);max-width:340px;width:90%;text-align:center;">
-    <div style="font-size:32px;margin-bottom:8px;">🔒</div>
-    <h2 style="margin:0 0 6px;color:#1f2937;font-size:18px;">Creamos Imagen</h2>
-    <p style="margin:0 0 20px;color:#6b7280;font-size:13px;">Ingresa la contraseña para continuar</p>
-    <input type="password" id="cimagen-gate-input" placeholder="Contraseña" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;margin-bottom:10px;">
-    <div id="cimagen-gate-error" style="color:#dc2626;font-size:12px;min-height:16px;margin-bottom:10px;"></div>
-    <button id="cimagen-gate-btn" style="width:100%;padding:11px;background:#2c5f2e;color:#fff;border:none;border-radius:6px;font-weight:600;font-size:14px;cursor:pointer;">Entrar</button>
-  </div>
-</div>
-<script>
-(function(){
-  var PASS = "Cimagen2026";
-  var KEY = "cimagen_auth_ok";
-  if (localStorage.getItem(KEY) === "1") {
-    var g0 = document.getElementById('cimagen-gate');
-    if (g0) g0.remove();
-  } else {
-    document.documentElement.style.overflow = 'hidden';
-    window.addEventListener('DOMContentLoaded', function(){
-      var input = document.getElementById('cimagen-gate-input');
-      var btn = document.getElementById('cimagen-gate-btn');
-      var err = document.getElementById('cimagen-gate-error');
-      function tryEnter(){
-        if (input.value === PASS) {
-          localStorage.setItem(KEY, "1");
-          document.getElementById('cimagen-gate').remove();
-          document.documentElement.style.overflow = '';
-        } else {
-          err.textContent = "Contraseña incorrecta";
-          input.value = "";
-          input.focus();
-        }
-      }
-      btn.addEventListener('click', tryEnter);
-      input.addEventListener('keydown', function(e){ if (e.key === 'Enter') tryEnter(); });
-      setTimeout(function(){ input.focus(); }, 50);
-    });
-  }
-})();
-</script>
-
 <a href="index.html" style="position:fixed; top:14px; left:20px; background:#1C1917; color:#C8973A; padding:8px 14px; border-radius:6px; border:1px solid #C8973A; text-decoration:none; font-family:Arial, sans-serif; font-size:11px; font-weight:bold; box-shadow:0 4px 6px rgba(0,0,0,0.2); z-index:9999;">← Menú</a>
-<div id="cloudSaveBadge" style="position:fixed;bottom:18px;right:18px;z-index:999998;display:none;align-items:center;gap:8px;padding:8px 16px;border-radius:24px;font-family:Arial,sans-serif;font-size:12px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,0.35);transition:opacity 0.25s ease;letter-spacing:0.3px;"></div>
 <div id="app"></div>
 <script>
 // ============================================================
 // CONEXIÓN A BASE DE DATOS (NUBE)
 // ============================================================
 const API_URL = "https://script.google.com/macros/s/AKfycbxP5-vB59e80qpXdx4AcCyS28C4H58thdh0XXtLcDWZD8Q_47fDbBvLn1ahqx7RoJor/exec";
-const CLOUD_TOKEN = "b5bd161b4ef581c6114b7bb4";
 
 async function saveToCloud(key, dataObj) {
-  try {
-    const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj), token: CLOUD_TOKEN }) });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    return true;
-  } catch (e) { console.error("Error guardando en la nube", e); return false; }
-}
-
-let lastSyncedSnapshot = null;
-let _saveStatusTimer = null;
-
-function showSaveStatus(st) {
-  const el = document.getElementById('cloudSaveBadge');
-  if (!el) return;
-  clearTimeout(_saveStatusTimer);
-  el.style.display = 'flex';
-  el.style.opacity = '1';
-  if (st === 'saving') {
-    el.style.background = '#374151'; el.style.color = '#fff';
-    el.textContent = '⏳ Guardando…';
-  } else if (st === 'saved') {
-    el.style.background = '#166534'; el.style.color = '#fff';
-    el.textContent = '✓ Guardado';
-    _saveStatusTimer = setTimeout(() => { el.style.opacity = '0'; setTimeout(() => { el.style.display = 'none'; }, 300); }, 2200);
-  } else if (st === 'error') {
-    el.style.background = '#b91c1c'; el.style.color = '#fff';
-    el.textContent = '⚠ Error al guardar, revisa tu conexión';
-  }
-}
-
-async function checkForConflict(key) {
-  try {
-    const fresh = await loadFromCloud(key);
-    const freshStr = JSON.stringify(fresh);
-    if (lastSyncedSnapshot !== null && freshStr !== lastSyncedSnapshot) return true;
-    return false;
-  } catch (e) { return false; }
+  try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj) }) }); } 
+  catch (e) { console.error("Error guardando en la nube", e); }
 }
 
 async function loadFromCloud(key) {
   try {
-    const res = await fetch(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
+    const res = await fetch(API_URL + "?key=" + key);
     const json = await res.json();
     return json.valor ? JSON.parse(json.valor) : null;
   } catch (e) { console.error("Error cargando de la nube", e); return null; }
@@ -184,7 +106,7 @@ async function loadFromCloud(key) {
 // ============================================================
 // CONSTANTES
 // ============================================================
-var PRODUCTOS   = ["Camisetas","Conjuntos","Sublimacion","Mantas","Banderas","Lienzo","Panhuelos","Banner","Bolsas","Morral","Cortinas","Cuadros","Bandanas","Estampados"];
+var PRODUCTOS   = ["Camisetas","Conjuntos","Sublimación","Mantas","Banderas","Lienzo","Pañuelos","Banner","Bolsas","Morral","Cortinas","Cuadros","Bandanas","Estampados"];
 var FORMAS_PAGO = ["Efectivo","Transferencia","Webpay"];
 var WEBPAY      = "Webpay";
 var COM_WP_PCT  = 2;
@@ -210,7 +132,7 @@ function fDate(f)            { return new Date(f+"T12:00").toLocaleDateString("e
 // ============================================================
 var STORAGE_KEY = "sublipro_v2";
 
-async function guardarDatos() {
+function guardarDatos() {
   try {
     var datos = {
       ventas:    state.ventas,
@@ -218,16 +140,8 @@ async function guardarDatos() {
       filtroMes: state.filtroMes
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(datos));
-    showSaveStatus('saving');
-    const conflict = await checkForConflict(STORAGE_KEY);
-    if (conflict) {
-      const overwrite = confirm('Los datos en la nube cambiaron desde que cargaste esta página (probablemente los editaste desde otro dispositivo, o alguien más lo hizo). ¿Guardar de todas formas y sobrescribir con lo que tienes aquí?\n\nSi cancelas, recarga la página para ver los datos más recientes antes de seguir editando.');
-      if (!overwrite) { showSaveStatus('error'); return; }
-    }
-    const ok = await saveToCloud(STORAGE_KEY, datos);
-    if (ok) lastSyncedSnapshot = JSON.stringify(datos);
-    showSaveStatus(ok ? 'saved' : 'error');
-  } catch(e) { showSaveStatus('error'); }
+    saveToCloud(STORAGE_KEY, datos);
+  } catch(e) {}
 }
 
 function cargarDatos() {
@@ -304,7 +218,6 @@ function render() {
   var filtradas = s.filtroMes ? s.ventas.filter(function(v){ return v.fecha.slice(0,7)===s.filtroMes; }) : s.ventas;
   var meses0    = s.ventas.map(function(v){ return v.fecha.slice(0,7); });
   
-  // Aquí está la corrección: Añadidos los meses de 2025 y completados los de 2026.
   var mesesFijos= [
     "2025-10","2025-11","2025-12",
     "2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07","2026-08","2026-09","2026-10","2026-11","2026-12"
@@ -345,7 +258,7 @@ function buildTopBar(tab) {
     var cls = tab===t[0] ? 'tab on' : 'tab';
     return '<button class="'+cls+'" data-tab="'+t[0]+'" onclick="goTab(this)">'+t[1]+'</button>';
   }).join('');
-  return '<div class="topbar"><div class="brand"><div class="brand-tag">Ventas</div><div class="brand-name">Creamos <span>Imagen</span></div></div><div class="tabs">'+tabHtml+'</div></div>';
+  return '<div class="topbar"><div class="brand"><div class="brand-tag">Sistema de Ventas</div><div class="brand-name">SUBLI<span>PRO</span></div></div><div class="tabs">'+tabHtml+'</div></div>';
 }
 
 function goTab(el){ setState({tab:el.getAttribute('data-tab')}); }
@@ -502,7 +415,6 @@ function buildConfig(cp) {
     'Datos guardados automaticamente en este navegador.<br><strong style="color:var(--dark)">'+state.ventas.length+' registros guardados.</strong></div>'+
     '<div style="display:flex;gap:10px;flex-wrap:wrap">'+
     '<button class="act-btn" style="font-size:12px" onclick="exportCSV()">Exportar respaldo CSV</button>'+
-    '<button class="act-btn" style="font-size:12px" onclick="exportJSON()">Exportar respaldo JSON</button>'+
     '<button class="act-btn" style="font-size:12px;color:var(--red);border-color:#FECACA" onclick="borrarDatos()">Borrar datos guardados</button>'+
     '</div></div></div></div>';
 }
@@ -596,7 +508,7 @@ function buildVistaPDF(filt, cp) {
     '<div style="padding:24px;display:flex;justify-content:center">'+
     '<div style="background:#fff;width:100%;max-width:860px;padding:32px 36px;box-shadow:0 4px 24px rgba(0,0,0,.18)">'+
     '<div style="background:#1C1917;border-radius:6px;padding:16px 20px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">'+
-    '<div><div style="font-size:18px;font-weight:800;color:#fff">CREAMOS IMAGEN - VENTAS</div>'+
+    '<div><div style="font-size:18px;font-weight:800;color:#fff">SUBLIPRO - VENTAS</div>'+
     '<div style="font-size:10px;color:#C8973A;margin-top:3px">Comision '+cp+'% - Webpay +'+COM_WP_PCT+'%</div></div>'+
     '<div style="text-align:right;font-size:10px;color:#C8973A">'+new Date().toLocaleDateString("es-CO")+'</div></div>'+
     '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">'+
@@ -611,7 +523,7 @@ function buildVistaPDF(filt, cp) {
     '<td style="padding:8px;text-align:right;font-weight:800;color:#86EFAC">'+fmt(tV)+'</td>'+
     '<td style="padding:8px;text-align:right;font-weight:800;color:#C8973A">'+fmt(tC)+'</td><td></td></tr></tfoot>'+
     '</table>'+
-    '<div style="margin-top:16px;text-align:right;font-size:9px;color:#aaa;border-top:1px solid #E7E2D9;padding-top:8px">Creamos Imagen - Informe generado automaticamente</div>'+
+    '<div style="margin-top:16px;text-align:right;font-size:9px;color:#aaa;border-top:1px solid #E7E2D9;padding-top:8px">SUBLIPRO - Informe generado automaticamente</div>'+
     '</div></div></div>';
 }
 
@@ -637,7 +549,7 @@ function buildVistaExcel(filt, cp, xlTab) {
   var t2 = '<button data-xl="resumen" onclick="goXl(this)" style="background:'+(xlTab==='resumen'?'#fff':'#D0D0D0')+';border:1px solid #aaa;border-bottom:none;padding:5px 16px;font-size:11px;font-weight:'+(xlTab==='resumen'?700:400)+';cursor:pointer;color:'+(xlTab==='resumen'?'#1D6F42':'#555')+';border-radius:4px 4px 0 0">Resumen</button>';
   var content = '';
   if (xlTab==='detalle') {
-    content = '<div style="background:#1C1917;padding:10px 16px"><div style="font-size:13px;font-weight:800;color:#fff">CREAMOS IMAGEN - REGISTRO DE VENTAS</div></div>'+
+    content = '<div style="background:#1C1917;padding:10px 16px"><div style="font-size:13px;font-weight:800;color:#fff">SUBLIPRO - REGISTRO DE VENTAS</div></div>'+
       '<table style="width:100%;border-collapse:collapse;min-width:600px">'+
       '<thead><tr style="background:#C8973A"><th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Fecha</th><th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Cliente</th><th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Producto</th><th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Forma Pago</th><th style="padding:8px 10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Venta</th><th style="padding:8px 10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Comision</th><th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Fact.</th></tr></thead>'+
       '<tbody>'+rows+'</tbody>'+
@@ -872,20 +784,9 @@ function exportCSV() {
   var csv = [cols].concat(rows).map(function(r){ return r.join(","); }).join("\n");
   var a = document.createElement("a");
   a.href = "data:text/csv;charset=utf-8,\uFEFF"+encodeURIComponent(csv);
-  a.download = "CreamosImagen_Ventas.csv";
+  a.download = "SUBLIPRO_Ventas.csv";
   a.click();
   setState({exportMsg:"Exportado "+filt.length+" registros"});
-  setTimeout(function(){ setState({exportMsg:""}); }, 3000);
-}
-
-function exportJSON() {
-  var datos = { ventas: state.ventas, comDefPct: state.comDefPct, filtroMes: state.filtroMes, exportadoEl: new Date().toISOString() };
-  var json = JSON.stringify(datos, null, 2);
-  var a = document.createElement("a");
-  a.href = "data:application/json;charset=utf-8,"+encodeURIComponent(json);
-  a.download = "CreamosImagen_Ventas_"+new Date().toISOString().slice(0,10)+".json";
-  a.click();
-  setState({exportMsg:"Respaldo JSON exportado ("+state.ventas.length+" registros)"});
   setTimeout(function(){ setState({exportMsg:""}); }, 3000);
 }
 
@@ -897,7 +798,7 @@ function exportPDF() {
     var co = comF(v.montoBase,v.comision);
     return "<tr><td>"+fDate(v.fecha)+"</td><td>"+v.cliente+"</td><td>"+v.producto+"</td><td>"+v.formaPago+"</td><td style='text-align:right'>"+fmt(v.montoBase)+"</td><td style='text-align:right;color:#C8973A'>"+fmt(co)+"</td><td style='text-align:center'>"+(v.factura?"Si":"-")+"</td></tr>";
   }).join("");
-  var html_pdf = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Creamos Imagen Ventas</title>"+
+  var html_pdf = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>SUBLIPRO Ventas</title>"+
     "<style>body{font-family:Arial,sans-serif;padding:20px;font-size:12px}table{width:100%;border-collapse:collapse}"+
     "th{background:#1C1917;color:#C8973A;padding:7px 8px;text-align:left;font-size:10px}"+
     "td{padding:5px 8px;border-bottom:1px solid #eee}tr:nth-child(even) td{background:#fafafa}"+
@@ -905,7 +806,7 @@ function exportPDF() {
     ".kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}"+
     ".kpi{background:#f5f5f5;padding:10px;border-radius:4px}.kpi .l{font-size:9px;color:#888;text-transform:uppercase}.kpi .v{font-size:16px;font-weight:800}"+
     "@media print{body{padding:0}}</style></head><body>"+
-    "<div class='hdr'><div><div style='font-size:18px;font-weight:800'>CREAMOS IMAGEN - VENTAS</div>"+
+    "<div class='hdr'><div><div style='font-size:18px;font-weight:800'>SUBLIPRO - VENTAS</div>"+
     "<div style='color:#C8973A;font-size:10px'>Comision "+state.comDefPct+"% - Webpay +"+COM_WP_PCT+"%</div></div>"+
     "<div style='color:#C8973A;font-size:10px'>"+new Date().toLocaleDateString("es-CO")+"</div></div>"+
     "<div class='kpis'>"+
@@ -935,7 +836,6 @@ async function initApp() {
       if (cloudData.ventas) state.ventas = cloudData.ventas;
       if (cloudData.comDefPct) state.comDefPct = cloudData.comDefPct;
       if (cloudData.filtroMes !== undefined) state.filtroMes = cloudData.filtroMes;
-      lastSyncedSnapshot = JSON.stringify({ ventas: state.ventas, comDefPct: state.comDefPct, filtroMes: state.filtroMes });
     } else {
       cargarDatos();
     }
