@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Calendario de Producciones 2026</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Mono:wght@300;400;500&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
   :root {
     --bg: #0e0c09; --surface: #181410; --card: #1f1a14; --border: #2e2619;
@@ -658,6 +660,84 @@ function renderStats() {
     row.innerHTML = `<span class="month-bar-label">${abbr}</span><div class="month-bar-track"><div class="month-bar-fill" style="width:${pct}%"></div></div><span class="month-bar-count">${count}</span>`;
     bars.appendChild(row);
   });
+}
+
+function exportPDF() {
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    alert('No se pudo cargar el generador de PDF. Verifica tu conexión a internet e inténtalo nuevamente.');
+    return;
+  }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+  const filtered = getFiltered();
+  const marginX = 40;
+  let y = 40;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  doc.text('Calendario de Producciones ' + currentViewYear, marginX, y);
+  y += 20;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(90);
+  const fechaGen = new Date().toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' });
+  doc.text('Generado el ' + fechaGen, marginX, y);
+  y += 24;
+
+  doc.setTextColor(0);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.text('Total producciones: ' + filtered.length, marginX, y);
+  y += 18;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  const monthCounts = MONTHS.map((m, i) => ({ m, count: filtered.filter(p => new Date(p.date).getMonth() === i).length })).filter(x => x.count > 0);
+  const monthLine = monthCounts.length ? monthCounts.map(x => `${x.m}: ${x.count}`).join('   |   ') : 'Sin datos por mes';
+  doc.text('Distribución mensual: ' + monthLine, marginX, y, { maxWidth: 760 });
+  y += 22;
+
+  const fmtFecha = (str) => {
+    if (!str) return '—';
+    const [yy, mm, dd] = str.split('-');
+    return `${parseInt(dd)} ${MONTHS_SHORT[parseInt(mm) - 1]} ${yy}`;
+  };
+
+  const rows = filtered.map(p => {
+    const estado = p.saldo > 0 ? 'Saldo pendiente' : (p.monto > 0 && p.saldo === 0 ? 'Pagado' : (p.abono > 0 ? 'Abono' : '—'));
+    return [
+      p.orden || '—', p.name || '—', p.tipo || '—', p.diseñador || '—',
+      fmtFecha(p.date), fmtFecha(p.fechaEntrega), p.totalPrendas != null ? String(p.totalPrendas) : '—',
+      formatPesos(p.monto || 0), formatPesos(p.abono || 0), formatPesos(p.saldo || 0), estado
+    ];
+  });
+
+  doc.autoTable({
+    startY: y,
+    margin: { left: marginX, right: marginX },
+    head: [['N° Orden', 'Nombre / Cliente', 'Tipo', 'Diseñador', 'F. Ingreso', 'F. Entrega', 'Prendas', 'Monto', 'Abono', 'Saldo', 'Estado']],
+    body: rows,
+    styles: { font: 'helvetica', fontSize: 8, cellPadding: 4 },
+    headStyles: { fillColor: [30, 26, 20], textColor: 255 },
+    alternateRowStyles: { fillColor: [245, 242, 235] },
+    didParseCell: function(data) {
+      if (data.section === 'body' && data.column.index === 10) {
+        const val = data.cell.raw;
+        if (val === 'Saldo pendiente') data.cell.styles.textColor = [232, 64, 64];
+        else if (val === 'Pagado') data.cell.styles.textColor = [90, 60, 160];
+        else if (val === 'Abono') data.cell.styles.textColor = [61, 111, 168];
+      }
+    }
+  });
+
+  if (rows.length === 0) {
+    doc.setFontSize(10);
+    doc.text('No hay producciones para exportar.', marginX, y + 10);
+  }
+
+  const sufijoFiltro = activeFilterValue ? '_filtrado' : '';
+  doc.save(`Producciones_${currentViewYear}${sufijoFiltro}.pdf`);
 }
 
 window.onload = async function() {
