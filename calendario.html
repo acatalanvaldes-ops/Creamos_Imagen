@@ -59,7 +59,7 @@
   .large-day-cell.today { border-color: var(--accent); color: var(--text); font-weight: 600; background: rgba(232, 160, 32, 0.05); }
   .large-day-cell.today::after { content: 'HOY'; position: absolute; top: 12px; right: 10px; font-size: 0.55rem; background: var(--accent); color: var(--bg); padding: 2px 6px; border-radius: 10px; font-weight: 700; letter-spacing: 1px; }
   .large-day-dots { display: flex; flex-direction: column; gap: 4px; margin-top: auto; padding-top: 12px; width: 100%; }
-  .large-day-bar { font-size: 0.55rem; padding: 3px 6px; border-radius: 2px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+  .large-day-bar { font-size: 0.6rem; padding: 4px 6px; border-radius: 3px; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; text-shadow: 0 1px 2px rgba(0,0,0,0.6); box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
 
   /* NAVEGADOR DE MESES INFERIOR */
   .month-nav { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 48px; background: var(--surface); padding: 16px; border-radius: 6px; border: 1px solid var(--border); }
@@ -164,7 +164,18 @@
       <div class="form-group"><label>N° Orden</label><input type="text" id="prodOrden" placeholder="Auto" autocomplete="off" readonly style="opacity:0.7;cursor:not-allowed;text-align:center;font-weight:600;color:var(--accent)"></div>
       <div class="form-group"><label>Nombre / Cliente</label><input type="text" id="prodName" placeholder="Nombre de la producción…" list="listNombres" autocomplete="off"><datalist id="listNombres"></datalist></div>
       <div class="form-group"><label>Tipo de producción</label><select id="prodTipo" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.8rem;padding:10px 12px;outline:none;transition:border-color 0.2s"><option value="">— Seleccionar —</option><option value="Confección">Confección</option><option value="Sublimación">Sublimación</option><option value="Otros">Otros</option></select></div>
-      <div class="form-group"><label>Diseñador</label><input type="text" id="prodDiseñador" placeholder="Diseñador…" list="listDiseñadores" autocomplete="off"><datalist id="listDiseñadores"></datalist></div>
+      
+      <!-- Selector de Diseñador Actualizado -->
+      <div class="form-group">
+        <label>Diseñador</label>
+        <select id="prodDiseñador" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.8rem;padding:10px 12px;outline:none;transition:border-color 0.2s">
+          <option value="">— Seleccionar —</option>
+          <option value="Sebastián Gutiérrez">Sebastián Gutiérrez</option>
+          <option value="Alejandro Velozo">Alejandro Velozo</option>
+          <option value="Ingrid Vargas">Ingrid Vargas</option>
+        </select>
+      </div>
+      
       <div class="form-group"><label>Fecha Ingreso</label><input type="date" id="prodDate" min="2026-01-01" max="2026-12-31" onchange="autoCalcEntrega()"></div>
       <div class="form-group"><label>Fecha Entrega</label><input type="date" id="prodFechaEntrega" min="2026-01-01" max="2026-12-31"></div>
     </div>
@@ -248,7 +259,7 @@ const TAG_COLORS = { 'Ingreso':'var(--prod1)', 'Confección':'var(--prod2)', 'Su
 let productions = [];
 const today = new Date();
 const todayStr = today.toISOString().slice(0,10);
-let currentViewMonth = today.getMonth(); // Mes que se mostrará en grande
+let currentViewMonth = today.getMonth();
 
 document.getElementById('todayDisplay').textContent = today.toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long' });
 
@@ -262,9 +273,7 @@ function updateDataLists() {
   const nombres = [...new Set(productions.map(p => p.name).filter(Boolean))];
   const listN = document.getElementById('listNombres');
   if (listN) listN.innerHTML = nombres.map(n => `<option value="${n}">`).join('');
-  const diseñadores = [...new Set(productions.map(p => p.diseñador).filter(Boolean))];
-  const listD = document.getElementById('listDiseñadores');
-  if (listD) listD.innerHTML = diseñadores.map(d => `<option value="${d}">`).join('');
+  // Eliminado listDiseñadores porque ahora es un menú de opciones fijas
 }
 
 let activeFilterType = '';
@@ -299,10 +308,8 @@ function autoCalcEntrega() {
     const dateObj = new Date(y, m - 1, d);
     
     let daysAdded = 0;
-    // Sumamos 15 días hábiles (lunes a sábado, saltando los domingos)
     while (daysAdded < 15) {
       dateObj.setDate(dateObj.getDate() + 1);
-      // Si el día NO es domingo (0), contamos como un día válido
       if (dateObj.getDay() !== 0) {
         daysAdded++;
       }
@@ -423,7 +430,6 @@ function renderGrid() {
   const viewContainer = document.getElementById('largeMonthView');
   if(!navContainer || !viewContainer) return;
 
-  // 1. Renderizar Barra de Navegación de Meses
   navContainer.innerHTML = '';
   MONTHS.forEach((mName, i) => {
     const btn = document.createElement('button');
@@ -433,7 +439,6 @@ function renderGrid() {
     navContainer.appendChild(btn);
   });
 
-  // 2. Renderizar Mes Grande
   viewContainer.innerHTML = '';
   const m = currentViewMonth;
 
@@ -482,12 +487,11 @@ function renderGrid() {
       const dotsContainer = document.createElement('div');
       dotsContainer.className = 'large-day-dots';
       
-      // Mostrar hasta 4 barras de producciones con el nombre del cliente
       filteredProds.slice(0, 4).forEach(p => {
         const bar = document.createElement('div');
         bar.className = 'large-day-bar';
-        bar.style.background = (TAG_COLORS[p.tag] || 'var(--accent)') + '33';
-        bar.style.borderLeft = `3px solid ${TAG_COLORS[p.tag] || 'var(--accent)'}`;
+        // Aquí aplicamos el color de fondo sólido idéntico a los botones de categoría
+        bar.style.background = TAG_COLORS[p.tag] || 'var(--accent)';
         bar.textContent = p.name;
         dotsContainer.appendChild(bar);
       });
