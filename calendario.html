@@ -59,7 +59,7 @@
   .large-day-cell.today { border-color: var(--accent); color: var(--text); font-weight: 600; background: rgba(232, 160, 32, 0.05); }
   .large-day-cell.today::after { content: 'HOY'; position: absolute; top: 12px; right: 10px; font-size: 0.55rem; background: var(--accent); color: var(--bg); padding: 2px 6px; border-radius: 10px; font-weight: 700; letter-spacing: 1px; }
   .large-day-dots { display: flex; flex-direction: column; gap: 4px; margin-top: auto; padding-top: 12px; width: 100%; }
-  .large-day-bar { font-size: 0.6rem; padding: 4px 6px; border-radius: 3px; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; text-shadow: 0 1px 2px rgba(0,0,0,0.6); box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+  .large-day-bar { font-size: 0.6rem; padding: 4px 6px 4px 8px; border-radius: 3px; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; text-shadow: 0 1px 2px rgba(0,0,0,0.6); box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
 
   /* NAVEGADOR DE MESES INFERIOR */
   .month-nav { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 48px; background: var(--surface); padding: 16px; border-radius: 6px; border: 1px solid var(--border); }
@@ -100,6 +100,7 @@
 </style>
 </head>
 <body>
+<div id="cloudSaveBadge" style="position:fixed;bottom:18px;right:18px;z-index:999998;display:none;align-items:center;gap:8px;padding:8px 16px;border-radius:2px;font-family:'DM Mono',monospace;font-size:0.7rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;border:1px solid var(--border);box-shadow:0 6px 20px rgba(0,0,0,0.5);transition:opacity 0.25s ease;"></div>
 <div class="app">
 
   <!-- Header -->
@@ -133,6 +134,7 @@
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
       <span class="controls-label">Estado:</span>
+      <span style="font-size:0.6rem;color:var(--text3);letter-spacing:0.5px;margin-right:6px">(borde izquierdo en el calendario)</span>
       <button class="tag-btn" id="fbtn-estado-" onclick="setFilter('estado','')"><span class="tag-dot" style="background:#a09070"></span> Todos</button>
       <button class="tag-btn" id="fbtn-estado-saldo" onclick="setFilter('estado','saldo')"><span class="tag-dot" style="background:#e84040"></span> Con saldo pendiente</button>
       <button class="tag-btn" id="fbtn-estado-abono" onclick="setFilter('estado','abono')"><span class="tag-dot" style="background:var(--prod4)"></span> Con abono registrado</button>
@@ -237,15 +239,50 @@
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbxP5-vB59e80qpXdx4AcCyS28C4H58thdh0XXtLcDWZD8Q_47fDbBvLn1ahqx7RoJor/exec";
+const CLOUD_TOKEN = "b5bd161b4ef581c6114b7bb4";
 
 async function saveToCloud(key, dataObj) {
-  try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj) }) }); } 
-  catch (e) { console.error("Error guardando en la nube", e); }
+  try {
+    const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj), token: CLOUD_TOKEN }) });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return true;
+  } catch (e) { console.error("Error guardando en la nube", e); return false; }
+}
+
+let lastSyncedSnapshot = null;
+let _saveStatusTimer = null;
+
+function showSaveStatus(st) {
+  const el = document.getElementById('cloudSaveBadge');
+  if (!el) return;
+  clearTimeout(_saveStatusTimer);
+  el.style.display = 'flex';
+  el.style.opacity = '1';
+  if (st === 'saving') {
+    el.style.background = '#181410'; el.style.borderColor = 'var(--border)'; el.style.color = 'var(--text2)';
+    el.textContent = '⏳ Guardando…';
+  } else if (st === 'saved') {
+    el.style.background = '#132a18'; el.style.borderColor = '#2a9d8f'; el.style.color = '#7fd9c4';
+    el.textContent = '✓ Guardado';
+    _saveStatusTimer = setTimeout(() => { el.style.opacity = '0'; setTimeout(() => { el.style.display = 'none'; }, 300); }, 2200);
+  } else if (st === 'error') {
+    el.style.background = '#2e1414'; el.style.borderColor = '#e84040'; el.style.color = '#f08080';
+    el.textContent = '⚠ Error al guardar, revisa tu conexión';
+  }
+}
+
+async function checkForConflict(key) {
+  try {
+    const fresh = await loadFromCloud(key);
+    const freshStr = JSON.stringify(fresh);
+    if (lastSyncedSnapshot !== null && freshStr !== lastSyncedSnapshot) return true;
+    return false;
+  } catch (e) { return false; }
 }
 
 async function loadFromCloud(key) {
   try {
-    const res = await fetch(API_URL + "?key=" + key);
+    const res = await fetch(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
     const json = await res.json();
     return json.valor ? JSON.parse(json.valor) : null;
   } catch (e) { console.error("Error cargando de la nube", e); return null; }
@@ -255,6 +292,12 @@ const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto
 const MONTHS_SHORT = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DAYS = ['Lu','Ma','Mi','Ju','Vi','Sa','Do'];
 const TAG_COLORS = { 'Ingreso':'var(--prod1)', 'Confección':'var(--prod2)', 'Sublimación':'var(--prod3)', 'Abono':'var(--prod4)', 'Saldo':'var(--prod5)', 'Entrega':'#e84040', 'Otros':'#6b7280' };
+function estadoColor(p) {
+  if (p.saldo > 0) return '#e84040';
+  if (p.abono > 0) return '#3d6fa8';
+  if (p.monto > 0 && p.saldo === 0) return '#a855f7';
+  return 'transparent';
+}
 
 let productions = [];
 const today = new Date();
@@ -263,10 +306,20 @@ let currentViewMonth = today.getMonth();
 
 document.getElementById('todayDisplay').textContent = today.toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long' });
 
-function save() {
-  localStorage.setItem('prods2026', JSON.stringify(productions));
-  saveToCloud('prods2026', productions);
-  updateDataLists();
+async function save() {
+  try {
+    localStorage.setItem('prods2026', JSON.stringify(productions));
+    showSaveStatus('saving');
+    const conflict = await checkForConflict('prods2026');
+    if (conflict) {
+      const overwrite = confirm('Los datos en la nube cambiaron desde que cargaste esta página (probablemente los editaste desde otro dispositivo, o alguien más lo hizo). ¿Guardar de todas formas y sobrescribir con lo que tienes aquí?\n\nSi cancelas, recarga la página para ver los datos más recientes antes de seguir editando.');
+      if (!overwrite) { showSaveStatus('error'); return; }
+    }
+    const ok = await saveToCloud('prods2026', productions);
+    if (ok) lastSyncedSnapshot = JSON.stringify(productions);
+    showSaveStatus(ok ? 'saved' : 'error');
+    updateDataLists();
+  } catch (e) { showSaveStatus('error'); }
 }
 
 function updateDataLists() {
@@ -490,8 +543,9 @@ function renderGrid() {
       filteredProds.slice(0, 4).forEach(p => {
         const bar = document.createElement('div');
         bar.className = 'large-day-bar';
-        // Aquí aplicamos el color de fondo sólido idéntico a los botones de categoría
+        // Fondo = categoría, borde izquierdo = estado (saldo/abono/pagado)
         bar.style.background = TAG_COLORS[p.tag] || 'var(--accent)';
+        bar.style.borderLeft = '4px solid ' + estadoColor(p);
         bar.textContent = p.name;
         dotsContainer.appendChild(bar);
       });
@@ -581,7 +635,7 @@ function renderStats() {
 
 window.onload = async function() {
   const cloudData = await loadFromCloud('prods2026');
-  if (cloudData) productions = cloudData;
+  if (cloudData) { productions = cloudData; lastSyncedSnapshot = JSON.stringify(cloudData); }
   else productions = JSON.parse(localStorage.getItem('prods2026') || '[]');
   renderAll(); updateDataLists();
 };
