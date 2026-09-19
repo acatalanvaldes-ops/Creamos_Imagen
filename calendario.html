@@ -520,7 +520,7 @@ function renderGrid() {
 
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = `2026-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const filteredProds = getFiltered().filter(p => p.date === dateStr);
+    const filteredProds = getFiltered().filter(p => dateStr >= p.date && dateStr <= (p.fechaEntrega || p.date));
 
     const cell = document.createElement('div');
     cell.className = 'large-day-cell';
