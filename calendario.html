@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Producciones - Planificador Anual</title>
+<title>Calendario de Producciones 2026</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Mono:wght@300;400;500&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -24,8 +24,6 @@
   .header-right { text-align: right; }
   .today-badge { display: inline-block; background: var(--accent); color: var(--bg); font-size: 0.65rem; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; padding: 6px 14px; border-radius: 2px; margin-bottom: 8px; }
   .today-date { font-family: 'Playfair Display', serif; font-size: 1.1rem; color: var(--text2); }
-  .year-selector { background: var(--card); border: 1px solid var(--border); border-radius: 2px; color: var(--accent); font-family: 'DM Mono', monospace; font-size: 0.85rem; font-weight: 700; letter-spacing: 1px; padding: 6px 10px; margin-bottom: 10px; cursor: pointer; outline: none; }
-  .year-selector:hover, .year-selector:focus { border-color: var(--accent); }
   
   .controls { display: flex; gap: 12px; margin-bottom: 32px; flex-wrap: wrap; align-items: center; }
   .controls-label { font-size: 0.65rem; letter-spacing: 2px; text-transform: uppercase; color: var(--text3); margin-right: 4px; }
@@ -102,59 +100,16 @@
 </style>
 </head>
 <body>
-<div id="cimagen-gate" style="position:fixed;inset:0;z-index:999999;background:#111827;display:flex;align-items:center;justify-content:center;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;">
-  <div style="background:#fff;padding:36px 32px;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,0.3);max-width:340px;width:90%;text-align:center;">
-    <div style="font-size:32px;margin-bottom:8px;">🔒</div>
-    <h2 style="margin:0 0 6px;color:#1f2937;font-size:18px;">Creamos Imagen</h2>
-    <p style="margin:0 0 20px;color:#6b7280;font-size:13px;">Ingresa la contraseña para continuar</p>
-    <input type="password" id="cimagen-gate-input" placeholder="Contraseña" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;margin-bottom:10px;">
-    <div id="cimagen-gate-error" style="color:#dc2626;font-size:12px;min-height:16px;margin-bottom:10px;"></div>
-    <button id="cimagen-gate-btn" style="width:100%;padding:11px;background:#2c5f2e;color:#fff;border:none;border-radius:6px;font-weight:600;font-size:14px;cursor:pointer;">Entrar</button>
-  </div>
-</div>
-<script>
-(function(){
-  var PASS = "Cimagen2026";
-  var KEY = "cimagen_auth_ok";
-  if (localStorage.getItem(KEY) === "1") {
-    var g0 = document.getElementById('cimagen-gate');
-    if (g0) g0.remove();
-  } else {
-    document.documentElement.style.overflow = 'hidden';
-    window.addEventListener('DOMContentLoaded', function(){
-      var input = document.getElementById('cimagen-gate-input');
-      var btn = document.getElementById('cimagen-gate-btn');
-      var err = document.getElementById('cimagen-gate-error');
-      function tryEnter(){
-        if (input.value === PASS) {
-          localStorage.setItem(KEY, "1");
-          document.getElementById('cimagen-gate').remove();
-          document.documentElement.style.overflow = '';
-        } else {
-          err.textContent = "Contraseña incorrecta";
-          input.value = "";
-          input.focus();
-        }
-      }
-      btn.addEventListener('click', tryEnter);
-      input.addEventListener('keydown', function(e){ if (e.key === 'Enter') tryEnter(); });
-      setTimeout(function(){ input.focus(); }, 50);
-    });
-  }
-})();
-</script>
-
 <div class="app">
 
   <!-- Header -->
   <div class="header">
     <div class="header-left">
       <a href="index.html" style="display:inline-block; margin-bottom:12px; color:var(--accent); text-decoration:none; font-size:0.75rem; font-weight:bold; text-transform:uppercase; letter-spacing:1px; transition:opacity 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">← Volver al Menú</a>
-      <h1>Producciones<span id="yearSpan">2026</span></h1>
-      <p>Planificador anual</p>
+      <h1>Calendario<span>2026</span></h1>
+      <p>Gestor de producciones &mdash; Planificación anual</p>
     </div>
     <div class="header-right">
-      <select id="yearSelector" class="year-selector" onchange="changeYear(this.value)"></select>
       <div class="today-badge">Hoy</div>
       <div class="today-date" id="todayDisplay"></div>
     </div>
@@ -210,8 +165,8 @@
       <div class="form-group"><label>Nombre / Cliente</label><input type="text" id="prodName" placeholder="Nombre de la producción…" list="listNombres" autocomplete="off"><datalist id="listNombres"></datalist></div>
       <div class="form-group"><label>Tipo de producción</label><select id="prodTipo" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.8rem;padding:10px 12px;outline:none;transition:border-color 0.2s"><option value="">— Seleccionar —</option><option value="Confección">Confección</option><option value="Sublimación">Sublimación</option><option value="Otros">Otros</option></select></div>
       <div class="form-group"><label>Diseñador</label><input type="text" id="prodDiseñador" placeholder="Diseñador…" list="listDiseñadores" autocomplete="off"><datalist id="listDiseñadores"></datalist></div>
-      <div class="form-group"><label>Fecha Ingreso</label><input type="date" id="prodDate"></div>
-      <div class="form-group"><label>Fecha Entrega</label><input type="date" id="prodFechaEntrega"></div>
+      <div class="form-group"><label>Fecha Ingreso</label><input type="date" id="prodDate" min="2026-01-01" max="2026-12-31" onchange="autoCalcEntrega()"></div>
+      <div class="form-group"><label>Fecha Entrega</label><input type="date" id="prodFechaEntrega" min="2026-01-01" max="2026-12-31"></div>
     </div>
 
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:14px 16px;margin-bottom:12px">
@@ -250,6 +205,9 @@
       <div class="section-title" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
         Producciones registradas
         <div style="display:flex;gap:8px;margin-left:auto">
+          <button class="toggle-form-btn" onclick="exportJSON()" title="Descargar todas las producciones como archivo JSON">↓ Exportar</button>
+          <label class="toggle-form-btn" style="cursor:pointer" title="Cargar producciones desde archivo JSON">↑ Importar<input type="file" accept=".json" onchange="importJSON(event)" style="display:none"></label>
+          <button class="toggle-form-btn" onclick="shareURL()" title="Copiar enlace con todas las producciones incluidas">🔗 Compartir</button>
           <button class="toggle-form-btn" onclick="exportPDF()" title="Exportar tabla y estadísticas a PDF" style="border-color:#e84040;color:#e84040">📄 PDF</button>
         </div>
       </div>
@@ -258,7 +216,7 @@
       </div>
     </div>
     <div class="stats-panel">
-      <div class="stat-card"><div class="stat-label">Total producciones</div><div class="stat-value" id="statTotal">0</div><div class="stat-sub" id="statYearLabel">en todo el año 2026</div></div>
+      <div class="stat-card"><div class="stat-label">Total producciones</div><div class="stat-value" id="statTotal">0</div><div class="stat-sub">en todo el año 2026</div></div>
       <div class="stat-card"><div class="stat-label">Distribución mensual</div><div class="month-bar-list" id="monthBars"></div></div>
     </div>
   </div>
@@ -266,54 +224,17 @@
 
 <div class="tooltip" id="tooltip"></div>
 
-<div id="cloudSaveBadge" style="position:fixed;bottom:18px;right:18px;z-index:999998;display:none;align-items:center;gap:8px;padding:8px 16px;border-radius:24px;font-family:'DM Mono',monospace;font-size:12px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,0.35);transition:opacity 0.25s ease;letter-spacing:0.3px;"></div>
-
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbxP5-vB59e80qpXdx4AcCyS28C4H58thdh0XXtLcDWZD8Q_47fDbBvLn1ahqx7RoJor/exec";
-const CLOUD_TOKEN = "b5bd161b4ef581c6114b7bb4";
 
 async function saveToCloud(key, dataObj) {
-  try {
-    const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj), token: CLOUD_TOKEN }) });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    return true;
-  } catch (e) { console.error("Error guardando en la nube", e); return false; }
-}
-
-let lastSyncedSnapshot = null;
-let _saveStatusTimer = null;
-
-function showSaveStatus(st) {
-  const el = document.getElementById('cloudSaveBadge');
-  if (!el) return;
-  clearTimeout(_saveStatusTimer);
-  el.style.display = 'flex';
-  el.style.opacity = '1';
-  if (st === 'saving') {
-    el.style.background = '#374151'; el.style.color = '#fff';
-    el.textContent = '⏳ Guardando…';
-  } else if (st === 'saved') {
-    el.style.background = '#166534'; el.style.color = '#fff';
-    el.textContent = '✓ Guardado';
-    _saveStatusTimer = setTimeout(() => { el.style.opacity = '0'; setTimeout(() => { el.style.display = 'none'; }, 300); }, 2200);
-  } else if (st === 'error') {
-    el.style.background = '#b91c1c'; el.style.color = '#fff';
-    el.textContent = '⚠ Error al guardar, revisa tu conexión';
-  }
-}
-
-async function checkForConflict(key) {
-  try {
-    const fresh = await loadFromCloud(key);
-    const freshStr = JSON.stringify(fresh);
-    if (lastSyncedSnapshot !== null && freshStr !== lastSyncedSnapshot) return true;
-    return false;
-  } catch (e) { return false; }
+  try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj) }) }); } 
+  catch (e) { console.error("Error guardando en la nube", e); }
 }
 
 async function loadFromCloud(key) {
   try {
-    const res = await fetch(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
+    const res = await fetch(API_URL + "?key=" + key);
     const json = await res.json();
     return json.valor ? JSON.parse(json.valor) : null;
   } catch (e) { console.error("Error cargando de la nube", e); return null; }
@@ -327,58 +248,13 @@ const TAG_COLORS = { 'Ingreso':'var(--prod1)', 'Confección':'var(--prod2)', 'Su
 let productions = [];
 const today = new Date();
 const todayStr = today.toISOString().slice(0,10);
-let currentYear = today.getFullYear();
 let currentViewMonth = today.getMonth(); // Mes que se mostrará en grande
 
 document.getElementById('todayDisplay').textContent = today.toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long' });
 
-function storageKeyForYear(year) { return 'prods' + year; }
-
-function populateYearSelector() {
-  const sel = document.getElementById('yearSelector');
-  if (!sel) return;
-  const startYear = Math.min(2026, today.getFullYear()) - 1;
-  const endYear = today.getFullYear() + 5;
-  let html = '';
-  for (let y = startYear; y <= endYear; y++) { html += `<option value="${y}"${y===currentYear?' selected':''}>${y}</option>`; }
-  sel.innerHTML = html;
-}
-
-function updateDateInputBounds() {
-  const min = currentYear + '-01-01', max = currentYear + '-12-31';
-  const pd = document.getElementById('prodDate'); if (pd) { pd.min = min; pd.max = max; }
-  const pfe = document.getElementById('prodFechaEntrega'); if (pfe) { pfe.min = min; pfe.max = max; }
-}
-
-async function loadProductionsForYear(year) {
-  const key = storageKeyForYear(year);
-  const cloudData = await loadFromCloud(key);
-  if (cloudData) { productions = cloudData; lastSyncedSnapshot = JSON.stringify(cloudData); }
-  else { productions = JSON.parse(localStorage.getItem(key) || '[]'); lastSyncedSnapshot = null; }
-}
-
-async function changeYear(y) {
-  currentYear = parseInt(y);
-  const yearSpan = document.getElementById('yearSpan'); if (yearSpan) yearSpan.textContent = currentYear;
-  currentViewMonth = (currentYear === today.getFullYear()) ? today.getMonth() : 0;
-  updateDateInputBounds();
-  await loadProductionsForYear(currentYear);
-  updateDataLists();
-  setFilter('tag','');
-}
-
-async function save() {
-  const key = storageKeyForYear(currentYear);
-  localStorage.setItem(key, JSON.stringify(productions));
-  showSaveStatus('saving');
-  const conflict = await checkForConflict(key);
-  if (conflict) {
-    const overwrite = confirm('Los datos en la nube cambiaron desde que cargaste esta página (probablemente los editaste desde otro dispositivo, o alguien más lo hizo). ¿Guardar de todas formas y sobrescribir con lo que tienes aquí?\n\nSi cancelas, recarga la página para ver los datos más recientes antes de seguir editando.');
-    if (!overwrite) { showSaveStatus('error'); updateDataLists(); return; }
-  }
-  const ok = await saveToCloud(key, productions);
-  if (ok) lastSyncedSnapshot = JSON.stringify(productions);
-  showSaveStatus(ok ? 'saved' : 'error');
+function save() {
+  localStorage.setItem('prods2026', JSON.stringify(productions));
+  saveToCloud('prods2026', productions);
   updateDataLists();
 }
 
@@ -415,6 +291,16 @@ function getFiltered() {
 }
 
 let editingId = null;
+
+function autoCalcEntrega() {
+  const dVal = document.getElementById('prodDate').value;
+  if(dVal) {
+    const [y, m, d] = dVal.split('-');
+    const dateObj = new Date(y, m - 1, d);
+    dateObj.setDate(dateObj.getDate() + 15);
+    document.getElementById('prodFechaEntrega').value = `${dateObj.getFullYear()}-${String(dateObj.getMonth()+1).padStart(2,'0')}-${String(dateObj.getDate()).padStart(2,'0')}`;
+  }
+}
 
 function editProduction(id) {
   const p = productions.find(x => x.id === id);
@@ -488,7 +374,7 @@ function addProduction() {
   const date = document.getElementById('prodDate').value;
   const tag = document.getElementById('prodTag').value;
   if (!name || !date) { alert('Completa el nombre y la fecha.'); return; }
-  if (!date.startsWith(String(currentYear))) { alert('Por favor selecciona una fecha dentro de ' + currentYear + '.'); return; }
+  if (!date.startsWith('2026')) { alert('Por favor selecciona una fecha dentro de 2026.'); return; }
   const monto = parseFloat(document.getElementById('prodMonto').value) || 0;
   const abono = parseFloat(document.getElementById('prodAbono').value) || 0;
   const cantidad = {
@@ -546,7 +432,7 @@ function renderGrid() {
 
   const hdr = document.createElement('div');
   hdr.className = 'large-month-header';
-  hdr.innerHTML = `<span class="large-month-name">${MONTHS[m]} ${currentYear}</span>`;
+  hdr.innerHTML = `<span class="large-month-name">${MONTHS[m]} 2026</span>`;
   card.appendChild(hdr);
 
   const body = document.createElement('div');
@@ -560,9 +446,9 @@ function renderGrid() {
   const daysGrid = document.createElement('div');
   daysGrid.className = 'large-days-grid';
 
-  const firstDay = new Date(currentYear, m, 1).getDay();
+  const firstDay = new Date(2026, m, 1).getDay();
   const startOffset = firstDay === 0 ? 6 : firstDay - 1;
-  const daysInMonth = new Date(currentYear, m+1, 0).getDate();
+  const daysInMonth = new Date(2026, m+1, 0).getDate();
 
   for (let i = 0; i < startOffset; i++) {
     const empty = document.createElement('div'); empty.className = 'large-day-cell empty';
@@ -570,13 +456,13 @@ function renderGrid() {
   }
 
   for (let d = 1; d <= daysInMonth; d++) {
-    const dateStr = `${currentYear}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dateStr = `2026-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const filteredProds = getFiltered().filter(p => p.date === dateStr);
 
     const cell = document.createElement('div');
     cell.className = 'large-day-cell';
 
-    const dow_idx = new Date(currentYear, m, d).getDay();
+    const dow_idx = new Date(2026, m, d).getDay();
     if (dow_idx === 0 || dow_idx === 6) cell.classList.add('weekend');
     if (dateStr === todayStr) cell.classList.add('today');
 
@@ -616,6 +502,7 @@ function renderGrid() {
       const f = document.getElementById('addForm');
       if (!f.classList.contains('open')) { toggleForm(); }
       document.getElementById('prodDate').value = dateStr;
+      autoCalcEntrega();
     });
 
     daysGrid.appendChild(cell);
@@ -667,7 +554,6 @@ function renderTimeline() {
 function renderStats() {
   const filtered = getFiltered();
   document.getElementById('statTotal').textContent = filtered.length;
-  const yearLabel = document.getElementById('statYearLabel'); if (yearLabel) yearLabel.textContent = 'en todo el año ' + currentYear;
   const bars = document.getElementById('monthBars'); bars.innerHTML = '';
   const max = Math.max(...MONTHS.map((_,i) => filtered.filter(p=>new Date(p.date).getMonth()===i).length), 1);
   MONTHS_SHORT.forEach((abbr, i) => {
@@ -679,44 +565,10 @@ function renderStats() {
   });
 }
 
-function exportPDF() {
-  const filtered = getFiltered();
-  const rows = filtered.map(function(p) {
-    const ingreso = p.date ? p.date.split('-').reverse().join('/') : '—';
-    const entrega = p.fechaEntrega ? p.fechaEntrega.split('-').reverse().join('/') : '—';
-    return '<tr><td>' + (p.orden||'') + '</td><td>' + p.name + '</td><td>' + (p.tag||'') + '</td><td>' + (p.diseñador||'—') + '</td><td>' + ingreso + '</td><td>' + entrega + '</td>' +
-      '<td style="text-align:right">' + formatPesos(p.monto) + '</td><td style="text-align:right">' + formatPesos(p.saldo) + '</td></tr>';
-  }).join('');
-  const totalMonto = filtered.reduce(function(s,p){ return s+(p.monto||0); }, 0);
-  const totalSaldo = filtered.reduce(function(s,p){ return s+(p.saldo||0); }, 0);
-  const html_pdf = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Creamos Imagen - Calendario</title>" +
-    "<style>body{font-family:Arial,sans-serif;padding:20px;font-size:12px}table{width:100%;border-collapse:collapse}" +
-    "th{background:#1C1917;color:#e8a020;padding:7px 8px;text-align:left;font-size:10px}" +
-    "td{padding:5px 8px;border-bottom:1px solid #eee}tr:nth-child(even) td{background:#fafafa}" +
-    ".hdr{background:#1C1917;color:#fff;padding:16px;margin-bottom:12px;display:flex;justify-content:space-between}" +
-    "@media print{body{padding:0}}</style></head><body>" +
-    "<div class='hdr'><div><div style='font-size:18px;font-weight:800'>CREAMOS IMAGEN - CALENDARIO DE PRODUCCIONES</div>" +
-    "<div style='color:#e8a020;font-size:10px'>" + filtered.length + " producciones</div></div>" +
-    "<div style='color:#e8a020;font-size:10px'>" + new Date().toLocaleDateString("es-CL") + "</div></div>" +
-    "<table><thead><tr><th>N°</th><th>Nombre / Cliente</th><th>Categoría</th><th>Diseñador</th><th>F. Ingreso</th><th>F. Entrega</th><th style='text-align:right'>Monto</th><th style='text-align:right'>Saldo</th></tr></thead>" +
-    "<tbody>" + rows + "</tbody>" +
-    "<tfoot><tr style='background:#1C1917'><td colspan='6' style='padding:8px;color:#666;font-weight:700'>TOTALES</td>" +
-    "<td style='padding:8px;text-align:right;color:#166534;font-weight:800'>" + formatPesos(totalMonto) + "</td>" +
-    "<td style='padding:8px;text-align:right;color:#e84040;font-weight:800'>" + formatPesos(totalSaldo) + "</td></tr></tfoot></table>" +
-    "<div style='margin-top:16px;text-align:right;font-size:9px;color:#aaa'>Creamos Imagen - Informe generado automaticamente</div>" +
-    "<script>window.onload=function(){window.print();}<\/script></body></html>";
-  const blob = new Blob([html_pdf], { type: "text/html;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const win = window.open(url, "_blank");
-  if (!win) alert("Permite las ventanas emergentes para imprimir.");
-  else win.addEventListener("load", function(){ setTimeout(function(){ URL.revokeObjectURL(url); }, 2000); });
-}
-
 window.onload = async function() {
-  const yearSpan = document.getElementById('yearSpan'); if (yearSpan) yearSpan.textContent = currentYear;
-  populateYearSelector();
-  updateDateInputBounds();
-  await loadProductionsForYear(currentYear);
+  const cloudData = await loadFromCloud('prods2026');
+  if (cloudData) productions = cloudData;
+  else productions = JSON.parse(localStorage.getItem('prods2026') || '[]');
   renderAll(); updateDataLists();
 };
 </script>
