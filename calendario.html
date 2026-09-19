@@ -139,9 +139,6 @@
       <button class="tag-btn" id="fbtn-estado-saldo" onclick="setFilter('estado','saldo')"><span class="tag-dot" style="background:#e84040"></span> Con saldo pendiente</button>
       <button class="tag-btn" id="fbtn-estado-abono" onclick="setFilter('estado','abono')"><span class="tag-dot" style="background:var(--prod4)"></span> Con abono registrado</button>
       <button class="tag-btn" id="fbtn-estado-pagado" onclick="setFilter('estado','pagado')"><span class="tag-dot" style="background:var(--prod3)"></span> Pagadas</button>
-      <button class="tag-btn" id="fbtn-tipo-Confección" onclick="setFilter('tipo','Confección')"><span class="tag-dot" style="background:var(--prod2)"></span> Confección</button>
-      <button class="tag-btn" id="fbtn-tipo-Sublimación" onclick="setFilter('tipo','Sublimación')"><span class="tag-dot" style="background:var(--prod3)"></span> Sublimación</button>
-      <button class="tag-btn" id="fbtn-tipo-Otros" onclick="setFilter('tipo','Otros')"><span class="tag-dot" style="background:#6b7280"></span> Otros</button>
     </div>
   </div>
 
@@ -218,9 +215,6 @@
       <div class="section-title" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
         Producciones registradas
         <div style="display:flex;gap:8px;margin-left:auto">
-          <button class="toggle-form-btn" onclick="exportJSON()" title="Descargar todas las producciones como archivo JSON">↓ Exportar</button>
-          <label class="toggle-form-btn" style="cursor:pointer" title="Cargar producciones desde archivo JSON">↑ Importar<input type="file" accept=".json" onchange="importJSON(event)" style="display:none"></label>
-          <button class="toggle-form-btn" onclick="shareURL()" title="Copiar enlace con todas las producciones incluidas">🔗 Compartir</button>
           <button class="toggle-form-btn" onclick="exportPDF()" title="Exportar tabla y estadísticas a PDF" style="border-color:#e84040;color:#e84040">📄 PDF</button>
         </div>
       </div>
@@ -470,6 +464,7 @@ function addProduction() {
     if (idx !== -1) productions[idx] = prod;
   } else { productions.push(prod); }
   productions.sort((a,b) => a.date.localeCompare(b.date));
+  currentViewMonth = parseInt(prod.date.split('-')[1], 10) - 1;
   save(); renderAll(); toggleForm();
 }
 
