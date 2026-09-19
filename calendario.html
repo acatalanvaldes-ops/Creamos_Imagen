@@ -297,7 +297,17 @@ function autoCalcEntrega() {
   if(dVal) {
     const [y, m, d] = dVal.split('-');
     const dateObj = new Date(y, m - 1, d);
-    dateObj.setDate(dateObj.getDate() + 15);
+    
+    let daysAdded = 0;
+    // Sumamos 15 días hábiles (lunes a sábado, saltando los domingos)
+    while (daysAdded < 15) {
+      dateObj.setDate(dateObj.getDate() + 1);
+      // Si el día NO es domingo (0), contamos como un día válido
+      if (dateObj.getDay() !== 0) {
+        daysAdded++;
+      }
+    }
+    
     document.getElementById('prodFechaEntrega').value = `${dateObj.getFullYear()}-${String(dateObj.getMonth()+1).padStart(2,'0')}-${String(dateObj.getDate()).padStart(2,'0')}`;
   }
 }
