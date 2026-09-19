@@ -294,8 +294,8 @@ const DAYS = ['Lu','Ma','Mi','Ju','Vi','Sa','Do'];
 const TAG_COLORS = { 'Ingreso':'var(--prod1)', 'Confección':'var(--prod2)', 'Sublimación':'var(--prod3)', 'Abono':'var(--prod4)', 'Saldo':'var(--prod5)', 'Entrega':'#e84040', 'Otros':'#6b7280' };
 function estadoColor(p) {
   if (p.saldo > 0) return '#e84040';
-  if (p.abono > 0) return '#3d6fa8';
   if (p.monto > 0 && p.saldo === 0) return '#a855f7';
+  if (p.abono > 0) return '#3d6fa8';
   return 'transparent';
 }
 
