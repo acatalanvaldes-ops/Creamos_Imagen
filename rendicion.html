@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rendición de Caja v5</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{ --bg:#f0ede8;--white:#fff;--border:#ddd9d0;--border2:#c8c3b8; --ink:#1e1b16;--muted:#8a8374;--accent:#2c5f2e;--accent-l:#e8f5e9; --green:#1b5e20;--blue:#0d47a1;--amber:#e65100;--red:#b71c1c; --mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif; }
@@ -381,6 +381,119 @@ function renderSumm(){
   const tbody=document.getElementById('summ-tbody'); tbody.innerHTML='';
   days.forEach(r=>{ const tr=tbody.insertRow(); tr.innerHTML=`<td>${pad(r.d)}/${pad(r.mi+1)}/${currentYear}</td><td>${DOW_NAMES[new Date(currentYear,r.mi,r.d).getDay()]}</td><td>${r.n}</td><td>${fmt(r.ef)}</td><td>${fmt(r.tr)}</td><td>${fmt(r.wp)}</td><td>${fmt(r.total)}</td>`; });
   document.getElementById('sf-ef').textContent=fmt(days.reduce((s,r)=>s+r.ef,0)); document.getElementById('sf-tr').textContent=fmt(days.reduce((s,r)=>s+r.tr,0)); document.getElementById('sf-wp').textContent=fmt(days.reduce((s,r)=>s+r.wp,0)); document.getElementById('sf-tot').textContent=fmt(days.reduce((s,r)=>s+r.total,0));
+}
+
+function getAllRowsSorted(){
+  const rows=[];
+  Object.keys(data).filter(k=>k.startsWith(currentYear.toString())).forEach(k=>{
+    (data[k]||[]).forEach(r=>{ rows.push(Object.assign({fecha:k}, r)); });
+  });
+  rows.sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  return rows;
+}
+
+function fechaCorta(iso){ const [y,m,d]=iso.split('-'); return `${d}/${m}/${y}`; }
+
+function buildPreview(){
+  const rows = getAllRowsSorted();
+  const head = document.getElementById('ex-head');
+  const body = document.getElementById('ex-body');
+  head.innerHTML = '<tr><th>Fecha</th><th>Cliente</th><th>Tipo de Venta</th><th>Origen</th><th>Forma de Pago</th><th style="text-align:right">Efectivo</th><th style="text-align:right">Transferencia</th><th style="text-align:right">Webpay</th><th>Observaciones</th></tr>';
+  if(!rows.length){
+    body.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px">No hay registros para ${currentYear}.</td></tr>`;
+    return;
+  }
+  let html='';
+  rows.forEach(r=>{
+    html += `<tr><td>${fechaCorta(r.fecha)}</td><td>${r.cliente||''}</td><td>${r.tipo||''}</td><td>${r.origen||''}</td><td>${r.pago||''}</td><td style="text-align:right">${fmt(r.ef)}</td><td style="text-align:right">${fmt(r.tr)}</td><td style="text-align:right">${fmt(r.wp)}</td><td>${r.obs||''}</td></tr>`;
+  });
+  const tEf=rows.reduce((s,r)=>s+(+r.ef||0),0), tTr=rows.reduce((s,r)=>s+(+r.tr||0),0), tWp=rows.reduce((s,r)=>s+(+r.wp||0),0);
+  html += `<tr style="font-weight:700;background:var(--accent-l)"><td colspan="5" style="text-align:right">TOTALES</td><td style="text-align:right">${fmt(tEf)}</td><td style="text-align:right">${fmt(tTr)}</td><td style="text-align:right">${fmt(tWp)}</td><td></td></tr>`;
+  body.innerHTML = html;
+}
+
+async function exportXLSX(){
+  const rows = getAllRowsSorted();
+  if(!rows.length){ alert('No hay registros para exportar en ' + currentYear + '.'); return; }
+  if(typeof ExcelJS === 'undefined'){ alert('No se pudo cargar el generador de Excel. Verifica tu conexión a internet e inténtalo nuevamente.'); return; }
+
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'SUBLIPRO - Creamos Imagen';
+  wb.created = new Date();
+  const ws = wb.addWorksheet('Rendición ' + currentYear, { views: [{ state: 'frozen', ySplit: 3 }] });
+
+  const cols = [
+    { key:'fecha', width:13 }, { key:'cliente', width:26 }, { key:'tipo', width:16 },
+    { key:'origen', width:12 }, { key:'pago', width:16 }, { key:'ef', width:14 },
+    { key:'tr', width:14 }, { key:'wp', width:14 }, { key:'obs', width:34 },
+  ];
+  ws.columns = cols;
+
+  ws.mergeCells(1, 1, 1, cols.length);
+  const titleCell = ws.getCell(1, 1);
+  titleCell.value = 'SUBLIPRO — RENDICIÓN DE CAJA ' + currentYear;
+  titleCell.font = { bold:true, size:14, color:{argb:'FFFFFFFF'} };
+  titleCell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF2C5F2E'} };
+  titleCell.alignment = { vertical:'middle' };
+  ws.getRow(1).height = 26;
+  ws.getRow(2).height = 4;
+
+  const headers = ['Fecha','Cliente','Tipo de Venta','Origen','Forma de Pago','Efectivo','Transferencia','Webpay','Observaciones'];
+  const headerRow = ws.getRow(3);
+  headers.forEach((h,i) => { headerRow.getCell(i+1).value = h; });
+  headerRow.eachCell(cell => {
+    cell.font = { bold:true, color:{argb:'FFFFFFFF'} };
+    cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF217346'} };
+    cell.alignment = { vertical:'middle' };
+  });
+  headerRow.height = 20;
+
+  const moneyCols = ['ef','tr','wp'];
+  const moneyIdx = moneyCols.map(k => cols.findIndex(c => c.key === k) + 1);
+
+  rows.forEach((r, idx) => {
+    const row = ws.addRow({
+      fecha: fechaCorta(r.fecha), cliente: r.cliente || '', tipo: r.tipo || '',
+      origen: r.origen || '', pago: r.pago || '',
+      ef: +r.ef || 0, tr: +r.tr || 0, wp: +r.wp || 0, obs: r.obs || ''
+    });
+    moneyIdx.forEach(ci => { row.getCell(ci).numFmt = '"$"#,##0'; });
+    if (idx % 2 === 1) {
+      row.eachCell({ includeEmpty:true }, cell => {
+        cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFF5F3EE'} };
+      });
+    }
+    row.eachCell({ includeEmpty:true }, cell => {
+      cell.border = {
+        top:{style:'thin',color:{argb:'FFDDD9D0'}}, bottom:{style:'thin',color:{argb:'FFDDD9D0'}},
+        left:{style:'thin',color:{argb:'FFDDD9D0'}}, right:{style:'thin',color:{argb:'FFDDD9D0'}}
+      };
+    });
+  });
+
+  const tEf = rows.reduce((s,r)=>s+(+r.ef||0),0);
+  const tTr = rows.reduce((s,r)=>s+(+r.tr||0),0);
+  const tWp = rows.reduce((s,r)=>s+(+r.wp||0),0);
+  const totalRow = ws.addRow({ fecha:'', cliente:'', tipo:'', origen:'', pago:'TOTALES', ef:tEf, tr:tTr, wp:tWp, obs:'' });
+  totalRow.eachCell({ includeEmpty:true }, cell => {
+    cell.font = { bold:true };
+    cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFE8F5E9'} };
+    cell.border = { top:{style:'double',color:{argb:'FF2C5F2E'}} };
+  });
+  moneyIdx.forEach(ci => { totalRow.getCell(ci).numFmt = '"$"#,##0'; });
+
+  ws.autoFilter = { from:{row:3,column:1}, to:{row:3,column:cols.length} };
+
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `SUBLIPRO_Rendicion_${currentYear}.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
 // Iniciar aplicación
