@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rendición de Cuentas 2026</title>
+<title>Rendición de Caja v5</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -12,7 +12,9 @@
 body{font-family:var(--sans);background:var(--bg);color:var(--ink);min-height:100vh}
 .topbar{background:var(--accent);color:#fff;display:flex;align-items:center;padding:0 28px;height:52px;gap:20px;position:sticky;top:0;z-index:300;box-shadow:0 2px 8px rgba(0,0,0,.2)}
 .topbar-brand{font-size:15px;font-weight:700;letter-spacing:-.3px;display:flex;align-items:center;gap:9px}
-.topbar-brand .yr{font-family:var(--mono);font-size:12px;background:rgba(255,255,255,.18);padding:2px 8px;border-radius:20px}
+.yr-select{font-family:var(--mono);font-size:14px;background:rgba(255,255,255,.2);padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.4);color:#fff;outline:none;cursor:pointer;font-weight:700; transition: background 0.2s;}
+.yr-select:hover{background:rgba(255,255,255,.3)}
+.yr-select option{color:#000;background:#fff}
 .topbar-tabs{display:flex;height:100%;gap:2px;margin-left:16px}
 .ttab{background:none;border:none;color:rgba(255,255,255,.6);font-family:var(--sans);font-size:13px;font-weight:600;padding:0 18px;cursor:pointer;border-bottom:3px solid transparent;transition:all .15s}
 .ttab.on{color:#fff;border-bottom-color:#a5d6a7}
@@ -41,10 +43,11 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);min-height:10
 .mf-lbl{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-family:var(--mono)}
 .mf-val{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--green);margin-top:3px}
 .content{flex:1;overflow-y:auto;padding:22px 26px;display:flex;flex-direction:column;gap:16px}
-.content-head{display:flex;align-items:flex-end;gap:14px}
+.content-head{display:flex;align-items:flex-end;gap:14px;justify-content:space-between;}
 .content-head h2{font-size:22px;font-weight:700;letter-spacing:-.5px}
 .content-head .sub{font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:2px}
-.btn-new{margin-left:auto;background:var(--accent);color:#fff;border:none;font-family:var(--sans);font-size:12px;font-weight:700;padding:8px 16px;border-radius:6px;cursor:pointer;}
+.btn-new{background:var(--accent);color:#fff;border:none;font-family:var(--sans);font-size:13px;font-weight:700;padding:10px 18px;border-radius:6px;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,.15);transition:transform 0.1s}
+.btn-new:hover{transform:translateY(-1px);background:#1b5e20}
 .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 .card{background:var(--white);border:1px solid var(--border);border-radius:8px;padding:13px 15px}
 .card-lbl{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-family:var(--mono);margin-bottom:5px}
@@ -63,11 +66,12 @@ tbody td{border-bottom:1px solid var(--border);padding:0;font-size:12px}
 td input,td select{background:transparent;border:none;color:var(--ink);font-family:var(--mono);font-size:12px;padding:8px 12px;width:100%;outline:none;}
 td input[type="number"]{text-align:right}
 .ef-inp input{color:var(--green);font-weight:600}
-.btn-del{background:none;border:none;color:#ccc;cursor:pointer;padding:8px 10px;font-size:13px;}
+.btn-del{background:rgba(183, 28, 28, 0.1);border:1px solid rgba(183, 28, 28, 0.2);color:var(--red);cursor:pointer;padding:6px 10px;font-size:14px;border-radius:6px;transition:all 0.15s;}
+.btn-del:hover{background:var(--red);color:#fff;}
 tfoot .tot-row td{background:var(--accent-l);font-family:var(--mono);font-size:12px;font-weight:600;padding:9px 12px;border-top:2px solid var(--border2)}
 .tot-ef{color:var(--green);font-size:14px}
 .tot-lc{color:var(--blue);font-size:14px}
-.empty-row td{padding:48px;text-align:center;color:var(--muted);font-size:12px;}
+.empty-row td{padding:48px;text-align:center;color:var(--muted);font-size:13px;font-family:var(--sans);}
 .summ-header{display:flex;align-items:center;gap:16px}
 .summ-header h2{font-size:22px;font-weight:700;letter-spacing:-.5px}
 .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
@@ -82,7 +86,7 @@ tfoot .tot-row td{background:var(--accent-l);font-family:var(--mono);font-size:1
 .sfbtn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
 .summ-tbl-wrap{background:var(--white);border:1px solid var(--border);border-radius:10px;overflow:hidden;flex:1}
 .summ-tbl-head{display:flex;align-items:center;padding:13px 18px;background:#faf9f6;border-bottom:1px solid var(--border);gap:12px}
-.summ-table{width:100%;border-collapse}
+.summ-table{width:100%;border-collapse:collapse}
 .summ-table thead th{background:#2c5f2e;color:#fff;font-family:var(--mono);font-size:9px;padding:10px 14px;text-align:left;}
 .summ-table tbody td{padding:9px 14px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:12px;}
 .summ-table tfoot td{background:#1b5e20;color:#fff;font-family:var(--mono);font-size:12px;font-weight:700;padding:10px 14px;}
@@ -98,54 +102,21 @@ tfoot .tot-row td{background:var(--accent-l);font-family:var(--mono);font-size:1
 </style>
 </head>
 <body>
-<div id="cimagen-gate" style="position:fixed;inset:0;z-index:999999;background:#111827;display:flex;align-items:center;justify-content:center;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;">
-  <div style="background:#fff;padding:36px 32px;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,0.3);max-width:340px;width:90%;text-align:center;">
-    <div style="font-size:32px;margin-bottom:8px;">🔒</div>
-    <h2 style="margin:0 0 6px;color:#1f2937;font-size:18px;">Creamos Imagen</h2>
-    <p style="margin:0 0 20px;color:#6b7280;font-size:13px;">Ingresa la contraseña para continuar</p>
-    <input type="password" id="cimagen-gate-input" placeholder="Contraseña" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;margin-bottom:10px;">
-    <div id="cimagen-gate-error" style="color:#dc2626;font-size:12px;min-height:16px;margin-bottom:10px;"></div>
-    <button id="cimagen-gate-btn" style="width:100%;padding:11px;background:#2c5f2e;color:#fff;border:none;border-radius:6px;font-weight:600;font-size:14px;cursor:pointer;">Entrar</button>
-  </div>
-</div>
-<script>
-(function(){
-  var PASS = "Cimagen2026";
-  var KEY = "cimagen_auth_ok";
-  if (localStorage.getItem(KEY) === "1") {
-    var g0 = document.getElementById('cimagen-gate');
-    if (g0) g0.remove();
-  } else {
-    document.documentElement.style.overflow = 'hidden';
-    window.addEventListener('DOMContentLoaded', function(){
-      var input = document.getElementById('cimagen-gate-input');
-      var btn = document.getElementById('cimagen-gate-btn');
-      var err = document.getElementById('cimagen-gate-error');
-      function tryEnter(){
-        if (input.value === PASS) {
-          localStorage.setItem(KEY, "1");
-          document.getElementById('cimagen-gate').remove();
-          document.documentElement.style.overflow = '';
-        } else {
-          err.textContent = "Contraseña incorrecta";
-          input.value = "";
-          input.focus();
-        }
-      }
-      btn.addEventListener('click', tryEnter);
-      input.addEventListener('keydown', function(e){ if (e.key === 'Enter') tryEnter(); });
-      setTimeout(function(){ input.focus(); }, 50);
-    });
-  }
-})();
-</script>
-
-
-<div id="cloudSaveBadge" style="position:fixed;bottom:18px;right:18px;z-index:999998;display:none;align-items:center;gap:8px;padding:8px 16px;border-radius:24px;font-family:var(--sans);font-size:12px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,0.35);transition:opacity 0.25s ease;letter-spacing:0.3px;"></div>
 
 <div class="topbar">
   <a href="index.html" style="color:#fff; text-decoration:none; font-size:12px; font-weight:700; background:rgba(255,255,255,0.15); padding:6px 12px; border-radius:6px; transition:background 0.2s; font-family:var(--sans);" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">← Menú</a>
-  <div class="topbar-brand">📋 Rendición de Cuentas <span class="yr">2026</span></div>
+  <div class="topbar-brand">
+    📋 Rendición de Caja 
+    <select class="yr-select" id="year-select" onchange="changeYear(this.value)">
+      <option value="2025">2025</option>
+      <option value="2026">2026</option>
+      <option value="2027">2027</option>
+      <option value="2028">2028</option>
+      <option value="2029">2029</option>
+      <option value="2030">2030</option>
+      <option value="2031">2031</option>
+    </select>
+  </div>
   <div class="topbar-tabs">
     <button class="ttab on"  onclick="showTab('rend',this)">📝 Registro</button>
     <button class="ttab"     onclick="showTab('summ',this)">📊 Resumen</button>
@@ -153,7 +124,6 @@ tfoot .tot-row td{background:var(--accent-l);font-family:var(--mono);font-size:1
   </div>
   <div class="topbar-right">
     <button class="btn-clear" onclick="clearAll()">🗑 Borrar datos</button>
-    <button class="btn-xl"    onclick="exportJSON()">⬇ Respaldo JSON</button>
     <button class="btn-xl"    onclick="exportXLSX()">⬇ Guardar Excel</button>
   </div>
 </div>
@@ -166,8 +136,9 @@ tfoot .tot-row td{background:var(--accent-l);font-family:var(--mono);font-size:1
   </div>
   <div class="content">
     <div class="content-head">
-      <div><div class="sub" id="c-sub">Selecciona un día en el panel izquierdo</div><h2 id="c-title">—</h2></div>
-      <button class="btn-new" id="btn-new" onclick="addRow()" style="display:none">＋ Nueva fila</button>
+      <div><div class="sub" id="c-sub">Panel de registros diarios</div><h2 id="c-title">—</h2></div>
+      <!-- Botón siempre visible -->
+      <button class="btn-new" id="btn-new" onclick="addRow()">＋ Nuevo Registro</button>
     </div>
     <div class="cards">
       <div class="card"><div class="card-lbl">Registros</div><div class="card-val"   id="cc-n">0</div></div>
@@ -185,8 +156,10 @@ tfoot .tot-row td{background:var(--accent-l);font-family:var(--mono);font-size:1
         </div>
       </div>
       <table>
-        <thead><tr><th style="width:115px">Fecha</th><th style="width:170px">Cliente</th><th style="width:140px">Tipo de Venta</th><th style="width:110px">Origen</th><th style="width:135px">Forma de Pago</th><th style="width:110px;text-align:right">Efectivo ($)</th><th style="width:115px;text-align:right">Transfer. ($)</th><th style="width:105px;text-align:right">Webpay ($)</th><th>Observaciones</th><th style="width:36px"></th></tr></thead>
-        <tbody id="tbody"></tbody>
+        <thead><tr><th style="width:115px">Fecha</th><th style="width:170px">Cliente</th><th style="width:140px">Tipo de Venta</th><th style="width:110px">Origen</th><th style="width:135px">Forma de Pago</th><th style="width:110px;text-align:right">Efectivo ($)</th><th style="width:115px;text-align:right">Transfer. ($)</th><th style="width:105px;text-align:right">Webpay ($)</th><th>Observaciones</th><th style="width:60px;text-align:center">Acción</th></tr></thead>
+        <tbody id="tbody">
+          <tr class="empty-row"><td colspan="10">Cargando registros...</td></tr>
+        </tbody>
         <tfoot><tr class="tot-row"><td colspan="5">TOTAL DÍA</td><td class="tot-ef" id="tf-ef" style="text-align:right">$0</td><td class="tot-lc" id="tf-tr" style="text-align:right">$0</td><td class="tot-ef" id="tf-wp" style="text-align:right;color:var(--amber)">$0</td><td colspan="2"></td></tr></tfoot>
       </table>
     </div>
@@ -222,136 +195,79 @@ tfoot .tot-row td{background:var(--accent-l);font-family:var(--mono);font-size:1
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbxP5-vB59e80qpXdx4AcCyS28C4H58thdh0XXtLcDWZD8Q_47fDbBvLn1ahqx7RoJor/exec";
-const CLOUD_TOKEN = "b5bd161b4ef581c6114b7bb4";
 
 async function saveToCloud(key, dataObj) {
-  try {
-    const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj), token: CLOUD_TOKEN }) });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    return true;
-  } catch (e) { console.error("Error guardando en la nube", e); return false; }
-}
-
-let lastSyncedSnapshot = null;
-let _saveStatusTimer = null;
-
-function showSaveStatus(st) {
-  const el = document.getElementById('cloudSaveBadge');
-  if (!el) return;
-  clearTimeout(_saveStatusTimer);
-  el.style.display = 'flex';
-  el.style.opacity = '1';
-  if (st === 'saving') {
-    el.style.background = '#374151'; el.style.color = '#fff';
-    el.textContent = '⏳ Guardando…';
-  } else if (st === 'saved') {
-    el.style.background = '#166534'; el.style.color = '#fff';
-    el.textContent = '✓ Guardado';
-    _saveStatusTimer = setTimeout(() => { el.style.opacity = '0'; setTimeout(() => { el.style.display = 'none'; }, 300); }, 2200);
-  } else if (st === 'error') {
-    el.style.background = '#b91c1c'; el.style.color = '#fff';
-    el.textContent = '⚠ Error al guardar, revisa tu conexión';
-  }
-}
-
-async function checkForConflict(key) {
-  try {
-    const fresh = await loadFromCloud(key);
-    const freshStr = JSON.stringify(fresh);
-    if (lastSyncedSnapshot !== null && freshStr !== lastSyncedSnapshot) return true;
-    return false;
-  } catch (e) { return false; }
+  try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj) }) }); }
+  catch (e) { console.error("Error guardando en la nube", e); }
 }
 
 async function loadFromCloud(key) {
-  try { const res = await fetch(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN); const json = await res.json(); return json.valor ? JSON.parse(json.valor) : null; }
+  try { const res = await fetch(API_URL + "?key=" + key); const json = await res.json(); return json.valor ? JSON.parse(json.valor) : null; }
   catch (e) { return null; }
 }
 
+let currentYear = new Date().getFullYear();
+if (currentYear < 2025) currentYear = 2025;
+if (currentYear > 2031) currentYear = 2031;
+
 const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-const DIAS_MES = [31,28,31,30,31,30,31,31,30,31,30,31];
 const DOW_NAMES = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
 const TIPOS = ["Sublimación","Camiseta","Papel","Conjuntos","Mantas","Pañuelos","Banner","Banderas","Otros"];
-const data = {}; let curDate = null, curMonth = null, typeFilter = 'todos', prevMonth = 0, summFilter = 'todos';
+const data = {}; let curDate = null, curMonth = null, typeFilter = 'todos', summFilter = 'todos';
 const fmt = n => !n||isNaN(+n) ? '$0' : '$'+(+n).toLocaleString('es-CL');
 const pad = n => String(n).padStart(2,'0');
-function daysKey(m,d){ return `2026-${pad(m+1)}-${pad(d)}`; }
-function dateLabel(key){ const [,m,d]=key.split('-'); return `${DOW_NAMES[new Date(2026,+m-1,+d).getDay()]} ${+d}`; }
-function rowsForDate(k){ return data[k]||(data[k]=[]); }
-function rowsForMonth(mi){ let a=[]; for(let d=1;d<=DIAS_MES[mi];d++) a=a.concat(rowsForDate(daysKey(mi,d))); return a; }
-function totalAll(){ return Object.values(data).flat().reduce((s,r)=>s+(+r.ef||0)+(+r.tr||0)+(+r.wp||0),0); }
 
-async function saveData(){
-  try{
-    localStorage.setItem('rendicion2026_v2', JSON.stringify(data));
-    showSaveStatus('saving');
-    const conflict = await checkForConflict('rendicion2026_v2');
-    if (conflict) {
-      const overwrite = confirm('Los datos en la nube cambiaron desde que cargaste esta página (probablemente los editaste desde otro dispositivo, o alguien más lo hizo). ¿Guardar de todas formas y sobrescribir con lo que tienes aquí?\n\nSi cancelas, recarga la página para ver los datos más recientes antes de seguir editando.');
-      if (!overwrite) { showSaveStatus('error'); return; }
-    }
-    const ok = await saveToCloud('rendicion2026_v2', data);
-    if (ok) lastSyncedSnapshot = JSON.stringify(data);
-    showSaveStatus(ok ? 'saved' : 'error');
-  } catch(e){ showSaveStatus('error'); }
+function getDiasMes(m, y) {
+  if (m === 1) { return (y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0)) ? 29 : 28; }
+  return [31,28,31,30,31,30,31,31,30,31,30,31][m];
 }
+
+function daysKey(m,d){ return `${currentYear}-${pad(m+1)}-${pad(d)}`; }
+function dateLabel(key){ const [y,m,d]=key.split('-'); return `${DOW_NAMES[new Date(+y,+m-1,+d).getDay()]} ${+d}`; }
+function rowsForDate(k){ return data[k]||(data[k]=[]); }
+function rowsForMonth(mi){ let a=[]; const dias = getDiasMes(mi, currentYear); for(let d=1;d<=dias;d++) a=a.concat(rowsForDate(daysKey(mi,d))); return a; }
+function totalAll(){ return Object.keys(data).filter(k => k.startsWith(currentYear.toString())).reduce((s,k) => s + data[k].reduce((ss,r)=>ss+(+r.ef||0)+(+r.tr||0)+(+r.wp||0),0),0); }
+
+function saveData(){ try{ localStorage.setItem('rendicion2026_v2', JSON.stringify(data)); saveToCloud('rendicion2026_v2', data); } catch(e){} }
+
 async function loadData(){
   try{
     const cloudData = await loadFromCloud('rendicion2026_v2');
     const p = cloudData || JSON.parse(localStorage.getItem('rendicion2026_v2') || '{}');
     Object.keys(p).forEach(k=>{ data[k]=p[k]; });
-    if (cloudData) lastSyncedSnapshot = JSON.stringify(cloudData);
-    buildAccordion(); if(curDate) renderContent(); renderSumm();
   } catch(e){}
-}
-function clearAll(){ if(!confirm('¿Borrar TODOS los registros?')) return; Object.keys(data).forEach(k=>{ data[k]=[]; }); localStorage.removeItem('rendicion2026_v2'); buildAccordion(); if(curDate) renderContent(); renderSumm(); }
 
-function exportJSON(){
-  const payload = { data: data, exportadoEl: new Date().toISOString() };
-  const json = JSON.stringify(payload, null, 2);
-  const a = document.createElement("a");
-  a.href = "data:application/json;charset=utf-8,"+encodeURIComponent(json);
-  a.download = "CreamosImagen_Rendicion_"+new Date().toISOString().slice(0,10)+".json";
-  a.click();
-}
-
-function exportXLSX(){
-  try {
-    if (typeof XLSX === 'undefined') { alert('No se pudo cargar la librería de Excel. Revisa tu conexión e intenta de nuevo.'); return; }
-    const rows = [["Fecha","Día","Cliente","Tipo de Venta","Origen","Forma de Pago","Efectivo","Transferencia","Webpay","Observaciones"]];
-    MESES.forEach((_, mi) => {
-      for (let d = 1; d <= DIAS_MES[mi]; d++) {
-        const key = daysKey(mi, d);
-        rowsForDate(key).forEach(r => {
-          rows.push([pad(d)+"/"+pad(mi+1)+"/2026", dateLabel(key), r.cliente||"", r.tipo||"", r.origen||"", r.pago||"", +r.ef||0, +r.tr||0, +r.wp||0, r.obs||""]);
-        });
-      }
-    });
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Rendicion 2026");
-    XLSX.writeFile(wb, "CreamosImagen_Rendicion_"+new Date().toISOString().slice(0,10)+".xlsx");
-  } catch(e) { alert("Error al generar el Excel: " + e.message); }
+  // Forzar selección automática de HOY al cargar
+  const t = new Date();
+  currentYear = t.getFullYear();
+  if (currentYear < 2025) currentYear = 2025;
+  if (currentYear > 2031) currentYear = 2031;
+  document.getElementById('year-select').value = currentYear;
+  
+  buildAccordion(); 
+  selectDay(daysKey(t.getMonth(), t.getDate()), t.getMonth());
+  renderSumm();
 }
 
-function setPrevMonth(mi){ prevMonth = mi; buildPreview(); }
-
-function buildPreview(){
-  const tabsEl = document.getElementById('prev-tabs');
-  const headEl = document.getElementById('ex-head');
-  const bodyEl = document.getElementById('ex-body');
-  if (!tabsEl || !headEl || !bodyEl) return;
-  tabsEl.innerHTML = MESES.map((m, mi) => `<button class="ptab${mi===prevMonth?' on':''}" onclick="setPrevMonth(${mi})">${m}</button>`).join('');
-  headEl.innerHTML = '<tr><th>Día</th><th>Cliente</th><th>Tipo</th><th>Origen</th><th>Forma de Pago</th><th>Efectivo</th><th>Transferencia</th><th>Webpay</th><th>Observaciones</th></tr>';
-  let rowsHtml = '';
-  for (let d = 1; d <= DIAS_MES[prevMonth]; d++) {
-    const key = daysKey(prevMonth, d);
-    rowsForDate(key).forEach(r => {
-      rowsHtml += `<tr><td>${d}</td><td>${r.cliente||''}</td><td>${r.tipo||''}</td><td>${r.origen||''}</td><td>${r.pago||''}</td><td>${fmt(r.ef)}</td><td>${fmt(r.tr)}</td><td>${fmt(r.wp)}</td><td>${r.obs||''}</td></tr>`;
-    });
-  }
-  bodyEl.innerHTML = rowsHtml || '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--muted)">Sin registros este mes</td></tr>';
+function changeYear(y) {
+  currentYear = parseInt(y);
+  curDate = null; curMonth = null;
+  buildAccordion();
+  document.getElementById('c-title').textContent = "—";
+  document.getElementById('c-sub').textContent = "Panel de registros diarios";
+  document.getElementById('tbody').innerHTML = '<tr class="empty-row"><td colspan="10">No hay registros para este día. Haz clic en "＋ Nuevo Registro".</td></tr>';
+  document.getElementById('cc-n').textContent = "0";
+  document.getElementById('cc-ef').textContent = "$0";
+  document.getElementById('cc-tr').textContent = "$0";
+  document.getElementById('cc-wp').textContent = "$0";
+  document.getElementById('tf-ef').textContent = "$0";
+  document.getElementById('tf-tr').textContent = "$0";
+  document.getElementById('tf-wp').textContent = "$0";
+  document.getElementById('cur-date-lbl').textContent = "—";
+  renderSumm();
 }
+
+function clearAll(){ if(!confirm('¿Borrar TODOS los registros del sistema?')) return; Object.keys(data).forEach(k=>{ data[k]=[]; }); localStorage.removeItem('rendicion2026_v2'); buildAccordion(); if(curDate) renderContent(); renderSumm(); }
 function showTab(name,btn){ document.querySelectorAll('.ttab').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on')); document.getElementById('p-'+name).classList.add('on'); if(name==='summ') renderSumm(); if(name==='prev') buildPreview(); }
 
 function buildAccordion(){
@@ -362,7 +278,8 @@ function buildAccordion(){
     hd.innerHTML=`<span class="m-name">${m}</span><span class="m-badge">${rowsForMonth(mi).length}</span>`;
     hd.onclick=()=>toggleMonth(mi);
     const body=document.createElement('div'); body.className='month-acc-body'; body.id=`acc-body-${mi}`;
-    for(let d=1;d<=DIAS_MES[mi];d++){
+    const dias = getDiasMes(mi, currentYear);
+    for(let d=1;d<=dias;d++){
       const key=daysKey(mi,d), rows=rowsForDate(key);
       const div=document.createElement('div'); div.className='day-item'+(key===curDate?' active':''); div.id=`day-${key}`;
       div.innerHTML=`<span class="day-label">${dateLabel(key)}</span><span class="day-count">${rows.length||''}</span>`;
@@ -375,52 +292,99 @@ function buildAccordion(){
 }
 
 function toggleMonth(mi){ const body=document.getElementById(`acc-body-${mi}`), hd=document.getElementById(`acc-hd-${mi}`); const isOpen=body.classList.contains('open'); document.querySelectorAll('.month-acc-body').forEach(b=>b.classList.remove('open')); document.querySelectorAll('.month-acc-hd').forEach(h=>h.classList.remove('open')); if(!isOpen){ body.classList.add('open'); hd.classList.add('open'); } }
-function refreshAccordion(){ MESES.forEach((_,mi)=>{ const badge=document.querySelector(`#acc-hd-${mi} .m-badge`); if(badge) badge.textContent=rowsForMonth(mi).length; for(let d=1;d<=DIAS_MES[mi];d++){ const key=daysKey(mi,d), el=document.getElementById(`day-${key}`); if(el){ el.querySelector('.day-count').textContent=rowsForDate(key).length||''; el.classList.toggle('active',key===curDate); } } }); document.getElementById('col-tot').textContent=fmt(totalAll()); }
-function selectDay(key,mi){ curDate=key; curMonth=mi; const body=document.getElementById(`acc-body-${mi}`), hd=document.getElementById(`acc-hd-${mi}`); document.querySelectorAll('.month-acc-body').forEach(b=>b.classList.remove('open')); document.querySelectorAll('.month-acc-hd').forEach(h=>h.classList.remove('open')); body.classList.add('open'); hd.classList.add('open'); refreshAccordion(); renderContent(); }
+function refreshAccordion(){ MESES.forEach((_,mi)=>{ const badge=document.querySelector(`#acc-hd-${mi} .m-badge`); if(badge) badge.textContent=rowsForMonth(mi).length; const dias = getDiasMes(mi, currentYear); for(let d=1;d<=dias;d++){ const key=daysKey(mi,d), el=document.getElementById(`day-${key}`); if(el){ el.querySelector('.day-count').textContent=rowsForDate(key).length||''; el.classList.toggle('active',key===curDate); } } }); document.getElementById('col-tot').textContent=fmt(totalAll()); }
 
-function renderContent(){ if(!curDate) return; const [,m,d]=curDate.split('-'); document.getElementById('c-title').textContent=`${MESES[+m-1]} — ${+d}`; document.getElementById('btn-new').style.display=''; renderTable(); updateCards(); }
+function selectDay(key,mi){ 
+  curDate=key; 
+  curMonth=mi; 
+  const body=document.getElementById(`acc-body-${mi}`);
+  const hd=document.getElementById(`acc-hd-${mi}`);
+  document.querySelectorAll('.month-acc-body').forEach(b=>b.classList.remove('open')); 
+  document.querySelectorAll('.month-acc-hd').forEach(h=>h.classList.remove('open')); 
+  if(body) body.classList.add('open'); 
+  if(hd) hd.classList.add('open');
+  refreshAccordion(); 
+  renderContent(); 
+}
+
+function renderContent(){ 
+  if(!curDate) return; 
+  const [,m,d]=curDate.split('-'); 
+  document.getElementById('c-title').textContent=`${MESES[+m-1]} — ${+d}`; 
+  document.getElementById('cur-date-lbl').textContent = curDate;
+  renderTable(); updateCards(); 
+}
 function getFiltered(){ const rows=rowsForDate(curDate); if(typeFilter==='todos') return rows; return rows.filter(r=>r.origen===typeFilter.split(':')[1]); }
+
 function renderTable(){
   const tbody=document.getElementById('tbody'); tbody.innerHTML=''; const rows=getFiltered();
-  if(!rows.length){ tbody.innerHTML=`<tr class="empty-row"><td colspan="10">Sin registros para este día</td></tr>`; } else {
+  if(!rows.length){ tbody.innerHTML=`<tr class="empty-row"><td colspan="10">No hay registros para este día. Haz clic en "＋ Nuevo Registro".</td></tr>`; } else {
     const all=rowsForDate(curDate);
     rows.forEach(row=>{
       const ri=all.indexOf(row); const tr=document.createElement('tr');
       tr.innerHTML=`<td><input type="date" value="${curDate}" readonly style="color:var(--muted)"></td>
-        <td><input type="text" value="${row.cliente||''}" oninput="upd('${curDate}',${ri},'cliente',this.value)"></td>
+        <td><input type="text" placeholder="Nombre del cliente..." value="${row.cliente||''}" oninput="upd('${curDate}',${ri},'cliente',this.value)"></td>
         <td><select onchange="upd('${curDate}',${ri},'tipo',this.value)">${TIPOS.map(t=>`<option value="${t}" ${row.tipo===t?'selected':''}>${t}</option>`).join('')}</select></td>
         <td><select onchange="upd('${curDate}',${ri},'origen',this.value)"><option value="Local" ${row.origen==='Local'?'selected':''}>Local</option><option value="Empresa" ${row.origen==='Empresa'?'selected':''}>Empresa</option></select></td>
         <td><select onchange="upd('${curDate}',${ri},'pago',this.value)"><option value="Efectivo" ${row.pago==='Efectivo'?'selected':''}>Efectivo</option><option value="Transferencia" ${row.pago==='Transferencia'?'selected':''}>Transferencia</option><option value="Webpay" ${row.pago==='Webpay'?'selected':''}>Webpay</option></select></td>
-        <td class="ef-inp"><input type="number" value="${row.ef||''}" oninput="upd('${curDate}',${ri},'ef',this.value)"></td>
-        <td><input type="number" value="${row.tr||''}" oninput="upd('${curDate}',${ri},'tr',this.value)"></td>
-        <td><input type="number" value="${row.wp||''}" oninput="upd('${curDate}',${ri},'wp',this.value)"></td>
-        <td><input type="text" value="${row.obs||''}" oninput="upd('${curDate}',${ri},'obs',this.value)"></td>
-        <td><button class="btn-del" onclick="delRow('${curDate}',${ri})">✕</button></td>`;
+        <td class="ef-inp"><input type="number" placeholder="0" value="${row.ef||''}" oninput="upd('${curDate}',${ri},'ef',this.value)"></td>
+        <td><input type="number" placeholder="0" value="${row.tr||''}" oninput="upd('${curDate}',${ri},'tr',this.value)"></td>
+        <td><input type="number" placeholder="0" value="${row.wp||''}" oninput="upd('${curDate}',${ri},'wp',this.value)"></td>
+        <td><input type="text" placeholder="Anotaciones..." value="${row.obs||''}" oninput="upd('${curDate}',${ri},'obs',this.value)"></td>
+        <td style="text-align:center"><button class="btn-del" onclick="delRow('${curDate}',${ri})" title="Borrar registro">🗑️</button></td>`;
       tbody.appendChild(tr);
     });
   } updateTotals();
 }
+
 function updateCards(){ const rows=rowsForDate(curDate); document.getElementById('cc-n').textContent=rows.length; document.getElementById('cc-ef').textContent=fmt(rows.reduce((s,r)=>s+(+r.ef||0),0)); document.getElementById('cc-tr').textContent=fmt(rows.reduce((s,r)=>s+(+r.tr||0),0)); document.getElementById('cc-wp').textContent=fmt(rows.reduce((s,r)=>s+(+r.wp||0),0)); }
 function updateTotals(){ const rows=rowsForDate(curDate); document.getElementById('tf-ef').textContent=fmt(rows.reduce((s,r)=>s+(+r.ef||0),0)); document.getElementById('tf-tr').textContent=fmt(rows.reduce((s,r)=>s+(+r.tr||0),0)); document.getElementById('tf-wp').textContent=fmt(rows.reduce((s,r)=>s+(+r.wp||0),0)); }
-function addRow(){ if(!curDate) return; rowsForDate(curDate).push({cliente:'',tipo:'Sublimación',origen:'Local',pago:'Efectivo',ef:'',tr:'',wp:'',obs:''}); saveData(); renderContent(); refreshAccordion(); }
+
+function addRow() { 
+  if(!curDate) {
+    const t = new Date();
+    if (t.getFullYear() !== currentYear) {
+      document.getElementById('year-select').value = t.getFullYear();
+      changeYear(t.getFullYear());
+    }
+    selectDay(daysKey(t.getMonth(), t.getDate()), t.getMonth());
+  }
+  rowsForDate(curDate).push({cliente:'',tipo:'Sublimación',origen:'Local',pago:'Efectivo',ef:'',tr:'',wp:'',obs:''}); 
+  saveData(); 
+  renderContent(); 
+  refreshAccordion(); 
+}
+
 function upd(key,i,f,v){ if(data[key]) data[key][i][f]=v; saveData(); updateCards(); updateTotals(); refreshAccordion(); }
-function delRow(key,i){ if(data[key]) data[key].splice(i,1); saveData(); renderContent(); refreshAccordion(); }
+
+function delRow(key, i) { 
+  if(confirm('¿Seguro que deseas borrar este registro? Esta acción no se puede deshacer.')) {
+    if(data[key]) data[key].splice(i,1); 
+    saveData(); 
+    renderContent(); 
+    refreshAccordion(); 
+  }
+}
+
 function setPill(m,btn){ typeFilter=m; document.querySelectorAll('.pill').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); renderTable(); }
 
 function setSummFilter(v,btn){ summFilter=v; document.querySelectorAll('.sfbtn').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); renderSumm(); }
 function renderSumm(){
   const days=[];
   MESES.forEach((_,mi)=>{
-    for(let d=1;d<=DIAS_MES[mi];d++){
+    const dias = getDiasMes(mi, currentYear);
+    for(let d=1;d<=dias;d++){
       const key=daysKey(mi,d), rows=rowsForDate(key); if(!rows.length) continue;
       days.push({key,mi,d,ef:rows.reduce((s,r)=>s+(+r.ef||0),0),tr:rows.reduce((s,r)=>s+(+r.tr||0),0),wp:rows.reduce((s,r)=>s+(+r.wp||0),0),total:rows.reduce((s,r)=>s+(+r.ef||0)+(+r.tr||0)+(+r.wp||0),0),n:rows.length});
     }
   });
   const tbody=document.getElementById('summ-tbody'); tbody.innerHTML='';
-  days.forEach(r=>{ const tr=tbody.insertRow(); tr.innerHTML=`<td>${pad(r.d)}/${pad(r.mi+1)}/2026</td><td>${DOW_NAMES[new Date(2026,r.mi,r.d).getDay()]}</td><td>${r.n}</td><td>${fmt(r.ef)}</td><td>${fmt(r.tr)}</td><td>${fmt(r.wp)}</td><td>${fmt(r.total)}</td>`; });
+  days.forEach(r=>{ const tr=tbody.insertRow(); tr.innerHTML=`<td>${pad(r.d)}/${pad(r.mi+1)}/${currentYear}</td><td>${DOW_NAMES[new Date(currentYear,r.mi,r.d).getDay()]}</td><td>${r.n}</td><td>${fmt(r.ef)}</td><td>${fmt(r.tr)}</td><td>${fmt(r.wp)}</td><td>${fmt(r.total)}</td>`; });
   document.getElementById('sf-ef').textContent=fmt(days.reduce((s,r)=>s+r.ef,0)); document.getElementById('sf-tr').textContent=fmt(days.reduce((s,r)=>s+r.tr,0)); document.getElementById('sf-wp').textContent=fmt(days.reduce((s,r)=>s+r.wp,0)); document.getElementById('sf-tot').textContent=fmt(days.reduce((s,r)=>s+r.total,0));
 }
-loadData();
+
+// Iniciar aplicación
+window.onload = loadData;
 </script>
 </body>
 </html>
