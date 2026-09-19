@@ -20,6 +20,8 @@
   .header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 48px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
   .header-left h1 { font-family: 'Playfair Display', serif; font-size: clamp(2.5rem, 6vw, 5rem); font-weight: 900; line-height: 0.9; letter-spacing: -2px; color: var(--text); }
   .header-left h1 span { color: var(--accent); display: block; }
+  .header-left h1 select { color: var(--accent); display: block; background: transparent; border: none; font-family: inherit; font-size: inherit; font-weight: inherit; letter-spacing: inherit; line-height: inherit; cursor: pointer; padding: 0; margin: 0; outline: none; }
+  .header-left h1 select:hover, .header-left h1 select:focus { opacity: 0.85; }
   .header-left p { margin-top: 12px; font-size: 0.75rem; color: var(--text3); letter-spacing: 3px; text-transform: uppercase; }
   .header-right { text-align: right; }
   .today-badge { display: inline-block; background: var(--accent); color: var(--bg); font-size: 0.65rem; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; padding: 6px 14px; border-radius: 2px; margin-bottom: 8px; }
@@ -107,7 +109,7 @@
   <div class="header">
     <div class="header-left">
       <a href="index.html" style="display:inline-block; margin-bottom:12px; color:var(--accent); text-decoration:none; font-size:0.75rem; font-weight:bold; text-transform:uppercase; letter-spacing:1px; transition:opacity 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">← Volver al Menú</a>
-      <h1>Calendario<span>2026</span></h1>
+      <h1>Calendario<select id="yearSelect" onchange="changeYear(this.value)"><option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option><option value="2028">2028</option><option value="2029">2029</option><option value="2030">2030</option><option value="2031">2031</option></select></h1>
       <p>Gestor de producciones &mdash; Planificación anual</p>
     </div>
     <div class="header-right">
@@ -223,7 +225,7 @@
       </div>
     </div>
     <div class="stats-panel">
-      <div class="stat-card"><div class="stat-label">Total producciones</div><div class="stat-value" id="statTotal">0</div><div class="stat-sub">en todo el año 2026</div></div>
+      <div class="stat-card"><div class="stat-label">Total producciones</div><div class="stat-value" id="statTotal">0</div><div class="stat-sub" id="statYearLabel">en todo el año 2026</div></div>
       <div class="stat-card"><div class="stat-label">Distribución mensual</div><div class="month-bar-list" id="monthBars"></div></div>
     </div>
   </div>
@@ -296,20 +298,49 @@ function estadoColor(p) {
 let productions = [];
 const today = new Date();
 const todayStr = today.toISOString().slice(0,10);
+let currentViewYear = Math.min(2031, Math.max(2025, today.getFullYear()));
 let currentViewMonth = today.getMonth();
+
+function storageKey() { return 'prods' + currentViewYear; }
+
+async function loadYearData() {
+  const key = storageKey();
+  const cloudData = await loadFromCloud(key);
+  if (cloudData) { productions = cloudData; lastSyncedSnapshot = JSON.stringify(cloudData); }
+  else { productions = JSON.parse(localStorage.getItem(key) || '[]'); lastSyncedSnapshot = JSON.stringify(productions); }
+}
+
+function applyYearBounds() {
+  document.getElementById('prodDate').min = currentViewYear + '-01-01';
+  document.getElementById('prodDate').max = currentViewYear + '-12-31';
+  document.getElementById('prodFechaEntrega').min = currentViewYear + '-01-01';
+  document.getElementById('prodFechaEntrega').max = currentViewYear + '-12-31';
+  document.title = 'Calendario de Producciones ' + currentViewYear;
+}
+
+async function changeYear(newYearStr) {
+  const newYear = parseInt(newYearStr, 10);
+  if (newYear === currentViewYear) return;
+  currentViewYear = newYear;
+  applyYearBounds();
+  currentViewMonth = (currentViewYear === today.getFullYear()) ? today.getMonth() : 0;
+  await loadYearData();
+  renderAll(); updateDataLists();
+}
 
 document.getElementById('todayDisplay').textContent = today.toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long' });
 
 async function save() {
   try {
-    localStorage.setItem('prods2026', JSON.stringify(productions));
+    const key = storageKey();
+    localStorage.setItem(key, JSON.stringify(productions));
     showSaveStatus('saving');
-    const conflict = await checkForConflict('prods2026');
+    const conflict = await checkForConflict(key);
     if (conflict) {
       const overwrite = confirm('Los datos en la nube cambiaron desde que cargaste esta página (probablemente los editaste desde otro dispositivo, o alguien más lo hizo). ¿Guardar de todas formas y sobrescribir con lo que tienes aquí?\n\nSi cancelas, recarga la página para ver los datos más recientes antes de seguir editando.');
       if (!overwrite) { showSaveStatus('error'); return; }
     }
-    const ok = await saveToCloud('prods2026', productions);
+    const ok = await saveToCloud(key, productions);
     if (ok) lastSyncedSnapshot = JSON.stringify(productions);
     showSaveStatus(ok ? 'saved' : 'error');
     updateDataLists();
@@ -438,7 +469,7 @@ function addProduction() {
   const date = document.getElementById('prodDate').value;
   const tag = document.getElementById('prodTag').value;
   if (!name || !date) { alert('Completa el nombre y la fecha.'); return; }
-  if (!date.startsWith('2026')) { alert('Por favor selecciona una fecha dentro de 2026.'); return; }
+  if (!date.startsWith(String(currentViewYear))) { alert('Por favor selecciona una fecha dentro de ' + currentViewYear + '.'); return; }
   const monto = parseFloat(document.getElementById('prodMonto').value) || 0;
   const abono = parseFloat(document.getElementById('prodAbono').value) || 0;
   const cantidad = {
@@ -495,7 +526,7 @@ function renderGrid() {
 
   const hdr = document.createElement('div');
   hdr.className = 'large-month-header';
-  hdr.innerHTML = `<span class="large-month-name">${MONTHS[m]} 2026</span>`;
+  hdr.innerHTML = `<span class="large-month-name">${MONTHS[m]} ${currentViewYear}</span>`;
   card.appendChild(hdr);
 
   const body = document.createElement('div');
@@ -509,9 +540,9 @@ function renderGrid() {
   const daysGrid = document.createElement('div');
   daysGrid.className = 'large-days-grid';
 
-  const firstDay = new Date(2026, m, 1).getDay();
+  const firstDay = new Date(currentViewYear, m, 1).getDay();
   const startOffset = firstDay === 0 ? 6 : firstDay - 1;
-  const daysInMonth = new Date(2026, m+1, 0).getDate();
+  const daysInMonth = new Date(currentViewYear, m+1, 0).getDate();
 
   for (let i = 0; i < startOffset; i++) {
     const empty = document.createElement('div'); empty.className = 'large-day-cell empty';
@@ -519,13 +550,13 @@ function renderGrid() {
   }
 
   for (let d = 1; d <= daysInMonth; d++) {
-    const dateStr = `2026-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dateStr = `${currentViewYear}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const filteredProds = getFiltered().filter(p => dateStr >= p.date && dateStr <= (p.fechaEntrega || p.date));
 
     const cell = document.createElement('div');
     cell.className = 'large-day-cell';
 
-    const dow_idx = new Date(2026, m, d).getDay();
+    const dow_idx = new Date(currentViewYear, m, d).getDay();
     if (dow_idx === 0 || dow_idx === 6) cell.classList.add('weekend');
     if (dateStr === todayStr) cell.classList.add('today');
 
@@ -617,6 +648,7 @@ function renderTimeline() {
 function renderStats() {
   const filtered = getFiltered();
   document.getElementById('statTotal').textContent = filtered.length;
+  document.getElementById('statYearLabel').textContent = 'en todo el año ' + currentViewYear;
   const bars = document.getElementById('monthBars'); bars.innerHTML = '';
   const max = Math.max(...MONTHS.map((_,i) => filtered.filter(p=>new Date(p.date).getMonth()===i).length), 1);
   MONTHS_SHORT.forEach((abbr, i) => {
@@ -629,9 +661,9 @@ function renderStats() {
 }
 
 window.onload = async function() {
-  const cloudData = await loadFromCloud('prods2026');
-  if (cloudData) { productions = cloudData; lastSyncedSnapshot = JSON.stringify(cloudData); }
-  else productions = JSON.parse(localStorage.getItem('prods2026') || '[]');
+  document.getElementById('yearSelect').value = String(currentViewYear);
+  applyYearBounds();
+  await loadYearData();
   renderAll(); updateDataLists();
 };
 </script>
