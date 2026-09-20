@@ -1,1 +1,655 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ventas Empresa - Creamos Imagen</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<style>
+:root{--bg:#F7F5F0;--surface:#FFFFFF;--dark:#1C1917;--gold:#C8973A;--teal:#0D7A6B;--red:#C0392B;--muted:#78716C;--border:#E7E2D9;--purple:#6D28D9;--webpay:#1E40AF}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--dark);min-height:100vh}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--gold);border-radius:2px}
+input,select,button{font-family:inherit;outline:none}
+.topbar{background:var(--dark);padding:0 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:100}
+.brand{padding:14px 0; margin-left: 100px;}
+.brand-tag{font-size:9px;color:var(--gold);letter-spacing:.2em;font-weight:700;text-transform:uppercase;margin-bottom:2px}
+.brand-name{font-family:'DM Serif Display',serif;font-size:22px;color:#fff}
+.brand-name span{color:var(--gold)}
+.tabs{display:flex;gap:2px;flex-wrap:wrap}
+.tab{background:none;border:none;font-size:12px;font-weight:600;color:#888;cursor:pointer;padding:7px 14px;border-radius:6px;transition:all .2s}
+.tab.on{background:#2C2926;color:var(--gold)}
+.kpi-strip{background:#fff;border-bottom:1px solid var(--border);padding:10px 24px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+.kpis{display:flex;flex-wrap:wrap;gap:0}
+.kpi{padding:4px 18px 4px 0;margin-right:18px;border-right:1px solid var(--border)}
+.kpi:last-of-type{border-right:none;margin-right:0}
+.kpi-l{font-size:9px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px}
+.kpi-v{font-size:16px;font-weight:700;line-height:1.15}
+.kpi-u{font-size:9px;color:#aaa}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.act-btn{background:#fff;border:1.5px solid var(--border);color:var(--dark);padding:7px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.act-btn:hover{border-color:var(--gold);color:var(--gold)}
+.act-btn.primary{background:var(--gold);border-color:var(--gold);color:#fff}
+.act-btn.primary:hover{background:#B8872A;transform:translateY(-1px)}
+select.month-sel{background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:7px 12px;font-size:12px;color:var(--dark);cursor:pointer}
+.total-box{margin:14px 24px 0;background:var(--dark);border-radius:12px;padding:16px 22px;display:flex;flex-wrap:wrap;gap:0;align-items:center}
+.tb-col{flex:1;min-width:130px;padding-right:18px;margin-right:18px;border-right:1px solid #2C2926}
+.tb-col:last-child{border-right:none;margin-right:0}
+.tb-lbl{font-size:9px;color:#666;text-transform:uppercase;letter-spacing:.09em;margin-bottom:3px}
+.tb-val{font-size:18px;font-weight:700}
+.tbl-wrap{margin:12px 24px 0;overflow-x:auto;border-radius:12px;border:1px solid var(--border);background:#fff}
+table{width:100%;border-collapse:collapse;min-width:700px}
+thead tr{background:var(--dark)}
+th{padding:10px 12px;text-align:left;font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);white-space:nowrap}
+tbody tr{border-bottom:1px solid #F4F1EB;transition:background .1s}
+tbody tr:nth-child(even){background:#FAFAF8}
+tbody tr:hover td{background:#FEF9EE!important}
+td{padding:9px 12px;vertical-align:middle}
+tfoot tr{background:var(--dark)}
+tfoot td{padding:11px 12px;font-weight:700;white-space:nowrap}
+.kpi-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px}
+.kpi-card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.kpi-card .lbl{font-size:9px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.kpi-card .val{font-size:20px;font-weight:700}
+.tag{background:#EDE9E3;color:var(--dark);padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;display:inline-block}
+.pill{display:inline-block;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:600}
+.empty{text-align:center;padding:60px;color:var(--muted)}
+.msg{background:#FEF9C3;border-bottom:1px solid #FDE68A;padding:9px 24px;font-size:13px;font-weight:600;color:#854D0E}
+.content{padding:0 24px 28px}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:#fff;border-radius:14px;padding:26px;width:100%;max-width:560px;box-shadow:0 24px 60px rgba(0,0,0,.18);max-height:92vh;overflow-y:auto}
+.modal h2{font-family:'DM Serif Display',serif;font-size:20px;margin-bottom:18px;color:var(--gold)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.span2{grid-column:1/-1}
+.fld label{display:block;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--gold);margin-bottom:5px}
+.fld input,.fld select{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:10px 13px;font-size:13px;color:var(--dark);transition:border .2s}
+.fld input:focus,.fld select:focus{border-color:var(--gold);background:#fff}
+.toggle{width:42px;height:24px;background:var(--border);border-radius:12px;position:relative;cursor:pointer;border:none;transition:background .25s;flex-shrink:0}
+.toggle.on{background:var(--purple)}
+.toggle::after{content:'';position:absolute;width:18px;height:18px;background:#fff;border-radius:50%;top:3px;left:3px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle.on::after{left:21px}
+.fade{animation:fd .3s ease}
+@keyframes fd{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.r{text-align:right;font-weight:600}.c{text-align:center}
+.day-hdr td{background:#1C1917;padding:9px 14px}
+</style>
+</head>
+<body>
+<a href="index.html" style="position:fixed; top:14px; left:20px; background:#1C1917; color:#C8973A; padding:8px 14px; border-radius:6px; border:1px solid #C8973A; text-decoration:none; font-family:Arial, sans-serif; font-size:11px; font-weight:bold; box-shadow:0 4px 6px rgba(0,0,0,0.2); z-index:9999;">← Menú</a>
+<div id="app"></div>
+<script>
+// ============================================================
+// CONEXIÓN A BASE DE DATOS (NUBE) 
+// ============================================================
+const API_URL = "https://script.google.com/macros/s/AKfycbxP5-vB59e80qpXdx4AcCyS28C4H58thdh0XXtLcDWZD8Q_47fDbBvLn1ahqx7RoJor/exec";
 
+async function saveToCloud(key, dataObj) {
+  try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj) }) }); } 
+  catch (e) { console.error("Error guardando en la nube", e); }
+}
+
+async function loadFromCloud(key) {
+  try {
+    const res = await fetch(API_URL + "?key=" + key);
+    const json = await res.json();
+    return json.valor ? JSON.parse(json.valor) : null;
+  } catch (e) { console.error("Error cargando de la nube", e); return null; }
+}
+
+// ============================================================
+// CONSTANTES
+// ============================================================
+var PRODUCTOS   = ["Camisetas","Conjuntos","Sublimación","Mantas","Banderas","Lienzo","Pañuelos","Banner","Bolsas","Morral","Cortinas","Cuadros","Bandanas","Estampados"];
+var FORMAS_PAGO = ["Efectivo","Transferencia","Webpay"];
+var WEBPAY      = "Webpay";
+var COM_WP_PCT  = 2;
+var PC = {
+  "Efectivo":      {bg:"#DCFCE7",txt:"#166534"},
+  "Transferencia": {bg:"#FEF9C3",txt:"#854D0E"},
+  "Webpay":        {bg:"#EFF6FF",txt:"#1E40AF"}
+};
+
+// ============================================================
+// LOGICA FINANCIERA
+// ============================================================
+function comWP(base, fp)     { return fp===WEBPAY ? Math.round(base*COM_WP_PCT/100) : 0; }
+function fmt(n)              { return n==null ? "" : "$"+Math.round(n).toLocaleString("es-CO"); }
+function fDate(f)            { return new Date(f+"T12:00").toLocaleDateString("es-CO",{day:"2-digit",month:"short",year:"numeric"}); }
+
+// ============================================================
+// PERSISTENCIA (localStorage + Nube)
+// ============================================================
+var STORAGE_KEY = "creamos_imagen_v1"; // LLAVE INDEPENDIENTE: Crea una base de datos desde cero solo para Marcelo
+
+function guardarDatos() {
+  try {
+    var datos = { ventas: state.ventas, filtroMes: state.filtroMes };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(datos));
+    saveToCloud(STORAGE_KEY, datos);
+  } catch(e) {}
+}
+
+function cargarDatos() {
+  try {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    var datos = JSON.parse(raw);
+    if (datos.ventas && datos.ventas.length > 0) state.ventas = datos.ventas;
+    if (datos.filtroMes !== undefined) state.filtroMes = datos.filtroMes;
+  } catch(e) {}
+}
+
+// ============================================================
+// ESTADO
+// ============================================================
+var state = {
+  ventas:[],
+  tab:"ventas",
+  filtroMes:"",
+  showForm:false,
+  editId:null,
+  delId:null,
+  exportMsg:"",
+  xlTab:"detalle",
+  form:{fecha:new Date().toISOString().slice(0,10),cliente:"",producto:PRODUCTOS[0],formaPago:FORMAS_PAGO[0],montoBase:"",factura:false}
+};
+
+function setState(p) {
+  Object.assign(state, p);
+  if (p.ventas !== undefined) guardarDatos();
+  render();
+}
+
+function updateForm(k, v) {
+  state.form[k] = v;
+  if (k==="montoBase") updatePreview();
+  else render();
+}
+
+function updatePreview() {
+  var base = +state.form.montoBase || 0;
+  var esWP = state.form.formaPago === WEBPAY;
+  var wp   = esWP ? comWP(base, state.form.formaPago) : 0;
+  var box  = document.getElementById("form-com-box");
+  if (!box) return;
+  if (!base) { box.style.display="none"; return; }
+  box.style.display = "block";
+  var bV  = document.getElementById("fcb-venta");
+  var bWP = document.getElementById("fcb-wp");
+  if (bV)  bV.textContent  = fmt(base);
+  if (bWP) { bWP.textContent = esWP ? fmt(wp)+" (2%)" : "No aplica"; bWP.style.color = esWP ? "#5EEAD4" : "#555"; }
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function render() {
+  var s         = state;
+  var filtradas = s.filtroMes ? s.ventas.filter(function(v){ return v.fecha.slice(0,7)===s.filtroMes; }) : s.ventas;
+  var meses0    = s.ventas.map(function(v){ return v.fecha.slice(0,7); });
+  
+  var mesesFijos= ["2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07","2026-08","2026-09","2026-10","2026-11","2026-12"];
+  var mesesSet  = {};
+  meses0.concat(mesesFijos).forEach(function(m){ mesesSet[m]=1; });
+  var meses     = Object.keys(mesesSet).sort().reverse();
+  var tV  = filtradas.reduce(function(s,v){ return s+v.montoBase; }, 0);
+  var tFact = filtradas.filter(function(v){ return v.factura; }).length;
+
+  var html = buildTopBar(s.tab) +
+    buildKpiStrip(filtradas, tV, s.filtroMes, meses) +
+    (s.exportMsg ? '<div class="msg">'+s.exportMsg+'</div>' : '') +
+    (s.tab==='ventas' && filtradas.length>0 ? buildTotalBox(tV, filtradas.length, tFact) : '') +
+    '<div class="content" style="margin-top:14px">' +
+      (s.tab==='ventas'  ? buildTabla(filtradas)  : '') +
+      (s.tab==='resumen' ? buildResumen(filtradas) : '') +
+      (s.tab==='vpdf'    ? buildVistaPDF(filtradas): '') +
+      (s.tab==='vexcel'  ? buildVistaExcel(filtradas,s.xlTab): '') +
+    '</div>' +
+    (s.showForm ? buildForm(s.form, s.editId) : '') +
+    (s.delId    ? buildDel() : '');
+
+  document.getElementById("app").innerHTML = html;
+}
+
+// ============================================================
+// COMPONENTES UI
+// ============================================================
+function buildTopBar(tab) {
+  var tabs = [["ventas","Registro"],["resumen","Resumen"],["vpdf","PDF"],["vexcel","Excel"]];
+  var tabHtml = tabs.map(function(t){
+    var cls = tab===t[0] ? 'tab on' : 'tab';
+    return '<button class="'+cls+'" data-tab="'+t[0]+'" onclick="goTab(this)">'+t[1]+'</button>';
+  }).join('');
+  return '<div class="topbar"><div class="brand"><div class="brand-tag">Gestión Empresa</div><div class="brand-name">Ventas <span>Creamos Imagen</span></div></div><div class="tabs">'+tabHtml+'</div></div>';
+}
+
+function goTab(el){ setState({tab:el.getAttribute('data-tab')}); }
+function ufld(el){ updateForm(el.getAttribute('data-field'), el.value); }
+function ufldv(el){ updateForm(el.getAttribute('data-field'), el.getAttribute('data-val')==='true'); }
+function goXl(el){ state.xlTab=el.getAttribute('data-xl'); render(); }
+
+function buildKpiStrip(filt, tV, filtroMes, meses) {
+  var kpis = [
+    {l:"N° Ventas",v:""+filt.length,u:"registros",c:"#1E40AF"},
+    {l:"Total Ventas",v:fmt(tV),u:"monto neto",c:"#166534"}
+  ];
+  var kHtml = kpis.map(function(k){
+    return '<div class="kpi"><div class="kpi-l">'+k.l+'</div><div class="kpi-v" style="color:'+k.c+'">'+k.v+'</div><div class="kpi-u">'+k.u+'</div></div>';
+  }).join('');
+  var optHtml = meses.map(function(m){
+    var label = new Date(m+'-01T12:00').toLocaleDateString('es-CO',{month:'long',year:'numeric'});
+    label = label.charAt(0).toUpperCase()+label.slice(1);
+    return '<option value="'+m+'" '+(filtroMes===m?'selected':'')+'>'+label+'</option>';
+  }).join('');
+  return '<div class="kpi-strip"><div class="kpis">'+kHtml+'</div><div class="actions">'+
+    '<select class="month-sel" onchange="setState({filtroMes:this.value})"><option value="" '+(filtroMes?'':'selected')+'>Todos los meses</option>'+optHtml+'</select>'+
+    '<button class="act-btn primary" onclick="openForm()">+ Nueva Venta</button>'+
+    '</div></div>';
+}
+
+function buildTotalBox(tV, count, tFact) {
+  return '<div class="total-box">'+
+    '<div class="tb-col"><div class="tb-lbl">Ingreso Total (Neto)</div><div class="tb-val" style="color:#5EEAD4;font-size:24px">'+fmt(tV)+'</div>'+
+    '<div style="font-size:10px;color:#aaa;margin-top:2px">'+count+' ventas ingresadas - '+tFact+' con factura</div></div>'+
+    '</div>';
+}
+
+// ============================================================
+// TABLA REGISTRO
+// ============================================================
+function buildTabla(filt) {
+  if (!filt.length) return '<div class="empty"><div style="font-size:36px;margin-bottom:10px">No hay ventas registradas.</div><p>Haz clic en "+ Nueva Venta" para comenzar.</p></div>';
+  var sorted = filt.slice().sort(function(a,b){ return b.fecha.localeCompare(a.fecha); });
+  var tV = sorted.reduce(function(s,v){ return s+v.montoBase; },0);
+
+  var porDia = {};
+  sorted.forEach(function(v){ if(!porDia[v.fecha]) porDia[v.fecha]=[]; porDia[v.fecha].push(v); });
+
+  var tbody = Object.keys(porDia).sort().reverse().map(function(dia) {
+    var vv = porDia[dia];
+    var dV = vv.reduce(function(s,v){ return s+v.montoBase; },0);
+    var hdr = '<tr class="day-hdr"><td colspan="4"><span style="font-size:13px;font-weight:700;color:#fff">'+fDate(dia)+'</span> <span style="font-size:10px;color:#666;margin-left:8px">'+vv.length+' venta'+(vv.length!==1?'s':'')+'</span></td>'+
+      '<td style="padding:9px 12px;text-align:right;font-size:13px;font-weight:800;color:#86EFAC;background:#1C1917">'+fmt(dV)+'</td>'+
+      '<td colspan="2" style="background:#1C1917"></td></tr>';
+    var rows = vv.map(function(v) {
+      var pc  = PC[v.formaPago]||{bg:"#f5f5f5",txt:"#555"};
+      return '<tr class="row-tr"><td style="padding:8px 12px;font-size:11px;color:var(--muted);padding-left:24px">&#8627;</td>'+
+        '<td style="padding:8px 12px;font-weight:600;font-size:13px">'+v.cliente+'</td>'+
+        '<td style="padding:8px 12px"><span class="tag">'+v.producto+'</span></td>'+
+        '<td style="padding:8px 12px"><span class="pill" style="background:'+pc.bg+';color:'+pc.txt+'">'+v.formaPago+'</span></td>'+
+        '<td style="padding:8px 12px;text-align:right;font-size:13px;font-weight:600">'+fmt(v.montoBase)+'</td>'+
+        '<td style="padding:8px 12px;text-align:center">'+(v.factura?'<span class="pill" style="background:#F3E8FF;color:#6D28D9">Factura</span>':'<span style="color:#ddd">-</span>')+'</td>'+
+        '<td style="padding:8px 7px;white-space:nowrap"><div style="display:flex;gap:4px">'+
+          '<button class="act-btn" style="padding:4px 7px;font-size:11px" onclick="openEdit('+v.id+')">Editar</button>'+
+          '<button class="act-btn" style="padding:4px 7px;font-size:11px;color:var(--red);border-color:#FECACA" onclick="setState({delId:'+v.id+'})">X</button>'+
+        '</div></td></tr>';
+    }).join('');
+    return hdr + rows;
+  }).join('');
+
+  return '<div class="tbl-wrap"><table>'+
+    '<thead><tr><th></th><th>Cliente</th><th>Producto</th><th>Forma Pago</th><th style="text-align:right">Venta</th><th>Factura</th><th></th></tr></thead>'+
+    '<tbody>'+tbody+'</tbody>'+
+    '<tfoot><tr><td colspan="4" style="padding:11px 12px;font-size:9px;font-weight:700;color:#666;text-transform:uppercase">TOTAL - '+filt.length+' ventas</td>'+
+      '<td style="padding:11px 12px;text-align:right;color:#86EFAC;font-size:14px;font-weight:800">'+fmt(tV)+'</td>'+
+      '<td colspan="2"></td></tr></tfoot>'+
+    '</table></div>';
+}
+
+// ============================================================
+// RESUMEN POR MES
+// ============================================================
+function buildResumen(filt) {
+  if (!filt.length) return '<div class="empty">Sin datos para este periodo.</div>';
+  var porMes = {};
+  filt.forEach(function(v){
+    var m = v.fecha.slice(0,7);
+    if(!porMes[m]) porMes[m]={ventas:0,venta:0};
+    porMes[m].ventas++; porMes[m].venta+=v.montoBase;
+  });
+  var tV = filt.reduce(function(s,v){return s+v.montoBase;},0);
+  
+  var cards = [
+    {l:"Total Ventas",v:""+filt.length,c:"#1E40AF"},
+    {l:"Ingreso Neto",v:fmt(tV),c:"#166534"}
+  ].map(function(k){
+    return '<div class="kpi-card"><div class="lbl">'+k.l+'</div><div class="val" style="color:'+k.c+'">'+k.v+'</div></div>';
+  }).join('');
+  
+  var rows = Object.keys(porMes).sort().reverse().map(function(m){
+    var d = porMes[m];
+    var label = new Date(m+'-01T12:00').toLocaleDateString('es-CO',{month:'long',year:'numeric'});
+    label = label.charAt(0).toUpperCase()+label.slice(1);
+    var pct = tV>0 ? Math.round(d.venta/tV*100) : 0;
+    return '<tr style="border-bottom:1px solid #F4F1EB">'+
+      '<td style="padding:14px 16px"><div style="font-size:14px;font-weight:700">'+label+'</div>'+
+      '<div style="margin-top:6px;height:4px;background:#F0EAE0;border-radius:4px;max-width:200px">'+
+      '<div style="height:100%;width:'+pct+'%;background:var(--gold);border-radius:4px"></div></div></td>'+
+      '<td style="padding:14px 16px;text-align:center"><span style="background:#EFF6FF;color:#1E40AF;padding:4px 14px;border-radius:20px;font-size:14px;font-weight:700">'+d.ventas+'</span></td>'+
+      '<td style="padding:14px 16px;text-align:right;font-size:16px;font-weight:700;color:#166534">'+fmt(d.venta)+'</td></tr>';
+  }).join('');
+  
+  return '<div class="fade"><div class="kpi-cards" style="grid-template-columns:repeat(2,minmax(140px,1fr))">'+cards+'</div>'+
+    '<div class="tbl-wrap"><table>'+
+    '<thead><tr><th>Mes / Año</th><th style="text-align:center">N° Ventas</th><th style="text-align:right">Total Ingresos</th></tr></thead>'+
+    '<tbody>'+rows+'</tbody>'+
+    '<tfoot><tr><td style="padding:11px 16px;font-size:9px;font-weight:700;color:#666;text-transform:uppercase">TOTAL GENERAL</td>'+
+    '<td style="padding:11px 16px;text-align:center;font-size:15px;font-weight:800;color:#93C5FD">'+filt.length+'</td>'+
+    '<td style="padding:11px 16px;text-align:right;font-size:16px;font-weight:800;color:#86EFAC">'+fmt(tV)+'</td></tr></tfoot>'+
+    '</table></div></div>';
+}
+
+// ============================================================
+// VISTA PDF
+// ============================================================
+function buildVistaPDF(filt) {
+  var tV = filt.reduce(function(s,v){return s+v.montoBase;},0);
+  var sorted = filt.slice().sort(function(a,b){return b.fecha.localeCompare(a.fecha);});
+  var rows = sorted.map(function(v){
+    return '<tr><td>'+fDate(v.fecha)+'</td><td>'+v.cliente+'</td><td>'+v.producto+'</td><td>'+v.formaPago+'</td>'+
+      '<td class="r">'+fmt(v.montoBase)+'</td>'+
+      '<td class="c">'+(v.factura?'Si':'-')+'</td></tr>';
+  }).join('');
+  
+  return '<div class="fade" style="background:#E0DCDC;border-radius:12px;overflow:hidden">'+
+    '<div style="background:#2D2D2D;padding:10px 20px;display:flex;justify-content:space-between;align-items:center">'+
+    '<span style="color:#fff;font-size:12px;font-weight:600">Vista Previa PDF - '+filt.length+' registros</span>'+
+    '<button class="act-btn" style="background:var(--gold);border-color:var(--gold);color:#fff;padding:5px 14px;font-size:11px" onclick="exportPDF()">Descargar PDF</button></div>'+
+    '<div style="padding:24px;display:flex;justify-content:center">'+
+    '<div style="background:#fff;width:100%;max-width:860px;padding:32px 36px;box-shadow:0 4px 24px rgba(0,0,0,.18)">'+
+    '<div style="background:#1C1917;border-radius:6px;padding:16px 20px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">'+
+    '<div><div style="font-size:18px;font-weight:800;color:#fff">CREAMOS IMAGEN - REPORTE DE VENTAS EMPRESA</div>'+
+    '<div style="font-size:10px;color:#C8973A;margin-top:3px">Exclusivo Marcelo Ávila</div></div>'+
+    '<div style="text-align:right;font-size:10px;color:#C8973A">'+new Date().toLocaleDateString("es-CO")+'</div></div>'+
+    '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px">'+
+    '<div style="background:#F7F5F0;border:1px solid #E7E2D9;border-radius:6px;padding:10px 14px"><div style="font-size:9px;color:#888;text-transform:uppercase;margin-bottom:3px">N° Ventas</div><div style="font-size:18px;font-weight:800;color:#1E40AF">'+filt.length+'</div></div>'+
+    '<div style="background:#F7F5F0;border:1px solid #E7E2D9;border-radius:6px;padding:10px 14px"><div style="font-size:9px;color:#888;text-transform:uppercase;margin-bottom:3px">Ingresos Totales</div><div style="font-size:18px;font-weight:800;color:#166534">'+fmt(tV)+'</div></div>'+
+    '</div>'+
+    '<table style="width:100%;border-collapse:collapse;font-size:11px">'+
+    '<thead><tr style="background:#1C1917"><th style="padding:6px 8px;text-align:left;font-size:9px;color:#C8973A">Fecha</th><th style="padding:6px 8px;text-align:left;font-size:9px;color:#C8973A">Cliente</th><th style="padding:6px 8px;text-align:left;font-size:9px;color:#C8973A">Producto</th><th style="padding:6px 8px;text-align:left;font-size:9px;color:#C8973A">Forma Pago</th><th style="padding:6px 8px;text-align:right;font-size:9px;color:#C8973A">Venta</th><th style="padding:6px 8px;text-align:center;font-size:9px;color:#C8973A">Fact.</th></tr></thead>'+
+    '<tbody>'+rows+'</tbody>'+
+    '<tfoot><tr style="background:#1C1917"><td colspan="4" style="padding:8px;font-size:9px;color:#666;font-weight:700;text-transform:uppercase">TOTALES</td>'+
+    '<td style="padding:8px;text-align:right;font-weight:800;color:#86EFAC">'+fmt(tV)+'</td><td></td></tr></tfoot>'+
+    '</table>'+
+    '<div style="margin-top:16px;text-align:right;font-size:9px;color:#aaa;border-top:1px solid #E7E2D9;padding-top:8px">CREAMOS IMAGEN - Informe generado automáticamente</div>'+
+    '</div></div></div>';
+}
+
+// ============================================================
+// VISTA EXCEL
+// ============================================================
+async function exportXLSX() {
+  var filt = state.filtroMes ? state.ventas.filter(function(v){ return v.fecha.slice(0,7)===state.filtroMes; }) : state.ventas;
+  if (!filt.length) { alert('No hay ventas para exportar.'); return; }
+  if (typeof ExcelJS === 'undefined') { alert('No se pudo cargar el generador de Excel. Verifica tu conexión a internet e inténtalo nuevamente.'); return; }
+
+  var sorted = filt.slice().sort(function(a,b){ return a.fecha.localeCompare(b.fecha); });
+  var tV  = filt.reduce(function(s,v){ return s+v.montoBase; }, 0);
+  var tWp = filt.reduce(function(s,v){ return s+comWP(v.montoBase,v.formaPago); }, 0);
+
+  var wb = new ExcelJS.Workbook();
+  wb.creator = 'Creamos Imagen';
+  wb.created = new Date();
+  var ws = wb.addWorksheet('Ventas', { views: [{ state:'frozen', ySplit: 3 }] });
+
+  var cols = [
+    { key:'fecha', width:13 }, { key:'cliente', width:26 }, { key:'producto', width:18 },
+    { key:'formaPago', width:16 }, { key:'venta', width:14 }, { key:'wp', width:13 },
+    { key:'factura', width:10 }
+  ];
+  ws.columns = cols;
+
+  ws.mergeCells(1, 1, 1, cols.length);
+  var titleCell = ws.getCell(1, 1);
+  titleCell.value = 'CREAMOS IMAGEN — REGISTRO DE VENTAS EMPRESA' + (state.filtroMes ? ' — ' + state.filtroMes : '');
+  titleCell.font = { bold:true, size:14, color:{argb:'FFFFFFFF'} };
+  titleCell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF1C1917'} };
+  titleCell.alignment = { vertical:'middle' };
+  ws.getRow(1).height = 26;
+  ws.getRow(2).height = 4;
+
+  var headers = ['Fecha','Cliente','Producto','Forma de Pago','Venta','Webpay 2%','Factura'];
+  var headerRow = ws.getRow(3);
+  headers.forEach(function(h,i){ headerRow.getCell(i+1).value = h; });
+  headerRow.eachCell(function(cell){
+    cell.font = { bold:true, color:{argb:'FFFFFFFF'} };
+    cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFC8973A'} };
+    cell.alignment = { vertical:'middle' };
+  });
+  headerRow.height = 20;
+
+  var moneyKeys = ['venta','wp'];
+  var moneyIdx = moneyKeys.map(function(k){ return cols.findIndex(function(c){ return c.key===k; }) + 1; });
+
+  sorted.forEach(function(v, idx){
+    var wp = comWP(v.montoBase, v.formaPago);
+    var dp = v.fecha.split('-');
+    var row = ws.addRow({
+      fecha: dp[2]+'/'+dp[1]+'/'+dp[0],
+      cliente: v.cliente || '',
+      producto: v.producto || '',
+      formaPago: v.formaPago || '',
+      venta: v.montoBase || 0,
+      wp: wp || 0,
+      factura: v.factura ? 'Sí' : 'No'
+    });
+    moneyIdx.forEach(function(ci){ row.getCell(ci).numFmt = '"$"#,##0'; });
+    if (idx % 2 === 1) {
+      row.eachCell({ includeEmpty:true }, function(cell){
+        cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFFAFAF8'} };
+      });
+    }
+    row.eachCell({ includeEmpty:true }, function(cell){
+      cell.border = {
+        top:{style:'thin',color:{argb:'FFE7E2D9'}}, bottom:{style:'thin',color:{argb:'FFE7E2D9'}},
+        left:{style:'thin',color:{argb:'FFE7E2D9'}}, right:{style:'thin',color:{argb:'FFE7E2D9'}}
+      };
+    });
+  });
+
+  var totalRow = ws.addRow({ fecha:'', cliente:'', producto:'', formaPago:'TOTALES', venta:tV, wp:tWp, factura:'' });
+  totalRow.eachCell({ includeEmpty:true }, function(cell){
+    cell.font = { bold:true, color:{argb:'FFFFFFFF'} };
+    cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF1C1917'} };
+  });
+  moneyIdx.forEach(function(ci){ totalRow.getCell(ci).numFmt = '"$"#,##0'; });
+
+  ws.autoFilter = { from:{row:3,column:1}, to:{row:3,column:cols.length} };
+
+  var buf = await wb.xlsx.writeBuffer();
+  var blob = new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'Creamos_Imagen_Ventas_Empresa' + (state.filtroMes ? '_'+state.filtroMes : '') + '.xlsx';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+  setState({exportMsg:'Exportado '+filt.length+' registros a Excel'});
+  setTimeout(function(){ setState({exportMsg:''}); }, 3000);
+}
+
+function buildVistaExcel(filt, xlTab) {
+  var tV = filt.reduce(function(s,v){return s+v.montoBase;},0);
+  var sorted = filt.slice().sort(function(a,b){return b.fecha.localeCompare(a.fecha);});
+  
+  var rows = sorted.map(function(v,i){
+    return '<tr style="background:'+(i%2===0?'#fff':'#FAFAF8')+'">'+
+      '<td style="padding:5px 10px;font-size:11px;color:#888;border-bottom:1px solid #F0EAE0">'+fDate(v.fecha)+'</td>'+
+      '<td style="padding:5px 10px;font-size:12px;font-weight:600;border-bottom:1px solid #F0EAE0">'+v.cliente+'</td>'+
+      '<td style="padding:5px 10px;border-bottom:1px solid #F0EAE0"><span class="tag">'+v.producto+'</span></td>'+
+      '<td style="padding:5px 10px;font-size:11px;border-bottom:1px solid #F0EAE0">'+v.formaPago+'</td>'+
+      '<td style="padding:5px 10px;text-align:right;font-size:12px;font-weight:600;border-bottom:1px solid #F0EAE0">'+fmt(v.montoBase)+'</td>'+
+      '<td style="padding:5px 10px;text-align:center;font-size:11px;border-bottom:1px solid #F0EAE0">'+(v.factura?'Si':'-')+'</td></tr>';
+  }).join('');
+  
+  var t1 = '<button data-xl="detalle" onclick="goXl(this)" style="background:'+(xlTab==='detalle'?'#fff':'#D0D0D0')+';border:1px solid #aaa;border-bottom:none;padding:5px 16px;font-size:11px;font-weight:'+(xlTab==='detalle'?700:400)+';cursor:pointer;color:'+(xlTab==='detalle'?'#1D6F42':'#555')+';border-radius:4px 4px 0 0">Registro de Ventas</button>';
+  var t2 = '<button data-xl="resumen" onclick="goXl(this)" style="background:'+(xlTab==='resumen'?'#fff':'#D0D0D0')+';border:1px solid #aaa;border-bottom:none;padding:5px 16px;font-size:11px;font-weight:'+(xlTab==='resumen'?700:400)+';cursor:pointer;color:'+(xlTab==='resumen'?'#1D6F42':'#555')+';border-radius:4px 4px 0 0">Resumen</button>';
+  
+  var content = '';
+  if (xlTab==='detalle') {
+    content = '<div style="background:#1C1917;padding:10px 16px"><div style="font-size:13px;font-weight:800;color:#fff">CREAMOS IMAGEN - REGISTRO DE VENTAS</div></div>'+
+      '<table style="width:100%;border-collapse:collapse;min-width:600px">'+
+      '<thead><tr style="background:#C8973A"><th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Fecha</th><th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Cliente</th><th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Producto</th><th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Forma Pago</th><th style="padding:8px 10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Venta</th><th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Fact.</th></tr></thead>'+
+      '<tbody>'+rows+'</tbody>'+
+      '<tfoot><tr style="background:#1C1917"><td colspan="4" style="padding:9px 10px;font-size:9px;font-weight:700;color:#666;text-transform:uppercase">TOTALES</td>'+
+      '<td style="padding:9px 10px;text-align:right;font-size:13px;font-weight:800;color:#86EFAC">'+fmt(tV)+'</td><td></td></tr></tfoot></table>';
+  } else {
+    content = '<div style="background:#1C1917;padding:10px 16px"><div style="font-size:13px;font-weight:800;color:#fff">RESUMEN EMPRESA</div></div>'+
+      '<div style="display:grid;grid-template-columns:repeat(2,1fr);border-bottom:2px solid #C8973A">'+
+      '<div style="padding:12px 16px"><div style="font-size:9px;color:#888;text-transform:uppercase;margin-bottom:3px">Total Ventas</div><div style="font-size:18px;font-weight:800;color:#1E40AF">'+filt.length+'</div></div>'+
+      '<div style="padding:12px 16px;border-left:1px solid #E7E2D9"><div style="font-size:9px;color:#888;text-transform:uppercase;margin-bottom:3px">Ingreso Neto Total</div><div style="font-size:18px;font-weight:800;color:#166534">'+fmt(tV)+'</div></div></div>';
+  }
+  
+  return '<div class="fade" style="background:#1D6F42;border-radius:12px;overflow:hidden">'+
+    '<div style="background:#1D6F42;padding:10px 20px;display:flex;justify-content:space-between;align-items:center">'+
+    '<span style="color:#fff;font-size:12px;font-weight:600">Vista Previa Excel - '+filt.length+' registros</span>'+
+    '<button class="act-btn" style="background:#fff;border-color:#fff;color:#1D6F42;padding:5px 14px;font-size:11px;font-weight:700" onclick="exportXLSX()">⬇ Descargar Excel (.xlsx)</button></div>'+
+    '<div style="background:#F0F0F0;padding:0 16px;display:flex;gap:2px;border-bottom:2px solid #1D6F42">'+t1+t2+'</div>'+
+    '<div style="background:#fff">'+content+'</div></div>';
+}
+
+// ============================================================
+// FORMULARIO MODAL
+// ============================================================
+function buildForm(form, editId) {
+  var base = +form.montoBase || 0;
+  var esWP = form.formaPago === WEBPAY;
+  var wp   = esWP ? comWP(base, form.formaPago) : 0;
+
+  var prodOpts = PRODUCTOS.map(function(p){ return '<option value="'+p+'" '+(form.producto===p?'selected':'')+'>'+p+'</option>'; }).join('');
+  var fpOpts   = FORMAS_PAGO.map(function(f){ return '<option value="'+f+'" '+(form.formaPago===f?'selected':'')+'>'+f+'</option>'; }).join('');
+
+  var wpAlert = esWP ? '<div class="span2" style="background:#EFF6FF;border:1.5px solid #1E40AF;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px">'+
+    '<div style="font-size:22px">Webpay</div><div style="flex:1">'+
+    '<div style="font-size:12px;font-weight:700;color:#1E40AF;margin-bottom:4px">Comision tarjeta Webpay: '+COM_WP_PCT+'%</div>'+
+    '<div style="font-size:12px">Precio base: <strong>'+fmt(base)+'</strong> + Comision tarjeta: <strong style="color:#1E40AF">'+fmt(wp)+'</strong> = Cliente paga: <strong>'+fmt(base+wp)+'</strong></div>'+
+    '</div></div>' : '';
+
+  var comBox = '<div id="form-com-box" class="span2" style="display:'+(base?'block':'none')+';background:#1C1917;border-radius:10px;padding:14px 18px">'+
+    '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">'+
+    '<div style="background:#2C2926;border-radius:8px;padding:10px 12px;text-align:center"><div style="font-size:9px;color:#888;margin-bottom:4px;text-transform:uppercase">Venta Neta</div><div id="fcb-venta" style="font-size:18px;font-weight:800;color:#86EFAC">'+fmt(base)+'</div></div>'+
+    '<div style="background:#0C3530;border-radius:8px;padding:10px 12px;text-align:center;border:1.5px solid #0D7A6B"><div style="font-size:9px;color:#5EEAD4;margin-bottom:4px;text-transform:uppercase">Recargo Webpay 2%</div><div id="fcb-wp" style="font-size:18px;font-weight:800;color:'+(esWP?'#5EEAD4':'#555')+'">'+( esWP?fmt(wp)+' (2%)':'No aplica')+'</div></div>'+
+    '</div></div>';
+
+  return '<div class="modal-bg" id="modal-bg"><div class="modal fade">'+
+    '<h2>'+(editId?'Editar':'Registrar')+' Venta</h2>'+
+    '<div class="grid2">'+
+    '<div class="fld"><label>Fecha</label><input type="date" value="'+form.fecha+'" data-field="fecha"    onchange="ufld(this)"></div>'+
+    '<div class="fld"><label>Forma de Pago</label><select data-field="formaPago" onchange="ufld(this)">'+fpOpts+'</select></div>'+
+    '<div class="fld span2"><label>Cliente</label><input type="text" id="f-cliente" placeholder="Nombre del cliente" value="'+form.cliente+'" oninput="state.form.cliente=this.value"></div>'+
+    '<div class="fld span2"><label>Producto</label><select data-field="producto"  onchange="ufld(this)">'+prodOpts+'</select></div>'+
+    '<div class="fld span2"><label>Monto Venta ($)</label><input type="number" id="f-monto" placeholder="0" min="0" value="'+form.montoBase+'" oninput="state.form.montoBase=this.value;updatePreview()"></div>'+
+    wpAlert +
+    '<div class="span2" style="background:#F5F3FF;border:1.5px solid #DDD6FE;border-radius:10px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between">'+
+    '<div><div style="font-size:13px;font-weight:600;color:var(--purple)">Requiere factura?</div>'+
+    '<div style="font-size:11px;color:var(--muted);margin-top:2px">Factura electronica</div></div>'+
+    '<button class="toggle '+(form.factura?'on':'')+' fac-toggle" data-field="factura" data-val="'+(form.factura?'false':'true')+'" onclick="ufldv(this)"></button></div>'+
+    comBox +
+    '</div>'+
+    '<div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end">'+
+    '<button class="act-btn" onclick="setState({showForm:false,editId:null})">Cancelar</button>'+
+    '<button class="act-btn primary" onclick="submitForm()">'+(editId?'Guardar Cambios':'Registrar Venta')+'</button>'+
+    '</div></div></div>';
+}
+
+function buildDel() {
+  return '<div class="modal-bg"><div class="modal fade" style="max-width:340px;text-align:center">'+
+    '<div style="font-size:34px;margin-bottom:10px">Eliminar</div>'+
+    '<h3 style="margin-bottom:8px">Eliminar esta venta?</h3>'+
+    '<p style="font-size:13px;color:var(--muted);margin-bottom:18px">Esta accion no se puede deshacer.</p>'+
+    '<div style="display:flex;gap:10px;justify-content:center">'+
+    '<button class="act-btn" onclick="setState({delId:null})">Cancelar</button>'+
+    '<button class="act-btn" style="background:var(--red);border-color:var(--red);color:#fff" onclick="confirmDel()">Eliminar</button>'+
+    '</div></div></div>';
+}
+
+function exportCSV() {
+  var filt = state.filtroMes ? state.ventas.filter(function(v){ return v.fecha.slice(0,7)===state.filtroMes; }) : state.ventas;
+  var cols = ["Fecha","Cliente","Producto","Forma Pago","Venta","Webpay 2%","Factura"];
+  var rows = filt.slice().sort(function(a,b){return a.fecha.localeCompare(b.fecha);}).map(function(v){
+    var wp = comWP(v.montoBase, v.formaPago);
+    return [v.fecha,v.cliente,v.producto,v.formaPago,v.montoBase,wp>0?wp:"",v.factura?"Si":"No"];
+  });
+  var tV = filt.reduce(function(s,v){return s+v.montoBase;},0);
+  rows.push(["","","","TOTALES",tV,"",""]);
+  var csv = [cols].concat(rows).map(function(r){ return r.join(","); }).join("\n");
+  var a = document.createElement("a");
+  a.href = "data:text/csv;charset=utf-8,\uFEFF"+encodeURIComponent(csv);
+  a.download = "Creamos_Imagen_Ventas_Empresa.csv";
+  a.click();
+  setState({exportMsg:"Exportado "+filt.length+" registros"});
+  setTimeout(function(){ setState({exportMsg:""}); }, 3000);
+}
+
+// ============================================================
+// ACCIONES
+// ============================================================
+function openForm() {
+  state.form = {fecha:new Date().toISOString().slice(0,10),cliente:"",producto:PRODUCTOS[0],formaPago:FORMAS_PAGO[0],montoBase:"",factura:false};
+  setState({showForm:true, editId:null});
+}
+
+function openEdit(id) {
+  var v = state.ventas.find(function(x){return x.id===id;});
+  state.form = {fecha:v.fecha,cliente:v.cliente,producto:v.producto,formaPago:v.formaPago,montoBase:""+v.montoBase,factura:v.factura};
+  setState({showForm:true, editId:id});
+}
+
+function submitForm() {
+  var ci = document.getElementById('f-cliente');
+  var mi = document.getElementById('f-monto');
+  if (ci)  state.form.cliente   = ci.value;
+  if (mi)  state.form.montoBase = mi.value;
+  var f = state.form;
+  if (!f.fecha || !f.cliente || !f.montoBase) return;
+  
+  var entry = {
+    id:       state.editId || Date.now(),
+    fecha:    f.fecha,
+    cliente:  f.cliente,
+    producto: f.producto,
+    formaPago:f.formaPago,
+    montoBase:+f.montoBase,
+    factura:  f.factura
+  };
+  
+  if (state.editId) {
+    state.ventas = state.ventas.map(function(x){ return x.id===state.editId ? entry : x; });
+  } else {
+    state.ventas = state.ventas.concat([entry]);
+  }
+  guardarDatos();
+  setState({showForm:false, editId:null});
+}
+
+function confirmDel() {
+  state.ventas = state.ventas.filter(function(x){ return x.id !== state.delId; });
+  guardarDatos();
+  setState({delId:null});
+}
+
+// ============================================================
+// INICIO Y SINCRONIZACIÓN
+// ============================================================
+async function initApp() {
+  try {
+    const cloudData = await loadFromCloud(STORAGE_KEY);
+    if (cloudData) {
+      if (cloudData.ventas) state.ventas = cloudData.ventas;
+      if (cloudData.filtroMes !== undefined) state.filtroMes = cloudData.filtroMes;
+    } else {
+      cargarDatos();
+    }
+  } catch (e) {
+    cargarDatos();
+  }
+  render();
+}
+
+initApp();
+</script>
+</body>
+</html>
