@@ -99,13 +99,13 @@ var defaultCfg = {
   hilos: 200, maquina: 300, admin: 1000, 
   margen: 20,
   rrhh: [
-    { nombre: "Persona 1", sueldo: 500000, afp: 11.44, fonasa: 7, bono: 0 },
-    { nombre: "Persona 2", sueldo: 500000, afp: 11.44, fonasa: 7, bono: 0 },
-    { nombre: "Persona 3", sueldo: 500000, afp: 11.44, fonasa: 7, bono: 0 },
-    { nombre: "Persona 4", sueldo: 500000, afp: 11.44, fonasa: 7, bono: 0 },
-    { nombre: "Persona 5", sueldo: 500000, afp: 11.44, fonasa: 7, bono: 0 },
-    { nombre: "Persona 6", sueldo: 500000, afp: 11.44, fonasa: 7, bono: 0 },
-    { nombre: "Persona 7", sueldo: 500000, afp: 11.44, fonasa: 7, bono: 0 }
+    { nombre: "Persona 1", sueldo: 500000, afp: 11.44, fonasa: 7, bono: 0, comision: 0 },
+    { nombre: "Persona 2", sueldo: 500000, afp: 11.44, fonasa: 7, bono: 0, comision: 0 },
+    { nombre: "Persona 3", sueldo: 500000, afp: 11.44, fonasa: 7, bono: 0, comision: 0 },
+    { nombre: "Persona 4", sueldo: 500000, afp: 11.44, fonasa: 7, bono: 0, comision: 0 },
+    { nombre: "Persona 5", sueldo: 500000, afp: 11.44, fonasa: 7, bono: 0, comision: 0 },
+    { nombre: "Persona 6", sueldo: 500000, afp: 11.44, fonasa: 7, bono: 0, comision: 0 },
+    { nombre: "Persona 7", sueldo: 500000, afp: 11.44, fonasa: 7, bono: 0, comision: 0 }
   ],
   gastos: { 
     arriendo: 1330000, 
@@ -209,7 +209,8 @@ function buildAdmin() {
   // Calcular nómina
   var totalNomina = 0;
   var rowsRrhh = c.rrhh.map(function(p, i) {
-    var costoEmpresa = p.sueldo + (p.sueldo * (p.afp / 100)) + (p.sueldo * (p.fonasa / 100)) + p.bono;
+    var com = p.comision || 0;
+    var costoEmpresa = p.sueldo + (p.sueldo * (p.afp / 100)) + (p.sueldo * (p.fonasa / 100)) + p.bono + com;
     totalNomina += costoEmpresa;
     return '<tr>'+
       '<td><input type="text" value="'+p.nombre+'" onchange="setRrhh('+i+',\'nombre\',this.value)"></td>'+
@@ -217,6 +218,7 @@ function buildAdmin() {
       '<td><input type="number" step="0.01" value="'+p.afp+'" onchange="setRrhh('+i+',\'afp\',this.value)"></td>'+
       '<td><input type="number" step="0.1" value="'+p.fonasa+'" onchange="setRrhh('+i+',\'fonasa\',this.value)"></td>'+
       '<td><input type="number" value="'+p.bono+'" onchange="setRrhh('+i+',\'bono\',this.value)"></td>'+
+      '<td><input type="number" value="'+com+'" onchange="setRrhh('+i+',\'comision\',this.value)"></td>'+
       '<td style="font-weight:700;color:var(--teal)">'+fmt(costoEmpresa)+'</td>'+
     '</tr>';
   }).join('');
@@ -232,9 +234,9 @@ function buildAdmin() {
     '<div class="card" style="margin-bottom:20px; overflow-x:auto;">'+
       '<div class="card-title">Equipo de Trabajo (7 Personas)</div>'+
       '<table class="tbl-rrhh">'+
-        '<thead><tr><th>Nombre</th><th>Sueldo Base ($)</th><th>AFP (%)</th><th>Fonasa (%)</th><th>Bonos ($)</th><th>Costo Real ($)</th></tr></thead>'+
+        '<thead><tr><th>Nombre</th><th>Sueldo Base ($)</th><th>AFP (%)</th><th>Fonasa (%)</th><th>Bonos ($)</th><th>Comisiones ($)</th><th>Costo Real ($)</th></tr></thead>'+
         '<tbody>'+rowsRrhh+'</tbody>'+
-        '<tfoot><tr><td colspan="5" style="text-align:right;font-weight:700;font-size:11px;color:var(--muted);text-transform:uppercase;">Costo Total Nómina Mensual</td><td style="font-weight:800;font-size:16px;color:var(--gold);">'+fmt(totalNomina)+'</td></tr></tfoot>'+
+        '<tfoot><tr><td colspan="6" style="text-align:right;font-weight:700;font-size:11px;color:var(--muted);text-transform:uppercase;">Costo Total Nómina Mensual</td><td style="font-weight:800;font-size:16px;color:var(--gold);">'+fmt(totalNomina)+'</td></tr></tfoot>'+
       '</table>'+
     '</div>'+
     
@@ -428,16 +430,15 @@ async function initApp() {
         Object.assign(state.config, cloudData.config);
         if (state.config.minManoObra === undefined) state.config.minManoObra = 150;
         if (!state.config.rrhh) state.config.rrhh = JSON.parse(JSON.stringify(defaultCfg.rrhh));
+        else {
+          state.config.rrhh.forEach(p => { if (p.comision === undefined) p.comision = 0; });
+        }
         if (!state.config.gastos) state.config.gastos = JSON.parse(JSON.stringify(defaultCfg.gastos));
         if (!state.config.prodMensual) state.config.prodMensual = defaultCfg.prodMensual;
-        
-        // Forzar actualización si el usuario ya tenía el valor antiguo guardado antes de que aplicáramos los reales
-        if (state.config.gastos && state.config.gastos.arriendo === 400000) {
-           state.config.gastos = JSON.parse(JSON.stringify(defaultCfg.gastos));
-           guardarDatos();
-        }
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(cloudData));
+    } else if (!cloudData && rawLocal) {
+      if(state.config.rrhh) state.config.rrhh.forEach(p => { if (p.comision === undefined) p.comision = 0; });
     }
   } catch (e) {}
   render();
