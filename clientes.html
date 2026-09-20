@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Base de Datos Clientes - Creamos Imagen</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F7F5F0;--surface:#FFFFFF;--dark:#1C1917;--gold:#C8973A;--teal:#0D7A6B;--red:#C0392B;--muted:#78716C;--border:#E7E2D9;--purple:#6D28D9;--blue:#1E40AF}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--dark);min-height:100vh}
+input,button{font-family:inherit;outline:none}
+.topbar{background:var(--dark);padding:0 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:100}
+.brand{padding:14px 0; margin-left: 100px;}
+.brand-tag{font-size:9px;color:var(--gold);letter-spacing:.2em;font-weight:700;text-transform:uppercase;margin-bottom:2px}
+.brand-name{font-family:'DM Serif Display',serif;font-size:22px;color:#fff}
+.brand-name span{color:var(--gold)}
+.content{padding:24px; max-width: 1200px; margin: 0 auto;}
+.act-btn{background:#fff;border:1.5px solid var(--border);color:var(--dark);padding:9px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.act-btn:hover{border-color:var(--gold);color:var(--gold)}
+.act-btn.primary{background:var(--gold);border-color:var(--gold);color:#fff}
+.act-btn.primary:hover{background:#B8872A;transform:translateY(-1px)}
+.search-bar{display:flex;gap:12px;margin-bottom:24px;background:#fff;padding:12px;border-radius:12px;border:1px solid var(--border)}
+.search-bar input{flex:1;border:none;background:transparent;font-size:16px;padding:8px;color:var(--dark)}
+.client-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));gap:16px}
+.client-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px;cursor:pointer;transition:all 0.2s}
+.client-card:hover{border-color:var(--gold);box-shadow:0 4px 12px rgba(0,0,0,0.05);transform:translateY(-2px)}
+.c-name{font-size:18px;font-weight:700;color:var(--dark);margin-bottom:4px}
+.c-rut{font-size:11px;font-weight:600;color:var(--muted);background:var(--bg);padding:2px 6px;border-radius:4px;display:inline-block;margin-bottom:12px}
+.c-row{font-size:13px;color:var(--muted);margin-bottom:6px;display:flex;gap:8px}
+.c-row strong{color:var(--dark)}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity 0.2s}
+.modal-bg.open{opacity:1;pointer-events:all}
+.modal{background:#fff;border-radius:14px;padding:30px;width:100%;max-width:600px;box-shadow:0 24px 60px rgba(0,0,0,.2);max-height:92vh;overflow-y:auto;transform:translateY(20px);transition:transform 0.2s}
+.modal-bg.open .modal{transform:translateY(0)}
+.modal h2{font-family:'DM Serif Display',serif;font-size:24px;margin-bottom:20px;color:var(--gold)}
+.fld{margin-bottom:14px;}
+.fld label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;}
+.fld input{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;font-size:15px;color:var(--dark);font-weight:600;}
+.fld input:focus{border-color:var(--gold);background:#fff;}
+.hist-card{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;}
+.hist-hdr{display:flex;justify-content:space-between;margin-bottom:6px;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase}
+.hist-bdy{display:flex;justify-content:space-between;align-items:center}
+.empty-state{text-align:center;padding:60px;color:var(--muted);background:#fff;border-radius:12px;border:1px dashed var(--border)}
+</style>
+</head>
+<body>
+<a href="index.html" style="position:fixed; top:14px; left:20px; background:#1C1917; color:#C8973A; padding:8px 14px; border-radius:6px; border:1px solid #C8973A; text-decoration:none; font-family:Arial, sans-serif; font-size:11px; font-weight:bold; box-shadow:0 4px 6px rgba(0,0,0,0.2); z-index:9999;">← Menú</a>
+
+<div class="topbar">
+  <div class="brand"><div class="brand-tag">Gestión Comercial</div><div class="brand-name">Directorio <span>Clientes</span></div></div>
+</div>
+
+<div class="content">
+  <div class="search-bar">
+    <span style="font-size:20px;padding-top:4px">🔍</span>
+    <input type="text" id="searchInput" placeholder="Buscar por Razón Social o RUT..." onkeyup="renderClientes()">
+    <button class="act-btn primary" onclick="abrirForm(null)">+ Nuevo Cliente</button>
+  </div>
+  <div id="clientesGrid" class="client-grid"></div>
+</div>
+
+<!-- Modal Formulario / Vista -->
+<div class="modal-bg" id="modalForm">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h2 id="m-title">Cliente</h2>
+      <button class="act-btn" style="padding:4px 8px;font-size:16px;border:none" onclick="cerrarModal()">✕</button>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="fld" style="grid-column:1/-1"><label>Razón Social / Empresa *</label><input type="text" id="c-razon"></div>
+      <div class="fld"><label>RUT</label><input type="text" id="c-rut" placeholder="Ej: 12.345.678-9"></div>
+      <div class="fld"><label>Teléfono de Contacto</label><input type="text" id="c-tel" placeholder="+56 9 ..."></div>
+      <div class="fld"><label>Nombre de Contacto</label><input type="text" id="c-contacto" placeholder="Ej: Juan Pérez"></div>
+      <div class="fld"><label>Dirección</label><input type="text" id="c-dir" placeholder="Comuna, Calle..."></div>
+    </div>
+    
+    <div style="margin-top:20px;display:flex;justify-content:space-between;gap:10px">
+      <button class="act-btn" style="color:var(--red);border-color:#FECACA;display:none" id="btn-del" onclick="borrarCliente()">Eliminar</button>
+      <div style="margin-left:auto;display:flex;gap:10px">
+        <button class="act-btn" onclick="cerrarModal()">Cancelar</button>
+        <button class="act-btn primary" onclick="guardarCliente()">Guardar Ficha</button>
+      </div>
+    </div>
+
+    <div id="historialSection" style="margin-top:30px;border-top:2px solid var(--bg);padding-top:20px;display:none">
+      <h3 style="font-size:14px;text-transform:uppercase;color:var(--gold);margin-bottom:12px">Últimas Producciones</h3>
+      <div id="historialList"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbxP5-vB59e80qpXdx4AcCyS28C4H58thdh0XXtLcDWZD8Q_47fDbBvLn1ahqx7RoJor/exec";
+const KEY_CLIENTES = "clientes_ci_v1";
+const KEY_PRODS = "prods2026"; // Para leer el historial
+
+let clientes = [];
+let producciones = [];
+let editId = null;
+
+async function saveToCloud(key, dataObj) {
+  try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj) }) }); } catch (e) {}
+}
+async function loadFromCloud(key) {
+  try {
+    const res = await fetch(API_URL + "?key=" + key);
+    const json = await res.json();
+    return json.valor ? JSON.parse(json.valor) : null;
+  } catch (e) { return null; }
+}
+
+function guardarLocal() {
+  localStorage.setItem(KEY_CLIENTES, JSON.stringify(clientes));
+  saveToCloud(KEY_CLIENTES, clientes);
+}
+
+function renderClientes() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const grid = document.getElementById('clientesGrid');
+  
+  const filtrados = clientes.filter(c => 
+    (c.razonSocial && c.razonSocial.toLowerCase().includes(q)) || 
+    (c.rut && c.rut.toLowerCase().includes(q)) ||
+    (c.contacto && c.contacto.toLowerCase().includes(q))
+  );
+
+  if(filtrados.length === 0) {
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">No se encontraron clientes. Usa el botón superior para agregar uno nuevo.</div>';
+    return;
+  }
+
+  grid.innerHTML = filtrados.map(c => `
+    <div class="client-card" onclick="abrirForm(${c.id})">
+      <div class="c-name">${c.razonSocial}</div>
+      ${c.rut ? `<div class="c-rut">${c.rut}</div>` : ''}
+      <div class="c-row"><strong>👤 Contacto:</strong> ${c.contacto || '-'}</div>
+      <div class="c-row"><strong>📞 Teléfono:</strong> ${c.telefono || '-'}</div>
+      <div class="c-row"><strong>📍 Dirección:</strong> ${c.direccion || '-'}</div>
+    </div>
+  `).join('');
+}
+
+function abrirForm(id) {
+  const modal = document.getElementById('modalForm');
+  const hist = document.getElementById('historialSection');
+  const btnDel = document.getElementById('btn-del');
+  
+  if (id) {
+    const c = clientes.find(x => x.id === id);
+    editId = id;
+    document.getElementById('m-title').textContent = 'Ficha de Cliente';
+    document.getElementById('c-razon').value = c.razonSocial;
+    document.getElementById('c-rut').value = c.rut || '';
+    document.getElementById('c-tel').value = c.telefono || '';
+    document.getElementById('c-contacto').value = c.contacto || '';
+    document.getElementById('c-dir').value = c.direccion || '';
+    btnDel.style.display = 'block';
+    
+    // Cargar historial
+    const historial = producciones.filter(p => p.name.toLowerCase() === c.razonSocial.toLowerCase());
+    if (historial.length > 0) {
+      hist.style.display = 'block';
+      historial.sort((a,b) => new Date(b.date) - new Date(a.date));
+      document.getElementById('historialList').innerHTML = historial.slice(0,5).map(p => `
+        <div class="hist-card">
+          <div class="hist-hdr"><span>F. Ingreso: ${p.date}</span><span style="color:var(--teal)">#${p.orden||'-'}</span></div>
+          <div class="hist-bdy">
+            <span style="font-weight:700;color:var(--dark)">${p.tag}</span>
+            <span style="font-size:12px;color:var(--muted)">${p.prenda || p.tipo || 'Producción'}</span>
+          </div>
+        </div>
+      `).join('');
+    } else {
+      hist.style.display = 'block';
+      document.getElementById('historialList').innerHTML = '<div style="font-size:13px;color:var(--muted)">Sin producciones registradas.</div>';
+    }
+  } else {
+    editId = null;
+    document.getElementById('m-title').textContent = 'Nuevo Cliente';
+    document.getElementById('c-razon').value = '';
+    document.getElementById('c-rut').value = '';
+    document.getElementById('c-tel').value = '';
+    document.getElementById('c-contacto').value = '';
+    document.getElementById('c-dir').value = '';
+    btnDel.style.display = 'none';
+    hist.style.display = 'none';
+  }
+  modal.classList.add('open');
+}
+
+function cerrarModal() { document.getElementById('modalForm').classList.remove('open'); }
+
+function guardarCliente() {
+  const razonSocial = document.getElementById('c-razon').value.trim();
+  if(!razonSocial) { alert("La Razón Social es obligatoria."); return; }
+  
+  const c = {
+    id: editId || Date.now(),
+    razonSocial: razonSocial,
+    rut: document.getElementById('c-rut').value.trim(),
+    telefono: document.getElementById('c-tel').value.trim(),
+    contacto: document.getElementById('c-contacto').value.trim(),
+    direccion: document.getElementById('c-dir').value.trim()
+  };
+
+  if(editId) { clientes = clientes.map(x => x.id === editId ? c : x); } 
+  else { clientes.push(c); }
+  
+  guardarLocal(); renderClientes(); cerrarModal();
+}
+
+function borrarCliente() {
+  if(confirm("¿Eliminar este cliente de la base de datos?")) {
+    clientes = clientes.filter(x => x.id !== editId);
+    guardarLocal(); renderClientes(); cerrarModal();
+  }
+}
+
+window.onload = async function() {
+  // Cargar Clientes
+  const cloudClientes = await loadFromCloud(KEY_CLIENTES);
+  if (cloudClientes) clientes = cloudClientes;
+  else clientes = JSON.parse(localStorage.getItem(KEY_CLIENTES) || '[]');
+  
+  // Cargar Producciones (para el historial)
+  const cloudProds = await loadFromCloud(KEY_PRODS);
+  if(cloudProds) producciones = cloudProds;
+  
+  renderClientes();
+};
+</script>
+</body>
+</html>
