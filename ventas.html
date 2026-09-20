@@ -802,7 +802,7 @@ async function exportXLSX() {
   var tWp = filt.reduce(function(s,v){ return s+comWP(v.montoBase,v.formaPago); }, 0);
 
   var wb = new ExcelJS.Workbook();
-  wb.creator = 'SUBLIPRO - Creamos Imagen';
+  wb.creator = 'Creamos Imagen';
   wb.created = new Date();
   var ws = wb.addWorksheet('Ventas', { views: [{ state:'frozen', ySplit: 3 }] });
 
@@ -815,7 +815,7 @@ async function exportXLSX() {
 
   ws.mergeCells(1, 1, 1, cols.length);
   var titleCell = ws.getCell(1, 1);
-  titleCell.value = 'SUBLIPRO — REGISTRO DE VENTAS' + (state.filtroMes ? ' — ' + state.filtroMes : '');
+  titleCell.value = 'CREAMOS IMAGEN — REGISTRO DE VENTAS' + (state.filtroMes ? ' — ' + state.filtroMes : '');
   titleCell.font = { bold:true, size:14, color:{argb:'FFFFFFFF'} };
   titleCell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF1C1917'} };
   titleCell.alignment = { vertical:'middle' };
@@ -880,7 +880,7 @@ async function exportXLSX() {
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
   a.href = url;
-  a.download = 'SUBLIPRO_Ventas' + (state.filtroMes ? '_'+state.filtroMes : '') + '.xlsx';
+  a.download = 'Creamos_Imagen_Ventas' + (state.filtroMes ? '_'+state.filtroMes : '') + '.xlsx';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
