@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora de Costos - Creamos Imagen</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F7F5F0;--surface:#FFFFFF;--dark:#1C1917;--gold:#C8973A;--teal:#0D7A6B;--red:#C0392B;--muted:#78716C;--border:#E7E2D9;--purple:#6D28D9;--blue:#1E40AF}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--dark);min-height:100vh}
+input,select,button{font-family:inherit;outline:none}
+.topbar{background:var(--dark);padding:0 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:100}
+.brand{padding:14px 0; margin-left: 100px;}
+.brand-tag{font-size:9px;color:var(--gold);letter-spacing:.2em;font-weight:700;text-transform:uppercase;margin-bottom:2px}
+.brand-name{font-family:'DM Serif Display',serif;font-size:22px;color:#fff}
+.brand-name span{color:var(--gold)}
+.tabs{display:flex;gap:2px;flex-wrap:wrap}
+.tab{background:none;border:none;font-size:12px;font-weight:600;color:#888;cursor:pointer;padding:7px 14px;border-radius:6px;transition:all .2s}
+.tab.on{background:#2C2926;color:var(--gold)}
+.content{padding:24px; max-width: 1200px; margin: 0 auto;}
+.act-btn{background:#fff;border:1.5px solid var(--border);color:var(--dark);padding:9px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.act-btn:hover{border-color:var(--gold);color:var(--gold)}
+.act-btn.primary{background:var(--gold);border-color:var(--gold);color:#fff}
+.act-btn.primary:hover{background:#B8872A;transform:translateY(-1px)}
+.grid-config{display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:24px;margin-top:16px;}
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:24px;}
+.card-title{font-size:13px;font-weight:700;color:var(--dark);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;border-bottom:2px solid var(--bg);padding-bottom:8px;}
+.fld{margin-bottom:14px;}
+.fld label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;}
+.fld-row{display:flex;align-items:center;gap:12px;}
+.fld input{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;font-size:15px;color:var(--dark);font-weight:600;}
+.fld input:focus{border-color:var(--gold);background:#fff;}
+.fld-prefix{font-size:15px;color:var(--muted);font-weight:600;}
+.fld-suffix{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap;}
+.fichas-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));gap:16px;margin-top:20px;}
+.ficha-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px;position:relative;}
+.ficha-title{font-size:18px;font-weight:700;color:var(--dark);margin-bottom:4px;padding-right:40px;}
+.ficha-date{font-size:11px;color:var(--muted);margin-bottom:16px;}
+.ficha-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed var(--bg);font-size:13px;}
+.ficha-row:last-of-type{border-bottom:none;}
+.ficha-row.tot{border-top:2px solid var(--bg);padding-top:10px;margin-top:6px;font-weight:700;font-size:15px;}
+.ficha-row.sug{background:#F0FDF4;color:#166534;padding:10px;border-radius:6px;margin-top:10px;font-weight:700;font-size:16px;border:1px solid #BBF7D0;}
+.ficha-actions{position:absolute;top:20px;right:20px;display:flex;gap:6px;}
+.icon-btn{background:none;border:none;cursor:pointer;font-size:14px;opacity:0.5;transition:opacity 0.2s;}
+.icon-btn:hover{opacity:1;}
+.empty-state{text-align:center;padding:60px 20px;background:#fff;border-radius:12px;border:1px dashed #ccc;color:var(--muted);}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:#fff;border-radius:14px;padding:30px;width:100%;max-width:800px;box-shadow:0 24px 60px rgba(0,0,0,.2);max-height:92vh;overflow-y:auto}
+.modal h2{font-family:'DM Serif Display',serif;font-size:24px;margin-bottom:20px;color:var(--gold)}
+.calc-grid{display:grid;grid-template-columns:1fr 300px;gap:24px;}
+@media (max-width: 768px) { .calc-grid{grid-template-columns:1fr;} }
+.resumen-panel{background:var(--dark);border-radius:12px;padding:20px;color:#fff;}
+.rp-title{font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:16px;border-bottom:1px solid #333;padding-bottom:8px;}
+.rp-row{display:flex;justify-content:space-between;margin-bottom:10px;font-size:13px;color:#bbb;}
+.rp-val{font-weight:700;color:#fff;}
+.rp-tot{display:flex;justify-content:space-between;margin-top:16px;padding-top:16px;border-top:1px solid #333;font-size:16px;font-weight:700;color:var(--gold);}
+.rp-sug{display:flex;justify-content:space-between;margin-top:12px;background:#2C2926;padding:12px;border-radius:8px;font-size:18px;font-weight:700;color:#5EEAD4;}
+</style>
+</head>
+<body>
+<a href="index.html" style="position:fixed; top:14px; left:20px; background:#1C1917; color:#C8973A; padding:8px 14px; border-radius:6px; border:1px solid #C8973A; text-decoration:none; font-family:Arial, sans-serif; font-size:11px; font-weight:bold; box-shadow:0 4px 6px rgba(0,0,0,0.2); z-index:9999;">← Menú</a>
+
+<div id="app"></div>
+
+<script>
+// ============================================================
+// CONEXIÓN A BASE DE DATOS (NUBE)
+// ============================================================
+const API_URL = "https://script.google.com/macros/s/AKfycbxP5-vB59e80qpXdx4AcCyS28C4H58thdh0XXtLcDWZD8Q_47fDbBvLn1ahqx7RoJor/exec";
+const STORAGE_KEY = "costos_ci_v1";
+
+async function saveToCloud(key, dataObj) {
+  try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj) }) }); } 
+  catch (e) {}
+}
+
+async function loadFromCloud(key) {
+  try {
+    const res = await fetch(API_URL + "?key=" + key);
+    const json = await res.json();
+    return json.valor ? JSON.parse(json.valor) : null;
+  } catch (e) { return null; }
+}
+
+// ============================================================
+// LÓGICA Y ESTADO
+// ============================================================
+var defaultCfg = {
+  tela: 2500, papelSub: 800, tinta: 50, papelAdh: 1200, 
+  minPlanchado: 100, minConfeccion: 150, 
+  hilos: 200, maquina: 300, admin: 1000, 
+  margen: 20
+};
+
+var state = {
+  tab: "fichas",
+  fichas: [],
+  config: Object.assign({}, defaultCfg),
+  showForm: false,
+  form: { id: null, nombre: "", tela: "", papelSub: "", tinta: "", papelAdh: "", planchado: "", confeccion: "" }
+};
+
+function fmt(n) { return "$ " + Math.round(n).toLocaleString("es-CL"); }
+
+function guardarDatos() {
+  var datos = { fichas: state.fichas, config: state.config };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(datos));
+  saveToCloud(STORAGE_KEY, datos);
+}
+
+function calcularCostosForm() {
+  var f = state.form; var c = state.config;
+  var valTela = (parseFloat(f.tela)||0) * c.tela;
+  var valPapelSub = (parseFloat(f.papelSub)||0) * c.papelSub;
+  var valTinta = (parseFloat(f.tinta)||0) * c.tinta;
+  var valPapelAdh = (parseFloat(f.papelAdh)||0) * c.papelAdh;
+  
+  var valPlanchado = (parseFloat(f.planchado)||0) * c.minPlanchado;
+  var valConfeccion = (parseFloat(f.confeccion)||0) * c.minConfeccion;
+  
+  var mat = valTela + valPapelSub + valTinta + valPapelAdh;
+  var mo = valPlanchado + valConfeccion;
+  var fijos = c.hilos + c.maquina + c.admin;
+  
+  var total = mat + mo + fijos;
+  var sugerido = total * (1 + (c.margen / 100));
+  
+  return {
+    mat: mat, mo: mo, fijos: fijos, total: total, sugerido: sugerido,
+    valTela: valTela, valPapelSub: valPapelSub, valTinta: valTinta, valPapelAdh: valPapelAdh, valPlanchado: valPlanchado, valConfeccion: valConfeccion
+  };
+}
+
+// ============================================================
+// INTERFAZ (RENDER)
+// ============================================================
+function setState(p) { Object.assign(state, p); render(); }
+function setConfig(k, v) { state.config[k] = parseFloat(v) || 0; guardarDatos(); render(); }
+function setForm(k, v) { state.form[k] = v; render(); }
+
+function render() {
+  var s = state;
+  var html = buildTopBar(s.tab) + '<div class="content">';
+  
+  if (s.tab === 'fichas') html += buildFichas();
+  else if (s.tab === 'config') html += buildConfig();
+  
+  html += '</div>' + (s.showForm ? buildModal() : '');
+  document.getElementById("app").innerHTML = html;
+}
+
+function buildTopBar(tab) {
+  var t1 = tab==='fichas'?'tab on':'tab';
+  var t2 = tab==='config'?'tab on':'tab';
+  return '<div class="topbar"><div class="brand"><div class="brand-tag">Gestión de Producción</div><div class="brand-name">Calculadora <span>Costos</span></div></div>'+
+         '<div class="tabs"><button class="'+t1+'" onclick="setState({tab:\'fichas\'})">Mis Fichas</button>'+
+         '<button class="'+t2+'" onclick="setState({tab:\'config\'})">Configuración y Precios</button></div></div>';
+}
+
+function buildConfig() {
+  var c = state.config;
+  return '<div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><h2>Configuración de Costos Base</h2><p style="color:var(--muted);font-size:13px;">Actualiza los precios de tus insumos. Las nuevas fichas usarán estos valores.</p></div>'+
+    '<div class="grid-config">'+
+      '<div class="card"><div class="card-title">Materias Primas</div>'+
+        '<div class="fld"><label>Tela (Costo por Metro)</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+c.tela+'" onchange="setConfig(\'tela\',this.value)"></div></div>'+
+        '<div class="fld"><label>Papel Sublimación (por Metro/Hoja)</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+c.papelSub+'" onchange="setConfig(\'papelSub\',this.value)"></div></div>'+
+        '<div class="fld"><label>Tinta (Costo por ML)</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+c.tinta+'" onchange="setConfig(\'tinta\',this.value)"></div></div>'+
+        '<div class="fld"><label>Papel Adhesivo (por Metro/Hoja)</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+c.papelAdh+'" onchange="setConfig(\'papelAdh\',this.value)"></div></div>'+
+      '</div>'+
+      '<div class="card"><div class="card-title">Mano de Obra (Por Minuto)</div>'+
+        '<div class="fld"><label>Valor Minuto Planchado</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+c.minPlanchado+'" onchange="setConfig(\'minPlanchado\',this.value)"><span class="fld-suffix">/ min</span></div></div>'+
+        '<div class="fld"><label>Valor Minuto Confección</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+c.minConfeccion+'" onchange="setConfig(\'minConfeccion\',this.value)"><span class="fld-suffix">/ min</span></div></div>'+
+      '</div>'+
+      '<div class="card"><div class="card-title">Costos Fijos Operativos (Por Prenda)</div>'+
+        '<div class="fld"><label>Costo Hilos</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+c.hilos+'" onchange="setConfig(\'hilos\',this.value)"></div></div>'+
+        '<div class="fld"><label>Desgaste Máquina y Luz</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+c.maquina+'" onchange="setConfig(\'maquina\',this.value)"></div></div>'+
+        '<div class="fld"><label>Gastos de Administración</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+c.admin+'" onchange="setConfig(\'admin\',this.value)"></div></div>'+
+        '<div style="margin-top:30px;padding-top:20px;border-top:1px dashed var(--border)">'+
+          '<div class="fld"><label style="color:var(--teal)">Margen de Ganancia Deseado (%)</label><div class="fld-row"><input type="number" value="'+c.margen+'" onchange="setConfig(\'margen\',this.value)"><span class="fld-suffix">%</span></div></div>'+
+        '</div>'+
+      '</div>'+
+    '</div></div>';
+}
+
+function buildFichas() {
+  var html = '<div style="display:flex;justify-content:space-between;align-items:center;">'+
+             '<h2>Fichas de Costos Guardadas</h2>'+
+             '<button class="act-btn primary" onclick="abrirForm(null)">+ Nueva Ficha de Costo</button></div>';
+             
+  if (state.fichas.length === 0) {
+    html += '<div class="empty-state"><h3>Aún no tienes fichas guardadas</h3><p style="margin-top:10px">Crea tu primer análisis de costos haciendo clic en el botón superior.</p></div>';
+  } else {
+    html += '<div class="fichas-grid">';
+    state.fichas.forEach(function(f, i) {
+      html += '<div class="ficha-card">'+
+              '<div class="ficha-actions"><button class="icon-btn" onclick="abrirForm('+i+')" title="Editar">✏️</button><button class="icon-btn" onclick="borrarFicha('+i+')" title="Borrar">🗑️</button></div>'+
+              '<div class="ficha-title">'+f.nombre+'</div>'+
+              '<div class="ficha-date">Calculado con '+f.margen+'% margen</div>'+
+              '<div class="ficha-row"><span>Costo Materiales:</span> <span>'+fmt(f.mat)+'</span></div>'+
+              '<div class="ficha-row"><span>Costo Mano Obra:</span> <span>'+fmt(f.mo)+'</span></div>'+
+              '<div class="ficha-row"><span>Costos Fijos Operativos:</span> <span>'+fmt(f.fijos)+'</span></div>'+
+              '<div class="ficha-row tot"><span>Costo Producción Total:</span> <span style="color:var(--red)">'+fmt(f.total)+'</span></div>'+
+              '<div class="ficha-row sug"><span>Precio Sugerido Venta:</span> <span>'+fmt(f.sugerido)+'</span></div>'+
+              '</div>';
+    });
+    html += '</div>';
+  }
+  return html;
+}
+
+function buildModal() {
+  var f = state.form;
+  var res = calcularCostosForm();
+  var isEdit = f.id !== null;
+  
+  return '<div class="modal-bg"><div class="modal">'+
+    '<h2>'+(isEdit?'Editar':'Nueva')+' Ficha de Costo</h2>'+
+    '<div class="calc-grid">'+
+      '<div>'+
+        '<div class="fld"><label>Nombre del Producto (Ej: Camiseta Deportiva L)</label><input type="text" value="'+f.nombre+'" oninput="setForm(\'nombre\',this.value)" placeholder="Nombre del producto..."></div>'+
+        
+        '<div style="margin-top:24px;margin-bottom:12px;font-weight:700;font-size:12px;color:var(--gold);text-transform:uppercase;">1. Consumo de Materiales</div>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'+
+          '<div class="fld"><label>Tela (Metros)</label><input type="number" step="0.1" value="'+f.tela+'" oninput="setForm(\'tela\',this.value)" placeholder="Ej: 1.2"></div>'+
+          '<div class="fld"><label>Papel Sublimación (M / Hojas)</label><input type="number" step="0.1" value="'+f.papelSub+'" oninput="setForm(\'papelSub\',this.value)" placeholder="Ej: 1.5"></div>'+
+          '<div class="fld"><label>Tinta (ML)</label><input type="number" step="0.5" value="'+f.tinta+'" oninput="setForm(\'tinta\',this.value)" placeholder="Ej: 10"></div>'+
+          '<div class="fld"><label>Papel Adhesivo (M / Hojas)</label><input type="number" step="0.1" value="'+f.papelAdh+'" oninput="setForm(\'papelAdh\',this.value)" placeholder="Ej: 0"></div>'+
+        '</div>'+
+        
+        '<div style="margin-top:24px;margin-bottom:12px;font-weight:700;font-size:12px;color:var(--gold);text-transform:uppercase;">2. Tiempos de Trabajo</div>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'+
+          '<div class="fld"><label>Tiempo Planchado (Minutos)</label><input type="number" value="'+f.planchado+'" oninput="setForm(\'planchado\',this.value)" placeholder="Ej: 15"></div>'+
+          '<div class="fld"><label>Tiempo Confección (Minutos)</label><input type="number" value="'+f.confeccion+'" oninput="setForm(\'confeccion\',this.value)" placeholder="Ej: 30"></div>'+
+        '</div>'+
+      '</div>'+
+      
+      '<div class="resumen-panel">'+
+        '<div class="rp-title">Resumen de Costos</div>'+
+        '<div class="rp-row"><span>Materiales</span> <span class="rp-val">'+fmt(res.mat)+'</span></div>'+
+        '<div class="rp-row"><span>Mano de Obra</span> <span class="rp-val">'+fmt(res.mo)+'</span></div>'+
+        '<div class="rp-row"><span>Fijos (Hilos/Maq/Admin)</span> <span class="rp-val">'+fmt(res.fijos)+'</span></div>'+
+        '<div class="rp-tot"><span>COSTO TOTAL</span> <span>'+fmt(res.total)+'</span></div>'+
+        
+        '<div style="margin-top:30px; font-size:10px; color:#888;">Precio Calculado con Margen del '+state.config.margen+'%</div>'+
+        '<div class="rp-sug"><span>Precio Venta</span> <span>'+fmt(res.sugerido)+'</span></div>'+
+        
+        '<div style="margin-top:40px;display:flex;flex-direction:column;gap:10px;">'+
+          '<button class="act-btn primary" style="width:100%;text-align:center" onclick="guardarFicha()">Guardar Ficha</button>'+
+          '<button class="act-btn" style="width:100%;text-align:center;background:transparent;color:#fff;border-color:#555;" onclick="setState({showForm:false})">Cancelar</button>'+
+        '</div>'+
+      '</div>'+
+    '</div>'+
+  '</div></div>';
+}
+
+// ============================================================
+// ACCIONES
+// ============================================================
+function abrirForm(idx) {
+  if (idx !== null) {
+    var f = state.fichas[idx];
+    state.form = { id: idx, nombre: f.nombre, tela: f.inputs.tela, papelSub: f.inputs.papelSub, tinta: f.inputs.tinta, papelAdh: f.inputs.papelAdh, planchado: f.inputs.planchado, confeccion: f.inputs.confeccion };
+  } else {
+    state.form = { id: null, nombre: "", tela: "", papelSub: "", tinta: "", papelAdh: "", planchado: "", confeccion: "" };
+  }
+  setState({showForm:true});
+}
+
+function guardarFicha() {
+  if (!state.form.nombre.trim()) { alert("Dale un nombre al producto para guardar la ficha."); return; }
+  
+  var res = calcularCostosForm();
+  var ficha = {
+    nombre: state.form.nombre,
+    margen: state.config.margen,
+    inputs: { tela: state.form.tela, papelSub: state.form.papelSub, tinta: state.form.tinta, papelAdh: state.form.papelAdh, planchado: state.form.planchado, confeccion: state.form.confeccion },
+    mat: res.mat, mo: res.mo, fijos: res.fijos, total: res.total, sugerido: res.sugerido
+  };
+  
+  if (state.form.id !== null) {
+    state.fichas[state.form.id] = ficha;
+  } else {
+    state.fichas.push(ficha);
+  }
+  
+  guardarDatos();
+  setState({showForm:false});
+}
+
+function borrarFicha(idx) {
+  if (confirm("¿Estás seguro de borrar esta ficha de costos?")) {
+    state.fichas.splice(idx, 1);
+    guardarDatos();
+    render();
+  }
+}
+
+// ============================================================
+// INICIALIZACIÓN
+// ============================================================
+async function initApp() {
+  try {
+    const rawLocal = localStorage.getItem(STORAGE_KEY);
+    if (rawLocal) {
+      const p = JSON.parse(rawLocal);
+      if (p.fichas) state.fichas = p.fichas;
+      if (p.config) Object.assign(state.config, p.config);
+    }
+    
+    const cloudData = await loadFromCloud(STORAGE_KEY);
+    if (cloudData) {
+      if (cloudData.fichas) state.fichas = cloudData.fichas;
+      if (cloudData.config) Object.assign(state.config, cloudData.config);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(cloudData)); // sync local
+    }
+  } catch (e) {}
+  render();
+}
+
+initApp();
+</script>
+</body>
+</html>
