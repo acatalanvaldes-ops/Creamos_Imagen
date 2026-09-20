@@ -132,12 +132,21 @@ function calcularCostosForm() {
   };
 }
 
+// Nueva función para actualizar los valores sin recargar la pantalla
+function updateLiveCalc() {
+  var res = calcularCostosForm();
+  var eMat = document.getElementById('live-mat'); if(eMat) eMat.textContent = fmt(res.mat);
+  var eMo = document.getElementById('live-mo'); if(eMo) eMo.textContent = fmt(res.mo);
+  var eFijos = document.getElementById('live-fijos'); if(eFijos) eFijos.textContent = fmt(res.fijos);
+  var eTot = document.getElementById('live-tot'); if(eTot) eTot.textContent = fmt(res.total);
+  var eSug = document.getElementById('live-sug'); if(eSug) eSug.textContent = fmt(res.sugerido);
+}
+
 // ============================================================
 // INTERFAZ (RENDER)
 // ============================================================
 function setState(p) { Object.assign(state, p); render(); }
 function setConfig(k, v) { state.config[k] = parseFloat(v) || 0; guardarDatos(); render(); }
-function setForm(k, v) { state.form[k] = v; render(); }
 
 function render() {
   var s = state;
@@ -218,32 +227,32 @@ function buildModal() {
     '<h2>'+(isEdit?'Editar':'Nueva')+' Ficha de Costo</h2>'+
     '<div class="calc-grid">'+
       '<div>'+
-        '<div class="fld"><label>Nombre del Producto (Ej: Camiseta Deportiva L)</label><input type="text" value="'+f.nombre+'" oninput="setForm(\'nombre\',this.value)" placeholder="Nombre del producto..."></div>'+
+        '<div class="fld"><label>Nombre del Producto (Ej: Camiseta Deportiva L)</label><input type="text" value="'+f.nombre+'" oninput="state.form.nombre=this.value" placeholder="Nombre del producto..."></div>'+
         
         '<div style="margin-top:24px;margin-bottom:12px;font-weight:700;font-size:12px;color:var(--gold);text-transform:uppercase;">1. Consumo de Materiales</div>'+
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'+
-          '<div class="fld"><label>Tela (Metros)</label><input type="number" step="0.1" value="'+f.tela+'" oninput="setForm(\'tela\',this.value)" placeholder="Ej: 1.2"></div>'+
-          '<div class="fld"><label>Papel Sublimación (M / Hojas)</label><input type="number" step="0.1" value="'+f.papelSub+'" oninput="setForm(\'papelSub\',this.value)" placeholder="Ej: 1.5"></div>'+
-          '<div class="fld"><label>Tinta (ML)</label><input type="number" step="0.5" value="'+f.tinta+'" oninput="setForm(\'tinta\',this.value)" placeholder="Ej: 10"></div>'+
-          '<div class="fld"><label>Papel Adhesivo (M / Hojas)</label><input type="number" step="0.1" value="'+f.papelAdh+'" oninput="setForm(\'papelAdh\',this.value)" placeholder="Ej: 0"></div>'+
+          '<div class="fld"><label>Tela (Metros)</label><input type="number" step="0.1" value="'+f.tela+'" oninput="state.form.tela=this.value; updateLiveCalc()" placeholder="Ej: 1.2"></div>'+
+          '<div class="fld"><label>Papel Sublimación (M / Hojas)</label><input type="number" step="0.1" value="'+f.papelSub+'" oninput="state.form.papelSub=this.value; updateLiveCalc()" placeholder="Ej: 1.5"></div>'+
+          '<div class="fld"><label>Tinta (ML)</label><input type="number" step="0.5" value="'+f.tinta+'" oninput="state.form.tinta=this.value; updateLiveCalc()" placeholder="Ej: 10"></div>'+
+          '<div class="fld"><label>Papel Adhesivo (M / Hojas)</label><input type="number" step="0.1" value="'+f.papelAdh+'" oninput="state.form.papelAdh=this.value; updateLiveCalc()" placeholder="Ej: 0"></div>'+
         '</div>'+
         
         '<div style="margin-top:24px;margin-bottom:12px;font-weight:700;font-size:12px;color:var(--gold);text-transform:uppercase;">2. Tiempos de Trabajo</div>'+
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'+
-          '<div class="fld"><label>Tiempo Planchado (Minutos)</label><input type="number" value="'+f.planchado+'" oninput="setForm(\'planchado\',this.value)" placeholder="Ej: 15"></div>'+
-          '<div class="fld"><label>Tiempo Confección (Minutos)</label><input type="number" value="'+f.confeccion+'" oninput="setForm(\'confeccion\',this.value)" placeholder="Ej: 30"></div>'+
+          '<div class="fld"><label>Tiempo Planchado (Minutos)</label><input type="number" value="'+f.planchado+'" oninput="state.form.planchado=this.value; updateLiveCalc()" placeholder="Ej: 15"></div>'+
+          '<div class="fld"><label>Tiempo Confección (Minutos)</label><input type="number" value="'+f.confeccion+'" oninput="state.form.confeccion=this.value; updateLiveCalc()" placeholder="Ej: 30"></div>'+
         '</div>'+
       '</div>'+
       
       '<div class="resumen-panel">'+
         '<div class="rp-title">Resumen de Costos</div>'+
-        '<div class="rp-row"><span>Materiales</span> <span class="rp-val">'+fmt(res.mat)+'</span></div>'+
-        '<div class="rp-row"><span>Mano de Obra</span> <span class="rp-val">'+fmt(res.mo)+'</span></div>'+
-        '<div class="rp-row"><span>Fijos (Hilos/Maq/Admin)</span> <span class="rp-val">'+fmt(res.fijos)+'</span></div>'+
-        '<div class="rp-tot"><span>COSTO TOTAL</span> <span>'+fmt(res.total)+'</span></div>'+
+        '<div class="rp-row"><span>Materiales</span> <span class="rp-val" id="live-mat">'+fmt(res.mat)+'</span></div>'+
+        '<div class="rp-row"><span>Mano de Obra</span> <span class="rp-val" id="live-mo">'+fmt(res.mo)+'</span></div>'+
+        '<div class="rp-row"><span>Fijos (Hilos/Maq/Admin)</span> <span class="rp-val" id="live-fijos">'+fmt(res.fijos)+'</span></div>'+
+        '<div class="rp-tot"><span>COSTO TOTAL</span> <span id="live-tot">'+fmt(res.total)+'</span></div>'+
         
         '<div style="margin-top:30px; font-size:10px; color:#888;">Precio Calculado con Margen del '+state.config.margen+'%</div>'+
-        '<div class="rp-sug"><span>Precio Venta</span> <span>'+fmt(res.sugerido)+'</span></div>'+
+        '<div class="rp-sug"><span>Precio Venta</span> <span id="live-sug">'+fmt(res.sugerido)+'</span></div>'+
         
         '<div style="margin-top:40px;display:flex;flex-direction:column;gap:10px;">'+
           '<button class="act-btn primary" style="width:100%;text-align:center" onclick="guardarFicha()">Guardar Ficha</button>'+
