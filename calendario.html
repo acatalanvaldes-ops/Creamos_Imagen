@@ -148,25 +148,11 @@
 
   <!-- Add Form -->
   <div class="add-form" id="addForm">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-      <div class="form-title" style="margin-bottom:0">Nueva Producción</div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <span style="font-size:0.65rem;letter-spacing:1px;text-transform:uppercase;color:var(--text3)">Categoría:</span>
-        <select id="prodTag" style="background:var(--bg);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.8rem;padding:6px 10px;outline:none">
-          <option value="Ingreso">Ingreso</option>
-          <option value="Confección">Confección</option>
-          <option value="Sublimación">Sublimación</option>
-          <option value="Abono">Abono</option>
-          <option value="Saldo">Saldo</option>
-          <option value="Entrega">Entrega</option>
-          <option value="Otros">Otros</option>
-        </select>
-      </div>
-    </div>
+    <div class="form-title" style="margin-bottom:16px">Nueva Producción</div>
     <div style="display:grid;grid-template-columns:80px 2fr 1fr 1fr 1fr 1fr;gap:12px;margin-bottom:12px">
       <div class="form-group"><label>N° Orden</label><input type="text" id="prodOrden" placeholder="Auto" autocomplete="off" readonly style="opacity:0.7;cursor:not-allowed;text-align:center;font-weight:600;color:var(--accent)"></div>
       <div class="form-group"><label>Nombre / Cliente</label><input type="text" id="prodName" placeholder="Nombre de la producción…" list="listNombres" autocomplete="off"><datalist id="listNombres"></datalist></div>
-      <div class="form-group"><label>Tipo de producción</label><select id="prodTipo" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.8rem;padding:10px 12px;outline:none;transition:border-color 0.2s"><option value="">— Seleccionar —</option><option value="Confección">Confección</option><option value="Sublimación">Sublimación</option><option value="Otros">Otros</option></select></div>
+      <div class="form-group"><label>Tipo de producción</label><select id="prodTipo" onchange="renderCantidadFields(this.value)" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.8rem;padding:10px 12px;outline:none;transition:border-color 0.2s"><option value="">— Seleccionar —</option><option value="Confección">Confección</option><option value="Sublimación">Sublimación</option><option value="Otros">Otros</option></select></div>
       
       <!-- Selector de Diseñador Actualizado -->
       <div class="form-group">
@@ -188,16 +174,7 @@
         <span style="font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--text3)">Cantidad de prendas</span>
         <span id="totalPrendasBadge" class="cantidad-total-badge">Total: 0 prendas</span>
       </div>
-      <div class="cantidad-grid">
-        <div class="cantidad-item"><label>Camisetas</label><input type="number" id="cantCamisetas" placeholder="0" min="0" oninput="calcTotalPrendas()"></div>
-        <div class="cantidad-item"><label>Conjuntos</label><input type="number" id="cantConjuntos" placeholder="0" min="0" oninput="calcTotalPrendas()"></div>
-        <div class="cantidad-item"><label>Polos</label><input type="number" id="cantPolos" placeholder="0" min="0" oninput="calcTotalPrendas()"></div>
-        <div class="cantidad-item"><label>Buzos</label><input type="number" id="cantBuzos" placeholder="0" min="0" oninput="calcTotalPrendas()"></div>
-        <div class="cantidad-item"><label>Gorros</label><input type="number" id="cantGorros" placeholder="0" min="0" oninput="calcTotalPrendas()"></div>
-        <div class="cantidad-item"><label>Shorts</label><input type="number" id="cantShorts" placeholder="0" min="0" oninput="calcTotalPrendas()"></div>
-        <div class="cantidad-item"><label>Chaquetas</label><input type="number" id="cantChaquetas" placeholder="0" min="0" oninput="calcTotalPrendas()"></div>
-        <div class="cantidad-item"><label>Otros</label><input type="number" id="cantOtros" placeholder="0" min="0" oninput="calcTotalPrendas()"></div>
-      </div>
+      <div class="cantidad-grid" id="cantidadGrid"></div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px">
       <div class="form-group"><label>Valor Total ($)</label><input type="number" id="prodMonto" placeholder="0" min="0" oninput="calcSaldo()"></div>
@@ -412,27 +389,72 @@ function editProduction(id) {
   document.getElementById('prodDiseñador').value = p.diseñador || '';
   document.getElementById('prodDate').value = p.date || '';
   document.getElementById('prodFechaEntrega').value = p.fechaEntrega || '';
-  document.getElementById('prodTag').value = p.tag || 'Ingreso';
   document.getElementById('prodMonto').value = p.monto || '';
   document.getElementById('prodAbono').value = p.abono || '';
   document.getElementById('prodSaldo').value = p.saldo || '';
-  const c = p.cantidad || {};
-  document.getElementById('cantCamisetas').value = c.camisetas || '';
-  document.getElementById('cantConjuntos').value = c.conjuntos || '';
-  document.getElementById('cantPolos').value = c.polos || '';
-  document.getElementById('cantBuzos').value = c.buzos || '';
-  document.getElementById('cantGorros').value = c.gorros || '';
-  document.getElementById('cantShorts').value = c.shorts || '';
-  document.getElementById('cantChaquetas').value = c.chaquetas || '';
-  document.getElementById('cantOtros').value = c.otros || '';
-  calcTotalPrendas();
+  renderCantidadFields(p.tipo || '', p.cantidad || {});
   document.querySelector('.btn-add').textContent = 'Actualizar';
   f.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+const CANTIDAD_FIELDS = {
+  'Confección': ['camiseta','conjunto','manta','banner','panuelos','panoletas'],
+  'Sublimación': ['camisetas','conjuntos','manta','banner','panuelos','panoletas','buzo','polerones','lienzo','otros'],
+  'Otros': ['otros'],
+  '': []
+};
+const PRENDA_LABELS = { camiseta:'Camiseta', camisetas:'Camisetas', conjunto:'Conjunto', conjuntos:'Conjuntos', manta:'Manta', banner:'Banner', panuelos:'Pañuelos', panoletas:'Pañoletas', buzo:'Buzo', polerones:'Polerones', lienzo:'Lienzo', otros:'Otros' };
+
+function renderCantidadFields(tipo, values) {
+  values = values || {};
+  const keys = CANTIDAD_FIELDS[tipo] || [];
+  const grid = document.getElementById('cantidadGrid');
+  if (!grid) return;
+  if (keys.length === 0) {
+    grid.innerHTML = '<div style="grid-column:1/-1;font-size:0.75rem;color:var(--text3);padding:2px 0">Selecciona un tipo de producción para ver los campos de prendas.</div>';
+    calcTotalPrendas();
+    return;
+  }
+  grid.innerHTML = keys.map(k => {
+    const label = PRENDA_LABELS[k] || k;
+    const val = values[k] || '';
+    if (k === 'otros') {
+      const desc = values.otrosDesc || '';
+      return `<div class="cantidad-item" style="grid-column:span 2"><label>Otros</label><div style="display:flex;gap:6px"><input type="number" id="cant_otros" placeholder="0" min="0" value="${val}" style="flex:0 0 70px" oninput="calcTotalPrendas()"><input type="text" id="cant_otros_desc" placeholder="Especificar…" value="${desc}" style="flex:1;text-align:left;text-transform:none;font-weight:400"></div></div>`;
+    }
+    return `<div class="cantidad-item"><label>${label}</label><input type="number" id="cant_${k}" placeholder="0" min="0" value="${val}" oninput="calcTotalPrendas()"></div>`;
+  }).join('');
+  calcTotalPrendas();
+}
+
+function buildCantidadFromForm() {
+  const tipo = document.getElementById('prodTipo').value;
+  const keys = CANTIDAD_FIELDS[tipo] || [];
+  const cantidad = {};
+  keys.forEach(k => {
+    const el = document.getElementById('cant_' + k);
+    cantidad[k] = el ? (parseInt(el.value) || 0) : 0;
+  });
+  if (keys.includes('otros')) {
+    const descEl = document.getElementById('cant_otros_desc');
+    cantidad.otrosDesc = descEl ? descEl.value.trim() : '';
+  }
+  return cantidad;
+}
+
+function prendasDetalleTexto(p) {
+  if (!p.cantidad) return p.prenda || '—';
+  const parts = Object.entries(p.cantidad).filter(([k,v]) => k !== 'otrosDesc' && v > 0).map(([k,v]) => {
+    const label = (k === 'otros' && p.cantidad.otrosDesc) ? p.cantidad.otrosDesc : (PRENDA_LABELS[k] || k);
+    return `${v} ${label.toLowerCase()}`;
+  });
+  return parts.length ? parts.join(', ') : '—';
+}
+
 function calcTotalPrendas() {
-  const campos = ['cantCamisetas','cantConjuntos','cantPolos','cantBuzos','cantGorros','cantShorts','cantChaquetas','cantOtros'];
-  const total = campos.reduce((s, id) => s + (parseInt(document.getElementById(id).value) || 0), 0);
+  const inputs = document.querySelectorAll('#cantidadGrid input[type=number]');
+  let total = 0;
+  inputs.forEach(i => { total += (parseInt(i.value) || 0); });
   document.getElementById('totalPrendasBadge').textContent = `Total: ${total} prenda${total !== 1 ? 's' : ''}`;
 }
 
@@ -450,13 +472,11 @@ function toggleForm() {
   document.querySelector('.btn-add').textContent = 'Guardar';
   editingId = null;
   if (open) {
-    ['prodName','prodDiseñador','prodDate','prodFechaEntrega','prodMonto','prodAbono','prodSaldo',
-     'cantCamisetas','cantConjuntos','cantPolos','cantBuzos','cantGorros','cantShorts','cantChaquetas','cantOtros']
+    ['prodName','prodDiseñador','prodDate','prodFechaEntrega','prodMonto','prodAbono','prodSaldo']
       .forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
-    document.getElementById('prodTag').value = 'Ingreso';
     document.getElementById('prodTipo').value = '';
+    renderCantidadFields('');
     document.getElementById('prodOrden').value = getNextOrden();
-    calcTotalPrendas();
   }
 }
 
@@ -469,27 +489,18 @@ function calcSaldo() {
 function addProduction() {
   const name = document.getElementById('prodName').value.trim();
   const date = document.getElementById('prodDate').value;
-  const tag = document.getElementById('prodTag').value;
+  const tipo = document.getElementById('prodTipo').value;
   if (!name || !date) { alert('Completa el nombre y la fecha.'); return; }
   if (!date.startsWith(String(currentViewYear))) { alert('Por favor selecciona una fecha dentro de ' + currentViewYear + '.'); return; }
   const monto = parseFloat(document.getElementById('prodMonto').value) || 0;
   const abono = parseFloat(document.getElementById('prodAbono').value) || 0;
-  const cantidad = {
-    camisetas: parseInt(document.getElementById('cantCamisetas').value) || 0,
-    conjuntos: parseInt(document.getElementById('cantConjuntos').value) || 0,
-    polos: parseInt(document.getElementById('cantPolos').value) || 0,
-    buzos: parseInt(document.getElementById('cantBuzos').value) || 0,
-    gorros: parseInt(document.getElementById('cantGorros').value) || 0,
-    shorts: parseInt(document.getElementById('cantShorts').value) || 0,
-    chaquetas: parseInt(document.getElementById('cantChaquetas').value) || 0,
-    otros: parseInt(document.getElementById('cantOtros').value) || 0,
-  };
-  const totalPrendas = Object.values(cantidad).reduce((s,v)=>s+v,0);
+  const cantidad = buildCantidadFromForm();
+  const totalPrendas = Object.entries(cantidad).filter(([k]) => k !== 'otrosDesc').reduce((s,[,v]) => s + (v||0), 0);
   let orden = editingId ? document.getElementById('prodOrden').value.trim() : getNextOrden();
 
   const prod = {
-    id: editingId || Date.now(), name, date, tag, orden, prenda: document.getElementById('prodTipo').value,
-    tipo: document.getElementById('prodTipo').value, diseñador: document.getElementById('prodDiseñador').value.trim(),
+    id: editingId || Date.now(), name, date, tag: tipo, orden, prenda: tipo,
+    tipo, diseñador: document.getElementById('prodDiseñador').value.trim(),
     fechaEntrega: document.getElementById('prodFechaEntrega').value, monto, abono, saldo: Math.max(0, monto - abono), cantidad, totalPrendas
   };
   if (editingId) {
@@ -628,9 +639,11 @@ function renderTimeline() {
     let entregaLabel = '—';
     if (p.fechaEntrega) { const [ey,em,ed] = p.fechaEntrega.split('-'); entregaLabel = `${parseInt(ed)} ${MONTHS_SHORT[parseInt(em)-1]}`; }
     let prendasHtml = '—';
-    if (p.cantidad) {
-      const labels = {camisetas:'Cam.',conjuntos:'Conj.',polos:'Polo',buzos:'Buzo',gorros:'Gorr.',shorts:'Short',chaquetas:'Chaq.',otros:'Otros'};
-      const items = Object.entries(p.cantidad).filter(([,v]) => v > 0).map(([k,v]) => `<span style="display:inline-block;margin-right:4px;margin-bottom:2px;background:var(--accent)14;border:1px solid var(--accent)30;border-radius:2px;padding:1px 5px;font-size:0.7rem;color:var(--accent);white-space:nowrap"><b>${v}</b> ${labels[k]||k}</span>`);
+    if (p.cantidad && Object.keys(p.cantidad).length) {
+      const items = Object.entries(p.cantidad).filter(([k,v]) => k !== 'otrosDesc' && v > 0).map(([k,v]) => {
+        const label = (k === 'otros' && p.cantidad.otrosDesc) ? p.cantidad.otrosDesc : (PRENDA_LABELS[k] || k);
+        return `<span style="display:inline-block;margin-right:4px;margin-bottom:2px;background:var(--accent)14;border:1px solid var(--accent)30;border-radius:2px;padding:1px 5px;font-size:0.7rem;color:var(--accent);white-space:nowrap"><b>${v}</b> ${label}</span>`;
+      });
       if (items.length > 0) prendasHtml = `<div style="line-height:1.8">${items.join('')}</div>`;
     } else if (p.prenda) { prendasHtml = `<span style="font-size:0.85rem;color:var(--text2)">${p.prenda}</span>`; }
     let filtroExtra = '';
@@ -705,30 +718,21 @@ function exportPDF() {
   };
 
   const rows = filtered.map(p => {
-    const estado = p.saldo > 0 ? 'Saldo pendiente' : (p.monto > 0 && p.saldo === 0 ? 'Pagado' : (p.abono > 0 ? 'Abono' : '—'));
     return [
       p.orden || '—', p.name || '—', p.tipo || '—', p.diseñador || '—',
-      fmtFecha(p.date), fmtFecha(p.fechaEntrega), p.totalPrendas != null ? String(p.totalPrendas) : '—',
-      formatPesos(p.monto || 0), formatPesos(p.abono || 0), formatPesos(p.saldo || 0), estado
+      fmtFecha(p.date), fmtFecha(p.fechaEntrega), prendasDetalleTexto(p)
     ];
   });
 
   doc.autoTable({
     startY: y,
     margin: { left: marginX, right: marginX },
-    head: [['N° Orden', 'Nombre / Cliente', 'Tipo', 'Diseñador', 'F. Ingreso', 'F. Entrega', 'Prendas', 'Monto', 'Abono', 'Saldo', 'Estado']],
+    head: [['N° Orden', 'Nombre / Cliente', 'Tipo', 'Diseñador', 'F. Ingreso', 'F. Entrega', 'Detalle de Prendas']],
     body: rows,
     styles: { font: 'helvetica', fontSize: 8, cellPadding: 4 },
     headStyles: { fillColor: [30, 26, 20], textColor: 255 },
     alternateRowStyles: { fillColor: [245, 242, 235] },
-    didParseCell: function(data) {
-      if (data.section === 'body' && data.column.index === 10) {
-        const val = data.cell.raw;
-        if (val === 'Saldo pendiente') data.cell.styles.textColor = [232, 64, 64];
-        else if (val === 'Pagado') data.cell.styles.textColor = [90, 60, 160];
-        else if (val === 'Abono') data.cell.styles.textColor = [61, 111, 168];
-      }
-    }
+    columnStyles: { 6: { cellWidth: 260 } }
   });
 
   if (rows.length === 0) {
