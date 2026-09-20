@@ -259,7 +259,7 @@ function buildTopBar(tab) {
     var cls = tab===t[0] ? 'tab on' : 'tab';
     return '<button class="'+cls+'" data-tab="'+t[0]+'" onclick="goTab(this)">'+t[1]+'</button>';
   }).join('');
-  return '<div class="topbar"><div class="brand"><div class="brand-tag">Sistema de Ventas</div><div class="brand-name">SUBLI<span>PRO</span></div></div><div class="tabs">'+tabHtml+'</div></div>';
+  return '<div class="topbar"><div class="brand"><div class="brand-tag">Ventas</div><div class="brand-name">Creamos <span>Imagen</span></div></div><div class="tabs">'+tabHtml+'</div></div>';
 }
 
 function goTab(el){ setState({tab:el.getAttribute('data-tab')}); }
