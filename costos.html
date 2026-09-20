@@ -95,7 +95,7 @@ async function loadFromCloud(key) {
 // ============================================================
 var defaultCfg = {
   tela: 2500, papelSub: 800, tinta: 50, papelAdh: 1200, 
-  minManoObra: 150, 
+  minManoObra: 150, minDiseno: 150,
   hilos: 200, maquina: 300, admin: 1000, 
   margen: 20,
   rrhh: [
@@ -123,7 +123,7 @@ var state = {
   fichas: [],
   config: JSON.parse(JSON.stringify(defaultCfg)),
   showForm: false,
-  form: { id: null, nombre: "", tela: "", papelSub: "", tinta: "", papelAdh: "", tiempoManoObra: "" }
+  form: { id: null, nombre: "", tela: "", papelSub: "", tinta: "", papelAdh: "", tiempoManoObra: "", tiempoDiseno: "" }
 };
 
 function fmt(n) { return "$ " + Math.round(n).toLocaleString("es-CL"); }
@@ -139,6 +139,7 @@ function calcularCostosForm() {
   var c = state.config;
   
   var valMinutoMO = c.minManoObra !== undefined ? c.minManoObra : 150;
+  var valMinutoDiseno = c.minDiseno !== undefined ? c.minDiseno : 150;
   
   var valTela = (parseFloat(f.tela)||0) * c.tela;
   var valPapelSub = (parseFloat(f.papelSub)||0) * c.papelSub;
@@ -146,9 +147,10 @@ function calcularCostosForm() {
   var valPapelAdh = (parseFloat(f.papelAdh)||0) * c.papelAdh;
   
   var valManoObra = (parseFloat(f.tiempoManoObra)||0) * valMinutoMO;
+  var valDiseno = (parseFloat(f.tiempoDiseno)||0) * valMinutoDiseno;
   
   var mat = valTela + valPapelSub + valTinta + valPapelAdh;
-  var mo = valManoObra;
+  var mo = valManoObra + valDiseno;
   var fijos = c.hilos + c.maquina + c.admin;
   
   var total = mat + mo + fijos;
@@ -156,7 +158,7 @@ function calcularCostosForm() {
   
   return {
     mat: mat, mo: mo, fijos: fijos, total: total, sugerido: sugerido,
-    valTela: valTela, valPapelSub: valPapelSub, valTinta: valTinta, valPapelAdh: valPapelAdh, valManoObra: valManoObra
+    valTela: valTela, valPapelSub: valPapelSub, valTinta: valTinta, valPapelAdh: valPapelAdh, valManoObra: valManoObra, valDiseno: valDiseno
   };
 }
 
@@ -272,6 +274,7 @@ function buildAdmin() {
 function buildConfig() {
   var c = state.config;
   var valMinutoMO = c.minManoObra !== undefined ? c.minManoObra : 150;
+  var valMinutoDiseno = c.minDiseno !== undefined ? c.minDiseno : 150;
   
   return '<div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><h2>Configuración de Costos Base</h2><p style="color:var(--muted);font-size:13px;">Actualiza los precios de tus insumos. Las nuevas fichas usarán estos valores.</p></div>'+
     '<div class="grid-config">'+
@@ -282,6 +285,7 @@ function buildConfig() {
         '<div class="fld"><label>Papel Adhesivo (por Metro/Hoja)</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+c.papelAdh+'" onchange="setConfig(\'papelAdh\',this.value)"></div></div>'+
       '</div>'+
       '<div class="card"><div class="card-title">Mano de Obra (Por Minuto)</div>'+
+        '<div class="fld"><label>Valor Minuto Diseño</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+valMinutoDiseno+'" onchange="setConfig(\'minDiseno\',this.value)"><span class="fld-suffix">/ min</span></div></div>'+
         '<div class="fld"><label>Valor Minuto Planchado y Confección</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+valMinutoMO+'" onchange="setConfig(\'minManoObra\',this.value)"><span class="fld-suffix">/ min</span></div></div>'+
       '</div>'+
       '<div class="card"><div class="card-title">Costos Fijos Operativos (Por Prenda)</div>'+
@@ -341,8 +345,9 @@ function buildModal() {
         '</div>'+
         
         '<div style="margin-top:24px;margin-bottom:12px;font-weight:700;font-size:12px;color:var(--gold);text-transform:uppercase;">2. Tiempos de Trabajo</div>'+
-        '<div style="display:grid;grid-template-columns:1fr;gap:12px">'+
-          '<div class="fld"><label>Tiempo Planchado y Confección (Minutos totales)</label><input type="number" value="'+f.tiempoManoObra+'" oninput="state.form.tiempoManoObra=this.value; updateLiveCalc()" placeholder="Ej: 45"></div>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'+
+          '<div class="fld"><label>Tiempo Diseño (Minutos)</label><input type="number" value="'+f.tiempoDiseno+'" oninput="state.form.tiempoDiseno=this.value; updateLiveCalc()" placeholder="Ej: 20"></div>'+
+          '<div class="fld"><label>Tiempo Planchado/Confección (Minutos)</label><input type="number" value="'+f.tiempoManoObra+'" oninput="state.form.tiempoManoObra=this.value; updateLiveCalc()" placeholder="Ej: 45"></div>'+
         '</div>'+
       '</div>'+
       
@@ -373,9 +378,10 @@ function abrirForm(idx) {
     var f = state.fichas[idx];
     var tMo = f.inputs.tiempoManoObra;
     if (tMo === undefined) { tMo = (parseFloat(f.inputs.planchado)||0) + (parseFloat(f.inputs.confeccion)||0); }
-    state.form = { id: idx, nombre: f.nombre, tela: f.inputs.tela, papelSub: f.inputs.papelSub, tinta: f.inputs.tinta, papelAdh: f.inputs.papelAdh, tiempoManoObra: tMo };
+    var tDiseno = f.inputs.tiempoDiseno || "";
+    state.form = { id: idx, nombre: f.nombre, tela: f.inputs.tela, papelSub: f.inputs.papelSub, tinta: f.inputs.tinta, papelAdh: f.inputs.papelAdh, tiempoManoObra: tMo, tiempoDiseno: tDiseno };
   } else {
-    state.form = { id: null, nombre: "", tela: "", papelSub: "", tinta: "", papelAdh: "", tiempoManoObra: "" };
+    state.form = { id: null, nombre: "", tela: "", papelSub: "", tinta: "", papelAdh: "", tiempoManoObra: "", tiempoDiseno: "" };
   }
   setState({showForm:true});
 }
@@ -387,7 +393,7 @@ function guardarFicha() {
   var ficha = {
     nombre: state.form.nombre,
     margen: state.config.margen,
-    inputs: { tela: state.form.tela, papelSub: state.form.papelSub, tinta: state.form.tinta, papelAdh: state.form.papelAdh, tiempoManoObra: state.form.tiempoManoObra },
+    inputs: { tela: state.form.tela, papelSub: state.form.papelSub, tinta: state.form.tinta, papelAdh: state.form.papelAdh, tiempoManoObra: state.form.tiempoManoObra, tiempoDiseno: state.form.tiempoDiseno },
     mat: res.mat, mo: res.mo, fijos: res.fijos, total: res.total, sugerido: res.sugerido
   };
   
@@ -429,6 +435,7 @@ async function initApp() {
       if (cloudData.config) {
         Object.assign(state.config, cloudData.config);
         if (state.config.minManoObra === undefined) state.config.minManoObra = 150;
+        if (state.config.minDiseno === undefined) state.config.minDiseno = 150;
         if (!state.config.rrhh) state.config.rrhh = JSON.parse(JSON.stringify(defaultCfg.rrhh));
         else {
           state.config.rrhh.forEach(p => { if (p.comision === undefined) p.comision = 0; });
@@ -439,6 +446,7 @@ async function initApp() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(cloudData));
     } else if (!cloudData && rawLocal) {
       if(state.config.rrhh) state.config.rrhh.forEach(p => { if (p.comision === undefined) p.comision = 0; });
+      if (state.config.minDiseno === undefined) state.config.minDiseno = 150;
     }
   } catch (e) {}
   render();
