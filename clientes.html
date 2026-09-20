@@ -93,22 +93,44 @@ input,button{font-family:inherit;outline:none}
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbxP5-vB59e80qpXdx4AcCyS28C4H58thdh0XXtLcDWZD8Q_47fDbBvLn1ahqx7RoJor/exec";
+const CLOUD_TOKEN = "b5bd161b4ef581c6114b7bb4";
 const KEY_CLIENTES = "clientes_ci_v1";
-const KEY_PRODS = "prods2026"; // Para leer el historial
+const PROD_YEARS = [2025, 2026, 2027, 2028, 2029, 2030, 2031]; // Mismos años que soporta el Calendario de Producciones
 
 let clientes = [];
 let producciones = [];
 let editId = null;
 
 async function saveToCloud(key, dataObj) {
-  try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj) }) }); } catch (e) {}
+  try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj), token: CLOUD_TOKEN }) }); } catch (e) {}
 }
 async function loadFromCloud(key) {
   try {
-    const res = await fetch(API_URL + "?key=" + key);
+    const res = await fetch(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
     const json = await res.json();
     return json.valor ? JSON.parse(json.valor) : null;
   } catch (e) { return null; }
+}
+
+async function cargarProducciones() {
+  const porAño = await Promise.all(PROD_YEARS.map(async y => {
+    const key = 'prods' + y;
+    const cloudData = await loadFromCloud(key);
+    if (cloudData) return cloudData;
+    try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) { return []; }
+  }));
+  producciones = porAño.flat();
+}
+
+const PRENDA_LABELS = { camiseta:'Camiseta', camisetas:'Camisetas', conjunto:'Conjunto', conjuntos:'Conjuntos', manta:'Manta', banner:'Banner', panuelos:'Pañuelos', panoletas:'Pañoletas', buzo:'Buzo', polerones:'Polerones', lienzo:'Lienzo', otros:'Otros' };
+
+function prendasDetalleTexto(p) {
+  if (!p.cantidad) return p.prenda || p.tipo || '—';
+  const parts = Object.entries(p.cantidad).filter(([k,v]) => k !== 'otrosDesc' && v > 0).map(([k,v]) => {
+    const label = (k === 'otros' && p.cantidad.otrosDesc) ? p.cantidad.otrosDesc : (PRENDA_LABELS[k] || k);
+    return `${v} ${label.toLowerCase()}`;
+  });
+  return parts.length ? parts.join(', ') : (p.tipo || '—');
 }
 
 function guardarLocal() {
@@ -158,17 +180,17 @@ function abrirForm(id) {
     document.getElementById('c-dir').value = c.direccion || '';
     btnDel.style.display = 'block';
     
-    // Cargar historial
-    const historial = producciones.filter(p => p.name.toLowerCase() === c.razonSocial.toLowerCase());
+    // Cargar historial (cruzando por nombre con las producciones del Calendario de Producciones)
+    const historial = producciones.filter(p => p.name && c.razonSocial && p.name.trim().toLowerCase() === c.razonSocial.trim().toLowerCase());
     if (historial.length > 0) {
       hist.style.display = 'block';
-      historial.sort((a,b) => new Date(b.date) - new Date(a.date));
+      historial.sort((a,b) => (b.date||'').localeCompare(a.date||''));
       document.getElementById('historialList').innerHTML = historial.slice(0,5).map(p => `
         <div class="hist-card">
-          <div class="hist-hdr"><span>F. Ingreso: ${p.date}</span><span style="color:var(--teal)">#${p.orden||'-'}</span></div>
+          <div class="hist-hdr"><span>F. Ingreso: ${p.date || '-'}</span><span style="color:var(--teal)">#${p.orden||'-'}</span></div>
           <div class="hist-bdy">
-            <span style="font-weight:700;color:var(--dark)">${p.tag}</span>
-            <span style="font-size:12px;color:var(--muted)">${p.prenda || p.tipo || 'Producción'}</span>
+            <span style="font-weight:700;color:var(--dark)">${p.tipo || p.tag || 'Producción'}</span>
+            <span style="font-size:12px;color:var(--muted)">${prendasDetalleTexto(p)}</span>
           </div>
         </div>
       `).join('');
@@ -223,11 +245,10 @@ window.onload = async function() {
   const cloudClientes = await loadFromCloud(KEY_CLIENTES);
   if (cloudClientes) clientes = cloudClientes;
   else clientes = JSON.parse(localStorage.getItem(KEY_CLIENTES) || '[]');
-  
-  // Cargar Producciones (para el historial)
-  const cloudProds = await loadFromCloud(KEY_PRODS);
-  if(cloudProds) producciones = cloudProds;
-  
+
+  // Cargar Producciones de todos los años (para el historial)
+  await cargarProducciones();
+
   renderClientes();
 };
 </script>
