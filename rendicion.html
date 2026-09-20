@@ -418,7 +418,7 @@ async function exportXLSX(){
   if(typeof ExcelJS === 'undefined'){ alert('No se pudo cargar el generador de Excel. Verifica tu conexión a internet e inténtalo nuevamente.'); return; }
 
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'SUBLIPRO - Creamos Imagen';
+  wb.creator = 'Creamos Imagen';
   wb.created = new Date();
   const ws = wb.addWorksheet('Rendición ' + currentYear, { views: [{ state: 'frozen', ySplit: 3 }] });
 
@@ -431,7 +431,7 @@ async function exportXLSX(){
 
   ws.mergeCells(1, 1, 1, cols.length);
   const titleCell = ws.getCell(1, 1);
-  titleCell.value = 'SUBLIPRO — RENDICIÓN DE CAJA ' + currentYear;
+  titleCell.value = 'CREAMOS IMAGEN — RENDICIÓN DE CAJA ' + currentYear;
   titleCell.font = { bold:true, size:14, color:{argb:'FFFFFFFF'} };
   titleCell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF2C5F2E'} };
   titleCell.alignment = { vertical:'middle' };
@@ -489,7 +489,7 @@ async function exportXLSX(){
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `SUBLIPRO_Rendicion_${currentYear}.xlsx`;
+  a.download = `Creamos_Imagen_Rendicion_${currentYear}.xlsx`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
