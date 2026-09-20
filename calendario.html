@@ -5,21 +5,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Calendario de Producciones 2026</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Mono:wght@300;400;500&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
   :root {
     --bg: #0e0c09; --surface: #181410; --card: #1f1a14; --border: #2e2619;
     --accent: #e8a020; --accent2: #c45c1a; --accent3: #5a8f5a; --accent4: #3d6fa8;
-    --accent5: #8b3fa8; --text: #f0e8d8; --text2: #a09070; --text3: #6b5a40;
+    --accent5: #8b3fa8; --text: #f0e8d8; --text2: #a09070; --text3: #c2b090;
     --today: #e8a020; --prod1: #2a9d8f; --prod2: #e76f51; --prod3: #a855f7;
     --prod4: #3d6fa8; --prod5: #e8a020;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  ::placeholder { color: var(--text3); opacity: 1; }
   body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; min-height: 100vh; overflow-x: hidden; }
   body::before { content: ''; position: fixed; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events: none; z-index: 1000; opacity: 0.4; }
   .app { max-width: 1400px; margin: 0 auto; padding: 40px 24px; }
   .header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 48px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
   .header-left h1 { font-family: 'Playfair Display', serif; font-size: clamp(2.5rem, 6vw, 5rem); font-weight: 900; line-height: 0.9; letter-spacing: -2px; color: var(--text); }
   .header-left h1 span { color: var(--accent); display: block; }
+  .header-left h1 select { color: var(--accent); display: block; background: transparent; border: none; font-family: inherit; font-size: inherit; font-weight: inherit; letter-spacing: inherit; line-height: inherit; cursor: pointer; padding: 0; margin: 0; outline: none; }
+  .header-left h1 select:hover, .header-left h1 select:focus { opacity: 0.85; }
   .header-left p { margin-top: 12px; font-size: 0.75rem; color: var(--text3); letter-spacing: 3px; text-transform: uppercase; }
   .header-right { text-align: right; }
   .today-badge { display: inline-block; background: var(--accent); color: var(--bg); font-size: 0.65rem; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; padding: 6px 14px; border-radius: 2px; margin-bottom: 8px; }
@@ -59,7 +64,7 @@
   .large-day-cell.today { border-color: var(--accent); color: var(--text); font-weight: 600; background: rgba(232, 160, 32, 0.05); }
   .large-day-cell.today::after { content: 'HOY'; position: absolute; top: 12px; right: 10px; font-size: 0.55rem; background: var(--accent); color: var(--bg); padding: 2px 6px; border-radius: 10px; font-weight: 700; letter-spacing: 1px; }
   .large-day-dots { display: flex; flex-direction: column; gap: 4px; margin-top: auto; padding-top: 12px; width: 100%; }
-  .large-day-bar { font-size: 0.6rem; padding: 4px 6px; border-radius: 3px; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; text-shadow: 0 1px 2px rgba(0,0,0,0.6); box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+  .large-day-bar { font-size: 0.6rem; padding: 4px 6px 4px 8px; border-radius: 3px; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; text-shadow: 0 1px 2px rgba(0,0,0,0.6); box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
 
   /* NAVEGADOR DE MESES INFERIOR */
   .month-nav { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 48px; background: var(--surface); padding: 16px; border-radius: 6px; border: 1px solid var(--border); }
@@ -100,13 +105,14 @@
 </style>
 </head>
 <body>
+<div id="cloudSaveBadge" style="position:fixed;bottom:18px;right:18px;z-index:999998;display:none;align-items:center;gap:8px;padding:8px 16px;border-radius:2px;font-family:'DM Mono',monospace;font-size:0.7rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;border:1px solid var(--border);box-shadow:0 6px 20px rgba(0,0,0,0.5);transition:opacity 0.25s ease;"></div>
 <div class="app">
 
   <!-- Header -->
   <div class="header">
     <div class="header-left">
       <a href="index.html" style="display:inline-block; margin-bottom:12px; color:var(--accent); text-decoration:none; font-size:0.75rem; font-weight:bold; text-transform:uppercase; letter-spacing:1px; transition:opacity 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">← Volver al Menú</a>
-      <h1>Calendario<span>2026</span></h1>
+      <h1>Calendario<select id="yearSelect" onchange="changeYear(this.value)"><option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option><option value="2028">2028</option><option value="2029">2029</option><option value="2030">2030</option><option value="2031">2031</option></select></h1>
       <p>Gestor de producciones &mdash; Planificación anual</p>
     </div>
     <div class="header-right">
@@ -133,37 +139,21 @@
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
       <span class="controls-label">Estado:</span>
+      <span style="font-size:0.6rem;color:var(--text3);letter-spacing:0.5px;margin-right:6px">(borde izquierdo en el calendario)</span>
       <button class="tag-btn" id="fbtn-estado-" onclick="setFilter('estado','')"><span class="tag-dot" style="background:#a09070"></span> Todos</button>
       <button class="tag-btn" id="fbtn-estado-saldo" onclick="setFilter('estado','saldo')"><span class="tag-dot" style="background:#e84040"></span> Con saldo pendiente</button>
       <button class="tag-btn" id="fbtn-estado-abono" onclick="setFilter('estado','abono')"><span class="tag-dot" style="background:var(--prod4)"></span> Con abono registrado</button>
       <button class="tag-btn" id="fbtn-estado-pagado" onclick="setFilter('estado','pagado')"><span class="tag-dot" style="background:var(--prod3)"></span> Pagadas</button>
-      <button class="tag-btn" id="fbtn-tipo-Confección" onclick="setFilter('tipo','Confección')"><span class="tag-dot" style="background:var(--prod2)"></span> Confección</button>
-      <button class="tag-btn" id="fbtn-tipo-Sublimación" onclick="setFilter('tipo','Sublimación')"><span class="tag-dot" style="background:var(--prod3)"></span> Sublimación</button>
-      <button class="tag-btn" id="fbtn-tipo-Otros" onclick="setFilter('tipo','Otros')"><span class="tag-dot" style="background:#6b7280"></span> Otros</button>
     </div>
   </div>
 
   <!-- Add Form -->
   <div class="add-form" id="addForm">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-      <div class="form-title" style="margin-bottom:0">Nueva Producción</div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <span style="font-size:0.65rem;letter-spacing:1px;text-transform:uppercase;color:var(--text3)">Categoría:</span>
-        <select id="prodTag" style="background:var(--bg);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.8rem;padding:6px 10px;outline:none">
-          <option value="Ingreso">Ingreso</option>
-          <option value="Confección">Confección</option>
-          <option value="Sublimación">Sublimación</option>
-          <option value="Abono">Abono</option>
-          <option value="Saldo">Saldo</option>
-          <option value="Entrega">Entrega</option>
-          <option value="Otros">Otros</option>
-        </select>
-      </div>
-    </div>
+    <div class="form-title" style="margin-bottom:16px">Nueva Producción</div>
     <div style="display:grid;grid-template-columns:80px 2fr 1fr 1fr 1fr 1fr;gap:12px;margin-bottom:12px">
       <div class="form-group"><label>N° Orden</label><input type="text" id="prodOrden" placeholder="Auto" autocomplete="off" readonly style="opacity:0.7;cursor:not-allowed;text-align:center;font-weight:600;color:var(--accent)"></div>
-      <div class="form-group"><label>Nombre / Cliente</label><input type="text" id="prodName" placeholder="Nombre de la empresa/cliente…" list="listNombres" autocomplete="off"><datalist id="listNombres"></datalist></div>
-      <div class="form-group"><label>Tipo de producción</label><select id="prodTipo" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.8rem;padding:10px 12px;outline:none;transition:border-color 0.2s"><option value="">— Seleccionar —</option><option value="Confección">Confección</option><option value="Sublimación">Sublimación</option><option value="Otros">Otros</option></select></div>
+      <div class="form-group"><label>Nombre / Cliente</label><input type="text" id="prodName" placeholder="Nombre de la producción…" list="listNombres" autocomplete="off"><datalist id="listNombres"></datalist></div>
+      <div class="form-group"><label>Tipo de producción</label><select id="prodTipo" onchange="renderCantidadFields(this.value)" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.8rem;padding:10px 12px;outline:none;transition:border-color 0.2s"><option value="">— Seleccionar —</option><option value="Confección">Confección</option><option value="Sublimación">Sublimación</option><option value="Otros">Otros</option></select></div>
       
       <!-- Selector de Diseñador Actualizado -->
       <div class="form-group">
@@ -185,16 +175,7 @@
         <span style="font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--text3)">Cantidad de prendas</span>
         <span id="totalPrendasBadge" class="cantidad-total-badge">Total: 0 prendas</span>
       </div>
-      <div class="cantidad-grid">
-        <div class="cantidad-item"><label>Camisetas</label><input type="number" id="cantCamisetas" placeholder="0" min="0" oninput="calcTotalPrendas()"></div>
-        <div class="cantidad-item"><label>Conjuntos</label><input type="number" id="cantConjuntos" placeholder="0" min="0" oninput="calcTotalPrendas()"></div>
-        <div class="cantidad-item"><label>Polos</label><input type="number" id="cantPolos" placeholder="0" min="0" oninput="calcTotalPrendas()"></div>
-        <div class="cantidad-item"><label>Buzos</label><input type="number" id="cantBuzos" placeholder="0" min="0" oninput="calcTotalPrendas()"></div>
-        <div class="cantidad-item"><label>Gorros</label><input type="number" id="cantGorros" placeholder="0" min="0" oninput="calcTotalPrendas()"></div>
-        <div class="cantidad-item"><label>Shorts</label><input type="number" id="cantShorts" placeholder="0" min="0" oninput="calcTotalPrendas()"></div>
-        <div class="cantidad-item"><label>Chaquetas</label><input type="number" id="cantChaquetas" placeholder="0" min="0" oninput="calcTotalPrendas()"></div>
-        <div class="cantidad-item"><label>Otros</label><input type="number" id="cantOtros" placeholder="0" min="0" oninput="calcTotalPrendas()"></div>
-      </div>
+      <div class="cantidad-grid" id="cantidadGrid"></div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px">
       <div class="form-group"><label>Valor Total ($)</label><input type="number" id="prodMonto" placeholder="0" min="0" oninput="calcSaldo()"></div>
@@ -216,9 +197,6 @@
       <div class="section-title" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
         Producciones registradas
         <div style="display:flex;gap:8px;margin-left:auto">
-          <button class="toggle-form-btn" onclick="exportJSON()" title="Descargar todas las producciones como archivo JSON">↓ Exportar</button>
-          <label class="toggle-form-btn" style="cursor:pointer" title="Cargar producciones desde archivo JSON">↑ Importar<input type="file" accept=".json" onchange="importJSON(event)" style="display:none"></label>
-          <button class="toggle-form-btn" onclick="shareURL()" title="Copiar enlace con todas las producciones incluidas">🔗 Compartir</button>
           <button class="toggle-form-btn" onclick="exportPDF()" title="Exportar tabla y estadísticas a PDF" style="border-color:#e84040;color:#e84040">📄 PDF</button>
         </div>
       </div>
@@ -227,7 +205,7 @@
       </div>
     </div>
     <div class="stats-panel">
-      <div class="stat-card"><div class="stat-label">Total producciones</div><div class="stat-value" id="statTotal">0</div><div class="stat-sub">en todo el año 2026</div></div>
+      <div class="stat-card"><div class="stat-label">Total producciones</div><div class="stat-value" id="statTotal">0</div><div class="stat-sub" id="statYearLabel">en todo el año 2026</div></div>
       <div class="stat-card"><div class="stat-label">Distribución mensual</div><div class="month-bar-list" id="monthBars"></div></div>
     </div>
   </div>
@@ -237,15 +215,50 @@
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbxP5-vB59e80qpXdx4AcCyS28C4H58thdh0XXtLcDWZD8Q_47fDbBvLn1ahqx7RoJor/exec";
+const CLOUD_TOKEN = "b5bd161b4ef581c6114b7bb4";
 
 async function saveToCloud(key, dataObj) {
-  try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj) }) }); } 
-  catch (e) { console.error("Error guardando en la nube", e); }
+  try {
+    const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj), token: CLOUD_TOKEN }) });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return true;
+  } catch (e) { console.error("Error guardando en la nube", e); return false; }
+}
+
+let lastSyncedSnapshot = null;
+let _saveStatusTimer = null;
+
+function showSaveStatus(st) {
+  const el = document.getElementById('cloudSaveBadge');
+  if (!el) return;
+  clearTimeout(_saveStatusTimer);
+  el.style.display = 'flex';
+  el.style.opacity = '1';
+  if (st === 'saving') {
+    el.style.background = '#181410'; el.style.borderColor = 'var(--border)'; el.style.color = 'var(--text2)';
+    el.textContent = '⏳ Guardando…';
+  } else if (st === 'saved') {
+    el.style.background = '#132a18'; el.style.borderColor = '#2a9d8f'; el.style.color = '#7fd9c4';
+    el.textContent = '✓ Guardado';
+    _saveStatusTimer = setTimeout(() => { el.style.opacity = '0'; setTimeout(() => { el.style.display = 'none'; }, 300); }, 2200);
+  } else if (st === 'error') {
+    el.style.background = '#2e1414'; el.style.borderColor = '#e84040'; el.style.color = '#f08080';
+    el.textContent = '⚠ Error al guardar, revisa tu conexión';
+  }
+}
+
+async function checkForConflict(key) {
+  try {
+    const fresh = await loadFromCloud(key);
+    const freshStr = JSON.stringify(fresh || []);
+    if (lastSyncedSnapshot !== null && freshStr !== lastSyncedSnapshot) return true;
+    return false;
+  } catch (e) { return false; }
 }
 
 async function loadFromCloud(key) {
   try {
-    const res = await fetch(API_URL + "?key=" + key);
+    const res = await fetch(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
     const json = await res.json();
     return json.valor ? JSON.parse(json.valor) : null;
   } catch (e) { console.error("Error cargando de la nube", e); return null; }
@@ -255,22 +268,66 @@ const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto
 const MONTHS_SHORT = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DAYS = ['Lu','Ma','Mi','Ju','Vi','Sa','Do'];
 const TAG_COLORS = { 'Ingreso':'var(--prod1)', 'Confección':'var(--prod2)', 'Sublimación':'var(--prod3)', 'Abono':'var(--prod4)', 'Saldo':'var(--prod5)', 'Entrega':'#e84040', 'Otros':'#6b7280' };
+function estadoColor(p) {
+  if (p.saldo > 0) return '#e84040';
+  if (p.monto > 0 && p.saldo === 0) return '#a855f7';
+  if (p.abono > 0) return '#3d6fa8';
+  return 'transparent';
+}
 
 let productions = [];
-let clientesData = []; // Añadido para la base de datos de clientes
+let clientesData = []; // Base de datos de clientes
 const today = new Date();
 const todayStr = today.toISOString().slice(0,10);
+let currentViewYear = Math.min(2031, Math.max(2025, today.getFullYear()));
 let currentViewMonth = today.getMonth();
+
+function storageKey() { return 'prods' + currentViewYear; }
+
+async function loadYearData() {
+  const key = storageKey();
+  const cloudData = await loadFromCloud(key);
+  if (cloudData) { productions = cloudData; lastSyncedSnapshot = JSON.stringify(cloudData); }
+  else { productions = JSON.parse(localStorage.getItem(key) || '[]'); lastSyncedSnapshot = JSON.stringify(productions); }
+}
+
+function applyYearBounds() {
+  document.getElementById('prodDate').min = currentViewYear + '-01-01';
+  document.getElementById('prodDate').max = currentViewYear + '-12-31';
+  document.getElementById('prodFechaEntrega').min = currentViewYear + '-01-01';
+  document.getElementById('prodFechaEntrega').max = currentViewYear + '-12-31';
+  document.title = 'Calendario de Producciones ' + currentViewYear;
+}
+
+async function changeYear(newYearStr) {
+  const newYear = parseInt(newYearStr, 10);
+  if (newYear === currentViewYear) return;
+  currentViewYear = newYear;
+  applyYearBounds();
+  currentViewMonth = (currentViewYear === today.getFullYear()) ? today.getMonth() : 0;
+  await loadYearData();
+  renderAll(); updateDataLists();
+}
 
 document.getElementById('todayDisplay').textContent = today.toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long' });
 
-function save() {
-  localStorage.setItem('prods2026', JSON.stringify(productions));
-  saveToCloud('prods2026', productions);
-  updateDataLists();
+async function save() {
+  try {
+    const key = storageKey();
+    localStorage.setItem(key, JSON.stringify(productions));
+    showSaveStatus('saving');
+    const conflict = await checkForConflict(key);
+    if (conflict) {
+      const overwrite = confirm('Los datos en la nube cambiaron desde que cargaste esta página (probablemente los editaste desde otro dispositivo, o alguien más lo hizo). ¿Guardar de todas formas y sobrescribir con lo que tienes aquí?\n\nSi cancelas, recarga la página para ver los datos más recientes antes de seguir editando.');
+      if (!overwrite) { showSaveStatus('error'); return; }
+    }
+    const ok = await saveToCloud(key, productions);
+    if (ok) lastSyncedSnapshot = JSON.stringify(productions);
+    showSaveStatus(ok ? 'saved' : 'error');
+    updateDataLists();
+  } catch (e) { showSaveStatus('error'); }
 }
 
-// Nueva función unificada de listas (Producciones + CRM Clientes)
 function updateDataLists() {
   const nombresProds = productions.map(p => p.name).filter(Boolean);
   const nombresClientes = clientesData.map(c => c.razonSocial).filter(Boolean);
@@ -278,7 +335,6 @@ function updateDataLists() {
   
   const listN = document.getElementById('listNombres');
   if (listN) listN.innerHTML = nombres.map(n => `<option value="${n}">`).join('');
-  // Eliminado listDiseñadores porque ahora es un menú de opciones fijas
 }
 
 let activeFilterType = '';
@@ -337,27 +393,72 @@ function editProduction(id) {
   document.getElementById('prodDiseñador').value = p.diseñador || '';
   document.getElementById('prodDate').value = p.date || '';
   document.getElementById('prodFechaEntrega').value = p.fechaEntrega || '';
-  document.getElementById('prodTag').value = p.tag || 'Ingreso';
   document.getElementById('prodMonto').value = p.monto || '';
   document.getElementById('prodAbono').value = p.abono || '';
   document.getElementById('prodSaldo').value = p.saldo || '';
-  const c = p.cantidad || {};
-  document.getElementById('cantCamisetas').value = c.camisetas || '';
-  document.getElementById('cantConjuntos').value = c.conjuntos || '';
-  document.getElementById('cantPolos').value = c.polos || '';
-  document.getElementById('cantBuzos').value = c.buzos || '';
-  document.getElementById('cantGorros').value = c.gorros || '';
-  document.getElementById('cantShorts').value = c.shorts || '';
-  document.getElementById('cantChaquetas').value = c.chaquetas || '';
-  document.getElementById('cantOtros').value = c.otros || '';
-  calcTotalPrendas();
+  renderCantidadFields(p.tipo || '', p.cantidad || {});
   document.querySelector('.btn-add').textContent = 'Actualizar';
   f.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+const CANTIDAD_FIELDS = {
+  'Confección': ['camiseta','conjunto','manta','banner','panuelos','panoletas'],
+  'Sublimación': ['camisetas','conjuntos','manta','banner','panuelos','panoletas','buzo','polerones','lienzo','otros'],
+  'Otros': ['otros'],
+  '': []
+};
+const PRENDA_LABELS = { camiseta:'Camiseta', camisetas:'Camisetas', conjunto:'Conjunto', conjuntos:'Conjuntos', manta:'Manta', banner:'Banner', panuelos:'Pañuelos', panoletas:'Pañoletas', buzo:'Buzo', polerones:'Polerones', lienzo:'Lienzo', otros:'Otros' };
+
+function renderCantidadFields(tipo, values) {
+  values = values || {};
+  const keys = CANTIDAD_FIELDS[tipo] || [];
+  const grid = document.getElementById('cantidadGrid');
+  if (!grid) return;
+  if (keys.length === 0) {
+    grid.innerHTML = '<div style="grid-column:1/-1;font-size:0.75rem;color:var(--text3);padding:2px 0">Selecciona un tipo de producción para ver los campos de prendas.</div>';
+    calcTotalPrendas();
+    return;
+  }
+  grid.innerHTML = keys.map(k => {
+    const label = PRENDA_LABELS[k] || k;
+    const val = values[k] || '';
+    if (k === 'otros') {
+      const desc = values.otrosDesc || '';
+      return `<div class="cantidad-item" style="grid-column:span 2"><label>Otros</label><div style="display:flex;gap:6px"><input type="number" id="cant_otros" placeholder="0" min="0" value="${val}" style="flex:0 0 70px" oninput="calcTotalPrendas()"><input type="text" id="cant_otros_desc" placeholder="Especificar…" value="${desc}" style="flex:1;text-align:left;text-transform:none;font-weight:400"></div></div>`;
+    }
+    return `<div class="cantidad-item"><label>${label}</label><input type="number" id="cant_${k}" placeholder="0" min="0" value="${val}" oninput="calcTotalPrendas()"></div>`;
+  }).join('');
+  calcTotalPrendas();
+}
+
+function buildCantidadFromForm() {
+  const tipo = document.getElementById('prodTipo').value;
+  const keys = CANTIDAD_FIELDS[tipo] || [];
+  const cantidad = {};
+  keys.forEach(k => {
+    const el = document.getElementById('cant_' + k);
+    cantidad[k] = el ? (parseInt(el.value) || 0) : 0;
+  });
+  if (keys.includes('otros')) {
+    const descEl = document.getElementById('cant_otros_desc');
+    cantidad.otrosDesc = descEl ? descEl.value.trim() : '';
+  }
+  return cantidad;
+}
+
+function prendasDetalleTexto(p) {
+  if (!p.cantidad) return p.prenda || '—';
+  const parts = Object.entries(p.cantidad).filter(([k,v]) => k !== 'otrosDesc' && v > 0).map(([k,v]) => {
+    const label = (k === 'otros' && p.cantidad.otrosDesc) ? p.cantidad.otrosDesc : (PRENDA_LABELS[k] || k);
+    return `${v} ${label.toLowerCase()}`;
+  });
+  return parts.length ? parts.join(', ') : '—';
+}
+
 function calcTotalPrendas() {
-  const campos = ['cantCamisetas','cantConjuntos','cantPolos','cantBuzos','cantGorros','cantShorts','cantChaquetas','cantOtros'];
-  const total = campos.reduce((s, id) => s + (parseInt(document.getElementById(id).value) || 0), 0);
+  const inputs = document.querySelectorAll('#cantidadGrid input[type=number]');
+  let total = 0;
+  inputs.forEach(i => { total += (parseInt(i.value) || 0); });
   document.getElementById('totalPrendasBadge').textContent = `Total: ${total} prenda${total !== 1 ? 's' : ''}`;
 }
 
@@ -375,13 +476,11 @@ function toggleForm() {
   document.querySelector('.btn-add').textContent = 'Guardar';
   editingId = null;
   if (open) {
-    ['prodName','prodDiseñador','prodDate','prodFechaEntrega','prodMonto','prodAbono','prodSaldo',
-     'cantCamisetas','cantConjuntos','cantPolos','cantBuzos','cantGorros','cantShorts','cantChaquetas','cantOtros']
+    ['prodName','prodDiseñador','prodDate','prodFechaEntrega','prodMonto','prodAbono','prodSaldo']
       .forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
-    document.getElementById('prodTag').value = 'Ingreso';
     document.getElementById('prodTipo').value = '';
+    renderCantidadFields('');
     document.getElementById('prodOrden').value = getNextOrden();
-    calcTotalPrendas();
   }
 }
 
@@ -394,27 +493,18 @@ function calcSaldo() {
 function addProduction() {
   const name = document.getElementById('prodName').value.trim();
   const date = document.getElementById('prodDate').value;
-  const tag = document.getElementById('prodTag').value;
+  const tipo = document.getElementById('prodTipo').value;
   if (!name || !date) { alert('Completa el nombre y la fecha.'); return; }
-  if (!date.startsWith('2026')) { alert('Por favor selecciona una fecha dentro de 2026.'); return; }
+  if (!date.startsWith(String(currentViewYear))) { alert('Por favor selecciona una fecha dentro de ' + currentViewYear + '.'); return; }
   const monto = parseFloat(document.getElementById('prodMonto').value) || 0;
   const abono = parseFloat(document.getElementById('prodAbono').value) || 0;
-  const cantidad = {
-    camisetas: parseInt(document.getElementById('cantCamisetas').value) || 0,
-    conjuntos: parseInt(document.getElementById('cantConjuntos').value) || 0,
-    polos: parseInt(document.getElementById('cantPolos').value) || 0,
-    buzos: parseInt(document.getElementById('cantBuzos').value) || 0,
-    gorros: parseInt(document.getElementById('cantGorros').value) || 0,
-    shorts: parseInt(document.getElementById('cantShorts').value) || 0,
-    chaquetas: parseInt(document.getElementById('cantChaquetas').value) || 0,
-    otros: parseInt(document.getElementById('cantOtros').value) || 0,
-  };
-  const totalPrendas = Object.values(cantidad).reduce((s,v)=>s+v,0);
+  const cantidad = buildCantidadFromForm();
+  const totalPrendas = Object.entries(cantidad).filter(([k]) => k !== 'otrosDesc').reduce((s,[,v]) => s + (v||0), 0);
   let orden = editingId ? document.getElementById('prodOrden').value.trim() : getNextOrden();
 
   const prod = {
-    id: editingId || Date.now(), name, date, tag, orden, prenda: document.getElementById('prodTipo').value,
-    tipo: document.getElementById('prodTipo').value, diseñador: document.getElementById('prodDiseñador').value.trim(),
+    id: editingId || Date.now(), name, date, tag: tipo, orden, prenda: tipo,
+    tipo, diseñador: document.getElementById('prodDiseñador').value.trim(),
     fechaEntrega: document.getElementById('prodFechaEntrega').value, monto, abono, saldo: Math.max(0, monto - abono), cantidad, totalPrendas
   };
   if (editingId) {
@@ -422,6 +512,7 @@ function addProduction() {
     if (idx !== -1) productions[idx] = prod;
   } else { productions.push(prod); }
   productions.sort((a,b) => a.date.localeCompare(b.date));
+  currentViewMonth = parseInt(prod.date.split('-')[1], 10) - 1;
   save(); renderAll(); toggleForm();
 }
 
@@ -452,7 +543,7 @@ function renderGrid() {
 
   const hdr = document.createElement('div');
   hdr.className = 'large-month-header';
-  hdr.innerHTML = `<span class="large-month-name">${MONTHS[m]} 2026</span>`;
+  hdr.innerHTML = `<span class="large-month-name">${MONTHS[m]} ${currentViewYear}</span>`;
   card.appendChild(hdr);
 
   const body = document.createElement('div');
@@ -466,9 +557,9 @@ function renderGrid() {
   const daysGrid = document.createElement('div');
   daysGrid.className = 'large-days-grid';
 
-  const firstDay = new Date(2026, m, 1).getDay();
+  const firstDay = new Date(currentViewYear, m, 1).getDay();
   const startOffset = firstDay === 0 ? 6 : firstDay - 1;
-  const daysInMonth = new Date(2026, m+1, 0).getDate();
+  const daysInMonth = new Date(currentViewYear, m+1, 0).getDate();
 
   for (let i = 0; i < startOffset; i++) {
     const empty = document.createElement('div'); empty.className = 'large-day-cell empty';
@@ -476,13 +567,13 @@ function renderGrid() {
   }
 
   for (let d = 1; d <= daysInMonth; d++) {
-    const dateStr = `2026-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const filteredProds = getFiltered().filter(p => p.date === dateStr);
+    const dateStr = `${currentViewYear}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const filteredProds = getFiltered().filter(p => dateStr >= p.date && dateStr <= (p.fechaEntrega || p.date));
 
     const cell = document.createElement('div');
     cell.className = 'large-day-cell';
 
-    const dow_idx = new Date(2026, m, d).getDay();
+    const dow_idx = new Date(currentViewYear, m, d).getDay();
     if (dow_idx === 0 || dow_idx === 6) cell.classList.add('weekend');
     if (dateStr === todayStr) cell.classList.add('today');
 
@@ -495,7 +586,9 @@ function renderGrid() {
       filteredProds.slice(0, 4).forEach(p => {
         const bar = document.createElement('div');
         bar.className = 'large-day-bar';
+        // Fondo = categoría, borde izquierdo = estado (saldo/abono/pagado)
         bar.style.background = TAG_COLORS[p.tag] || 'var(--accent)';
+        bar.style.borderLeft = '4px solid ' + estadoColor(p);
         bar.textContent = p.name;
         dotsContainer.appendChild(bar);
       });
@@ -550,9 +643,11 @@ function renderTimeline() {
     let entregaLabel = '—';
     if (p.fechaEntrega) { const [ey,em,ed] = p.fechaEntrega.split('-'); entregaLabel = `${parseInt(ed)} ${MONTHS_SHORT[parseInt(em)-1]}`; }
     let prendasHtml = '—';
-    if (p.cantidad) {
-      const labels = {camisetas:'Cam.',conjuntos:'Conj.',polos:'Polo',buzos:'Buzo',gorros:'Gorr.',shorts:'Short',chaquetas:'Chaq.',otros:'Otros'};
-      const items = Object.entries(p.cantidad).filter(([,v]) => v > 0).map(([k,v]) => `<span style="display:inline-block;margin-right:4px;margin-bottom:2px;background:var(--accent)14;border:1px solid var(--accent)30;border-radius:2px;padding:1px 5px;font-size:0.7rem;color:var(--accent);white-space:nowrap"><b>${v}</b> ${labels[k]||k}</span>`);
+    if (p.cantidad && Object.keys(p.cantidad).length) {
+      const items = Object.entries(p.cantidad).filter(([k,v]) => k !== 'otrosDesc' && v > 0).map(([k,v]) => {
+        const label = (k === 'otros' && p.cantidad.otrosDesc) ? p.cantidad.otrosDesc : (PRENDA_LABELS[k] || k);
+        return `<span style="display:inline-block;margin-right:4px;margin-bottom:2px;background:var(--accent)14;border:1px solid var(--accent)30;border-radius:2px;padding:1px 5px;font-size:0.7rem;color:var(--accent);white-space:nowrap"><b>${v}</b> ${label}</span>`;
+      });
       if (items.length > 0) prendasHtml = `<div style="line-height:1.8">${items.join('')}</div>`;
     } else if (p.prenda) { prendasHtml = `<span style="font-size:0.85rem;color:var(--text2)">${p.prenda}</span>`; }
     let filtroExtra = '';
@@ -572,6 +667,7 @@ function renderTimeline() {
 function renderStats() {
   const filtered = getFiltered();
   document.getElementById('statTotal').textContent = filtered.length;
+  document.getElementById('statYearLabel').textContent = 'en todo el año ' + currentViewYear;
   const bars = document.getElementById('monthBars'); bars.innerHTML = '';
   const max = Math.max(...MONTHS.map((_,i) => filtered.filter(p=>new Date(p.date).getMonth()===i).length), 1);
   MONTHS_SHORT.forEach((abbr, i) => {
@@ -583,18 +679,88 @@ function renderStats() {
   });
 }
 
+function exportPDF() {
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    alert('No se pudo cargar el generador de PDF. Verifica tu conexión a internet e inténtalo nuevamente.');
+    return;
+  }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+  const filtered = getFiltered();
+  const marginX = 40;
+  let y = 40;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  doc.text('Calendario de Producciones ' + currentViewYear, marginX, y);
+  y += 20;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(90);
+  const fechaGen = new Date().toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' });
+  doc.text('Generado el ' + fechaGen, marginX, y);
+  y += 24;
+
+  doc.setTextColor(0);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.text('Total producciones: ' + filtered.length, marginX, y);
+  y += 18;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  const monthCounts = MONTHS.map((m, i) => ({ m, count: filtered.filter(p => new Date(p.date).getMonth() === i).length })).filter(x => x.count > 0);
+  const monthLine = monthCounts.length ? monthCounts.map(x => `${x.m}: ${x.count}`).join('   |   ') : 'Sin datos por mes';
+  doc.text('Distribución mensual: ' + monthLine, marginX, y, { maxWidth: 760 });
+  y += 22;
+
+  const fmtFecha = (str) => {
+    if (!str) return '—';
+    const [yy, mm, dd] = str.split('-');
+    return `${parseInt(dd)} ${MONTHS_SHORT[parseInt(mm) - 1]} ${yy}`;
+  };
+
+  const rows = filtered.map(p => {
+    return [
+      p.orden || '—', p.name || '—', p.tipo || '—', p.diseñador || '—',
+      fmtFecha(p.date), fmtFecha(p.fechaEntrega), prendasDetalleTexto(p)
+    ];
+  });
+
+  doc.autoTable({
+    startY: y,
+    margin: { left: marginX, right: marginX },
+    head: [['N° Orden', 'Nombre / Cliente', 'Tipo', 'Diseñador', 'F. Ingreso', 'F. Entrega', 'Detalle de Prendas']],
+    body: rows,
+    styles: { font: 'helvetica', fontSize: 8, cellPadding: 4 },
+    headStyles: { fillColor: [30, 26, 20], textColor: 255 },
+    alternateRowStyles: { fillColor: [245, 242, 235] },
+    columnStyles: { 6: { cellWidth: 260 } }
+  });
+
+  if (rows.length === 0) {
+    doc.setFontSize(10);
+    doc.text('No hay producciones para exportar.', marginX, y + 10);
+  }
+
+  const sufijoFiltro = activeFilterValue ? '_filtrado' : '';
+  doc.save(`Producciones_${currentViewYear}${sufijoFiltro}.pdf`);
+}
+
 window.onload = async function() {
-  // Carga Producciones y Clientes simultáneamente
-  const [cloudProds, cloudClientes] = await Promise.all([
-    loadFromCloud('prods2026'),
-    loadFromCloud('clientes_ci_v1')
-  ]);
+  document.getElementById('yearSelect').value = String(currentViewYear);
+  applyYearBounds();
   
-  if (cloudProds) productions = cloudProds;
-  else productions = JSON.parse(localStorage.getItem('prods2026') || '[]');
-  
-  if (cloudClientes) clientesData = cloudClientes;
-  
+  // Cargar clientes para el autocompletado
+  const cloudClientes = await loadFromCloud('clientes_ci_v1');
+  if (cloudClientes) {
+    clientesData = cloudClientes;
+  } else {
+    clientesData = JSON.parse(localStorage.getItem('clientes_ci_v1') || '[]');
+  }
+
+  await loadYearData();
   renderAll(); 
   updateDataLists();
 };
