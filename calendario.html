@@ -11,11 +11,12 @@
   :root {
     --bg: #0e0c09; --surface: #181410; --card: #1f1a14; --border: #2e2619;
     --accent: #e8a020; --accent2: #c45c1a; --accent3: #5a8f5a; --accent4: #3d6fa8;
-    --accent5: #8b3fa8; --text: #f0e8d8; --text2: #a09070; --text3: #9c8a68;
+    --accent5: #8b3fa8; --text: #f0e8d8; --text2: #a09070; --text3: #c2b090;
     --today: #e8a020; --prod1: #2a9d8f; --prod2: #e76f51; --prod3: #a855f7;
     --prod4: #3d6fa8; --prod5: #e8a020;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  ::placeholder { color: var(--text3); opacity: 1; }
   body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; min-height: 100vh; overflow-x: hidden; }
   body::before { content: ''; position: fixed; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events: none; z-index: 1000; opacity: 0.4; }
   .app { max-width: 1400px; margin: 0 auto; padding: 40px 24px; }
