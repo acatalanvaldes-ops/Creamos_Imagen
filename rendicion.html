@@ -105,14 +105,7 @@ tfoot .tot-row td{background:var(--accent-l);font-family:var(--mono);font-size:1
 <body>
 <script>
 (function(){
-  var MODULE_KEY = 'rendicion';
-  var SESSION_KEY = 'cimagen_session';
-  var SESSION_TTL_MS = 24 * 60 * 60 * 1000;
-  var sess = null;
-  try { sess = JSON.parse(localStorage.getItem(SESSION_KEY)); } catch(e){}
-  var valid = sess && sess.email && sess.ts && (Date.now() - sess.ts < SESSION_TTL_MS);
-  var allowed = valid && (sess.isAdmin || (sess.modules && sess.modules.indexOf(MODULE_KEY) !== -1));
-  if (!allowed) {
+  if (localStorage.getItem('cimagen_auth_ok') !== '1') {
     window.location.replace('index.html');
   }
 })();
@@ -124,7 +117,7 @@ tfoot .tot-row td{background:var(--accent-l);font-family:var(--mono);font-size:1
     📋 Rendición de Caja 
     <select class="yr-select" id="year-select" onchange="changeYear(this.value)">
       <option value="2025">2025</option>
-      <option value="2026">2026</option>
+      <option value="2026" selected>2026</option>
       <option value="2027">2027</option>
       <option value="2028">2028</option>
       <option value="2029">2029</option>
@@ -234,9 +227,951 @@ if (currentYear > 2031) currentYear = 2031;
 const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 const DOW_NAMES = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
 const TIPOS = ["Sublimación","Camiseta","Papel","Conjuntos","Mantas","Pañuelos","Lienzo","Pañoletas","Banner","Banderas","Otros"];
-const data = {}; let curDate = null, curMonth = null, typeFilter = 'todos', summFilter = 'todos';
+let data = {}; let curDate = null, curMonth = null, typeFilter = 'todos', summFilter = 'todos';
 const fmt = n => !n||isNaN(+n) ? '$0' : '$'+(+n).toLocaleString('es-CL');
 const pad = n => String(n).padStart(2,'0');
+
+// DATA INICIAL TRANSCRITA DESDE LAS IMÁGENES/ARCHIVOS HISTÓRICOS
+const INITIAL_DATA = {
+  "2026-05-25": [
+    {
+      "cliente": "GPH",
+      "tipo": "Conjuntos",
+      "origen": "Local",
+      "pago": "Webpay",
+      "ef": "",
+      "tr": "",
+      "wp": "83895",
+      "obs": ""
+    },
+    {
+      "cliente": "CORDILLERA",
+      "tipo": "Camiseta",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "220000",
+      "tr": "",
+      "wp": "",
+      "obs": ""
+    },
+    {
+      "cliente": "EDUAARDO S",
+      "tipo": "Banderas",
+      "origen": "Local",
+      "pago": "Transferencia",
+      "ef": "",
+      "tr": "178500",
+      "wp": "",
+      "obs": ""
+    },
+    {
+      "cliente": "DANILO",
+      "tipo": "Camiseta",
+      "origen": "Local",
+      "pago": "Transferencia",
+      "ef": "",
+      "tr": "150000",
+      "wp": "",
+      "obs": ""
+    }
+  ],
+  "2026-05-26": [
+    {
+      "cliente": "ALENIS",
+      "tipo": "Banderas",
+      "origen": "Local",
+      "pago": "Transferencia",
+      "ef": "",
+      "tr": "97875",
+      "wp": "",
+      "obs": ""
+    },
+    {
+      "cliente": "SOL",
+      "tipo": "Banner",
+      "origen": "Local",
+      "pago": "Webpay",
+      "ef": "",
+      "tr": "",
+      "wp": "6120",
+      "obs": ""
+    },
+    {
+      "cliente": "CHRISTIAN",
+      "tipo": "Otros",
+      "origen": "Local",
+      "pago": "Transferencia",
+      "ef": "",
+      "tr": "23800",
+      "wp": "",
+      "obs": ""
+    }
+  ],
+  "2026-05-27": [
+    {
+      "cliente": "PARTICULAR",
+      "tipo": "Mantas",
+      "origen": "Local",
+      "pago": "Webpay",
+      "ef": "",
+      "tr": "",
+      "wp": "12240",
+      "obs": ""
+    },
+    {
+      "cliente": "IGNACIA",
+      "tipo": "Otros",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "",
+      "wp": "12240",
+      "obs": ""
+    },
+    {
+      "cliente": "SOUVENIRS",
+      "tipo": "Papel",
+      "origen": "Empresa",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "40817",
+      "wp": "",
+      "obs": ""
+    }
+  ],
+  "2026-05-29": [
+    {
+      "cliente": "DANILO",
+      "tipo": "Sublimación",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "74910",
+      "wp": "",
+      "obs": ""
+    },
+    {
+      "cliente": "PARTICULAR",
+      "tipo": "Otros",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "25000",
+      "wp": "",
+      "obs": ""
+    },
+    {
+      "cliente": "FRANCO",
+      "tipo": "Otros",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "14280",
+      "tr": "",
+      "wp": "",
+      "obs": ""
+    },
+    {
+      "cliente": "TRUJILLO",
+      "tipo": "Conjuntos",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "82404",
+      "wp": "",
+      "obs": ""
+    }
+  ],
+  "2026-05-30": [
+    {
+      "cliente": "particular",
+      "tipo": "Camiseta",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "",
+      "wp": "40800",
+      "obs": ""
+    },
+    {
+      "cliente": "AGRUPACION",
+      "tipo": "Camiseta",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "212800",
+      "wp": "",
+      "obs": ""
+    },
+    {
+      "cliente": "BEAUTYSTAR",
+      "tipo": "Camiseta",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "132000",
+      "wp": "",
+      "obs": ""
+    },
+    {
+      "cliente": "DOMINGO",
+      "tipo": "Camiseta",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "628082",
+      "wp": "",
+      "obs": ""
+    }
+  ],
+  "2026-06-01": [
+    {
+      "cliente": "MELANY",
+      "tipo": "Camiseta",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "170170",
+      "wp": "",
+      "obs": ""
+    },
+    {
+      "cliente": "PARTICULAR",
+      "tipo": "Mantas",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "",
+      "wp": "20000",
+      "obs": ""
+    },
+    {
+      "cliente": "LEGIONARIOS",
+      "tipo": "Conjuntos",
+      "origen": "Empresa",
+      "pago": "Efectivo",
+      "ef": "102000",
+      "tr": "",
+      "wp": "",
+      "obs": ""
+    },
+    {
+      "cliente": "MARCOA",
+      "tipo": "Sublimación",
+      "origen": "Empresa",
+      "pago": "Efectivo",
+      "ef": "4760",
+      "tr": "",
+      "wp": "",
+      "obs": ""
+    },
+    {
+      "cliente": "PARTICULAR",
+      "tipo": "Sublimación",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "",
+      "wp": "19421",
+      "obs": ""
+    },
+    {
+      "cliente": "FERNANDA",
+      "tipo": "Mantas",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "",
+      "wp": "20400",
+      "obs": ""
+    }
+  ],
+  "2026-06-02": [
+    {
+      "cliente": "PARTICULAR",
+      "tipo": "Sublimación",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "",
+      "wp": "19040",
+      "obs": ""
+    }
+  ],
+  "2026-06-03": [
+    {
+      "cliente": "DANILO",
+      "tipo": "Sublimación",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "8925",
+      "wp": "",
+      "obs": ""
+    },
+    {
+      "cliente": "LA NICO",
+      "tipo": "Mantas",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "60690",
+      "wp": "",
+      "obs": ""
+    }
+  ],
+  "2026-06-04": [
+    {
+      "cliente": "LEO AVILES",
+      "tipo": "Sublimación",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "25585",
+      "wp": "",
+      "obs": ""
+    },
+    {
+      "cliente": "MELANY",
+      "tipo": "Camiseta",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "15470",
+      "wp": "",
+      "obs": ""
+    },
+    {
+      "cliente": "SAKURA",
+      "tipo": "Camiseta",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "113645",
+      "tr": "",
+      "wp": "",
+      "obs": ""
+    },
+    {
+      "cliente": "ALENIS",
+      "tipo": "Sublimación",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "41947",
+      "wp": "",
+      "obs": ""
+    },
+    {
+      "cliente": "PARTICULAR",
+      "tipo": "Otros",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "",
+      "wp": "39800",
+      "obs": ""
+    },
+    {
+      "cliente": "PARTICULAR",
+      "tipo": "Sublimación",
+      "origen": "Empresa",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "",
+      "wp": "9520",
+      "obs": ""
+    },
+    {
+      "cliente": "LUCIANO",
+      "tipo": "Sublimación",
+      "origen": "Empresa",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "12495",
+      "wp": "",
+      "obs": ""
+    }
+  ],
+  "2026-06-05": [
+    {
+      "cliente": "ALENIS",
+      "tipo": "Otros",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "60690",
+      "tr": "",
+      "wp": "",
+      "obs": ""
+    },
+    {
+      "cliente": "CORDILLERA",
+      "tipo": "Camiseta",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "101300",
+      "tr": "",
+      "wp": "",
+      "obs": ""
+    }
+  ],
+  "2026-07-01": [
+    {
+      "cliente": "MONTERO",
+      "tipo": "Sublimación",
+      "origen": "Empresa",
+      "pago": "Transferencia",
+      "ef": "",
+      "tr": "500000",
+      "wp": "",
+      "obs": "ABONO"
+    },
+    {
+      "cliente": "TITO",
+      "tipo": "Sublimación",
+      "origen": "Local",
+      "pago": "Transferencia",
+      "ef": "",
+      "tr": "79135",
+      "wp": "",
+      "obs": ""
+    },
+    {
+      "cliente": "TALIZ",
+      "tipo": "Sublimación",
+      "origen": "Empresa",
+      "pago": "Transferencia",
+      "ef": "",
+      "tr": "164700",
+      "wp": "",
+      "obs": ""
+    },
+    {
+      "cliente": "FUENTES",
+      "tipo": "Papel",
+      "origen": "Empresa",
+      "pago": "Transferencia",
+      "ef": "",
+      "tr": "683000",
+      "wp": "",
+      "obs": ""
+    },
+    {
+      "cliente": "PARTICULAR",
+      "tipo": "Sublimación",
+      "origen": "Local",
+      "pago": "Transferencia",
+      "ef": "",
+      "tr": "10710",
+      "wp": "",
+      "obs": ""
+    },
+    {
+      "cliente": "ALIDA",
+      "tipo": "Sublimación",
+      "origen": "Empresa",
+      "pago": "Transferencia",
+      "ef": "",
+      "tr": "19200",
+      "wp": "",
+      "obs": ""
+    },
+    {
+      "cliente": "TABERNA",
+      "tipo": "Camiseta",
+      "origen": "Local",
+      "pago": "Transferencia",
+      "ef": "",
+      "tr": "267607",
+      "wp": "",
+      "obs": ""
+    },
+    {
+      "cliente": "RODRIGO",
+      "tipo": "Sublimación",
+      "origen": "Local",
+      "pago": "Transferencia",
+      "ef": "",
+      "tr": "121380",
+      "wp": "",
+      "obs": "CALANDRA"
+    },
+    {
+      "cliente": "JUAN CARLOS",
+      "tipo": "Banderas",
+      "origen": "Local",
+      "pago": "Transferencia",
+      "ef": "",
+      "tr": "47600",
+      "wp": "",
+      "obs": "BANDERAS"
+    },
+    {
+      "cliente": "MINOTAURO",
+      "tipo": "Camiseta",
+      "origen": "Local",
+      "pago": "Transferencia",
+      "ef": "",
+      "tr": "107580",
+      "wp": "",
+      "obs": ""
+    },
+    {
+      "cliente": "ESTEBAN",
+      "tipo": "Pañuelos",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "5000",
+      "tr": "",
+      "wp": "",
+      "obs": "BTS"
+    },
+    {
+      "cliente": "MARCOS",
+      "tipo": "Papel",
+      "origen": "Empresa",
+      "pago": "Efectivo",
+      "ef": "4750",
+      "tr": "",
+      "wp": "",
+      "obs": ""
+    }
+  ],
+  "2026-07-02": [
+    {
+      "cliente": "KONA",
+      "tipo": "Sublimación",
+      "origen": "Local",
+      "pago": "Transferencia",
+      "ef": "",
+      "tr": "57120",
+      "wp": "",
+      "obs": ""
+    },
+    {
+      "cliente": "EQUUS",
+      "tipo": "Camiseta",
+      "origen": "Empresa",
+      "pago": "Transferencia",
+      "ef": "",
+      "tr": "166005",
+      "wp": "",
+      "obs": ""
+    },
+    {
+      "cliente": "MAX",
+      "tipo": "Camiseta",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "208000",
+      "tr": "",
+      "wp": "",
+      "obs": ""
+    }
+  ],
+  "2026-07-03": [
+    {
+      "cliente": "PARTICULAR",
+      "tipo": "Banner",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "5000",
+      "tr": "",
+      "wp": "",
+      "obs": ""
+    },
+    {
+      "cliente": "PARTICULAR",
+      "tipo": "Sublimación",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "25000",
+      "tr": "",
+      "wp": "",
+      "obs": ""
+    },
+    {
+      "cliente": "PARTICULAR",
+      "tipo": "Sublimación",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "25000",
+      "wp": "",
+      "obs": ""
+    }
+  ],
+  "2026-08-01": [
+    {
+      "cliente": "RAI",
+      "tipo": "Mantas",
+      "origen": "Local",
+      "pago": "Transferencia",
+      "ef": "",
+      "tr": "45000",
+      "wp": "",
+      "obs": "MANTA Y BOLSA"
+    },
+    {
+      "cliente": "PARTICULAR",
+      "tipo": "Pañuelos",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "15000",
+      "tr": "",
+      "wp": "",
+      "obs": "BTS"
+    },
+    {
+      "cliente": "PARTICULAR",
+      "tipo": "Camiseta",
+      "origen": "Local",
+      "pago": "Webpay",
+      "ef": "",
+      "tr": "40000",
+      "wp": "",
+      "obs": "BTS"
+    },
+    {
+      "cliente": "PARTICULAR",
+      "tipo": "Sublimación",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "",
+      "wp": "15000",
+      "obs": ""
+    },
+    {
+      "cliente": "PARTICULAR",
+      "tipo": "Mantas",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "",
+      "wp": "20000",
+      "obs": ""
+    },
+    {
+      "cliente": "PARTICULAR",
+      "tipo": "Mantas",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "",
+      "wp": "20000",
+      "obs": ""
+    },
+    {
+      "cliente": "PARTICULAR",
+      "tipo": "Mantas",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "",
+      "wp": "20000",
+      "obs": ""
+    },
+    {
+      "cliente": "MANTA",
+      "tipo": "Mantas",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "",
+      "wp": "20000",
+      "obs": ""
+    },
+    {
+      "cliente": "PARTICULAR",
+      "tipo": "Mantas",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "",
+      "wp": "20000",
+      "obs": ""
+    },
+    {
+      "cliente": "PARTICULAR",
+      "tipo": "Sublimación",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "",
+      "wp": "47500",
+      "obs": ""
+    },
+    {
+      "cliente": "PARTICULAR",
+      "tipo": "Sublimación",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "",
+      "wp": "12000",
+      "obs": ""
+    },
+    {
+      "cliente": "PARTICULAR",
+      "tipo": "Sublimación",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "",
+      "wp": "3000",
+      "obs": ""
+    },
+    {
+      "cliente": "PARTICULAR",
+      "tipo": "Sublimación",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "",
+      "wp": "24000",
+      "obs": ""
+    }
+  ],
+  "2026-08-03": [
+    {
+      "cliente": "CONSTANZA",
+      "tipo": "Mantas",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "130500",
+      "wp": "",
+      "obs": ""
+    },
+    {
+      "cliente": "FABIOLA",
+      "tipo": "Camiseta",
+      "origen": "Local",
+      "pago": "Transferencia",
+      "ef": "",
+      "tr": "99960",
+      "wp": "",
+      "obs": ""
+    },
+    {
+      "cliente": "PAU",
+      "tipo": "Sublimación",
+      "origen": "Local",
+      "pago": "Transferencia",
+      "ef": "",
+      "tr": "89250",
+      "wp": "",
+      "obs": ""
+    },
+    {
+      "cliente": "SALLY",
+      "tipo": "Mantas",
+      "origen": "Local",
+      "pago": "Transferencia",
+      "ef": "",
+      "tr": "48500",
+      "wp": "",
+      "obs": ""
+    },
+    {
+      "cliente": "Edgar",
+      "tipo": "Papel",
+      "origen": "Local",
+      "pago": "Webpay",
+      "ef": "",
+      "tr": "",
+      "wp": "40936",
+      "obs": ""
+    }
+  ],
+  "2026-09-01": [
+    {
+      "cliente": "BORIS",
+      "tipo": "Sublimación",
+      "origen": "Local",
+      "pago": "Transferencia",
+      "ef": "",
+      "tr": "124950",
+      "wp": "",
+      "obs": "CALANDRA"
+    },
+    {
+      "cliente": "OSCAR MUÑOZ",
+      "tipo": "Conjuntos",
+      "origen": "Local",
+      "pago": "Transferencia",
+      "ef": "",
+      "tr": "250000",
+      "wp": "",
+      "obs": ""
+    },
+    {
+      "cliente": "PARTICULAR",
+      "tipo": "Camiseta",
+      "origen": "Local",
+      "pago": "Transferencia",
+      "ef": "",
+      "tr": "32000",
+      "wp": "",
+      "obs": "MANTA"
+    },
+    {
+      "cliente": "PARTICULAR",
+      "tipo": "Mantas",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "17000",
+      "tr": "",
+      "wp": "",
+      "obs": "BOLSA"
+    },
+    {
+      "cliente": "IGNACIO LELIER",
+      "tipo": "Sublimación",
+      "origen": "Local",
+      "pago": "Transferencia",
+      "ef": "",
+      "tr": "119000",
+      "wp": "",
+      "obs": "CALANDRA"
+    },
+    {
+      "cliente": "EDUARDO",
+      "tipo": "Banderas",
+      "origen": "Local",
+      "pago": "Transferencia",
+      "ef": "",
+      "tr": "238000",
+      "wp": "",
+      "obs": ""
+    }
+  ],
+  "2026-09-02": [
+    {
+      "cliente": "PARTICULAR",
+      "tipo": "Mantas",
+      "origen": "Local",
+      "pago": "Webpay",
+      "ef": "",
+      "tr": "",
+      "wp": "24000",
+      "obs": ""
+    },
+    {
+      "cliente": "PARTICULAR",
+      "tipo": "Sublimación",
+      "origen": "Local",
+      "pago": "Webpay",
+      "ef": "",
+      "tr": "",
+      "wp": "9520",
+      "obs": ""
+    },
+    {
+      "cliente": "PARTICULAR",
+      "tipo": "Sublimación",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "",
+      "wp": "14280",
+      "obs": ""
+    }
+  ],
+  "2026-09-03": [
+    {
+      "cliente": "PARTICULAR",
+      "tipo": "Camiseta",
+      "origen": "Local",
+      "pago": "Webpay",
+      "ef": "",
+      "tr": "",
+      "wp": "34500",
+      "obs": "MANTA Y PAÑUELO"
+    },
+    {
+      "cliente": "PARTICULAR",
+      "tipo": "Pañuelos",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "",
+      "wp": "27500",
+      "obs": "PAÑOLETAS"
+    },
+    {
+      "cliente": "SALLY",
+      "tipo": "Mantas",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "",
+      "tr": "",
+      "wp": "37500",
+      "obs": "BANNER"
+    },
+    {
+      "cliente": "GUILLERMO",
+      "tipo": "Sublimación",
+      "origen": "Local",
+      "pago": "Transferencia",
+      "ef": "",
+      "tr": "97500",
+      "wp": "",
+      "obs": ""
+    },
+    {
+      "cliente": "ESTEBAN",
+      "tipo": "Pañuelos",
+      "origen": "Local",
+      "pago": "Transferencia",
+      "ef": "",
+      "tr": "81413",
+      "wp": "",
+      "obs": "BTS"
+    },
+    {
+      "cliente": "PARTICULAR",
+      "tipo": "Mantas",
+      "origen": "Local",
+      "pago": "Efectivo",
+      "ef": "32000",
+      "tr": "",
+      "wp": "",
+      "obs": "CAMISETA"
+    }
+  ],
+  "2026-09-04": [
+    {
+      "cliente": "PARTICULAR",
+      "tipo": "Mantas",
+      "origen": "Local",
+      "pago": "Webpay",
+      "ef": "",
+      "tr": "",
+      "wp": "30000",
+      "obs": "PAÑUELOS"
+    },
+    {
+      "cliente": "ALEX YI",
+      "tipo": "Otros",
+      "origen": "Local",
+      "pago": "Transferencia",
+      "ef": "",
+      "tr": "34772",
+      "wp": "",
+      "obs": "ADHESIVO"
+    },
+    {
+      "cliente": "PARTICULAR",
+      "tipo": "Mantas",
+      "origen": "Local",
+      "pago": "Webpay",
+      "ef": "",
+      "tr": "",
+      "wp": "12000",
+      "obs": ""
+    }
+  ]
+};
 
 function getDiasMes(m, y) {
   if (m === 1) { return (y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0)) ? 29 : 28; }
@@ -251,7 +1186,7 @@ function totalAll(){ return Object.keys(data).filter(k => k.startsWith(currentYe
 
 function saveData(){ try{ localStorage.setItem('rendicion2026_v2', JSON.stringify(data)); saveToCloud('rendicion2026_v2', data); } catch(e){} }
 
-// MODIFICADO: Sistema de carga inteligente
+// MODIFICADO: Sistema de carga inteligente con INITIAL_DATA fallback
 async function loadData() {
   const t = new Date();
   currentYear = t.getFullYear();
@@ -260,10 +1195,17 @@ async function loadData() {
   const sel = document.getElementById('year-select');
   if(sel) sel.value = currentYear;
 
-  // 1. DIBUJAR INMEDIATAMENTE CON DATOS LOCALES (Adiós pantalla en blanco)
+  // 1. CARGAR DATOS LOCALES O FALLBACK AL INITIAL_DATA
   try {
-    const p = JSON.parse(localStorage.getItem('rendicion2026_v2') || '{}');
-    Object.keys(p).forEach(k => { data[k] = p[k]; });
+    const rawLocal = localStorage.getItem('rendicion2026_v2');
+    if (rawLocal && Object.keys(JSON.parse(rawLocal)).length > 0) {
+      const p = JSON.parse(rawLocal);
+      Object.keys(p).forEach(k => { data[k] = p[k]; });
+    } else {
+      // Si no hay datos locales, cargar el historial INITIAL_DATA por defecto
+      Object.keys(INITIAL_DATA).forEach(k => { data[k] = INITIAL_DATA[k]; });
+      localStorage.setItem('rendicion2026_v2', JSON.stringify(data));
+    }
   } catch(e){}
   
   applyPrevRangeBounds();
@@ -275,12 +1217,18 @@ async function loadData() {
   try {
     const cloudData = await loadFromCloud('rendicion2026_v2');
     if (cloudData && Object.keys(cloudData).length > 0) {
+      // Priorizar la nube y hacer un merge si es necesario.
       Object.keys(cloudData).forEach(k => { data[k] = cloudData[k]; });
+      // Asegurarse de que lo que tenemos del INITIAL_DATA persista si la nube no lo tenía
+      Object.keys(INITIAL_DATA).forEach(k => { if(!data[k]) data[k] = INITIAL_DATA[k]; });
+      
       localStorage.setItem('rendicion2026_v2', JSON.stringify(data));
-      // Actualizar la vista automáticamente si llegan datos nuevos
       refreshAccordion();
       renderContent();
       renderSumm();
+    } else {
+      // Si la nube está vacía, empujar nuestros datos actuales (incluyendo INITIAL_DATA) a la nube
+      saveToCloud('rendicion2026_v2', data);
     }
   } catch(e) {
     console.error("Modo offline activado o error de nube.", e);
