@@ -273,7 +273,7 @@ async function loadFromCloud(key) {
 }
 
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-const MONTHS_SHORT = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const MONTHS_SHORT = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const DAYS = ['Lu','Ma','Mi','Ju','Vi','Sa','Do'];
 const TAG_COLORS = { 'Ingreso':'var(--prod1)', 'Confección':'var(--prod2)', 'Sublimación':'var(--prod3)', 'Abono':'var(--prod4)', 'Saldo':'var(--prod5)', 'Entrega':'#e84040', 'Otros':'#6b7280' };
 function estadoColor(p) {
@@ -283,8 +283,76 @@ function estadoColor(p) {
   return 'transparent';
 }
 
-let productions = [];
-let clientesData = []; // Base de datos de clientes
+let productions = [
+  { id: 1711000000001, orden: '001', name: 'TRUJILLO', prenda: '3 Camisetas, 7 Conjuntos', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-05-28', fechaEntrega: '2026-05-11', tag: 'Ingreso', cantidad: { camisetas: 3, conjuntos: 7 }, totalPrendas: 10, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000002, orden: '002', name: 'LA SALLE', prenda: '18 Camisetas, 146 Conjuntos', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-05-30', fechaEntrega: '2026-05-11', tag: 'Ingreso', cantidad: { camisetas: 18, conjuntos: 146 }, totalPrendas: 164, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000003, orden: '003', name: 'BEAUTYSTAR', prenda: '18 Camisetas', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-05-29', fechaEntrega: '2026-05-12', tag: 'Ingreso', cantidad: { camisetas: 18 }, totalPrendas: 18, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000004, orden: '004', name: 'OLLANTAY', prenda: '32 Camisetas', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-05-12', fechaEntrega: '2026-05-29', tag: 'Ingreso', cantidad: { camisetas: 32 }, totalPrendas: 32, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000005, orden: '005', name: 'TABERNA', prenda: '12 Camisetas, 20 Conjuntos', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-05-13', fechaEntrega: '2026-05-30', tag: 'Ingreso', cantidad: { camisetas: 12, conjuntos: 20 }, totalPrendas: 32, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000007, orden: '007', name: 'IRON SWIM 2', prenda: '11 Camisetas', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-05-15', fechaEntrega: '2026-06-02', tag: 'Ingreso', cantidad: { camisetas: 11 }, totalPrendas: 11, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000015, orden: '015', name: 'LEGENDARIOS', prenda: '2 Camisetas, 3 Conjuntos', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-05-15', fechaEntrega: '2026-06-02', tag: 'Ingreso', cantidad: { camisetas: 2, conjuntos: 3 }, totalPrendas: 5, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000006, orden: '006', name: 'BTS NEGRA MELANY', prenda: '49 Camisetas', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-05-18', fechaEntrega: '2026-06-04', tag: 'Ingreso', cantidad: { camisetas: 49 }, totalPrendas: 49, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000012, orden: '012', name: 'KARMA', prenda: '5 Camisetas', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-05-19', fechaEntrega: '2026-06-08', tag: 'Ingreso', cantidad: { camisetas: 5 }, totalPrendas: 5, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000008, orden: '008', name: 'ALCAZAR', prenda: '78 Conjuntos', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-05-22', fechaEntrega: '2026-06-08', tag: 'Ingreso', cantidad: { conjuntos: 78 }, totalPrendas: 78, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000009, orden: '009', name: 'TOMASA', prenda: '15 Camisetas', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-06-10', fechaEntrega: '2026-05-22', tag: 'Ingreso', cantidad: { camisetas: 15 }, totalPrendas: 15, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000011, orden: '011', name: 'MINOTAURO', prenda: '14 Camisetas', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-06-11', fechaEntrega: '2026-05-22', tag: 'Ingreso', cantidad: { camisetas: 14 }, totalPrendas: 14, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000013, orden: '013', name: 'QATAR', prenda: '14 Conjuntos', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-05-25', fechaEntrega: '2026-06-11', tag: 'Ingreso', cantidad: { conjuntos: 14 }, totalPrendas: 14, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000014, orden: '014', name: 'DANILO', prenda: '27 Camisetas', tipo: 'Sublimación', diseñador: 'Ingrid Vargas', date: '2026-05-25', fechaEntrega: '2026-06-05', tag: 'Ingreso', cantidad: { camisetas: 27 }, totalPrendas: 27, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000016, orden: '016', name: 'CORDILLERA', prenda: '20 Camisetas', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-05-25', fechaEntrega: '2026-06-05', tag: 'Ingreso', cantidad: { camisetas: 20 }, totalPrendas: 20, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000017, orden: '017', name: 'BATUCADA', prenda: '15 Camisetas', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-06-13', fechaEntrega: '2026-05-27', tag: 'Ingreso', cantidad: { camisetas: 15 }, totalPrendas: 15, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000019, orden: '019', name: 'MELANY ARIRANG', prenda: '11 Camisetas', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-05-29', fechaEntrega: '2026-06-16', tag: 'Ingreso', cantidad: { camisetas: 11 }, totalPrendas: 11, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000018, orden: '018', name: 'WALLMAPU', prenda: '2 Camisetas, 16 Conjuntos', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-05-31', fechaEntrega: '2026-06-16', tag: 'Ingreso', cantidad: { camisetas: 2, conjuntos: 16 }, totalPrendas: 18, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000020, orden: '020', name: 'DOMINGO', prenda: '58 Camisetas', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-06-01', fechaEntrega: '2026-06-15', tag: 'Ingreso', cantidad: { camisetas: 58 }, totalPrendas: 58, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000021, orden: '021', name: 'LEAF COLOR', prenda: '6 Conjuntos', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-06-10', fechaEntrega: '2026-06-27', tag: 'Ingreso', cantidad: { conjuntos: 6 }, totalPrendas: 6, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000022, orden: '022', name: 'SAN NICOLAS DE MIRA', prenda: '12 Camisetas', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-06-10', fechaEntrega: '2026-06-27', tag: 'Ingreso', cantidad: { camisetas: 12 }, totalPrendas: 12, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000023, orden: '023', name: 'NICO APARA', prenda: '55 Conjuntos', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-06-11', fechaEntrega: '2026-06-29', tag: 'Ingreso', cantidad: { conjuntos: 55 }, totalPrendas: 55, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000024, orden: '024', name: 'ESCUELA SAN PEDRO EQUUS', prenda: '12 Conjuntos', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-06-11', fechaEntrega: '2026-06-20', tag: 'Ingreso', cantidad: { conjuntos: 12 }, totalPrendas: 12, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000025, orden: '025', name: 'ESCUELA ITALIA EQUUS', prenda: '15 Camisetas', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-06-11', fechaEntrega: '2026-06-29', tag: 'Ingreso', cantidad: { camisetas: 15 }, totalPrendas: 15, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000026, orden: '026', name: 'ESCUELA GRECIA EQUUS', prenda: '25 Camisetas', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-06-11', fechaEntrega: '2026-06-29', tag: 'Ingreso', cantidad: { camisetas: 25 }, totalPrendas: 25, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000027, orden: '027', name: 'ESCUELA TOMASA EQUUS', prenda: '24 Camisetas', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-06-11', fechaEntrega: '2026-06-29', tag: 'Ingreso', cantidad: { camisetas: 24 }, totalPrendas: 24, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000028, orden: '028', name: 'DRAGON FORTALEZA', prenda: '103 Camisetas, 34 Otros', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-06-19', fechaEntrega: '2026-07-06', tag: 'Ingreso', cantidad: { camisetas: 103, otros: 34, otrosDesc: 'Otros' }, totalPrendas: 137, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000029, orden: '029', name: 'ORSI', prenda: '12 Conjuntos', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-06-19', fechaEntrega: '2026-07-06', tag: 'Ingreso', cantidad: { conjuntos: 12 }, totalPrendas: 12, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000030, orden: '030', name: 'ESGRIMA PUNTA ARENAS', prenda: '33 Camisetas', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-06-22', fechaEntrega: '2026-07-08', tag: 'Ingreso', cantidad: { camisetas: 33 }, totalPrendas: 33, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000031, orden: '031', name: 'BRYAN', prenda: '20 Conjuntos', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-06-25', fechaEntrega: '2026-07-04', tag: 'Ingreso', cantidad: { conjuntos: 20 }, totalPrendas: 20, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000032, orden: '032', name: 'CHE CLAU', prenda: '10 Conjuntos', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-06-26', fechaEntrega: '2026-07-17', tag: 'Ingreso', cantidad: { conjuntos: 10 }, totalPrendas: 10, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000033, orden: '033', name: 'CERRO PORTEÑO', prenda: '18 Conjuntos', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-06-26', fechaEntrega: '2026-07-18', tag: 'Ingreso', cantidad: { conjuntos: 18 }, totalPrendas: 18, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000034, orden: '034', name: 'MELANI BTS', prenda: '29 Camisetas', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-06-26', fechaEntrega: '2026-07-15', tag: 'Ingreso', cantidad: { camisetas: 29 }, totalPrendas: 29, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000035, orden: '035', name: 'LA SALLE', prenda: '6 Camisetas, 2 Conjuntos', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-06-30', fechaEntrega: '2026-07-17', tag: 'Ingreso', cantidad: { camisetas: 6, conjuntos: 2 }, totalPrendas: 8, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000037, orden: '037', name: 'IBARRA', prenda: '140 Camisetas', tipo: 'Sublimación', diseñador: 'Sebastián Gutiérrez', date: '2026-07-01', fechaEntrega: '2026-07-10', tag: 'Ingreso', cantidad: { camisetas: 140 }, totalPrendas: 140, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000036, orden: '036', name: 'MAX', prenda: '14 Camisetas', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-07-03', fechaEntrega: '2026-07-21', tag: 'Ingreso', cantidad: { camisetas: 14 }, totalPrendas: 14, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000038, orden: '038', name: 'RINCON DE CATITA', prenda: '27 Camisetas', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-07-06', fechaEntrega: '2026-07-22', tag: 'Ingreso', cantidad: { camisetas: 27 }, totalPrendas: 27, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000039, orden: '039', name: 'LEGIONARIOS', prenda: '8 Conjuntos', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-07-06', fechaEntrega: '2026-07-22', tag: 'Ingreso', cantidad: { conjuntos: 8 }, totalPrendas: 8, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000040, orden: '040', name: 'OSCAR GUERRA', prenda: '21 Camisetas', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-07-06', fechaEntrega: '2026-07-22', tag: 'Ingreso', cantidad: { camisetas: 21 }, totalPrendas: 21, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000041, orden: '041', name: 'RICARDO VARAS BULL\'SBIKE', prenda: '13 Camisetas', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-07-10', fechaEntrega: '2026-07-30', tag: 'Ingreso', cantidad: { camisetas: 13 }, totalPrendas: 13, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000042, orden: '042', name: 'FUTPRO', prenda: '20 Conjuntos', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-07-10', fechaEntrega: '2026-07-30', tag: 'Ingreso', cantidad: { conjuntos: 20 }, totalPrendas: 20, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000047, orden: '047', name: 'TOTAL ENERGY', prenda: '13 Camisetas', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-07-13', fechaEntrega: '', tag: 'Ingreso', cantidad: { camisetas: 13 }, totalPrendas: 13, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000043, orden: '043', name: 'CLUB DEPORTIVO CARDENAL', prenda: '10 Camisetas, 7 Conjuntos', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-07-16', fechaEntrega: '2026-08-03', tag: 'Ingreso', cantidad: { camisetas: 10, conjuntos: 7 }, totalPrendas: 17, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000044, orden: '044', name: 'FABIOLA BTS', prenda: '18 Camisetas', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-07-20', fechaEntrega: '2026-08-05', tag: 'Ingreso', cantidad: { camisetas: 18 }, totalPrendas: 18, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000045, orden: '045', name: 'KYMSTAR', prenda: '44 Conjuntos', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-07-22', fechaEntrega: '2026-08-10', tag: 'Ingreso', cantidad: { conjuntos: 44 }, totalPrendas: 44, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000046, orden: '046', name: 'EURE', prenda: '24 Camisetas', tipo: 'Sublimación', diseñador: 'Alejandro Velozo', date: '2026-07-23', fechaEntrega: '2026-07-25', tag: 'Ingreso', cantidad: { camisetas: 24 }, totalPrendas: 24, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000048, orden: '048', name: 'IGNACIA CRICHTON', prenda: '17 Camisetas', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-07-31', fechaEntrega: '2026-08-20', tag: 'Ingreso', cantidad: { camisetas: 17 }, totalPrendas: 17, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000049, orden: '049', name: 'YENNIFER', prenda: '20 Camisetas', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-08-03', fechaEntrega: '2026-08-15', tag: 'Ingreso', cantidad: { camisetas: 20 }, totalPrendas: 20, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000050, orden: '050', name: 'EQUUS ESCUELA FROILAN', prenda: '12 Camisetas', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-08-10', fechaEntrega: '2026-08-26', tag: 'Ingreso', cantidad: { camisetas: 12 }, totalPrendas: 12, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000051, orden: '051', name: 'FABIOLA', prenda: '4 Camisetas', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-08-10', fechaEntrega: '2026-08-26', tag: 'Ingreso', cantidad: { camisetas: 4 }, totalPrendas: 4, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000052, orden: '052', name: 'MELANY', prenda: '11 Camisetas', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-08-10', fechaEntrega: '2026-08-26', tag: 'Ingreso', cantidad: { camisetas: 11 }, totalPrendas: 11, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000053, orden: '053', name: 'OSCAR GUERRA', prenda: '5 Camisetas', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-08-10', fechaEntrega: '2026-08-26', tag: 'Ingreso', cantidad: { camisetas: 5 }, totalPrendas: 5, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000054, orden: '054', name: 'EQUUS LO BARNECHEA', prenda: '270 Conjuntos', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-08-11', fechaEntrega: '2026-08-30', tag: 'Ingreso', cantidad: { conjuntos: 270 }, totalPrendas: 270, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000055, orden: '055', name: 'DRAGONES CLAUDIA', prenda: '5 Camisetas', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-08-12', fechaEntrega: '2026-08-20', tag: 'Ingreso', cantidad: { camisetas: 5 }, totalPrendas: 5, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000057, orden: '057', name: 'VORA', prenda: '13 Conjuntos, 3 Otros', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-08-13', fechaEntrega: '2026-08-26', tag: 'Ingreso', cantidad: { conjuntos: 13, otros: 3, otrosDesc: 'Otros' }, totalPrendas: 16, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000056, orden: '056', name: 'EQUUS SANTA BARBARA', prenda: '20 Conjuntos', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-08-20', fechaEntrega: '2026-08-07', tag: 'Ingreso', cantidad: { conjuntos: 20 }, totalPrendas: 20, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000058, orden: '058', name: 'ESCUDERO', prenda: '22 Camisetas', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-08-24', fechaEntrega: '2026-09-08', tag: 'Ingreso', cantidad: { camisetas: 22 }, totalPrendas: 22, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000059, orden: '059', name: 'LEGIONARIOS', prenda: '11 Conjuntos', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-09-10', fechaEntrega: '2026-08-24', tag: 'Ingreso', cantidad: { conjuntos: 11 }, totalPrendas: 11, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000062, orden: '062', name: 'KYMSTAR', prenda: '13 Camisetas', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-08-28', fechaEntrega: '2026-09-15', tag: 'Ingreso', cantidad: { camisetas: 13 }, totalPrendas: 13, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000060, orden: '060', name: 'CAMISETA DROPSHOP (CLAUSURA)', prenda: '21 Camisetas', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-08-31', fechaEntrega: '2026-09-17', tag: 'Ingreso', cantidad: { camisetas: 21 }, totalPrendas: 21, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000069, orden: '069', name: 'PASE GOL', prenda: '13 Conjuntos', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-08-31', fechaEntrega: '2026-09-17', tag: 'Ingreso', cantidad: { conjuntos: 13 }, totalPrendas: 13, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000061, orden: '061', name: 'QUITALMAHUE', prenda: '36 Conjuntos', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-09-01', fechaEntrega: '2026-09-17', tag: 'Ingreso', cantidad: { conjuntos: 36 }, totalPrendas: 36, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000063, orden: '063', name: 'SPORCASTING', prenda: '3 Camisetas, 16 Conjuntos', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-09-02', fechaEntrega: '2026-09-16', tag: 'Ingreso', cantidad: { camisetas: 3, conjuntos: 16 }, totalPrendas: 19, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000064, orden: '064', name: 'RODRIGO ARIAS CRUZ DEL SUR', prenda: '17 Conjuntos', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-09-08', fechaEntrega: '2026-09-30', tag: 'Ingreso', cantidad: { conjuntos: 17 }, totalPrendas: 17, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000066, orden: '066', name: 'ΑΝΤΟΝΙΟ', prenda: '12 Camisetas', tipo: 'Sublimación', diseñador: 'Sebastián Gutiérrez', date: '2026-09-15', fechaEntrega: '2026-09-11', tag: 'Ingreso', cantidad: { camisetas: 12 }, totalPrendas: 12, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000067, orden: '067', name: 'ROSY', prenda: '20 Camisetas', tipo: 'Sublimación', diseñador: 'Ingrid Vargas', date: '2026-09-12', fechaEntrega: '2026-09-15', tag: 'Ingreso', cantidad: { camisetas: 20 }, totalPrendas: 20, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000065, orden: '065', name: 'LIENZO', prenda: '7 Otros', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-09-30', fechaEntrega: '2026-09-14', tag: 'Ingreso', cantidad: { otros: 7, otrosDesc: 'Otros' }, totalPrendas: 7, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000068, orden: '068', name: 'TALLER VOLEIBOL', prenda: '15 Camisetas', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-09-15', fechaEntrega: '2026-10-05', tag: 'Ingreso', cantidad: { camisetas: 15 }, totalPrendas: 15, monto: 0, abono: 0, saldo: 0 }
+];
 const today = new Date();
 const todayStr = today.toISOString().slice(0,10);
 let currentViewYear = Math.min(2031, Math.max(2025, today.getFullYear()));
@@ -295,8 +363,24 @@ function storageKey() { return 'prods' + currentViewYear; }
 async function loadYearData() {
   const key = storageKey();
   const cloudData = await loadFromCloud(key);
-  if (cloudData) { productions = cloudData; lastSyncedSnapshot = JSON.stringify(cloudData); }
-  else { productions = JSON.parse(localStorage.getItem(key) || '[]'); lastSyncedSnapshot = JSON.stringify(productions); }
+  if (cloudData) { 
+    // Merge cloud data with hardcoded data (preferring cloud data by ID)
+    const mergedMap = new Map();
+    productions.forEach(p => mergedMap.set(p.id, p));
+    cloudData.forEach(p => mergedMap.set(p.id, p));
+    productions = Array.from(mergedMap.values());
+    lastSyncedSnapshot = JSON.stringify(productions); 
+  }
+  else { 
+    const localData = JSON.parse(localStorage.getItem(key) || '[]'); 
+    if(localData.length > 0) {
+      const mergedMap = new Map();
+      productions.forEach(p => mergedMap.set(p.id, p));
+      localData.forEach(p => mergedMap.set(p.id, p));
+      productions = Array.from(mergedMap.values());
+    }
+    lastSyncedSnapshot = JSON.stringify(productions); 
+  }
 }
 
 function applyYearBounds() {
@@ -771,6 +855,8 @@ window.onload = async function() {
   await loadYearData();
   renderAll(); 
   updateDataLists();
+  
+  save(); // Save the initial hardcoded data to the cloud on first load
 };
 </script>
 </body>
