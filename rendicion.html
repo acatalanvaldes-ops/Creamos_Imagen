@@ -194,7 +194,14 @@ tfoot .tot-row td{background:var(--accent-l);font-family:var(--mono);font-size:1
 <div class="panel" id="p-prev">
   <div class="prev-head">
     <div><h2>Vista Previa Excel</h2></div>
-    <div class="prev-actions" style="margin-left:auto"><button class="btn-dl" onclick="exportXLSX()">⬇ Descargar .xlsx</button></div>
+    <div class="prev-actions" style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Desde:</span>
+      <input type="date" id="prevDesde" onchange="buildPreview()" style="background:var(--card,#fff);border:1px solid var(--border,#ccc);border-radius:4px;padding:6px;font-size:0.8rem;">
+      <span style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-left:2px">Hasta:</span>
+      <input type="date" id="prevHasta" onchange="buildPreview()" style="background:var(--card,#fff);border:1px solid var(--border,#ccc);border-radius:4px;padding:6px;font-size:0.8rem;">
+      <button onclick="clearPrevRange()" title="Quitar filtro de rango de fechas" style="background:none;border:1px solid var(--border,#ccc);border-radius:4px;padding:6px 10px;cursor:pointer;color:var(--muted)">✕</button>
+      <button class="btn-dl" onclick="exportXLSX()">⬇ Descargar .xlsx</button>
+    </div>
   </div>
   <div class="prev-tabs" id="prev-tabs"></div>
   <div class="excel-wrap"><table class="ex-tbl"><thead id="ex-head"></thead><tbody id="ex-body"></tbody></table></div>
@@ -252,7 +259,8 @@ async function loadData() {
     Object.keys(p).forEach(k => { data[k] = p[k]; });
   } catch(e){}
   
-  buildAccordion(); 
+  applyPrevRangeBounds();
+  buildAccordion();
   selectDay(daysKey(t.getMonth(), t.getDate()), t.getMonth());
   renderSumm();
 
@@ -275,6 +283,10 @@ async function loadData() {
 function changeYear(y) {
   currentYear = parseInt(y);
   curDate = null; curMonth = null;
+  // El rango de fechas del reporte es específico de cada año; se limpia y se vuelven a fijar sus límites.
+  const desdeEl0 = document.getElementById('prevDesde'), hastaEl0 = document.getElementById('prevHasta');
+  if (desdeEl0) desdeEl0.value = ''; if (hastaEl0) hastaEl0.value = '';
+  applyPrevRangeBounds();
   buildAccordion();
   document.getElementById('c-title').textContent = "—";
   document.getElementById('c-sub').textContent = "Panel de registros diarios";
@@ -411,8 +423,37 @@ function getAllRowsSorted(){
   Object.keys(data).filter(k=>k.startsWith(currentYear.toString())).forEach(k=>{
     (data[k]||[]).forEach(r=>{ rows.push(Object.assign({fecha:k}, r)); });
   });
-  rows.sort((a,b)=>a.fecha.localeCompare(b.fecha));
-  return rows;
+  // FILTRO DE RANGO DE FECHAS (Desde / Hasta): afecta la vista previa y el .xlsx exportado
+  const desdeEl = document.getElementById('prevDesde');
+  const hastaEl = document.getElementById('prevHasta');
+  const desdeStr = desdeEl ? desdeEl.value : '';
+  const hastaStr = hastaEl ? hastaEl.value : '';
+  let filtered = rows;
+  if (desdeStr) filtered = filtered.filter(r => r.fecha >= desdeStr);
+  if (hastaStr) filtered = filtered.filter(r => r.fecha <= hastaStr);
+  filtered.sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  return filtered;
+}
+
+function isPrevRangeActive(){
+  const desdeEl = document.getElementById('prevDesde');
+  const hastaEl = document.getElementById('prevHasta');
+  return !!((desdeEl && desdeEl.value) || (hastaEl && hastaEl.value));
+}
+
+function clearPrevRange(){
+  const desdeEl = document.getElementById('prevDesde');
+  const hastaEl = document.getElementById('prevHasta');
+  if (desdeEl) desdeEl.value = '';
+  if (hastaEl) hastaEl.value = '';
+  buildPreview();
+}
+
+function applyPrevRangeBounds(){
+  const desdeEl = document.getElementById('prevDesde');
+  const hastaEl = document.getElementById('prevHasta');
+  if (desdeEl) { desdeEl.min = currentYear + '-01-01'; desdeEl.max = currentYear + '-12-31'; }
+  if (hastaEl) { hastaEl.min = currentYear + '-01-01'; hastaEl.max = currentYear + '-12-31'; }
 }
 
 function fechaCorta(iso){ const [y,m,d]=iso.split('-'); return `${d}/${m}/${y}`; }
@@ -423,7 +464,8 @@ function buildPreview(){
   const body = document.getElementById('ex-body');
   head.innerHTML = '<tr><th>Fecha</th><th>Cliente</th><th>Tipo de Venta</th><th>Origen</th><th>Forma de Pago</th><th style="text-align:right">Efectivo</th><th style="text-align:right">Transferencia</th><th style="text-align:right">Webpay</th><th>Observaciones</th></tr>';
   if(!rows.length){
-    body.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px">No hay registros para ${currentYear}.</td></tr>`;
+    const rangoTxt = isPrevRangeActive() ? 'en el rango de fechas seleccionado' : ('para ' + currentYear);
+    body.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px">No hay registros ${rangoTxt}.</td></tr>`;
     return;
   }
   let html='';
@@ -437,7 +479,11 @@ function buildPreview(){
 
 async function exportXLSX(){
   const rows = getAllRowsSorted();
-  if(!rows.length){ alert('No hay registros para exportar en ' + currentYear + '.'); return; }
+  if(!rows.length){
+    const rangoTxt = isPrevRangeActive() ? 'en el rango de fechas seleccionado' : ('en ' + currentYear);
+    alert('No hay registros para exportar ' + rangoTxt + '.');
+    return;
+  }
   if(typeof ExcelJS === 'undefined'){ alert('No se pudo cargar el generador de Excel. Verifica tu conexión a internet e inténtalo nuevamente.'); return; }
 
   const wb = new ExcelJS.Workbook();
@@ -452,9 +498,18 @@ async function exportXLSX(){
   ];
   ws.columns = cols;
 
+  const desdeElExp = document.getElementById('prevDesde');
+  const hastaElExp = document.getElementById('prevHasta');
+  const desdeStrExp = desdeElExp ? desdeElExp.value : '';
+  const hastaStrExp = hastaElExp ? hastaElExp.value : '';
+  let tituloRango = currentYear;
+  if (desdeStrExp || hastaStrExp) {
+    tituloRango = (desdeStrExp ? fechaCorta(desdeStrExp) : 'Inicio') + ' - ' + (hastaStrExp ? fechaCorta(hastaStrExp) : 'Fin');
+  }
+
   ws.mergeCells(1, 1, 1, cols.length);
   const titleCell = ws.getCell(1, 1);
-  titleCell.value = 'CREAMOS IMAGEN — RENDICIÓN DE CAJA ' + currentYear;
+  titleCell.value = 'CREAMOS IMAGEN — RENDICIÓN DE CAJA ' + tituloRango;
   titleCell.font = { bold:true, size:14, color:{argb:'FFFFFFFF'} };
   titleCell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF2C5F2E'} };
   titleCell.alignment = { vertical:'middle' };
@@ -512,7 +567,8 @@ async function exportXLSX(){
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `Creamos_Imagen_Rendicion_${currentYear}.xlsx`;
+  const sufijoRango = isPrevRangeActive() ? '_filtrado' : '';
+  a.download = `Creamos_Imagen_Rendicion_${currentYear}${sufijoRango}.xlsx`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
