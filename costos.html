@@ -23,6 +23,7 @@ input,select,button{font-family:inherit;outline:none}
 .act-btn:hover{border-color:var(--gold);color:var(--gold)}
 .act-btn.primary{background:var(--gold);border-color:var(--gold);color:#fff}
 .act-btn.primary:hover{background:#B8872A;transform:translateY(-1px)}
+.act-btn.small{padding:5px 10px;font-size:11px}
 .grid-config{display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:24px;margin-top:16px;}
 .card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:24px;}
 .card-title{font-size:13px;font-weight:700;color:var(--dark);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;border-bottom:2px solid var(--bg);padding-bottom:8px;}
@@ -130,6 +131,7 @@ var state = {
   fichas: [],
   config: JSON.parse(JSON.stringify(defaultCfg)),
   showForm: false,
+  showConfigInModal: false, // <-- NUEVA VARIABLE PARA CONTROLAR EL PANEL INTERNO
   form: { id: null, nombre: "", tela: "", papelSub: "", tinta: "", papelAdh: "", tallerExterno: false, costoDiseno: "", costoOperario: "", costoConfeccion: "" }
 };
 
@@ -335,8 +337,30 @@ function buildFichas() {
 
 function buildModal() {
   var f = state.form;
+  var c = state.config;
   var res = calcularCostosForm();
   var isEdit = f.id !== null;
+
+  // PANEL INTERNO PARA MODIFICAR LA CONFIGURACIÓN SIN SALIR DE LA FICHA
+  var configToggleBtn = '<div style="display:flex; justify-content:space-between; align-items:center; margin-top:24px; margin-bottom:12px;">'+
+    '<div style="font-weight:700;font-size:12px;color:var(--gold);text-transform:uppercase;">Consumo de Materiales</div>'+
+    '<button class="act-btn small" style="border-color:var(--teal); color:var(--teal); padding:6px 12px;" onclick="setState({showConfigInModal: !state.showConfigInModal})">⚙️ '+(state.showConfigInModal ? 'Ocultar' : 'Ver / Ajustar')+' Costos Base</button>'+
+  '</div>';
+
+  var configPanel = state.showConfigInModal ? 
+    '<div style="background:#F0FDF4; border:1px solid #BBF7D0; border-radius:8px; padding:16px; margin-bottom:16px;">'+
+      '<div style="font-size:11px; font-weight:700; color:#166534; margin-bottom:12px; text-transform:uppercase;">Costos Base Globales (Afectarán esta y todas las nuevas fichas)</div>'+
+      '<div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">'+
+        '<div class="fld" style="margin-bottom:0"><label>Costo Tela ($/M)</label><input type="number" value="'+c.tela+'" onchange="setConfig(\'tela\',this.value)"></div>'+
+        '<div class="fld" style="margin-bottom:0"><label>Costo Papel Sub ($/M/H)</label><input type="number" value="'+c.papelSub+'" onchange="setConfig(\'papelSub\',this.value)"></div>'+
+        '<div class="fld" style="margin-bottom:0"><label>Costo Tinta ($/ML)</label><input type="number" value="'+c.tinta+'" onchange="setConfig(\'tinta\',this.value)"></div>'+
+        '<div class="fld" style="margin-bottom:0"><label>Costo Papel Adh ($/M/H)</label><input type="number" value="'+c.papelAdh+'" onchange="setConfig(\'papelAdh\',this.value)"></div>'+
+        '<div class="fld" style="margin-bottom:0"><label>Costo Hilos ($)</label><input type="number" value="'+c.hilos+'" onchange="setConfig(\'hilos\',this.value)"></div>'+
+        '<div class="fld" style="margin-bottom:0"><label>Desgaste Máquina/Luz ($)</label><input type="number" value="'+c.maquina+'" onchange="setConfig(\'maquina\',this.value)"></div>'+
+        '<div class="fld" style="margin-bottom:0"><label>Gastos Admin ($)</label><input type="number" value="'+c.admin+'" onchange="setConfig(\'admin\',this.value)"></div>'+
+        '<div class="fld" style="margin-bottom:0"><label>Traslado ($)</label><input type="number" value="'+(c.traslado||0)+'" onchange="setConfig(\'traslado\',this.value)"></div>'+
+      '</div>'+
+    '</div>' : '';
 
   return '<div class="modal-bg"><div class="modal">'+
     '<h2>'+(isEdit?'Editar':'Nueva')+' Ficha de Costo</h2>'+
@@ -344,7 +368,8 @@ function buildModal() {
       '<div>'+
         '<div class="fld"><label>Nombre del Producto (Ej: Camiseta Deportiva L)</label><input type="text" value="'+f.nombre+'" oninput="state.form.nombre=this.value" placeholder="Nombre del producto..."></div>'+
 
-        '<div style="margin-top:24px;margin-bottom:12px;font-weight:700;font-size:12px;color:var(--gold);text-transform:uppercase;">Consumo de Materiales</div>'+
+        configToggleBtn + configPanel +
+
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'+
           '<div class="fld"><label>Tela (Metros)</label><input type="number" step="0.1" value="'+f.tela+'" oninput="state.form.tela=this.value; updateLiveCalc()" placeholder="Ej: 1.2"></div>'+
           '<div class="fld"><label>Papel Sublimación (M / Hojas)</label><input type="number" step="0.1" value="'+f.papelSub+'" oninput="state.form.papelSub=this.value; updateLiveCalc()" placeholder="Ej: 1.5"></div>'+
@@ -398,7 +423,7 @@ function abrirForm(idx) {
   } else {
     state.form = { id: null, nombre: "", tela: "", papelSub: "", tinta: "", papelAdh: "", tallerExterno: false, costoDiseno: "", costoOperario: "", costoConfeccion: "" };
   }
-  setState({showForm:true});
+  setState({showForm:true, showConfigInModal: false});
 }
 
 function guardarFicha() {
@@ -418,7 +443,7 @@ function guardarFicha() {
   else { state.fichas.push(ficha); }
 
   guardarDatos();
-  setState({showForm:false});
+  setState({showForm:false, showConfigInModal: false});
 }
 
 function borrarFicha(idx) {
