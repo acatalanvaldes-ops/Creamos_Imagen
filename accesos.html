@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Accesos - Creamos Imagen</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F7F5F0;--surface:#FFFFFF;--dark:#1C1917;--gold:#C8973A;--teal:#0D7A6B;--red:#C0392B;--muted:#78716C;--border:#E7E2D9}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--dark);min-height:100vh}
+.topbar{background:var(--dark);padding:18px 24px;display:flex;align-items:center;justify-content:space-between}
+.brand-tag{font-size:9px;color:var(--gold);letter-spacing:.2em;font-weight:700;text-transform:uppercase;margin-bottom:2px}
+.brand-name{font-family:'DM Serif Display',serif;font-size:22px;color:#fff}
+.brand-name span{color:var(--gold)}
+.content{padding:24px;max-width:1100px;margin:0 auto}
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px}
+.card-title{font-size:13px;font-weight:700;color:var(--dark);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.help{color:var(--muted);font-size:13px;margin-bottom:18px;line-height:1.5}
+.help b{color:var(--dark)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{background:var(--dark);color:var(--gold);font-size:10px;text-transform:uppercase;padding:8px 6px;text-align:center;white-space:nowrap}
+th.email-col{text-align:left;padding-left:12px}
+td{padding:8px 6px;border-bottom:1px solid var(--border);text-align:center}
+td.email-col{text-align:left;padding-left:12px;font-weight:600}
+tr:hover td{background:#FAFAF8}
+input[type=checkbox]{width:16px;height:16px;cursor:pointer}
+.act-btn{background:#fff;border:1.5px solid var(--border);color:var(--dark);padding:8px 14px;border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer}
+.act-btn:hover{border-color:var(--gold);color:var(--gold)}
+.act-btn.primary{background:var(--gold);border-color:var(--gold);color:#fff}
+.act-btn.primary:hover{background:#B8872A}
+.icon-btn{background:none;border:none;cursor:pointer;font-size:14px;opacity:.5}
+.icon-btn:hover{opacity:1}
+.add-row{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;align-items:center}
+.add-row input[type=email]{flex:1;min-width:220px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;font-size:14px;color:var(--dark)}
+.add-row input[type=email]:focus{border-color:var(--gold);background:#fff;outline:none}
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted)}
+.save-badge{position:fixed;bottom:18px;right:18px;background:var(--dark);color:var(--gold);padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;display:none;box-shadow:0 6px 20px rgba(0,0,0,.3)}
+.super-note{background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:10px 14px;font-size:12px;color:#166534;margin-bottom:16px}
+</style>
+</head>
+<body>
+<script>
+(function(){
+  var SESSION_KEY = "cimagen_session";
+  var SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+  var SUPER_ADMIN_EMAIL = "a.catalan.valdes@gmail.com";
+  var sess = null;
+  try { sess = JSON.parse(localStorage.getItem(SESSION_KEY)); } catch(e){}
+  var valid = sess && sess.email && sess.ts && (Date.now() - sess.ts < SESSION_TTL_MS);
+  var isAdmin = valid && (sess.isAdmin || sess.email === SUPER_ADMIN_EMAIL.toLowerCase());
+  if (!isAdmin) {
+    window.location.replace("index.html");
+  }
+})();
+</script>
+
+<a href="index.html" style="position:fixed; top:14px; left:20px; background:#1C1917; color:#C8973A; padding:8px 14px; border-radius:6px; border:1px solid #C8973A; text-decoration:none; font-family:Arial, sans-serif; font-size:11px; font-weight:bold; box-shadow:0 4px 6px rgba(0,0,0,0.2); z-index:9999;">← Menú</a>
+
+<div id="app"></div>
+<div class="save-badge" id="save-badge">Guardado ✓</div>
+
+<script>
+// ============================================================
+// CONEXIÓN A BASE DE DATOS (NUBE) - mismo backend que el resto de las apps
+// ============================================================
+const API_URL = "https://script.google.com/macros/s/AKfycbxP5-vB59e80qpXdx4AcCyS28C4H58thdh0XXtLcDWZD8Q_47fDbBvLn1ahqx7RoJor/exec";
+const ACL_KEY = "accesos_ci_v1";
+const SUPER_ADMIN_EMAIL = "a.catalan.valdes@gmail.com";
+
+const MODULOS = [
+  { key: "rendicion",    label: "Caja" },
+  { key: "clientes",     label: "Clientes" },
+  { key: "costos",       label: "Costos" },
+  { key: "cotizaciones", label: "Cotizaciones" },
+  { key: "dashboard",    label: "Indicadores" },
+  { key: "calendario",   label: "Producciones" },
+  { key: "proveedores",  label: "Proveedores" },
+  { key: "ventasci",     label: "Ventas Empresa" },
+  { key: "ventas",       label: "Ventas Local" }
+];
+
+async function saveToCloud(key, dataObj) {
+  try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj) }) }); }
+  catch (e) {}
+}
+async function loadFromCloud(key) {
+  try {
+    const res = await fetch(API_URL + "?key=" + key);
+    const json = await res.json();
+    return json.valor ? JSON.parse(json.valor) : null;
+  } catch (e) { return null; }
+}
+
+var state = { acl: {}, loaded: false, nuevoCorreo: "" };
+
+function normEmail(e) { return (e || "").trim().toLowerCase(); }
+
+function guardarAcl() {
+  localStorage.setItem(ACL_KEY, JSON.stringify(state.acl));
+  saveToCloud(ACL_KEY, state.acl);
+  var badge = document.getElementById("save-badge");
+  if (badge) {
+    badge.style.display = "block";
+    clearTimeout(window.__badgeTimeout);
+    window.__badgeTimeout = setTimeout(function(){ badge.style.display = "none"; }, 1500);
+  }
+}
+
+function toggleModulo(email, modKey, checked) {
+  if (!state.acl[email]) state.acl[email] = { admin: false, modules: [] };
+  var mods = state.acl[email].modules || [];
+  var idx = mods.indexOf(modKey);
+  if (checked && idx === -1) mods.push(modKey);
+  if (!checked && idx !== -1) mods.splice(idx, 1);
+  state.acl[email].modules = mods;
+  guardarAcl();
+}
+
+function toggleAdmin(email, checked) {
+  if (!state.acl[email]) state.acl[email] = { admin: false, modules: [] };
+  state.acl[email].admin = checked;
+  guardarAcl();
+  render();
+}
+
+function eliminarPersona(email) {
+  if (!confirm("¿Quitar todo acceso a " + email + "?")) return;
+  delete state.acl[email];
+  guardarAcl();
+  render();
+}
+
+function agregarPersona() {
+  var email = normEmail(state.nuevoCorreo);
+  if (!email || email.indexOf("@") === -1) { alert("Ingresa un correo Gmail válido."); return; }
+  if (email === SUPER_ADMIN_EMAIL.toLowerCase()) { alert("Ese correo ya tiene acceso total permanente (administradora principal)."); return; }
+  if (!state.acl[email]) state.acl[email] = { admin: false, modules: [] };
+  state.nuevoCorreo = "";
+  guardarAcl();
+  render();
+}
+
+function setNuevoCorreo(v) { state.nuevoCorreo = v; }
+
+function render() {
+  var emails = Object.keys(state.acl).sort();
+  var headCols = MODULOS.map(function(m){ return '<th>' + m.label + '</th>'; }).join('');
+
+  var rows = emails.map(function(email){
+    var entry = state.acl[email] || { admin: false, modules: [] };
+    var modCells = MODULOS.map(function(m){
+      var checked = entry.admin || (entry.modules || []).indexOf(m.key) !== -1;
+      var disabled = entry.admin ? 'disabled title="Tiene acceso total (Admin)"' : '';
+      return '<td><input type="checkbox" ' + (checked ? 'checked' : '') + ' ' + disabled + ' onchange="toggleModulo(\'' + email + '\',\'' + m.key + '\',this.checked)"></td>';
+    }).join('');
+    return '<tr>' +
+      '<td class="email-col">' + email + '</td>' +
+      modCells +
+      '<td><input type="checkbox" ' + (entry.admin ? 'checked' : '') + ' onchange="toggleAdmin(\'' + email + '\',this.checked)" title="Acceso total a todos los módulos"></td>' +
+      '<td><button class="icon-btn" onclick="eliminarPersona(\'' + email + '\')" title="Quitar acceso">🗑️</button></td>' +
+    '</tr>';
+  }).join('');
+
+  var tableOrEmpty = emails.length === 0
+    ? '<div class="empty-state">Todavía no le has dado acceso a nadie. Agrega un correo abajo.</div>'
+    : '<div style="overflow-x:auto"><table><thead><tr><th class="email-col">Correo</th>' + headCols + '<th>Admin</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+
+  var html =
+    '<div class="topbar"><div><div class="brand-tag">Gestión de Accesos</div><div class="brand-name">Creamos <span>Imagen</span></div></div></div>' +
+    '<div class="content">' +
+      '<div class="card">' +
+        '<div class="card-title">Quién puede entrar, y a qué</div>' +
+        '<div class="help">Marca los módulos a los que cada correo puede entrar. <b>Admin</b> da acceso a todos los módulos, incluida esta página de Accesos. Los cambios se guardan solos, al tiro.</div>' +
+        '<div class="super-note">🔒 <b>' + SUPER_ADMIN_EMAIL + '</b> siempre tiene acceso total a todo, aunque no aparezca en esta lista (es la cuenta administradora principal, por seguridad).</div>' +
+        tableOrEmpty +
+        '<div class="add-row">' +
+          '<input type="email" placeholder="correo@gmail.com" value="' + state.nuevoCorreo + '" oninput="setNuevoCorreo(this.value)" onkeydown="if(event.key===\'Enter\')agregarPersona()">' +
+          '<button class="act-btn primary" onclick="agregarPersona()">+ Agregar Persona</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+  document.getElementById("app").innerHTML = html;
+}
+
+async function initApp() {
+  var acl = await loadFromCloud(ACL_KEY);
+  if (acl) state.acl = acl;
+  else {
+    var raw = localStorage.getItem(ACL_KEY);
+    if (raw) { try { state.acl = JSON.parse(raw); } catch(e){} }
+  }
+  state.loaded = true;
+  render();
+}
+
+initApp();
+</script>
+</body>
+</html>
