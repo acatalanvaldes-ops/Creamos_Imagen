@@ -43,26 +43,32 @@
 <script>
 (function(){
   var PASS = "Cimagen2026";
-  document.documentElement.style.overflow = 'hidden';
-  window.addEventListener('DOMContentLoaded', function(){
-    var gate = document.getElementById('cimagen-gate');
-    var input = document.getElementById('cimagen-gate-input');
-    var btn = document.getElementById('cimagen-gate-btn');
-    var err = document.getElementById('cimagen-gate-error');
-    function tryEnter(){
-      if (input.value === PASS) {
-        gate.remove();
-        document.documentElement.style.overflow = '';
-      } else {
-        err.textContent = "Contraseña incorrecta";
-        input.value = "";
-        input.focus();
+  var KEY = "cimagen_auth_ok";
+  if (localStorage.getItem(KEY) === "1") {
+    var g0 = document.getElementById('cimagen-gate');
+    if (g0) g0.remove();
+  } else {
+    document.documentElement.style.overflow = 'hidden';
+    window.addEventListener('DOMContentLoaded', function(){
+      var input = document.getElementById('cimagen-gate-input');
+      var btn = document.getElementById('cimagen-gate-btn');
+      var err = document.getElementById('cimagen-gate-error');
+      function tryEnter(){
+        if (input.value === PASS) {
+          localStorage.setItem(KEY, "1");
+          document.getElementById('cimagen-gate').remove();
+          document.documentElement.style.overflow = '';
+        } else {
+          err.textContent = "Contraseña incorrecta";
+          input.value = "";
+          input.focus();
+        }
       }
-    }
-    btn.addEventListener('click', tryEnter);
-    input.addEventListener('keydown', function(e){ if (e.key === 'Enter') tryEnter(); });
-    setTimeout(function(){ input.focus(); }, 50);
-  });
+      btn.addEventListener('click', tryEnter);
+      input.addEventListener('keydown', function(e){ if (e.key === 'Enter') tryEnter(); });
+      setTimeout(function(){ input.focus(); }, 50);
+    });
+  }
 })();
 </script>
 
