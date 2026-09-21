@@ -204,12 +204,13 @@
       <div class="section-title" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
         Producciones registradas
         
-        <!-- NUEVO SELECTOR DE FECHAS PARA PDF -->
-        <div style="display:flex;gap:8px;margin-left:auto;align-items:center;">
+        <!-- SELECTOR DE RANGO DE FECHAS: filtra el calendario, la lista y las estadísticas, y se usa también para el PDF -->
+        <div style="display:flex;gap:8px;margin-left:auto;align-items:center;flex-wrap:wrap;">
           <span style="font-size:0.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Desde:</span>
-          <input type="date" id="pdfDesde" style="background:var(--card);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.75rem;padding:6px;outline:none;">
+          <input type="date" id="pdfDesde" onchange="renderAll()" style="background:var(--card);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.75rem;padding:6px;outline:none;">
           <span style="font-size:0.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-left:4px">Hasta:</span>
-          <input type="date" id="pdfHasta" style="background:var(--card);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.75rem;padding:6px;outline:none;">
+          <input type="date" id="pdfHasta" onchange="renderAll()" style="background:var(--card);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.75rem;padding:6px;outline:none;">
+          <button class="toggle-form-btn" onclick="clearDateRange()" title="Quitar filtro de rango de fechas" style="border-color:var(--text3);color:var(--text3);margin-left:2px;padding:8px 12px">✕</button>
           <button class="toggle-form-btn" onclick="exportPDF()" title="Exportar rango seleccionado a PDF" style="border-color:#e84040;color:#e84040;margin-left:6px">📄 PDF</button>
         </div>
         
@@ -408,6 +409,9 @@ async function changeYear(newYearStr) {
   if (newYear === currentViewYear) return;
   currentViewYear = newYear;
   applyYearBounds();
+  // El rango de fechas es específico de cada año; se limpia al cambiar de año para evitar un filtro fuera de rango.
+  document.getElementById('pdfDesde').value = '';
+  document.getElementById('pdfHasta').value = '';
   currentViewMonth = (currentViewYear === today.getFullYear()) ? today.getMonth() : 0;
   await loadYearData();
   renderAll(); updateDataLists();
@@ -453,15 +457,41 @@ function setFilter(type, value) {
 }
 
 function getFiltered() {
-  if (!activeFilterValue) return productions;
-  if (activeFilterType === 'tag') return productions.filter(p => p.tag === activeFilterValue);
-  if (activeFilterType === 'tipo') return productions.filter(p => p.tipo === activeFilterValue);
-  if (activeFilterType === 'estado') {
-    if (activeFilterValue === 'saldo') return productions.filter(p => p.saldo > 0);
-    if (activeFilterValue === 'abono') return productions.filter(p => p.abono > 0);
-    if (activeFilterValue === 'pagado') return productions.filter(p => p.monto > 0 && p.saldo === 0);
+  let list = productions;
+
+  if (activeFilterValue) {
+    if (activeFilterType === 'tag') list = list.filter(p => p.tag === activeFilterValue);
+    else if (activeFilterType === 'tipo') list = list.filter(p => p.tipo === activeFilterValue);
+    else if (activeFilterType === 'estado') {
+      if (activeFilterValue === 'saldo') list = list.filter(p => p.saldo > 0);
+      else if (activeFilterValue === 'abono') list = list.filter(p => p.abono > 0);
+      else if (activeFilterValue === 'pagado') list = list.filter(p => p.monto > 0 && p.saldo === 0);
+    }
   }
-  return productions;
+
+  // FILTRO DE RANGO DE FECHAS (Desde / Hasta): aplica a calendario, lista, estadísticas y PDF
+  const desdeEl = document.getElementById('pdfDesde');
+  const hastaEl = document.getElementById('pdfHasta');
+  const desdeStr = desdeEl ? desdeEl.value : '';
+  const hastaStr = hastaEl ? hastaEl.value : '';
+  if (desdeStr) list = list.filter(p => p.date >= desdeStr);
+  if (hastaStr) list = list.filter(p => p.date <= hastaStr);
+
+  return list;
+}
+
+function isDateRangeActive() {
+  const desdeEl = document.getElementById('pdfDesde');
+  const hastaEl = document.getElementById('pdfHasta');
+  return !!((desdeEl && desdeEl.value) || (hastaEl && hastaEl.value));
+}
+
+function clearDateRange() {
+  const desdeEl = document.getElementById('pdfDesde');
+  const hastaEl = document.getElementById('pdfHasta');
+  if (desdeEl) desdeEl.value = '';
+  if (hastaEl) hastaEl.value = '';
+  renderAll();
 }
 
 let editingId = null;
@@ -771,7 +801,14 @@ function renderTimeline() {
 function renderStats() {
   const filtered = getFiltered();
   document.getElementById('statTotal').textContent = filtered.length;
-  document.getElementById('statYearLabel').textContent = 'en todo el año ' + currentViewYear;
+  if (isDateRangeActive()) {
+    const desdeStr = document.getElementById('pdfDesde').value;
+    const hastaStr = document.getElementById('pdfHasta').value;
+    const fmt = (s) => { if (!s) return null; const [y,m,d] = s.split('-'); return `${parseInt(d)} ${MONTHS_SHORT[parseInt(m)-1]}`; };
+    document.getElementById('statYearLabel').textContent = 'en el rango: ' + (fmt(desdeStr) || 'inicio') + ' – ' + (fmt(hastaStr) || 'fin');
+  } else {
+    document.getElementById('statYearLabel').textContent = 'en todo el año ' + currentViewYear;
+  }
   const bars = document.getElementById('monthBars'); bars.innerHTML = '';
   const max = Math.max(...MONTHS.map((_,i) => filtered.filter(p=>new Date(p.date).getMonth()===i).length), 1);
   MONTHS_SHORT.forEach((abbr, i) => {
@@ -791,16 +828,9 @@ function exportPDF() {
   
   const desdeStr = document.getElementById('pdfDesde').value;
   const hastaStr = document.getElementById('pdfHasta').value;
-  
-  let filtered = getFiltered();
-  
-  // APLICAR FILTRO DE RANGO DE FECHAS
-  if (desdeStr) {
-    filtered = filtered.filter(p => p.date >= desdeStr);
-  }
-  if (hastaStr) {
-    filtered = filtered.filter(p => p.date <= hastaStr);
-  }
+
+  // getFiltered() ya aplica el rango de fechas (Desde/Hasta) además de los filtros de categoría/estado
+  const filtered = getFiltered();
 
   if (filtered.length === 0) {
     alert('No hay producciones en el rango de fechas seleccionado para exportar.');
