@@ -475,6 +475,8 @@ var state = {
   ventas: HISTORIAL_VENTAS.slice(),
   tab:"ventas",
   filtroMes:"",
+  rangoDesde:"",
+  rangoHasta:"",
   comDefPct:6,
   showForm:false,
   editId:null,
@@ -483,6 +485,16 @@ var state = {
   xlTab:"detalle",
   form:{fecha:new Date().toISOString().slice(0,10),cliente:"",producto:PRODUCTOS[0],formaPago:FORMAS_PAGO[0],montoBase:"",comision:"6",factura:false}
 };
+
+// Filtro combinado: mes (dropdown existente) + rango de fechas Desde/Hasta (afecta pantalla, PDF, Excel y CSV)
+function getFiltradas() {
+  var list = state.filtroMes ? state.ventas.filter(function(v){ return v.fecha.slice(0,7)===state.filtroMes; }) : state.ventas;
+  if (state.rangoDesde) list = list.filter(function(v){ return v.fecha >= state.rangoDesde; });
+  if (state.rangoHasta) list = list.filter(function(v){ return v.fecha <= state.rangoHasta; });
+  return list;
+}
+function rangoActivo() { return !!(state.rangoDesde || state.rangoHasta); }
+function limpiarRango() { setState({rangoDesde:"", rangoHasta:""}); }
 
 // ============================================================
 // ESTADO - funciones
@@ -522,7 +534,7 @@ function updatePreview() {
 // ============================================================
 function render() {
   var s         = state;
-  var filtradas = s.filtroMes ? s.ventas.filter(function(v){ return v.fecha.slice(0,7)===s.filtroMes; }) : s.ventas;
+  var filtradas = getFiltradas();
   var meses0    = s.ventas.map(function(v){ return v.fecha.slice(0,7); });
   
   var mesesFijos= [
@@ -595,8 +607,14 @@ function buildKpiStrip(filt, tV, tC, cp, filtroMes, meses) {
     label = label.charAt(0).toUpperCase()+label.slice(1);
     return '<option value="'+m+'" '+(filtroMes===m?'selected':'')+'>'+label+'</option>';
   }).join('');
+  var rangoHtml = '<span style="font-size:11px;color:var(--muted);margin-left:6px">Desde:</span>'+
+    '<input type="date" value="'+state.rangoDesde+'" onchange="setState({rangoDesde:this.value})" style="font-size:11px;padding:5px 6px;border-radius:6px;border:1px solid #333;background:#111;color:#eee">'+
+    '<span style="font-size:11px;color:var(--muted)">Hasta:</span>'+
+    '<input type="date" value="'+state.rangoHasta+'" onchange="setState({rangoHasta:this.value})" style="font-size:11px;padding:5px 6px;border-radius:6px;border:1px solid #333;background:#111;color:#eee">'+
+    (rangoActivo() ? '<button onclick="limpiarRango()" title="Quitar filtro de rango de fechas" style="font-size:11px;padding:5px 9px;border-radius:6px;border:1px solid #333;background:#1C1917;color:#eee;cursor:pointer">&#10005;</button>' : '');
   return '<div class="kpi-strip"><div class="kpis">'+kHtml+'</div><div class="actions">'+
     '<select class="month-sel" onchange="setState({filtroMes:this.value})"><option value="" '+(filtroMes?'':'selected')+'>Todos los meses</option>'+optHtml+'</select>'+
+    rangoHtml+
     '<button class="act-btn primary" onclick="openForm()">+ Nueva Venta</button>'+
     '</div></div>';
 }
@@ -1079,7 +1097,7 @@ function calcComAuto() {
 // EXPORTAR
 // ============================================================
 function exportCSV() {
-  var filt = state.filtroMes ? state.ventas.filter(function(v){ return v.fecha.slice(0,7)===state.filtroMes; }) : state.ventas;
+  var filt = getFiltradas();
   var cols = ["Fecha","Cliente","Producto","Forma Pago","Venta","Webpay 2%","Comision %","Comision $","Factura"];
   var rows = filt.slice().sort(function(a,b){return a.fecha.localeCompare(b.fecha);}).map(function(v){
     var wp = comWP(v.montoBase, v.formaPago);
@@ -1098,8 +1116,8 @@ function exportCSV() {
 }
 
 async function exportXLSX() {
-  var filt = state.filtroMes ? state.ventas.filter(function(v){ return v.fecha.slice(0,7)===state.filtroMes; }) : state.ventas;
-  if (!filt.length) { alert('No hay ventas para exportar.'); return; }
+  var filt = getFiltradas();
+  if (!filt.length) { alert(rangoActivo() ? 'No hay ventas en el rango de fechas seleccionado.' : 'No hay ventas para exportar.'); return; }
   if (typeof ExcelJS === 'undefined') { alert('No se pudo cargar el generador de Excel. Verifica tu conexión a internet e inténtalo nuevamente.'); return; }
 
   var sorted = filt.slice().sort(function(a,b){ return a.fecha.localeCompare(b.fecha); });
@@ -1121,7 +1139,7 @@ async function exportXLSX() {
 
   ws.mergeCells(1, 1, 1, cols.length);
   var titleCell = ws.getCell(1, 1);
-  titleCell.value = 'CREAMOS IMAGEN — REGISTRO DE VENTAS' + (state.filtroMes ? ' — ' + state.filtroMes : '');
+  titleCell.value = 'CREAMOS IMAGEN — REGISTRO DE VENTAS' + (state.filtroMes ? ' — ' + state.filtroMes : '') + (rangoActivo() ? ' — Rango: ' + (state.rangoDesde ? fDate(state.rangoDesde) : '...') + ' a ' + (state.rangoHasta ? fDate(state.rangoHasta) : '...') : '');
   titleCell.font = { bold:true, size:14, color:{argb:'FFFFFFFF'} };
   titleCell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF1C1917'} };
   titleCell.alignment = { vertical:'middle' };
@@ -1186,7 +1204,7 @@ async function exportXLSX() {
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
   a.href = url;
-  a.download = 'Creamos_Imagen_Ventas' + (state.filtroMes ? '_'+state.filtroMes : '') + '.xlsx';
+  a.download = 'Creamos_Imagen_Ventas' + (state.filtroMes ? '_'+state.filtroMes : '') + (rangoActivo() ? '_filtrado' : '') + '.xlsx';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -1196,7 +1214,7 @@ async function exportXLSX() {
 }
 
 function exportPDF() {
-  var filt = state.filtroMes ? state.ventas.filter(function(v){ return v.fecha.slice(0,7)===state.filtroMes; }) : state.ventas;
+  var filt = getFiltradas();
   var tV = filt.reduce(function(s,v){return s+v.montoBase;},0);
   var tC = filt.reduce(function(s,v){return s+comF(v.montoBase,v.comision);},0);
   var rows = filt.slice().sort(function(a,b){return b.fecha.localeCompare(a.fecha);}).map(function(v){
@@ -1212,7 +1230,7 @@ function exportPDF() {
     ".kpi{background:#f5f5f5;padding:10px;border-radius:4px}.kpi .l{font-size:9px;color:#888;text-transform:uppercase}.kpi .v{font-size:16px;font-weight:800}"+
     "@media print{body{padding:0}}</style></head><body>"+
     "<div class='hdr'><div><div style='font-size:18px;font-weight:800'>SUBLIPRO - VENTAS</div>"+
-    "<div style='color:#C8973A;font-size:10px'>Comision "+state.comDefPct+"% - Webpay +"+COM_WP_PCT+"%</div></div>"+
+    "<div style='color:#C8973A;font-size:10px'>Comision "+state.comDefPct+"% - Webpay +"+COM_WP_PCT+"%"+(rangoActivo() ? " - Rango: "+(state.rangoDesde?fDate(state.rangoDesde):"...")+" a "+(state.rangoHasta?fDate(state.rangoHasta):"...") : "")+"</div></div>"+
     "<div style='color:#C8973A;font-size:10px'>"+new Date().toLocaleDateString("es-CO")+"</div></div>"+
     "<div class='kpis'>"+
     "<div class='kpi'><div class='l'>N Ventas</div><div class='v' style='color:#1E40AF'>"+filt.length+"</div></div>"+
