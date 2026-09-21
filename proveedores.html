@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Proveedores - Creamos Imagen</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F7F5F0;--surface:#FFFFFF;--dark:#1C1917;--gold:#C8973A;--teal:#0D7A6B;--red:#C0392B;--muted:#78716C;--border:#E7E2D9;--purple:#6D28D9;--blue:#1E40AF}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--dark);min-height:100vh}
+input,select,button{font-family:inherit;outline:none}
+.topbar{background:var(--dark);padding:0 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:100}
+.brand{padding:14px 0; margin-left: 100px;}
+.brand-tag{font-size:9px;color:var(--gold);letter-spacing:.2em;font-weight:700;text-transform:uppercase;margin-bottom:2px}
+.brand-name{font-family:'DM Serif Display',serif;font-size:22px;color:#fff}
+.brand-name span{color:var(--gold)}
+.tabs{display:flex;gap:2px;flex-wrap:wrap}
+.tab{background:none;border:none;font-size:12px;font-weight:600;color:#888;cursor:pointer;padding:7px 14px;border-radius:6px;transition:all .2s}
+.tab.on{background:#2C2926;color:var(--gold)}
+.content{padding:24px; max-width: 1200px; margin: 0 auto;}
+.act-btn{background:#fff;border:1.5px solid var(--border);color:var(--dark);padding:9px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.act-btn:hover{border-color:var(--gold);color:var(--gold)}
+.act-btn.primary{background:var(--gold);border-color:var(--gold);color:#fff}
+.act-btn.primary:hover{background:#B8872A;transform:translateY(-1px)}
+.act-btn.small{padding:5px 10px;font-size:11px}
+.search-bar{display:flex;gap:12px;margin-bottom:24px;background:#fff;padding:12px;border-radius:12px;border:1px solid var(--border)}
+.search-bar input{flex:1;border:none;background:transparent;font-size:16px;padding:8px;color:var(--dark)}
+.client-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));gap:16px}
+.client-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px;cursor:pointer;transition:all 0.2s}
+.client-card:hover{border-color:var(--gold);box-shadow:0 4px 12px rgba(0,0,0,0.05);transform:translateY(-2px)}
+.c-name{font-size:18px;font-weight:700;color:var(--dark);margin-bottom:4px}
+.c-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;display:inline-block;margin-bottom:12px;text-transform:uppercase;letter-spacing:0.3px}
+.c-badge.textil{background:#EFF6FF;color:var(--blue)}
+.c-badge.transfer{background:#F5F3FF;color:var(--purple)}
+.c-badge.otros{background:#F0FDF4;color:var(--teal)}
+.c-row{font-size:13px;color:var(--muted);margin-bottom:6px;display:flex;gap:8px}
+.c-row strong{color:var(--dark)}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity 0.2s;overflow-y:auto}
+.modal-bg.open{opacity:1;pointer-events:all}
+.modal{background:#fff;border-radius:14px;padding:30px;width:100%;max-width:640px;box-shadow:0 24px 60px rgba(0,0,0,.2);max-height:92vh;overflow-y:auto;transform:translateY(20px);transition:transform 0.2s;margin:auto}
+.modal-bg.open .modal{transform:translateY(0)}
+.modal h2{font-family:'DM Serif Display',serif;font-size:24px;margin-bottom:20px;color:var(--gold)}
+.fld{margin-bottom:14px;}
+.fld label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;}
+.fld input,.fld select{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;font-size:15px;color:var(--dark);font-weight:600;}
+.fld input:focus,.fld select:focus{border-color:var(--gold);background:#fff;}
+.hist-card{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;}
+.hist-hdr{display:flex;justify-content:space-between;margin-bottom:6px;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase}
+.hist-bdy{display:flex;justify-content:space-between;align-items:center}
+.empty-state{text-align:center;padding:60px;color:var(--muted);background:#fff;border-radius:12px;border:1px dashed var(--border)}
+.sub-section{margin-top:26px;border-top:2px solid var(--bg);padding-top:18px}
+.sub-title{font-size:14px;text-transform:uppercase;color:var(--gold);margin-bottom:12px;letter-spacing:0.5px;font-weight:700}
+.insumo-row{display:grid;grid-template-columns:1fr 120px 110px 32px;gap:8px;align-items:center;margin-bottom:8px}
+.insumo-row input{background:var(--bg);border:1.5px solid var(--border);border-radius:6px;padding:8px 10px;font-size:13px;color:var(--dark);font-weight:600;width:100%}
+.insumo-row .ultima{font-size:11px;color:var(--muted);text-align:center}
+.icon-btn{background:none;border:none;cursor:pointer;font-size:15px;opacity:0.5;transition:opacity 0.2s;}
+.icon-btn:hover{opacity:1;}
+table.tbl{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;border:1px solid var(--border)}
+table.tbl th{background:var(--dark);color:var(--gold);font-size:10px;text-transform:uppercase;padding:10px 12px;text-align:left;letter-spacing:0.4px}
+table.tbl td{padding:9px 12px;border-bottom:1px solid var(--border);font-size:13px}
+table.tbl tr:last-child td{border-bottom:none}
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:20px}
+.card-title{font-size:13px;font-weight:700;color:var(--dark);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;border-bottom:2px solid var(--bg);padding-bottom:8px;}
+.conc-row{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.conc-name{width:190px;font-size:13px;font-weight:600;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conc-bar-bg{flex:1;background:var(--bg);border-radius:6px;height:18px;overflow:hidden}
+.conc-bar-fill{height:100%;background:var(--gold);border-radius:6px}
+.conc-pct{width:56px;text-align:right;font-size:13px;font-weight:700;color:var(--dark);flex-shrink:0}
+.conc-warn{font-size:11px;color:var(--red);font-weight:700;margin-top:2px}
+</style>
+</head>
+<body>
+<a href="index.html" style="position:fixed; top:14px; left:20px; background:#1C1917; color:#C8973A; padding:8px 14px; border-radius:6px; border:1px solid #C8973A; text-decoration:none; font-family:Arial, sans-serif; font-size:11px; font-weight:bold; box-shadow:0 4px 6px rgba(0,0,0,0.2); z-index:9999;">← Menú</a>
+
+<div class="topbar">
+  <div class="brand"><div class="brand-tag">Gestión de Compras</div><div class="brand-name">Directorio <span>Proveedores</span></div></div>
+  <div class="tabs">
+    <button class="tab on" id="tabbtn-proveedores" onclick="setTab('proveedores')">Proveedores</button>
+    <button class="tab" id="tabbtn-compras" onclick="setTab('compras')">Historial de Compras</button>
+  </div>
+</div>
+
+<div class="content">
+
+  <div id="view-proveedores">
+    <div class="search-bar">
+      <span style="font-size:20px;padding-top:4px">🔍</span>
+      <input type="text" id="searchInput" placeholder="Buscar por nombre o rubro..." onkeyup="renderProveedores()">
+      <button class="act-btn primary" onclick="abrirForm(null)">+ Nuevo Proveedor</button>
+    </div>
+    <div id="proveedoresGrid" class="client-grid"></div>
+  </div>
+
+  <div id="view-compras" style="display:none">
+    <div class="card">
+      <div class="card-title">Concentración de Proveedores (% del gasto total en compras)</div>
+      <div id="concentracionPanel"></div>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <h2 style="font-family:'DM Serif Display',serif;font-size:20px">Registro de Compras</h2>
+      <button class="act-btn primary" onclick="abrirFormCompra()">+ Registrar Compra</button>
+    </div>
+    <div id="comprasTableWrap"></div>
+  </div>
+
+</div>
+
+<!-- Modal Ficha Proveedor -->
+<div class="modal-bg" id="modalForm">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h2 id="m-title">Proveedor</h2>
+      <button class="act-btn" style="padding:4px 8px;font-size:16px;border:none" onclick="cerrarModal()">✕</button>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="fld" style="grid-column:1/-1"><label>Nombre del Proveedor *</label><input type="text" id="p-nombre"></div>
+      <div class="fld">
+        <label>Rubro</label>
+        <select id="p-rubro">
+          <option value="Textil">Textil</option>
+          <option value="Transfer">Transfer</option>
+          <option value="Otros insumos">Otros insumos</option>
+        </select>
+      </div>
+      <div class="fld"><label>Contacto</label><input type="text" id="p-contacto" placeholder="Nombre / teléfono / email"></div>
+      <div class="fld"><label>Condiciones de Pago</label><input type="text" id="p-condiciones" placeholder="Ej: 30 días, contado, 50% anticipo..."></div>
+      <div class="fld"><label>Plazo de Entrega Habitual</label><input type="text" id="p-plazo" placeholder="Ej: 5 días hábiles"></div>
+    </div>
+
+    <div style="margin-top:20px;display:flex;justify-content:space-between;gap:10px">
+      <button class="act-btn" style="color:var(--red);border-color:#FECACA;display:none" id="btn-del" onclick="borrarProveedor()">Eliminar</button>
+      <div style="margin-left:auto;display:flex;gap:10px">
+        <button class="act-btn" onclick="cerrarModal()">Cancelar</button>
+        <button class="act-btn primary" onclick="guardarProveedor()">Guardar Ficha</button>
+      </div>
+    </div>
+
+    <div class="sub-section" id="insumosSection" style="display:none">
+      <div class="sub-title">Insumos que compra a este proveedor</div>
+      <div id="insumosList"></div>
+      <button class="act-btn small" onclick="agregarInsumoRow()">+ Agregar insumo</button>
+    </div>
+
+    <div class="sub-section" id="historialSection" style="display:none">
+      <div class="sub-title">Últimas Compras</div>
+      <div id="historialList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Registrar Compra -->
+<div class="modal-bg" id="modalCompra">
+  <div class="modal" style="max-width:520px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h2>Registrar Compra</h2>
+      <button class="act-btn" style="padding:4px 8px;font-size:16px;border:none" onclick="cerrarModalCompra()">✕</button>
+    </div>
+    <div class="fld"><label>Proveedor *</label><select id="cp-proveedor" onchange="actualizarInsumosDatalist()"></select></div>
+    <div class="fld"><label>Insumo *</label><input type="text" id="cp-insumo" list="insumosDatalist" placeholder="Ej: Tela Poliéster Blanca"><datalist id="insumosDatalist"></datalist></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="fld"><label>Fecha *</label><input type="date" id="cp-fecha"></div>
+      <div class="fld"><label>Cantidad</label><input type="number" id="cp-cantidad" placeholder="0" min="0"></div>
+    </div>
+    <div class="fld"><label>Monto ($) *</label><input type="number" id="cp-monto" placeholder="0" min="0"></div>
+    <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:10px">
+      <button class="act-btn" onclick="cerrarModalCompra()">Cancelar</button>
+      <button class="act-btn primary" onclick="guardarCompra()">Guardar Compra</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbxP5-vB59e80qpXdx4AcCyS28C4H58thdh0XXtLcDWZD8Q_47fDbBvLn1ahqx7RoJor/exec";
+const CLOUD_TOKEN = "b5bd161b4ef581c6114b7bb4";
+const KEY_PROVEEDORES = "proveedores_ci_v1";
+const KEY_COMPRAS = "compras_ci_v1";
+
+let proveedores = [];
+let compras = [];
+let editId = null;
+let editCompraId = null;
+let insumosEdit = []; // insumos en edición dentro del modal de proveedor
+
+async function saveToCloud(key, dataObj) {
+  try {
+    const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj), token: CLOUD_TOKEN }) });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return true;
+  } catch (e) { console.error('Error guardando en la nube', e); return false; }
+}
+async function loadFromCloud(key) {
+  try {
+    const res = await fetch(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
+    const json = await res.json();
+    return json.valor ? JSON.parse(json.valor) : null;
+  } catch (e) { console.error('Error cargando de la nube', e); return null; }
+}
+
+function guardarProveedoresLocal() {
+  localStorage.setItem(KEY_PROVEEDORES, JSON.stringify(proveedores));
+  saveToCloud(KEY_PROVEEDORES, proveedores);
+}
+function guardarComprasLocal() {
+  localStorage.setItem(KEY_COMPRAS, JSON.stringify(compras));
+  saveToCloud(KEY_COMPRAS, compras);
+}
+
+function setTab(t) {
+  document.getElementById('view-proveedores').style.display = t === 'proveedores' ? 'block' : 'none';
+  document.getElementById('view-compras').style.display = t === 'compras' ? 'block' : 'none';
+  document.getElementById('tabbtn-proveedores').classList.toggle('on', t === 'proveedores');
+  document.getElementById('tabbtn-compras').classList.toggle('on', t === 'compras');
+  if (t === 'compras') { renderConcentracion(); renderComprasTable(); }
+}
+
+function rubroBadgeClass(r) {
+  if (r === 'Textil') return 'textil';
+  if (r === 'Transfer') return 'transfer';
+  return 'otros';
+}
+
+function renderProveedores() {
+  const q = (document.getElementById('searchInput').value || '').toLowerCase();
+  const grid = document.getElementById('proveedoresGrid');
+
+  const filtrados = proveedores.filter(p =>
+    (p.nombre && p.nombre.toLowerCase().includes(q)) ||
+    (p.rubro && p.rubro.toLowerCase().includes(q))
+  );
+
+  if (filtrados.length === 0) {
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">No se encontraron proveedores. Usa el botón superior para agregar uno nuevo.</div>';
+    return;
+  }
+
+  grid.innerHTML = filtrados.map(p => `
+    <div class="client-card" onclick="abrirForm(${p.id})">
+      <div class="c-name">${p.nombre}</div>
+      <div class="c-badge ${rubroBadgeClass(p.rubro)}">${p.rubro || 'Otros insumos'}</div>
+      <div class="c-row"><strong>👤 Contacto:</strong> ${p.contacto || '-'}</div>
+      <div class="c-row"><strong>💳 Pago:</strong> ${p.condicionesPago || '-'}</div>
+      <div class="c-row"><strong>🚚 Entrega:</strong> ${p.plazoEntrega || '-'}</div>
+    </div>
+  `).join('');
+}
+
+function ultimaCompraDe(proveedorId, insumo) {
+  const relacionadas = compras.filter(c => c.proveedorId === proveedorId && (!insumo || (c.insumo || '').trim().toLowerCase() === insumo.trim().toLowerCase()));
+  if (!relacionadas.length) return null;
+  return relacionadas.reduce((a, b) => (b.fecha || '') > (a.fecha || '') ? b : a).fecha;
+}
+
+function renderInsumosList() {
+  const wrap = document.getElementById('insumosList');
+  if (insumosEdit.length === 0) {
+    wrap.innerHTML = '<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Aún no hay insumos registrados para este proveedor.</div>';
+    return;
+  }
+  wrap.innerHTML = insumosEdit.map((ins, i) => {
+    const ultima = editId ? ultimaCompraDe(editId, ins.insumo) : null;
+    return `<div class="insumo-row">
+      <input type="text" placeholder="Insumo" value="${ins.insumo || ''}" oninput="insumosEdit[${i}].insumo = this.value">
+      <input type="number" placeholder="Precio ref. $" value="${ins.precioReferencia || ''}" oninput="insumosEdit[${i}].precioReferencia = parseFloat(this.value)||0">
+      <div class="ultima">${ultima ? 'Últ: ' + ultima : 'Sin compras'}</div>
+      <button class="icon-btn" onclick="insumosEdit.splice(${i},1); renderInsumosList()" title="Eliminar insumo">🗑️</button>
+    </div>`;
+  }).join('');
+}
+
+function agregarInsumoRow() {
+  insumosEdit.push({ id: Date.now() + Math.random(), insumo: '', precioReferencia: 0 });
+  renderInsumosList();
+}
+
+function abrirForm(id) {
+  const modal = document.getElementById('modalForm');
+  const hist = document.getElementById('historialSection');
+  const insSection = document.getElementById('insumosSection');
+  const btnDel = document.getElementById('btn-del');
+
+  if (id) {
+    const p = proveedores.find(x => x.id === id);
+    editId = id;
+    insumosEdit = JSON.parse(JSON.stringify(p.insumos || []));
+    document.getElementById('m-title').textContent = 'Ficha de Proveedor';
+    document.getElementById('p-nombre').value = p.nombre;
+    document.getElementById('p-rubro').value = p.rubro || 'Textil';
+    document.getElementById('p-contacto').value = p.contacto || '';
+    document.getElementById('p-condiciones').value = p.condicionesPago || '';
+    document.getElementById('p-plazo').value = p.plazoEntrega || '';
+    btnDel.style.display = 'block';
+    insSection.style.display = 'block';
+    hist.style.display = 'block';
+    renderInsumosList();
+
+    const historial = compras.filter(c => c.proveedorId === id);
+    if (historial.length > 0) {
+      historial.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
+      document.getElementById('historialList').innerHTML = historial.slice(0, 5).map(c => `
+        <div class="hist-card">
+          <div class="hist-hdr"><span>Fecha: ${c.fecha || '-'}</span><span style="color:var(--teal)">${c.cantidad ? c.cantidad + ' un.' : ''}</span></div>
+          <div class="hist-bdy">
+            <span style="font-weight:700;color:var(--dark)">${c.insumo || '-'}</span>
+            <span style="font-size:12px;color:var(--muted)">$${(c.monto || 0).toLocaleString('es-CL')}</span>
+          </div>
+        </div>
+      `).join('');
+    } else {
+      document.getElementById('historialList').innerHTML = '<div style="font-size:13px;color:var(--muted)">Sin compras registradas.</div>';
+    }
+  } else {
+    editId = null;
+    insumosEdit = [];
+    document.getElementById('m-title').textContent = 'Nuevo Proveedor';
+    document.getElementById('p-nombre').value = '';
+    document.getElementById('p-rubro').value = 'Textil';
+    document.getElementById('p-contacto').value = '';
+    document.getElementById('p-condiciones').value = '';
+    document.getElementById('p-plazo').value = '';
+    btnDel.style.display = 'none';
+    insSection.style.display = 'none';
+    hist.style.display = 'none';
+  }
+  modal.classList.add('open');
+}
+
+function cerrarModal() { document.getElementById('modalForm').classList.remove('open'); }
+
+function guardarProveedor() {
+  const nombre = document.getElementById('p-nombre').value.trim();
+  if (!nombre) { alert('El nombre del proveedor es obligatorio.'); return; }
+
+  const insumosLimpios = insumosEdit.filter(i => (i.insumo || '').trim() !== '');
+
+  const p = {
+    id: editId || Date.now(),
+    nombre: nombre,
+    rubro: document.getElementById('p-rubro').value,
+    contacto: document.getElementById('p-contacto').value.trim(),
+    condicionesPago: document.getElementById('p-condiciones').value.trim(),
+    plazoEntrega: document.getElementById('p-plazo').value.trim(),
+    insumos: insumosLimpios
+  };
+
+  if (editId) { proveedores = proveedores.map(x => x.id === editId ? p : x); }
+  else { proveedores.push(p); }
+
+  guardarProveedoresLocal(); renderProveedores(); cerrarModal();
+}
+
+function borrarProveedor() {
+  if (confirm('¿Eliminar este proveedor de la base de datos? El historial de compras asociado no se eliminará.')) {
+    proveedores = proveedores.filter(x => x.id !== editId);
+    guardarProveedoresLocal(); renderProveedores(); cerrarModal();
+  }
+}
+
+// ===== COMPRAS =====
+
+function abrirFormCompra() {
+  editCompraId = null;
+  const sel = document.getElementById('cp-proveedor');
+  sel.innerHTML = '<option value="">— Seleccionar —</option>' + proveedores.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
+  document.getElementById('cp-insumo').value = '';
+  document.getElementById('cp-fecha').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('cp-cantidad').value = '';
+  document.getElementById('cp-monto').value = '';
+  actualizarInsumosDatalist();
+  document.getElementById('modalCompra').classList.add('open');
+}
+
+function actualizarInsumosDatalist() {
+  const provId = parseFloat(document.getElementById('cp-proveedor').value);
+  const p = proveedores.find(x => x.id === provId);
+  const dl = document.getElementById('insumosDatalist');
+  dl.innerHTML = (p && p.insumos ? p.insumos : []).map(i => `<option value="${i.insumo}">`).join('');
+}
+
+function cerrarModalCompra() { document.getElementById('modalCompra').classList.remove('open'); }
+
+function guardarCompra() {
+  const proveedorId = parseFloat(document.getElementById('cp-proveedor').value);
+  const insumo = document.getElementById('cp-insumo').value.trim();
+  const fecha = document.getElementById('cp-fecha').value;
+  const monto = parseFloat(document.getElementById('cp-monto').value) || 0;
+  if (!proveedorId || !insumo || !fecha || !monto) { alert('Completa proveedor, insumo, fecha y monto.'); return; }
+
+  const c = {
+    id: Date.now(),
+    fecha: fecha,
+    insumo: insumo,
+    cantidad: parseFloat(document.getElementById('cp-cantidad').value) || 0,
+    proveedorId: proveedorId,
+    monto: monto
+  };
+  compras.push(c);
+  guardarComprasLocal();
+  cerrarModalCompra();
+  renderConcentracion();
+  renderComprasTable();
+}
+
+function borrarCompra(id) {
+  if (confirm('¿Eliminar este registro de compra?')) {
+    compras = compras.filter(c => c.id !== id);
+    guardarComprasLocal();
+    renderConcentracion();
+    renderComprasTable();
+  }
+}
+
+function nombreProveedor(id) {
+  const p = proveedores.find(x => x.id === id);
+  return p ? p.nombre : '(proveedor eliminado)';
+}
+
+function renderConcentracion() {
+  const panel = document.getElementById('concentracionPanel');
+  if (compras.length === 0) {
+    panel.innerHTML = '<div style="font-size:13px;color:var(--muted)">Aún no hay compras registradas.</div>';
+    return;
+  }
+  const totales = {};
+  let totalGeneral = 0;
+  compras.forEach(c => {
+    totales[c.proveedorId] = (totales[c.proveedorId] || 0) + (c.monto || 0);
+    totalGeneral += (c.monto || 0);
+  });
+  const filas = Object.entries(totales)
+    .map(([provId, monto]) => ({ nombre: nombreProveedor(parseFloat(provId)), monto, pct: totalGeneral > 0 ? (monto / totalGeneral * 100) : 0 }))
+    .sort((a, b) => b.monto - a.monto);
+
+  panel.innerHTML = filas.map(f => `
+    <div class="conc-row">
+      <div class="conc-name" title="${f.nombre}">${f.nombre}</div>
+      <div class="conc-bar-bg"><div class="conc-bar-fill" style="width:${Math.min(100, f.pct)}%"></div></div>
+      <div class="conc-pct">${f.pct.toFixed(1)}%</div>
+    </div>
+  `).join('') + (filas.length && filas[0].pct >= 40 ? `<div class="conc-warn">⚠ Alta concentración: ${filas[0].nombre} representa el ${filas[0].pct.toFixed(1)}% de las compras.</div>` : '');
+}
+
+function renderComprasTable() {
+  const wrap = document.getElementById('comprasTableWrap');
+  if (compras.length === 0) {
+    wrap.innerHTML = '<div class="empty-state">No hay compras registradas. Usa el botón "Registrar Compra".</div>';
+    return;
+  }
+  const ordenadas = compras.slice().sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
+  wrap.innerHTML = `<table class="tbl"><thead><tr><th>Fecha</th><th>Proveedor</th><th>Insumo</th><th>Cantidad</th><th>Monto</th><th></th></tr></thead><tbody>` +
+    ordenadas.map(c => `<tr>
+      <td>${c.fecha || '-'}</td>
+      <td>${nombreProveedor(c.proveedorId)}</td>
+      <td>${c.insumo || '-'}</td>
+      <td>${c.cantidad || 0}</td>
+      <td>$${(c.monto || 0).toLocaleString('es-CL')}</td>
+      <td><button class="icon-btn" onclick="borrarCompra(${c.id})" title="Eliminar">🗑️</button></td>
+    </tr>`).join('') +
+    `</tbody></table>`;
+}
+
+window.onload = async function () {
+  const cloudProveedores = await loadFromCloud(KEY_PROVEEDORES);
+  if (cloudProveedores) proveedores = cloudProveedores;
+  else proveedores = JSON.parse(localStorage.getItem(KEY_PROVEEDORES) || '[]');
+
+  const cloudCompras = await loadFromCloud(KEY_COMPRAS);
+  if (cloudCompras) compras = cloudCompras;
+  else compras = JSON.parse(localStorage.getItem(KEY_COMPRAS) || '[]');
+
+  renderProveedores();
+};
+</script>
+</body>
+</html>
