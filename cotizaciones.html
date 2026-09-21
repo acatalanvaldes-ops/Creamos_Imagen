@@ -99,6 +99,14 @@ table.tbl input:focus,table.tbl select:focus{border-bottom:2px solid var(--gold)
     <div class="calc-grid">
       <div>
         <div class="card">
+          <div class="card-title">Datos de la Cotización</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="fld"><label>Fecha de la Cotización</label><input type="date" id="cz-fecha"></div>
+            <div class="fld"><label>N° de Cotización</label><input type="text" id="cz-correlativo-preview" readonly></div>
+          </div>
+        </div>
+
+        <div class="card">
           <div class="card-title">Cliente</div>
           <div class="radio-row">
             <label class="radio-opt"><input type="radio" name="cz-clienteTipo" value="registrado" checked onchange="onClienteTipoChange()"> Cliente de la Base de Clientes</label>
@@ -109,9 +117,9 @@ table.tbl input:focus,table.tbl select:focus{border-bottom:2px solid var(--gold)
             <div class="fld"><label>Cliente</label><select id="cz-clienteSelect" onchange="onClienteRegistradoChange()"></select></div>
             <div class="cliente-readonly">
               <div class="fld"><label>RUT</label><input type="text" id="cz-rut-r" readonly></div>
-              <div class="fld"><label>Teléfono de Contacto</label><input type="text" id="cz-telefono-r" readonly></div>
-              <div class="fld"><label>Nombre de Contacto</label><input type="text" id="cz-contacto-r" readonly></div>
               <div class="fld"><label>Dirección</label><input type="text" id="cz-direccion-r" readonly></div>
+              <div class="fld"><label>Nombre de Contacto</label><input type="text" id="cz-contacto-r" readonly></div>
+              <div class="fld"><label>Teléfono de Contacto</label><input type="text" id="cz-telefono-r" readonly></div>
             </div>
           </div>
 
@@ -119,9 +127,9 @@ table.tbl input:focus,table.tbl select:focus{border-bottom:2px solid var(--gold)
             <div class="fld"><label>Razón Social / Nombre</label><input type="text" id="cz-razon-f" placeholder="Nombre de quien compra"></div>
             <div class="cliente-readonly">
               <div class="fld"><label>RUT</label><input type="text" id="cz-rut-f" placeholder="Ej: 12.345.678-9"></div>
-              <div class="fld"><label>Teléfono de Contacto</label><input type="text" id="cz-telefono-f" placeholder="+56 9 ..."></div>
-              <div class="fld"><label>Nombre de Contacto</label><input type="text" id="cz-contacto-f" placeholder="Ej: Juan Pérez"></div>
               <div class="fld"><label>Dirección</label><input type="text" id="cz-direccion-f" placeholder="Comuna, Calle..."></div>
+              <div class="fld"><label>Nombre de Contacto</label><input type="text" id="cz-contacto-f" placeholder="Ej: Juan Pérez"></div>
+              <div class="fld"><label>Teléfono de Contacto</label><input type="text" id="cz-telefono-f" placeholder="+56 9 ..."></div>
             </div>
           </div>
         </div>
@@ -277,6 +285,9 @@ function guardarCotizacionesLocal() {
 
 function fmt(n) { return "$ " + Math.round(n || 0).toLocaleString('es-CL'); }
 function fmtFecha(iso) { if (!iso) return '-'; const [y, m, d] = iso.split('-'); return d + '-' + m + '-' + y; }
+function fmtCorrelativo(n) { return String(n || 0).padStart(4, '0'); }
+function todayISO() { return new Date().toISOString().slice(0, 10); }
+function escAttr(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
 function setTab(t) {
   ['cotizador', 'enviadas', 'tarifario', 'comparar'].forEach(v => {
@@ -342,8 +353,13 @@ function precioItemTarifario(producto, tecnica) {
 // El cotizador solo debe ofrecer productos que ya existan en el Tarifario Base
 // (no el catálogo fijo completo), para que el listado sea siempre el mismo del tarifario.
 function productosDisponibles() {
-  const enTarifario = new Set(tarifario.items.map(i => i.producto));
-  return PRODUCTOS_FIJOS.filter(p => enTarifario.has(p));
+  const vistos = new Set();
+  const lista = [];
+  tarifario.items.forEach(i => {
+    const p = i.producto || '';
+    if (p && !vistos.has(p)) { vistos.add(p); lista.push(p); }
+  });
+  return lista;
 }
 
 // ===== COTIZADOR: ITEMS (hasta 10 productos) =====
@@ -474,6 +490,10 @@ function poblarSelectsCotizador() {
     : '<option value="">— No hay clientes registrados —</option>';
   onClienteRegistradoChange();
 
+  const fechaInput = document.getElementById('cz-fecha');
+  if (fechaInput && !fechaInput.value) fechaInput.value = todayISO();
+  actualizarPreviewCorrelativo();
+
   if (itemsCotizador.length === 0) itemsCotizador.push(nuevoItemVacio());
   renderItemsTable();
 }
@@ -487,10 +507,13 @@ function guardarCotizacion() {
 
   const resumen = recalcularResumen();
   const nombresListas = tarifario.nombresListas || ['Lista 1', 'Lista 2', 'Lista 3'];
+  const fechaInput = document.getElementById('cz-fecha').value;
+  const correlativo = tarifario.correlativoActual || 1;
 
   const cot = {
     id: Date.now(),
-    fecha: new Date().toISOString().slice(0, 10),
+    correlativo: correlativo,
+    fecha: fechaInput || todayISO(),
     clienteTipo: cliente.tipo,
     clienteId: cliente.id,
     cliente: cliente.razonSocial,
@@ -515,7 +538,11 @@ function guardarCotizacion() {
   };
   cotizaciones.push(cot);
   guardarCotizacionesLocal();
-  alert('Cotización guardada. Puedes verla en "Cotizaciones Enviadas".');
+
+  tarifario.correlativoActual = correlativo + 1;
+  guardarTarifarioLocal();
+
+  alert('Cotización N° ' + fmtCorrelativo(correlativo) + ' guardada. Puedes verla en "Cotizaciones Enviadas".');
 
   itemsCotizador = [nuevoItemVacio()];
   document.getElementById('cz-razon-f').value = '';
@@ -523,7 +550,14 @@ function guardarCotizacion() {
   document.getElementById('cz-telefono-f').value = '';
   document.getElementById('cz-contacto-f').value = '';
   document.getElementById('cz-direccion-f').value = '';
+  document.getElementById('cz-fecha').value = todayISO();
+  actualizarPreviewCorrelativo();
   renderItemsTable();
+}
+
+function actualizarPreviewCorrelativo() {
+  const el = document.getElementById('cz-correlativo-preview');
+  if (el) el.value = fmtCorrelativo(tarifario.correlativoActual || 1);
 }
 
 // ===== TARIFARIO =====
@@ -553,9 +587,7 @@ function renderTarifarioTable() {
   }
   wrap.innerHTML = `<div class="table-scroll"><table class="tbl"><thead><tr><th>Producto</th><th>Técnica</th><th>${nombresListas[0]}</th><th>${nombresListas[1]}</th><th>${nombresListas[2]}</th><th></th></tr></thead><tbody>` +
     tarifario.items.map((it, i) => `<tr>
-      <td><select onchange="tarifario.items[${i}].producto=this.value; guardarTarifarioLocal(); renderTarifarioTable()">` +
-        PRODUCTOS_FIJOS.map(p => `<option value="${p}" ${it.producto === p ? 'selected' : ''}>${p}</option>`).join('') +
-      `</select></td>
+      <td><input type="text" value="${escAttr(it.producto)}" placeholder="Nombre del producto" oninput="tarifario.items[${i}].producto=this.value" onchange="tarifario.items[${i}].producto=tarifario.items[${i}].producto.trim(); this.value=tarifario.items[${i}].producto; guardarTarifarioLocal(); renderItemsTable()"></td>
       <td><select onchange="tarifario.items[${i}].tecnica=this.value; guardarTarifarioLocal(); renderTarifarioTable()">` +
         TECNICAS_FIJAS.map(t => `<option value="${t}" ${it.tecnica === t ? 'selected' : ''}>${t}</option>`).join('') +
       `</select></td>
@@ -567,7 +599,7 @@ function renderTarifarioTable() {
 }
 
 function agregarTarifaRow() {
-  tarifario.items.push({ id: Date.now() + Math.random(), producto: PRODUCTOS_FIJOS[0], tecnica: TECNICAS_FIJAS[0], precio0: 0, precio1: 0, precio2: 0 });
+  tarifario.items.push({ id: Date.now() + Math.random(), producto: '', tecnica: TECNICAS_FIJAS[0], precio0: 0, precio1: 0, precio2: 0 });
   guardarTarifarioLocal();
   renderTarifarioTable();
 }
@@ -629,13 +661,14 @@ function renderCotizacionesTable() {
   }
 
   const estados = ['pendiente', 'aceptada', 'rechazada'];
-  wrap.innerHTML = `<div class="table-scroll"><table class="tbl"><thead><tr><th>Fecha</th><th>Cliente</th><th>Productos</th><th>Total</th><th>Estado</th></tr></thead><tbody>` +
+  wrap.innerHTML = `<div class="table-scroll"><table class="tbl"><thead><tr><th>N°</th><th>Fecha</th><th>Cliente</th><th>Productos</th><th>Total</th><th>Estado</th></tr></thead><tbody>` +
     lista.map(c => {
       const items = c.items || [];
       const resumenProductos = items.length
         ? (items.length === 1 ? items[0].producto + ' (x' + items[0].cantidad + ')' : items.length + ' productos')
         : (c.producto || '-');
       let filas = `<tr class="clickable-row" onclick="toggleDetalle(${c.id})">
+        <td>${fmtCorrelativo(c.correlativo)}</td>
         <td>${fmtFecha(c.fecha)}</td>
         <td>${c.cliente || '-'}${c.clienteTipo === 'fortuito' ? ' <span class="badge fortuito">Fortuito</span>' : ''}</td>
         <td>${resumenProductos}</td>
@@ -645,8 +678,8 @@ function renderCotizacionesTable() {
         `</select></td>
       </tr>`;
       if (filaDetalleAbierta === c.id) {
-        filas += `<tr class="detail-row"><td colspan="5"><div class="detail-inner">` +
-          `<div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px">Cliente: ${c.cliente || '-'} ${c.clienteRut ? '· RUT ' + c.clienteRut : ''} ${c.clienteDireccion ? '· ' + c.clienteDireccion : ''}</div>` +
+        filas += `<tr class="detail-row"><td colspan="6"><div class="detail-inner">` +
+          `<div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px">Cotización N° ${fmtCorrelativo(c.correlativo)} · Cliente: ${c.cliente || '-'} ${c.clienteRut ? '· RUT ' + c.clienteRut : ''} ${c.clienteDireccion ? '· ' + c.clienteDireccion : ''}</div>` +
           (items.length ? items.map(it => `<div class="detail-item"><span>${it.producto} — ${it.tecnica} — ${it.listaNombre || ''} ${it.personalizacion && it.personalizacion !== 'Diseño propio' ? '(' + it.personalizacion + ')' : ''} — x${it.cantidad}</span><span>${fmt(it.subtotal)}</span></div>`).join('') : '') +
           `<div class="detail-item"><span>Subtotal Neto</span><span>${fmt(c.subtotalNeto)}</span></div>` +
           `<div class="detail-item"><span>IVA (${c.ivaPct !== undefined ? c.ivaPct : 19}%)</span><span>${fmt(c.iva)}</span></div>` +
@@ -741,10 +774,13 @@ function exportCotizacionPDF(id) {
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
+  doc.text('Cotización N° ' + fmtCorrelativo(c.correlativo), pageWidth - marginX, y, { align: 'right' });
+  y += 5;
   doc.text(fmtFecha(c.fecha), pageWidth - marginX, y, { align: 'right' });
   y += 8;
 
   // Datos del cliente
+  const colRightX = pageWidth / 2 + 5;
   doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
   doc.text('Cliente / Razón Social:', marginX, y);
@@ -755,21 +791,19 @@ function exportCotizacionPDF(id) {
   doc.text('RUT:', marginX, y);
   doc.setFont('helvetica', 'normal');
   doc.text(String(c.clienteRut || '-'), marginX + 42, y);
-  y += 5;
   doc.setFont('helvetica', 'bold');
-  doc.text('Dirección:', marginX, y);
+  doc.text('Dirección:', colRightX, y);
   doc.setFont('helvetica', 'normal');
-  doc.text(String(c.clienteDireccion || '-'), marginX + 42, y);
+  doc.text(String(c.clienteDireccion || '-'), colRightX + 22, y);
   y += 5;
   doc.setFont('helvetica', 'bold');
   doc.text('Contacto:', marginX, y);
   doc.setFont('helvetica', 'normal');
   doc.text(String(c.clienteContacto || '-'), marginX + 42, y);
-  y += 5;
   doc.setFont('helvetica', 'bold');
-  doc.text('Teléfono de Contacto:', marginX, y);
+  doc.text('Teléfono:', colRightX, y);
   doc.setFont('helvetica', 'normal');
-  doc.text(String(c.clienteTelefono || '-'), marginX + 42, y);
+  doc.text(String(c.clienteTelefono || '-'), colRightX + 22, y);
   y += 8;
 
   const items = c.items || [];
@@ -838,6 +872,7 @@ window.onload = async function () {
   if (!tarifario.nombresListas) tarifario.nombresListas = ['Lista 1', 'Lista 2', 'Lista 3'];
   if (tarifario.ivaPct === undefined) tarifario.ivaPct = 19;
   if (!tarifario.configPdf) tarifario.configPdf = Object.assign({}, CONFIG_PDF_DEFAULT);
+  if (tarifario.correlativoActual === undefined) tarifario.correlativoActual = 1;
 
   const cloudCotizaciones = await loadFromCloud(KEY_COTIZACIONES);
   if (cloudCotizaciones) cotizaciones = cloudCotizaciones;
