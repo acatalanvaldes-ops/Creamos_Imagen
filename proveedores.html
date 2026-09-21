@@ -73,7 +73,14 @@ table.tbl tr:last-child td{border-bottom:none}
 <body>
 <script>
 (function(){
-  if (localStorage.getItem('cimagen_auth_ok') !== '1') {
+  var MODULE_KEY = 'proveedores';
+  var SESSION_KEY = 'cimagen_session';
+  var SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+  var sess = null;
+  try { sess = JSON.parse(localStorage.getItem(SESSION_KEY)); } catch(e){}
+  var valid = sess && sess.email && sess.ts && (Date.now() - sess.ts < SESSION_TTL_MS);
+  var allowed = valid && (sess.isAdmin || (sess.modules && sess.modules.indexOf(MODULE_KEY) !== -1));
+  if (!allowed) {
     window.location.replace('index.html');
   }
 })();
