@@ -86,7 +86,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbxP5-vB59e80qpXdx4AcCyS
 const STORAGE_KEY = "costos_ci_v1";
 
 async function saveToCloud(key, dataObj) {
-  try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj) }) }); } 
+  try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj) }) }); }
   catch (e) {}
 }
 
@@ -102,9 +102,8 @@ async function loadFromCloud(key) {
 // LÓGICA Y ESTADO
 // ============================================================
 var defaultCfg = {
-  tela: 2500, papelSub: 800, tinta: 50, papelAdh: 1200, 
-  minManoObra: 150, minDiseno: 150, minOperario: 150,
-  hilos: 200, maquina: 300, admin: 1000, 
+  tela: 2500, papelSub: 800, tinta: 50, papelAdh: 1200,
+  hilos: 200, maquina: 300, admin: 1000,
   margen: 20,
   rrhh: [
     { nombre: "Persona 1", sueldo: 500000, afp: 11.44, fonasa: 7, bono: 0, comision: 0 },
@@ -115,13 +114,13 @@ var defaultCfg = {
     { nombre: "Persona 6", sueldo: 500000, afp: 11.44, fonasa: 7, bono: 0, comision: 0 },
     { nombre: "Persona 7", sueldo: 500000, afp: 11.44, fonasa: 7, bono: 0, comision: 0 }
   ],
-  gastos: { 
-    arriendo: 1330000, 
-    servicios: 735000, 
-    marketing: 0, 
-    contador: 12500, 
-    software: 0, 
-    otros: 40000 
+  gastos: {
+    arriendo: 1330000,
+    servicios: 735000,
+    marketing: 0,
+    contador: 12500,
+    software: 0,
+    otros: 40000
   },
   prodMensual: 1000
 };
@@ -131,7 +130,7 @@ var state = {
   fichas: [],
   config: JSON.parse(JSON.stringify(defaultCfg)),
   showForm: false,
-  form: { id: null, nombre: "", tela: "", papelSub: "", tinta: "", papelAdh: "", tiempoManoObra: "", tiempoDiseno: "", tiempoOperario: "" }
+  form: { id: null, nombre: "", tela: "", papelSub: "", tinta: "", papelAdh: "" }
 };
 
 function fmt(n) { return "$ " + Math.round(n).toLocaleString("es-CL"); }
@@ -143,39 +142,29 @@ function guardarDatos() {
 }
 
 function calcularCostosForm() {
-  var f = state.form; 
+  var f = state.form;
   var c = state.config;
-  
-  var valMinutoMO = c.minManoObra !== undefined ? c.minManoObra : 150;
-  var valMinutoDiseno = c.minDiseno !== undefined ? c.minDiseno : 150;
-  var valMinutoOperario = c.minOperario !== undefined ? c.minOperario : 150;
-  
+
   var valTela = (parseFloat(f.tela)||0) * c.tela;
   var valPapelSub = (parseFloat(f.papelSub)||0) * c.papelSub;
   var valTinta = (parseFloat(f.tinta)||0) * c.tinta;
   var valPapelAdh = (parseFloat(f.papelAdh)||0) * c.papelAdh;
-  
-  var valManoObra = (parseFloat(f.tiempoManoObra)||0) * valMinutoMO;
-  var valDiseno = (parseFloat(f.tiempoDiseno)||0) * valMinutoDiseno;
-  var valOperario = (parseFloat(f.tiempoOperario)||0) * valMinutoOperario;
-  
+
   var mat = valTela + valPapelSub + valTinta + valPapelAdh;
-  var mo = valManoObra + valDiseno + valOperario;
   var fijos = c.hilos + c.maquina + c.admin;
-  
-  var total = mat + mo + fijos;
+
+  var total = mat + fijos;
   var sugerido = total * (1 + (c.margen / 100));
-  
+
   return {
-    mat: mat, mo: mo, fijos: fijos, total: total, sugerido: sugerido,
-    valTela: valTela, valPapelSub: valPapelSub, valTinta: valTinta, valPapelAdh: valPapelAdh, valManoObra: valManoObra, valDiseno: valDiseno, valOperario: valOperario
+    mat: mat, fijos: fijos, total: total, sugerido: sugerido,
+    valTela: valTela, valPapelSub: valPapelSub, valTinta: valTinta, valPapelAdh: valPapelAdh
   };
 }
 
 function updateLiveCalc() {
   var res = calcularCostosForm();
   var eMat = document.getElementById('live-mat'); if(eMat) eMat.textContent = fmt(res.mat);
-  var eMo = document.getElementById('live-mo'); if(eMo) eMo.textContent = fmt(res.mo);
   var eFijos = document.getElementById('live-fijos'); if(eFijos) eFijos.textContent = fmt(res.fijos);
   var eTot = document.getElementById('live-tot'); if(eTot) eTot.textContent = fmt(res.total);
   var eSug = document.getElementById('live-sug'); if(eSug) eSug.textContent = fmt(res.sugerido);
@@ -186,21 +175,21 @@ function updateLiveCalc() {
 // ============================================================
 function setState(p) { Object.assign(state, p); render(); }
 function setConfig(k, v) { state.config[k] = parseFloat(v) || 0; guardarDatos(); render(); }
-function setRrhh(idx, field, value) { 
+function setRrhh(idx, field, value) {
   if(field==='nombre') state.config.rrhh[idx][field] = value;
-  else state.config.rrhh[idx][field] = parseFloat(value) || 0; 
-  guardarDatos(); render(); 
+  else state.config.rrhh[idx][field] = parseFloat(value) || 0;
+  guardarDatos(); render();
 }
 function setGasto(field, value) { state.config.gastos[field] = parseFloat(value) || 0; guardarDatos(); render(); }
 
 function render() {
   var s = state;
   var html = buildTopBar(s.tab) + '<div class="content">';
-  
+
   if (s.tab === 'fichas') html += buildFichas();
   else if (s.tab === 'config') html += buildConfig();
   else if (s.tab === 'admin') html += buildAdmin();
-  
+
   html += '</div>' + (s.showForm ? buildModal() : '');
   document.getElementById("app").innerHTML = html;
 }
@@ -217,7 +206,7 @@ function buildTopBar(tab) {
 
 function buildAdmin() {
   var c = state.config;
-  
+
   // Calcular nómina
   var totalNomina = 0;
   var rowsRrhh = c.rrhh.map(function(p, i) {
@@ -234,12 +223,12 @@ function buildAdmin() {
       '<td style="font-weight:700;color:var(--teal)">'+fmt(costoEmpresa)+'</td>'+
     '</tr>';
   }).join('');
-  
+
   // Calcular otros gastos
   var g = c.gastos;
   var totalGastos = g.arriendo + g.servicios + g.marketing + g.contador + g.software + g.otros;
   var totalFijoMensual = totalNomina + totalGastos;
-  
+
   var costoAdministrativoPrenda = c.prodMensual > 0 ? (totalFijoMensual / c.prodMensual) : 0;
 
   return '<div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><h2>Nómina y Gastos Fijos (Administración y Ventas)</h2></div>'+
@@ -251,7 +240,7 @@ function buildAdmin() {
         '<tfoot><tr><td colspan="6" style="text-align:right;font-weight:700;font-size:11px;color:var(--muted);text-transform:uppercase;">Costo Total Nómina Mensual</td><td style="font-weight:800;font-size:16px;color:var(--gold);">'+fmt(totalNomina)+'</td></tr></tfoot>'+
       '</table>'+
     '</div>'+
-    
+
     '<div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(300px, 1fr));gap:24px;">'+
       '<div class="card"><div class="card-title">Otros Gastos Mensuales</div>'+
         '<div class="fld"><label>Arriendo Local / Taller</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+g.arriendo+'" onchange="setGasto(\'arriendo\',this.value)"></div></div>'+
@@ -262,16 +251,16 @@ function buildAdmin() {
         '<div class="fld"><label>Otros (Insumos oficina, aseo, varios)</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+g.otros+'" onchange="setGasto(\'otros\',this.value)"></div></div>'+
         '<div style="text-align:right;margin-top:10px;font-weight:800;color:var(--gold);font-size:16px;">Total Otros: '+fmt(totalGastos)+'</div>'+
       '</div>'+
-      
+
       '<div class="resumen-admin">'+
         '<h3 style="color:var(--dark);margin-bottom:10px;font-size:18px;">Total Costo Fijo Mensual</h3>'+
         '<div style="font-size:32px;font-weight:800;color:var(--red);margin-bottom:20px;">'+fmt(totalFijoMensual)+'</div>'+
-        
+
         '<div style="background:#fff;border-radius:8px;padding:16px;text-align:left;border:1px solid var(--border);margin-bottom:20px;">'+
           '<label style="display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">¿Cuántas prendas estimas producir al mes?</label>'+
           '<input type="number" style="width:100%;padding:10px;font-size:18px;font-weight:700;border:2px solid var(--teal);border-radius:6px;text-align:center;" value="'+c.prodMensual+'" onchange="setConfig(\'prodMensual\',this.value)">'+
         '</div>'+
-        
+
         '<div style="background:var(--dark);color:#fff;border-radius:8px;padding:16px;">'+
           '<div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:4px;">Gasto Administrativo Real por Prenda</div>'+
           '<div style="font-size:26px;font-weight:800;color:#5EEAD4;margin-bottom:12px;">'+fmt(costoAdministrativoPrenda)+'</div>'+
@@ -283,10 +272,7 @@ function buildAdmin() {
 
 function buildConfig() {
   var c = state.config;
-  var valMinutoMO = c.minManoObra !== undefined ? c.minManoObra : 150;
-  var valMinutoDiseno = c.minDiseno !== undefined ? c.minDiseno : 150;
-  var valMinutoOperario = c.minOperario !== undefined ? c.minOperario : 150;
-  
+
   return '<div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><h2>Configuración de Costos Base</h2><p style="color:var(--muted);font-size:13px;">Actualiza los precios de tus insumos. Las nuevas fichas usarán estos valores.</p></div>'+
     '<div class="grid-config">'+
       '<div class="card"><div class="card-title">Materias Primas</div>'+
@@ -294,11 +280,6 @@ function buildConfig() {
         '<div class="fld"><label>Papel Sublimación (por Metro/Hoja)</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+c.papelSub+'" onchange="setConfig(\'papelSub\',this.value)"></div></div>'+
         '<div class="fld"><label>Tinta (Costo por ML)</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+c.tinta+'" onchange="setConfig(\'tinta\',this.value)"></div></div>'+
         '<div class="fld"><label>Papel Adhesivo (por Metro/Hoja)</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+c.papelAdh+'" onchange="setConfig(\'papelAdh\',this.value)"></div></div>'+
-      '</div>'+
-      '<div class="card"><div class="card-title">Mano de Obra (Por Minuto)</div>'+
-        '<div class="fld"><label>Valor Minuto Diseño</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+valMinutoDiseno+'" onchange="setConfig(\'minDiseno\',this.value)"><span class="fld-suffix">/ min</span></div></div>'+
-        '<div class="fld"><label>Valor Minuto Operario Producción</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+valMinutoOperario+'" onchange="setConfig(\'minOperario\',this.value)"><span class="fld-suffix">/ min</span></div></div>'+
-        '<div class="fld"><label>Valor Minuto Planchado y Confección</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+valMinutoMO+'" onchange="setConfig(\'minManoObra\',this.value)"><span class="fld-suffix">/ min</span></div></div>'+
       '</div>'+
       '<div class="card"><div class="card-title">Costos Fijos Operativos (Por Prenda)</div>'+
         '<div class="fld"><label>Costo Hilos</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+c.hilos+'" onchange="setConfig(\'hilos\',this.value)"></div></div>'+
@@ -315,7 +296,7 @@ function buildFichas() {
   var html = '<div style="display:flex;justify-content:space-between;align-items:center;">'+
              '<h2>Fichas de Costos Guardadas</h2>'+
              '<button class="act-btn primary" onclick="abrirForm(null)">+ Nueva Ficha de Costo</button></div>';
-             
+
   if (state.fichas.length === 0) {
     html += '<div class="empty-state"><h3>Aún no tienes fichas guardadas</h3><p style="margin-top:10px">Crea tu primer análisis de costos haciendo clic en el botón superior.</p></div>';
   } else {
@@ -326,7 +307,6 @@ function buildFichas() {
               '<div class="ficha-title">'+f.nombre+'</div>'+
               '<div class="ficha-date">Calculado con '+f.margen+'% margen</div>'+
               '<div class="ficha-row"><span>Costo Materiales:</span> <span>'+fmt(f.mat)+'</span></div>'+
-              '<div class="ficha-row"><span>Costo Mano Obra:</span> <span>'+fmt(f.mo)+'</span></div>'+
               '<div class="ficha-row"><span>Costos Fijos Operativos:</span> <span>'+fmt(f.fijos)+'</span></div>'+
               '<div class="ficha-row tot"><span>Costo Producción Total:</span> <span style="color:var(--red)">'+fmt(f.total)+'</span></div>'+
               '<div class="ficha-row sug"><span>Precio Sugerido Venta:</span> <span>'+fmt(f.sugerido)+'</span></div>'+
@@ -341,39 +321,31 @@ function buildModal() {
   var f = state.form;
   var res = calcularCostosForm();
   var isEdit = f.id !== null;
-  
+
   return '<div class="modal-bg"><div class="modal">'+
     '<h2>'+(isEdit?'Editar':'Nueva')+' Ficha de Costo</h2>'+
     '<div class="calc-grid">'+
       '<div>'+
         '<div class="fld"><label>Nombre del Producto (Ej: Camiseta Deportiva L)</label><input type="text" value="'+f.nombre+'" oninput="state.form.nombre=this.value" placeholder="Nombre del producto..."></div>'+
-        
-        '<div style="margin-top:24px;margin-bottom:12px;font-weight:700;font-size:12px;color:var(--gold);text-transform:uppercase;">1. Consumo de Materiales</div>'+
+
+        '<div style="margin-top:24px;margin-bottom:12px;font-weight:700;font-size:12px;color:var(--gold);text-transform:uppercase;">Consumo de Materiales</div>'+
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'+
           '<div class="fld"><label>Tela (Metros)</label><input type="number" step="0.1" value="'+f.tela+'" oninput="state.form.tela=this.value; updateLiveCalc()" placeholder="Ej: 1.2"></div>'+
           '<div class="fld"><label>Papel Sublimación (M / Hojas)</label><input type="number" step="0.1" value="'+f.papelSub+'" oninput="state.form.papelSub=this.value; updateLiveCalc()" placeholder="Ej: 1.5"></div>'+
           '<div class="fld"><label>Tinta (ML)</label><input type="number" step="0.5" value="'+f.tinta+'" oninput="state.form.tinta=this.value; updateLiveCalc()" placeholder="Ej: 10"></div>'+
           '<div class="fld"><label>Papel Adhesivo (M / Hojas)</label><input type="number" step="0.1" value="'+f.papelAdh+'" oninput="state.form.papelAdh=this.value; updateLiveCalc()" placeholder="Ej: 0"></div>'+
         '</div>'+
-        
-        '<div style="margin-top:24px;margin-bottom:12px;font-weight:700;font-size:12px;color:var(--gold);text-transform:uppercase;">2. Tiempos de Trabajo</div>'+
-        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">'+
-          '<div class="fld"><label>Tiempo Diseño (Minutos)</label><input type="number" value="'+f.tiempoDiseno+'" oninput="state.form.tiempoDiseno=this.value; updateLiveCalc()" placeholder="Ej: 20"></div>'+
-          '<div class="fld"><label>Tiempo Operario (Minutos)</label><input type="number" value="'+f.tiempoOperario+'" oninput="state.form.tiempoOperario=this.value; updateLiveCalc()" placeholder="Ej: 30"></div>'+
-          '<div class="fld"><label>Tiempo Planch./Conf. (Minutos)</label><input type="number" value="'+f.tiempoManoObra+'" oninput="state.form.tiempoManoObra=this.value; updateLiveCalc()" placeholder="Ej: 45"></div>'+
-        '</div>'+
       '</div>'+
-      
+
       '<div class="resumen-panel">'+
         '<div class="rp-title">Resumen de Costos</div>'+
         '<div class="rp-row"><span>Materiales</span> <span class="rp-val" id="live-mat">'+fmt(res.mat)+'</span></div>'+
-        '<div class="rp-row"><span>Mano de Obra</span> <span class="rp-val" id="live-mo">'+fmt(res.mo)+'</span></div>'+
         '<div class="rp-row"><span>Fijos (Hilos/Maq/Admin)</span> <span class="rp-val" id="live-fijos">'+fmt(res.fijos)+'</span></div>'+
         '<div class="rp-tot"><span>COSTO TOTAL</span> <span id="live-tot">'+fmt(res.total)+'</span></div>'+
-        
+
         '<div style="margin-top:30px; font-size:10px; color:#888;">Precio Calculado con Margen del '+state.config.margen+'%</div>'+
         '<div class="rp-sug"><span>Precio Venta</span> <span id="live-sug">'+fmt(res.sugerido)+'</span></div>'+
-        
+
         '<div style="margin-top:40px;display:flex;flex-direction:column;gap:10px;">'+
           '<button class="act-btn primary" style="width:100%;text-align:center" onclick="guardarFicha()">Guardar Ficha</button>'+
           '<button class="act-btn" style="width:100%;text-align:center;background:transparent;color:#fff;border-color:#555;" onclick="setState({showForm:false})">Cancelar</button>'+
@@ -389,31 +361,27 @@ function buildModal() {
 function abrirForm(idx) {
   if (idx !== null) {
     var f = state.fichas[idx];
-    var tMo = f.inputs.tiempoManoObra;
-    if (tMo === undefined) { tMo = (parseFloat(f.inputs.planchado)||0) + (parseFloat(f.inputs.confeccion)||0); }
-    var tDiseno = f.inputs.tiempoDiseno || "";
-    var tOperario = f.inputs.tiempoOperario || "";
-    state.form = { id: idx, nombre: f.nombre, tela: f.inputs.tela, papelSub: f.inputs.papelSub, tinta: f.inputs.tinta, papelAdh: f.inputs.papelAdh, tiempoManoObra: tMo, tiempoDiseno: tDiseno, tiempoOperario: tOperario };
+    state.form = { id: idx, nombre: f.nombre, tela: f.inputs.tela, papelSub: f.inputs.papelSub, tinta: f.inputs.tinta, papelAdh: f.inputs.papelAdh };
   } else {
-    state.form = { id: null, nombre: "", tela: "", papelSub: "", tinta: "", papelAdh: "", tiempoManoObra: "", tiempoDiseno: "", tiempoOperario: "" };
+    state.form = { id: null, nombre: "", tela: "", papelSub: "", tinta: "", papelAdh: "" };
   }
   setState({showForm:true});
 }
 
 function guardarFicha() {
   if (!state.form.nombre.trim()) { alert("Dale un nombre al producto para guardar la ficha."); return; }
-  
+
   var res = calcularCostosForm();
   var ficha = {
     nombre: state.form.nombre,
     margen: state.config.margen,
-    inputs: { tela: state.form.tela, papelSub: state.form.papelSub, tinta: state.form.tinta, papelAdh: state.form.papelAdh, tiempoManoObra: state.form.tiempoManoObra, tiempoDiseno: state.form.tiempoDiseno, tiempoOperario: state.form.tiempoOperario },
-    mat: res.mat, mo: res.mo, fijos: res.fijos, total: res.total, sugerido: res.sugerido
+    inputs: { tela: state.form.tela, papelSub: state.form.papelSub, tinta: state.form.tinta, papelAdh: state.form.papelAdh },
+    mat: res.mat, fijos: res.fijos, total: res.total, sugerido: res.sugerido
   };
-  
-  if (state.form.id !== null) { state.fichas[state.form.id] = ficha; } 
+
+  if (state.form.id !== null) { state.fichas[state.form.id] = ficha; }
   else { state.fichas.push(ficha); }
-  
+
   guardarDatos();
   setState({showForm:false});
 }
@@ -442,15 +410,12 @@ async function initApp() {
         if(!state.config.prodMensual) state.config.prodMensual = defaultCfg.prodMensual;
       }
     }
-    
+
     const cloudData = await loadFromCloud(STORAGE_KEY);
     if (cloudData) {
       if (cloudData.fichas) state.fichas = cloudData.fichas;
       if (cloudData.config) {
         Object.assign(state.config, cloudData.config);
-        if (state.config.minManoObra === undefined) state.config.minManoObra = 150;
-        if (state.config.minDiseno === undefined) state.config.minDiseno = 150;
-        if (state.config.minOperario === undefined) state.config.minOperario = 150;
         if (!state.config.rrhh) state.config.rrhh = JSON.parse(JSON.stringify(defaultCfg.rrhh));
         else {
           state.config.rrhh.forEach(p => { if (p.comision === undefined) p.comision = 0; });
@@ -461,8 +426,6 @@ async function initApp() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(cloudData));
     } else if (!cloudData && rawLocal) {
       if(state.config.rrhh) state.config.rrhh.forEach(p => { if (p.comision === undefined) p.comision = 0; });
-      if (state.config.minDiseno === undefined) state.config.minDiseno = 150;
-      if (state.config.minOperario === undefined) state.config.minOperario = 150;
     }
   } catch (e) {}
   render();
