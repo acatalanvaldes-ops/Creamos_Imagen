@@ -163,7 +163,6 @@
       <div class="form-group"><label>Nombre / Cliente</label><input type="text" id="prodName" placeholder="Nombre de la producción…" list="listNombres" autocomplete="off"><datalist id="listNombres"></datalist></div>
       <div class="form-group"><label>Tipo de producción</label><select id="prodTipo" onchange="renderCantidadFields(this.value)" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.8rem;padding:10px 12px;outline:none;transition:border-color 0.2s"><option value="">— Seleccionar —</option><option value="Confección">Confección</option><option value="Sublimación">Sublimación</option><option value="Otros">Otros</option></select></div>
       
-      <!-- Selector de Diseñador Actualizado -->
       <div class="form-group">
         <label>Diseñador</label>
         <select id="prodDiseñador" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.8rem;padding:10px 12px;outline:none;transition:border-color 0.2s">
@@ -204,9 +203,16 @@
     <div>
       <div class="section-title" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
         Producciones registradas
-        <div style="display:flex;gap:8px;margin-left:auto">
-          <button class="toggle-form-btn" onclick="exportPDF()" title="Exportar tabla y estadísticas a PDF" style="border-color:#e84040;color:#e84040">📄 PDF</button>
+        
+        <!-- NUEVO SELECTOR DE FECHAS PARA PDF -->
+        <div style="display:flex;gap:8px;margin-left:auto;align-items:center;">
+          <span style="font-size:0.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Desde:</span>
+          <input type="date" id="pdfDesde" style="background:var(--card);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.75rem;padding:6px;outline:none;">
+          <span style="font-size:0.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-left:4px">Hasta:</span>
+          <input type="date" id="pdfHasta" style="background:var(--card);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.75rem;padding:6px;outline:none;">
+          <button class="toggle-form-btn" onclick="exportPDF()" title="Exportar rango seleccionado a PDF" style="border-color:#e84040;color:#e84040;margin-left:6px">📄 PDF</button>
         </div>
+        
       </div>
       <div class="timeline" id="timeline">
         <div class="timeline-empty">No hay producciones aún.<br>Usa el botón "Agregar producción" para comenzar.</div>
@@ -388,6 +394,12 @@ function applyYearBounds() {
   document.getElementById('prodDate').max = currentViewYear + '-12-31';
   document.getElementById('prodFechaEntrega').min = currentViewYear + '-01-01';
   document.getElementById('prodFechaEntrega').max = currentViewYear + '-12-31';
+  
+  document.getElementById('pdfDesde').min = currentViewYear + '-01-01';
+  document.getElementById('pdfDesde').max = currentViewYear + '-12-31';
+  document.getElementById('pdfHasta').min = currentViewYear + '-01-01';
+  document.getElementById('pdfHasta').max = currentViewYear + '-12-31';
+
   document.title = 'Calendario de Producciones ' + currentViewYear;
 }
 
@@ -776,9 +788,27 @@ function exportPDF() {
     alert('No se pudo cargar el generador de PDF. Verifica tu conexión a internet e inténtalo nuevamente.');
     return;
   }
+  
+  const desdeStr = document.getElementById('pdfDesde').value;
+  const hastaStr = document.getElementById('pdfHasta').value;
+  
+  let filtered = getFiltered();
+  
+  // APLICAR FILTRO DE RANGO DE FECHAS
+  if (desdeStr) {
+    filtered = filtered.filter(p => p.date >= desdeStr);
+  }
+  if (hastaStr) {
+    filtered = filtered.filter(p => p.date <= hastaStr);
+  }
+
+  if (filtered.length === 0) {
+    alert('No hay producciones en el rango de fechas seleccionado para exportar.');
+    return;
+  }
+
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
-  const filtered = getFiltered();
   const marginX = 40;
   let y = 40;
 
@@ -791,7 +821,19 @@ function exportPDF() {
   doc.setFontSize(10);
   doc.setTextColor(90);
   const fechaGen = new Date().toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' });
-  doc.text('Generado el ' + fechaGen, marginX, y);
+  
+  // FORMATO DE LA FECHA EN EL PDF
+  const formatearCorta = (str) => {
+    if (!str) return '';
+    const [yy, mm, dd] = str.split('-');
+    return `${dd}/${mm}/${yy}`;
+  };
+  
+  let rangoTexto = 'Generado el ' + fechaGen;
+  if (desdeStr || hastaStr) {
+    rangoTexto += `   |   Rango: ${desdeStr ? formatearCorta(desdeStr) : 'Inicio'} - ${hastaStr ? formatearCorta(hastaStr) : 'Fin'}`;
+  }
+  doc.text(rangoTexto, marginX, y);
   y += 24;
 
   doc.setTextColor(0);
@@ -802,6 +844,8 @@ function exportPDF() {
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
+  
+  // RECALCULAR ESTADÍSTICAS MENSUALES CON EL FILTRO APLICADO
   const monthCounts = MONTHS.map((m, i) => ({ m, count: filtered.filter(p => new Date(p.date).getMonth() === i).length })).filter(x => x.count > 0);
   const monthLine = monthCounts.length ? monthCounts.map(x => `${x.m}: ${x.count}`).join('   |   ') : 'Sin datos por mes';
   doc.text('Distribución mensual: ' + monthLine, marginX, y, { maxWidth: 760 });
@@ -813,7 +857,8 @@ function exportPDF() {
     return `${parseInt(dd)} ${MONTHS_SHORT[parseInt(mm) - 1]} ${yy}`;
   };
 
-  const rows = filtered.map(p => {
+  // ORDENAR POR FECHA DE INGRESO
+  const rows = filtered.sort((a,b) => a.date.localeCompare(b.date)).map(p => {
     return [
       p.orden || '—', p.name || '—', p.tipo || '—', p.diseñador || '—',
       fmtFecha(p.date), fmtFecha(p.fechaEntrega), prendasDetalleTexto(p)
@@ -830,11 +875,6 @@ function exportPDF() {
     alternateRowStyles: { fillColor: [245, 242, 235] },
     columnStyles: { 6: { cellWidth: 260 } }
   });
-
-  if (rows.length === 0) {
-    doc.setFontSize(10);
-    doc.text('No hay producciones para exportar.', marginX, y + 10);
-  }
 
   const sufijoFiltro = activeFilterValue ? '_filtrado' : '';
   doc.save(`Producciones_${currentViewYear}${sufijoFiltro}.pdf`);
