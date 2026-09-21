@@ -6,6 +6,8 @@
 <title>Ventas Empresa - Creamos Imagen</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
 :root{--bg:#F7F5F0;--surface:#FFFFFF;--dark:#1C1917;--gold:#C8973A;--teal:#0D7A6B;--red:#C0392B;--muted:#78716C;--border:#E7E2D9;--purple:#6D28D9;--webpay:#1E40AF}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -155,6 +157,8 @@ var state = {
   ventas:[],
   tab:"ventas",
   filtroMes:"",
+  rangoDesde:"",
+  rangoHasta:"",
   showForm:false,
   editId:null,
   delId:null,
@@ -162,6 +166,16 @@ var state = {
   xlTab:"detalle",
   form:{fecha:new Date().toISOString().slice(0,10),cliente:"",producto:PRODUCTOS[0],formaPago:FORMAS_PAGO[0],montoBase:"",factura:false}
 };
+
+// Filtro combinado: mes (dropdown existente) + rango de fechas Desde/Hasta (afecta pantalla, PDF, Excel y CSV)
+function getFiltradas() {
+  var list = state.filtroMes ? state.ventas.filter(function(v){ return v.fecha.slice(0,7)===state.filtroMes; }) : state.ventas;
+  if (state.rangoDesde) list = list.filter(function(v){ return v.fecha >= state.rangoDesde; });
+  if (state.rangoHasta) list = list.filter(function(v){ return v.fecha <= state.rangoHasta; });
+  return list;
+}
+function rangoActivo() { return !!(state.rangoDesde || state.rangoHasta); }
+function limpiarRango() { setState({rangoDesde:"", rangoHasta:""}); }
 
 function setState(p) {
   Object.assign(state, p);
@@ -194,9 +208,9 @@ function updatePreview() {
 // ============================================================
 function render() {
   var s         = state;
-  var filtradas = s.filtroMes ? s.ventas.filter(function(v){ return v.fecha.slice(0,7)===s.filtroMes; }) : s.ventas;
+  var filtradas = getFiltradas();
   var meses0    = s.ventas.map(function(v){ return v.fecha.slice(0,7); });
-  
+
   var mesesFijos= ["2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07","2026-08","2026-09","2026-10","2026-11","2026-12"];
   var mesesSet  = {};
   meses0.concat(mesesFijos).forEach(function(m){ mesesSet[m]=1; });
@@ -250,8 +264,14 @@ function buildKpiStrip(filt, tV, filtroMes, meses) {
     label = label.charAt(0).toUpperCase()+label.slice(1);
     return '<option value="'+m+'" '+(filtroMes===m?'selected':'')+'>'+label+'</option>';
   }).join('');
+  var rangoHtml = '<span style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Desde</span>'+
+    '<input type="date" value="'+state.rangoDesde+'" onchange="setState({rangoDesde:this.value})" style="border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:11px;color:var(--dark)">'+
+    '<span style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-left:2px">Hasta</span>'+
+    '<input type="date" value="'+state.rangoHasta+'" onchange="setState({rangoHasta:this.value})" style="border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:11px;color:var(--dark)">'+
+    (rangoActivo() ? '<button class="act-btn" style="padding:5px 10px;font-size:11px;color:var(--muted)" onclick="limpiarRango()" title="Quitar filtro de rango">&#10005;</button>' : '');
   return '<div class="kpi-strip"><div class="kpis">'+kHtml+'</div><div class="actions">'+
     '<select class="month-sel" onchange="setState({filtroMes:this.value})"><option value="" '+(filtroMes?'':'selected')+'>Todos los meses</option>'+optHtml+'</select>'+
+    rangoHtml+
     '<button class="act-btn primary" onclick="openForm()">+ Nueva Venta</button>'+
     '</div></div>';
 }
@@ -384,12 +404,60 @@ function buildVistaPDF(filt) {
     '</div></div></div>';
 }
 
+function exportPDF() {
+  var filt = getFiltradas();
+  if (!filt.length) { alert('No hay ventas para exportar' + (rangoActivo() ? ' en el rango de fechas seleccionado.' : '.')); return; }
+  if (!window.jspdf || !window.jspdf.jsPDF) { alert('No se pudo cargar el generador de PDF. Verifica tu conexión a internet e inténtalo nuevamente.'); return; }
+
+  var jsPDF = window.jspdf.jsPDF;
+  var doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+  var marginX = 40, y = 40;
+  var sorted = filt.slice().sort(function(a,b){ return a.fecha.localeCompare(b.fecha); });
+  var tV = filt.reduce(function(s,v){ return s+v.montoBase; }, 0);
+
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
+  doc.text('Creamos Imagen — Reporte de Ventas Empresa', marginX, y);
+  y += 20;
+
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(90);
+  var fechaGen = new Date().toLocaleDateString('es-CO', { day:'2-digit', month:'long', year:'numeric' });
+  var rangoTexto = 'Generado el ' + fechaGen;
+  if (state.filtroMes) rangoTexto += '   |   Mes: ' + state.filtroMes;
+  if (rangoActivo()) rangoTexto += '   |   Rango: ' + (state.rangoDesde ? fDate(state.rangoDesde) : 'Inicio') + ' - ' + (state.rangoHasta ? fDate(state.rangoHasta) : 'Fin');
+  doc.text(rangoTexto, marginX, y);
+  y += 24;
+
+  doc.setTextColor(0); doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
+  doc.text('Total ventas: ' + filt.length + '   |   Ingresos totales: ' + fmt(tV), marginX, y);
+  y += 20;
+
+  var rows = sorted.map(function(v){
+    return [fDate(v.fecha), v.cliente || '—', v.producto || '—', v.formaPago || '—', fmt(v.montoBase), v.factura ? 'Sí' : '—'];
+  });
+
+  doc.autoTable({
+    startY: y,
+    margin: { left: marginX, right: marginX },
+    head: [['Fecha','Cliente','Producto','Forma Pago','Venta','Factura']],
+    body: rows,
+    styles: { font: 'helvetica', fontSize: 8, cellPadding: 4 },
+    headStyles: { fillColor: [28, 25, 23], textColor: 255 },
+    alternateRowStyles: { fillColor: [247, 245, 240] },
+    columnStyles: { 4: { halign: 'right' }, 5: { halign: 'center' } }
+  });
+
+  var sufijoPdf = (state.filtroMes ? '_'+state.filtroMes : '') + (rangoActivo() ? '_filtrado' : '');
+  doc.save('Creamos_Imagen_Ventas_Empresa' + sufijoPdf + '.pdf');
+  setState({exportMsg:'Exportado '+filt.length+' registros a PDF'});
+  setTimeout(function(){ setState({exportMsg:''}); }, 3000);
+}
+
 // ============================================================
 // VISTA EXCEL
 // ============================================================
 async function exportXLSX() {
-  var filt = state.filtroMes ? state.ventas.filter(function(v){ return v.fecha.slice(0,7)===state.filtroMes; }) : state.ventas;
-  if (!filt.length) { alert('No hay ventas para exportar.'); return; }
+  var filt = getFiltradas();
+  if (!filt.length) { alert('No hay ventas para exportar' + (rangoActivo() ? ' en el rango de fechas seleccionado.' : '.')); return; }
   if (typeof ExcelJS === 'undefined') { alert('No se pudo cargar el generador de Excel. Verifica tu conexión a internet e inténtalo nuevamente.'); return; }
 
   var sorted = filt.slice().sort(function(a,b){ return a.fecha.localeCompare(b.fecha); });
@@ -408,9 +476,12 @@ async function exportXLSX() {
   ];
   ws.columns = cols;
 
+  var sufijoTituloXl = state.filtroMes ? ' — ' + state.filtroMes : '';
+  if (rangoActivo()) sufijoTituloXl += ' — Rango: ' + (state.rangoDesde || 'Inicio') + ' a ' + (state.rangoHasta || 'Fin');
+
   ws.mergeCells(1, 1, 1, cols.length);
   var titleCell = ws.getCell(1, 1);
-  titleCell.value = 'CREAMOS IMAGEN — REGISTRO DE VENTAS EMPRESA' + (state.filtroMes ? ' — ' + state.filtroMes : '');
+  titleCell.value = 'CREAMOS IMAGEN — REGISTRO DE VENTAS EMPRESA' + sufijoTituloXl;
   titleCell.font = { bold:true, size:14, color:{argb:'FFFFFFFF'} };
   titleCell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF1C1917'} };
   titleCell.alignment = { vertical:'middle' };
@@ -470,7 +541,7 @@ async function exportXLSX() {
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
   a.href = url;
-  a.download = 'Creamos_Imagen_Ventas_Empresa' + (state.filtroMes ? '_'+state.filtroMes : '') + '.xlsx';
+  a.download = 'Creamos_Imagen_Ventas_Empresa' + (state.filtroMes ? '_'+state.filtroMes : '') + (rangoActivo() ? '_filtrado' : '') + '.xlsx';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -575,7 +646,7 @@ function buildDel() {
 }
 
 function exportCSV() {
-  var filt = state.filtroMes ? state.ventas.filter(function(v){ return v.fecha.slice(0,7)===state.filtroMes; }) : state.ventas;
+  var filt = getFiltradas();
   var cols = ["Fecha","Cliente","Producto","Forma Pago","Venta","Webpay 2%","Factura"];
   var rows = filt.slice().sort(function(a,b){return a.fecha.localeCompare(b.fecha);}).map(function(v){
     var wp = comWP(v.montoBase, v.formaPago);
