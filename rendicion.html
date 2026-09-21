@@ -117,7 +117,7 @@ tfoot .tot-row td{background:var(--accent-l);font-family:var(--mono);font-size:1
     📋 Rendición de Caja 
     <select class="yr-select" id="year-select" onchange="changeYear(this.value)">
       <option value="2025">2025</option>
-      <option value="2026" selected>2026</option>
+      <option value="2026">2026</option>
       <option value="2027">2027</option>
       <option value="2028">2028</option>
       <option value="2029">2029</option>
@@ -1186,7 +1186,7 @@ function totalAll(){ return Object.keys(data).filter(k => k.startsWith(currentYe
 
 function saveData(){ try{ localStorage.setItem('rendicion2026_v2', JSON.stringify(data)); saveToCloud('rendicion2026_v2', data); } catch(e){} }
 
-// MODIFICADO: Sistema de carga inteligente con INITIAL_DATA fallback
+// MODIFICADO: Forzar inyección si es la primera vez que se carga este código (repara cachés antiguos)
 async function loadData() {
   const t = new Date();
   currentYear = t.getFullYear();
@@ -1195,44 +1195,47 @@ async function loadData() {
   const sel = document.getElementById('year-select');
   if(sel) sel.value = currentYear;
 
-  // 1. CARGAR DATOS LOCALES O FALLBACK AL INITIAL_DATA
+  // 1. CARGAR DATOS DESDE LA NUBE
   try {
-    const rawLocal = localStorage.getItem('rendicion2026_v2');
-    if (rawLocal && Object.keys(JSON.parse(rawLocal)).length > 0) {
-      const p = JSON.parse(rawLocal);
-      Object.keys(p).forEach(k => { data[k] = p[k]; });
+    const cloudData = await loadFromCloud('rendicion2026_v2');
+    if (cloudData && Object.keys(cloudData).length > 0) {
+      Object.keys(cloudData).forEach(k => { data[k] = cloudData[k]; });
     } else {
-      // Si no hay datos locales, cargar el historial INITIAL_DATA por defecto
-      Object.keys(INITIAL_DATA).forEach(k => { data[k] = INITIAL_DATA[k]; });
-      localStorage.setItem('rendicion2026_v2', JSON.stringify(data));
+      // Si falla o está vacío, intentamos con el local
+      const rawLocal = localStorage.getItem('rendicion2026_v2');
+      if (rawLocal) {
+        const p = JSON.parse(rawLocal);
+        Object.keys(p).forEach(k => { data[k] = p[k]; });
+      }
     }
-  } catch(e){}
-  
+  } catch(e) {
+      const rawLocal = localStorage.getItem('rendicion2026_v2');
+      if (rawLocal) {
+        const p = JSON.parse(rawLocal);
+        Object.keys(p).forEach(k => { data[k] = p[k]; });
+      }
+  }
+
+  // 2. FORZAR LA INYECCIÓN DEL HISTORIAL SI NUNCA SE HA HECHO CON ÉXITO
+  if (localStorage.getItem('historial_cargado_final') !== '1') {
+      Object.keys(INITIAL_DATA).forEach(dateKey => {
+          if (!data[dateKey]) data[dateKey] = [];
+          
+          INITIAL_DATA[dateKey].forEach(item => {
+              data[dateKey].push(item);
+          });
+      });
+      localStorage.setItem('historial_cargado_final', '1');
+      saveData(); // Esto actualizará el LocalStorage Y la Nube con los datos combinados
+  } else {
+      // Guardar en local para asegurar que estemos en sintonía con la nube
+      localStorage.setItem('rendicion2026_v2', JSON.stringify(data));
+  }
+
   applyPrevRangeBounds();
   buildAccordion();
   selectDay(daysKey(t.getMonth(), t.getDate()), t.getMonth());
   renderSumm();
-
-  // 2. SINCRONIZAR CON LA NUBE EN SEGUNDO PLANO
-  try {
-    const cloudData = await loadFromCloud('rendicion2026_v2');
-    if (cloudData && Object.keys(cloudData).length > 0) {
-      // Priorizar la nube y hacer un merge si es necesario.
-      Object.keys(cloudData).forEach(k => { data[k] = cloudData[k]; });
-      // Asegurarse de que lo que tenemos del INITIAL_DATA persista si la nube no lo tenía
-      Object.keys(INITIAL_DATA).forEach(k => { if(!data[k]) data[k] = INITIAL_DATA[k]; });
-      
-      localStorage.setItem('rendicion2026_v2', JSON.stringify(data));
-      refreshAccordion();
-      renderContent();
-      renderSumm();
-    } else {
-      // Si la nube está vacía, empujar nuestros datos actuales (incluyendo INITIAL_DATA) a la nube
-      saveToCloud('rendicion2026_v2', data);
-    }
-  } catch(e) {
-    console.error("Modo offline activado o error de nube.", e);
-  }
 }
 
 function changeYear(y) {
@@ -1257,7 +1260,16 @@ function changeYear(y) {
   renderSumm();
 }
 
-function clearAll(){ if(!confirm('¿Borrar TODOS los registros del sistema?')) return; Object.keys(data).forEach(k=>{ data[k]=[]; }); localStorage.removeItem('rendicion2026_v2'); buildAccordion(); if(curDate) renderContent(); renderSumm(); }
+function clearAll(){ 
+  if(!confirm('¿Borrar TODOS los registros del sistema? Esta acción también borrará tu historial pre-cargado.')) return; 
+  Object.keys(data).forEach(k=>{ data[k]=[]; }); 
+  localStorage.removeItem('rendicion2026_v2'); 
+  saveData(); // Limpia la nube también
+  buildAccordion(); 
+  if(curDate) renderContent(); 
+  renderSumm(); 
+}
+
 function showTab(name,btn){ document.querySelectorAll('.ttab').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on')); document.getElementById('p-'+name).classList.add('on'); if(name==='summ') renderSumm(); if(name==='prev') buildPreview(); }
 
 function buildAccordion(){
