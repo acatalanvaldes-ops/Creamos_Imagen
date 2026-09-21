@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cotizaciones - Creamos Imagen</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F7F5F0;--surface:#FFFFFF;--dark:#1C1917;--gold:#C8973A;--teal:#0D7A6B;--red:#C0392B;--muted:#78716C;--border:#E7E2D9;--purple:#6D28D9;--blue:#1E40AF;--amber:#B45309}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--dark);min-height:100vh}
+input,select,button{font-family:inherit;outline:none}
+.topbar{background:var(--dark);padding:0 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:100}
+.brand{padding:14px 0; margin-left: 100px;}
+.brand-tag{font-size:9px;color:var(--gold);letter-spacing:.2em;font-weight:700;text-transform:uppercase;margin-bottom:2px}
+.brand-name{font-family:'DM Serif Display',serif;font-size:22px;color:#fff}
+.brand-name span{color:var(--gold)}
+.tabs{display:flex;gap:2px;flex-wrap:wrap}
+.tab{background:none;border:none;font-size:12px;font-weight:600;color:#888;cursor:pointer;padding:7px 14px;border-radius:6px;transition:all .2s}
+.tab.on{background:#2C2926;color:var(--gold)}
+.content{padding:24px; max-width: 1200px; margin: 0 auto;}
+.act-btn{background:#fff;border:1.5px solid var(--border);color:var(--dark);padding:9px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.act-btn:hover{border-color:var(--gold);color:var(--gold)}
+.act-btn.primary{background:var(--gold);border-color:var(--gold);color:#fff}
+.act-btn.primary:hover{background:#B8872A;transform:translateY(-1px)}
+.act-btn.small{padding:5px 10px;font-size:11px}
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:20px}
+.card-title{font-size:13px;font-weight:700;color:var(--dark);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;border-bottom:2px solid var(--bg);padding-bottom:8px;}
+.fld{margin-bottom:14px;}
+.fld label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;}
+.fld input,.fld select{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;font-size:15px;color:var(--dark);font-weight:600;}
+.fld input:focus,.fld select:focus{border-color:var(--gold);background:#fff;}
+.fld-row{display:flex;align-items:center;gap:12px;}
+.fld-prefix{font-size:15px;color:var(--muted);font-weight:600;}
+.fld-suffix{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap;}
+.calc-grid{display:grid;grid-template-columns:1fr 320px;gap:24px;align-items:start}
+@media (max-width: 800px){ .calc-grid{grid-template-columns:1fr} }
+.resumen-panel{background:var(--dark);border-radius:12px;padding:20px;color:#fff;}
+.rp-title{font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:16px;border-bottom:1px solid #333;padding-bottom:8px;}
+.rp-row{display:flex;justify-content:space-between;margin-bottom:10px;font-size:13px;color:#bbb;}
+.rp-val{font-weight:700;color:#fff;}
+.rp-tot{display:flex;justify-content:space-between;margin-top:16px;padding-top:16px;border-top:1px solid #333;font-size:16px;font-weight:700;color:var(--gold);}
+table.tbl{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;border:1px solid var(--border)}
+table.tbl th{background:var(--dark);color:var(--gold);font-size:10px;text-transform:uppercase;padding:10px 12px;text-align:left;letter-spacing:0.4px}
+table.tbl td{padding:9px 12px;border-bottom:1px solid var(--border);font-size:13px}
+table.tbl tr:last-child td{border-bottom:none}
+table.tbl input,table.tbl select{background:transparent;border:1px solid transparent;border-bottom:1px solid var(--border);padding:5px;font-size:13px;color:var(--dark);font-family:inherit;width:100%}
+table.tbl input:focus,table.tbl select:focus{border-bottom:2px solid var(--gold)}
+.icon-btn{background:none;border:none;cursor:pointer;font-size:15px;opacity:0.5;transition:opacity 0.2s;}
+.icon-btn:hover{opacity:1;}
+.badge{font-size:10px;font-weight:700;padding:4px 9px;border-radius:5px;text-transform:uppercase;letter-spacing:0.3px;border:none;cursor:pointer}
+.badge.pendiente{background:#FFFBEB;color:var(--amber)}
+.badge.aceptada{background:#F0FDF4;color:var(--teal)}
+.badge.rechazada{background:#FEF2F2;color:var(--red)}
+.empty-state{text-align:center;padding:60px;color:var(--muted);background:#fff;border-radius:12px;border:1px dashed var(--border)}
+.pill-filters{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.pill{background:#fff;border:1.5px solid var(--border);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;color:var(--muted)}
+.pill.on{background:var(--dark);color:var(--gold);border-color:var(--dark)}
+.note{font-size:12px;color:var(--muted);background:var(--bg);border:1px dashed var(--border);border-radius:8px;padding:12px 14px;margin-bottom:16px}
+</style>
+</head>
+<body>
+<a href="index.html" style="position:fixed; top:14px; left:20px; background:#1C1917; color:#C8973A; padding:8px 14px; border-radius:6px; border:1px solid #C8973A; text-decoration:none; font-family:Arial, sans-serif; font-size:11px; font-weight:bold; box-shadow:0 4px 6px rgba(0,0,0,0.2); z-index:9999;">← Menú</a>
+
+<div class="topbar">
+  <div class="brand"><div class="brand-tag">Gestión Comercial</div><div class="brand-name">Cotizaciones <span>&amp; Precios</span></div></div>
+  <div class="tabs">
+    <button class="tab on" id="tabbtn-cotizador" onclick="setTab('cotizador')">Cotizador</button>
+    <button class="tab" id="tabbtn-enviadas" onclick="setTab('enviadas')">Cotizaciones Enviadas</button>
+    <button class="tab" id="tabbtn-tarifario" onclick="setTab('tarifario')">Tarifario Base</button>
+    <button class="tab" id="tabbtn-comparar" onclick="setTab('comparar')">Cotizado vs Costo Real</button>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- COTIZADOR -->
+  <div id="view-cotizador">
+    <div class="calc-grid">
+      <div class="card">
+        <div class="card-title">Nueva Cotización</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="fld" style="grid-column:1/-1"><label>Cliente</label><input type="text" id="cz-cliente" list="clientesDatalist" placeholder="Nombre del cliente"><datalist id="clientesDatalist"></datalist></div>
+          <div class="fld"><label>Producto</label><select id="cz-producto" onchange="onProductoChange()"></select></div>
+          <div class="fld"><label>Técnica</label><select id="cz-tecnica" onchange="recalcular()"></select></div>
+          <div class="fld"><label>Cantidad</label><input type="number" id="cz-cantidad" min="1" placeholder="1" oninput="recalcular()"></div>
+          <div class="fld"><label>Personalización</label><select id="cz-personalizacion" onchange="recalcular()">
+            <option value="Diseño propio">Diseño propio</option>
+            <option value="Diseño K-pop">Diseño K-pop</option>
+            <option value="Otro">Otro</option>
+          </select></div>
+          <div class="fld"><label>Margen (%)</label><input type="number" id="cz-margen" oninput="recalcular()"></div>
+        </div>
+      </div>
+      <div class="resumen-panel">
+        <div class="rp-title">Resumen de la Cotización</div>
+        <div class="rp-row"><span>Precio base unitario</span><span class="rp-val" id="rp-base">$ 0</span></div>
+        <div class="rp-row"><span>Recargo personalización</span><span class="rp-val" id="rp-recargo">$ 0</span></div>
+        <div class="rp-row"><span>Precio unitario final</span><span class="rp-val" id="rp-unit">$ 0</span></div>
+        <div class="rp-row"><span>Subtotal (x cantidad)</span><span class="rp-val" id="rp-subtotal">$ 0</span></div>
+        <div class="rp-row"><span>Margen aplicado</span><span class="rp-val" id="rp-margen">$ 0</span></div>
+        <div class="rp-tot"><span>Total Cotizado</span><span id="rp-total">$ 0</span></div>
+        <button class="act-btn primary" style="width:100%;margin-top:16px" onclick="guardarCotizacion()">Guardar Cotización</button>
+        <div id="cz-warning" style="margin-top:10px;font-size:11px;color:#FCA5A5"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COTIZACIONES ENVIADAS -->
+  <div id="view-enviadas" style="display:none">
+    <div class="pill-filters">
+      <button class="pill on" data-f="todas" onclick="setFiltroEstado('todas',this)">Todas</button>
+      <button class="pill" data-f="pendiente" onclick="setFiltroEstado('pendiente',this)">Pendientes</button>
+      <button class="pill" data-f="aceptada" onclick="setFiltroEstado('aceptada',this)">Aceptadas</button>
+      <button class="pill" data-f="rechazada" onclick="setFiltroEstado('rechazada',this)">Rechazadas</button>
+    </div>
+    <div id="cotizacionesTableWrap"></div>
+  </div>
+
+  <!-- TARIFARIO -->
+  <div id="view-tarifario" style="display:none">
+    <div class="card">
+      <div class="card-title">Configuración General</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="fld"><label>Recargo por Diseño K-pop (%)</label><div class="fld-row"><input type="number" id="cfg-recargoKpop" onchange="setConfigTarifario('recargoKpop', this.value)"><span class="fld-suffix">%</span></div></div>
+        <div class="fld"><label>Margen sugerido por defecto (%)</label><div class="fld-row"><input type="number" id="cfg-margenDefault" onchange="setConfigTarifario('margenDefault', this.value)"><span class="fld-suffix">%</span></div></div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <h2 style="font-family:'DM Serif Display',serif;font-size:20px">Tarifario Base por Producto y Técnica</h2>
+      <button class="act-btn primary" onclick="agregarTarifaRow()">+ Agregar producto</button>
+    </div>
+    <div id="tarifarioTableWrap"></div>
+  </div>
+
+  <!-- COTIZADO VS COSTO REAL -->
+  <div id="view-comparar" style="display:none">
+    <div class="note">Este cruce compara el precio cotizado con el costo real calculado en la <strong>Calculadora de Costos</strong>, buscando una ficha de costo cuyo nombre coincida con el producto cotizado. Si no aparece un producto aquí, revisa que exista una ficha de costo con el mismo nombre.</div>
+    <div id="compararTableWrap"></div>
+  </div>
+
+</div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbxP5-vB59e80qpXdx4AcCyS28C4H58thdh0XXtLcDWZD8Q_47fDbBvLn1ahqx7RoJor/exec";
+const CLOUD_TOKEN = "b5bd161b4ef581c6114b7bb4";
+const KEY_TARIFARIO = "tarifario_ci_v1";
+const KEY_COTIZACIONES = "cotizaciones_ci_v1";
+const KEY_CLIENTES = "clientes_ci_v1";
+const KEY_COSTOS = "costos_ci_v1";
+
+let tarifario = { items: [], recargoKpop: 10, margenDefault: 20 };
+let cotizaciones = [];
+let clientesNombres = [];
+let fichasCosto = [];
+let filtroEstadoActual = 'todas';
+
+async function saveToCloud(key, dataObj) {
+  try {
+    const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj), token: CLOUD_TOKEN }) });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return true;
+  } catch (e) { console.error('Error guardando en la nube', e); return false; }
+}
+async function loadFromCloud(key) {
+  try {
+    const res = await fetch(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
+    const json = await res.json();
+    return json.valor ? JSON.parse(json.valor) : null;
+  } catch (e) { console.error('Error cargando de la nube', e); return null; }
+}
+
+function guardarTarifarioLocal() {
+  localStorage.setItem(KEY_TARIFARIO, JSON.stringify(tarifario));
+  saveToCloud(KEY_TARIFARIO, tarifario);
+}
+function guardarCotizacionesLocal() {
+  localStorage.setItem(KEY_COTIZACIONES, JSON.stringify(cotizaciones));
+  saveToCloud(KEY_COTIZACIONES, cotizaciones);
+}
+
+function fmt(n) { return "$ " + Math.round(n || 0).toLocaleString('es-CL'); }
+
+function setTab(t) {
+  ['cotizador', 'enviadas', 'tarifario', 'comparar'].forEach(v => {
+    document.getElementById('view-' + v).style.display = (v === t) ? 'block' : 'none';
+    document.getElementById('tabbtn-' + v).classList.toggle('on', v === t);
+  });
+  if (t === 'enviadas') renderCotizacionesTable();
+  if (t === 'tarifario') renderTarifarioTable();
+  if (t === 'comparar') renderComparar();
+  if (t === 'cotizador') poblarSelectsCotizador();
+}
+
+// ===== TARIFARIO =====
+
+function productosUnicos() { return [...new Set(tarifario.items.map(i => i.producto).filter(Boolean))]; }
+function tecnicasParaProducto(producto) { return tarifario.items.filter(i => i.producto === producto).map(i => i.tecnica); }
+
+function poblarSelectsCotizador() {
+  const selProd = document.getElementById('cz-producto');
+  const productos = productosUnicos();
+  selProd.innerHTML = productos.length
+    ? productos.map(p => `<option value="${p}">${p}</option>`).join('')
+    : '<option value="">— Agrega productos en Tarifario Base —</option>';
+  onProductoChange();
+
+  document.getElementById('cz-margen').value = tarifario.margenDefault || 0;
+
+  const dl = document.getElementById('clientesDatalist');
+  dl.innerHTML = clientesNombres.map(n => `<option value="${n}">`).join('');
+}
+
+function onProductoChange() {
+  const producto = document.getElementById('cz-producto').value;
+  const selTec = document.getElementById('cz-tecnica');
+  const tecnicas = tecnicasParaProducto(producto);
+  selTec.innerHTML = tecnicas.length
+    ? tecnicas.map(t => `<option value="${t}">${t}</option>`).join('')
+    : '<option value="">—</option>';
+  recalcular();
+}
+
+function precioBaseActual() {
+  const producto = document.getElementById('cz-producto').value;
+  const tecnica = document.getElementById('cz-tecnica').value;
+  const item = tarifario.items.find(i => i.producto === producto && i.tecnica === tecnica);
+  return item ? (item.precioBase || 0) : 0;
+}
+
+function recalcular() {
+  const base = precioBaseActual();
+  const personalizacion = document.getElementById('cz-personalizacion').value;
+  const cantidad = parseFloat(document.getElementById('cz-cantidad').value) || 0;
+  const margen = parseFloat(document.getElementById('cz-margen').value) || 0;
+
+  const recargoPct = (personalizacion === 'Diseño K-pop') ? (tarifario.recargoKpop || 0) : 0;
+  const recargo = base * (recargoPct / 100);
+  const unit = base + recargo;
+  const subtotal = unit * cantidad;
+  const margenMonto = subtotal * (margen / 100);
+  const total = subtotal + margenMonto;
+
+  document.getElementById('rp-base').textContent = fmt(base);
+  document.getElementById('rp-recargo').textContent = fmt(recargo) + (recargoPct ? ' (' + recargoPct + '%)' : '');
+  document.getElementById('rp-unit').textContent = fmt(unit);
+  document.getElementById('rp-subtotal').textContent = fmt(subtotal);
+  document.getElementById('rp-margen').textContent = fmt(margenMonto) + (margen ? ' (' + margen + '%)' : '');
+  document.getElementById('rp-total').textContent = fmt(total);
+
+  const warn = document.getElementById('cz-warning');
+  warn.textContent = (base === 0) ? '⚠ No hay un precio base configurado para este producto/técnica en el Tarifario.' : '';
+
+  return { base, recargoPct, recargo, unit, cantidad, subtotal, margen, margenMonto, total };
+}
+
+function guardarCotizacion() {
+  const cliente = document.getElementById('cz-cliente').value.trim();
+  const producto = document.getElementById('cz-producto').value;
+  const tecnica = document.getElementById('cz-tecnica').value;
+  const cantidad = parseFloat(document.getElementById('cz-cantidad').value) || 0;
+  if (!cliente || !producto || !cantidad) { alert('Completa cliente, producto y cantidad.'); return; }
+
+  const calc = recalcular();
+  const cot = {
+    id: Date.now(),
+    fecha: new Date().toISOString().slice(0, 10),
+    cliente: cliente,
+    producto: producto,
+    tecnica: tecnica,
+    cantidad: cantidad,
+    personalizacion: document.getElementById('cz-personalizacion').value,
+    precioUnitario: calc.unit,
+    margen: calc.margen,
+    montoTotal: calc.total,
+    estado: 'pendiente'
+  };
+  cotizaciones.push(cot);
+  guardarCotizacionesLocal();
+  alert('Cotización guardada. Puedes verla en "Cotizaciones Enviadas".');
+  document.getElementById('cz-cliente').value = '';
+  document.getElementById('cz-cantidad').value = '';
+  recalcular();
+}
+
+function renderTarifarioTable() {
+  document.getElementById('cfg-recargoKpop').value = tarifario.recargoKpop || 0;
+  document.getElementById('cfg-margenDefault').value = tarifario.margenDefault || 0;
+
+  const wrap = document.getElementById('tarifarioTableWrap');
+  if (tarifario.items.length === 0) {
+    wrap.innerHTML = '<div class="empty-state">Aún no hay productos en el tarifario. Usa "+ Agregar producto".</div>';
+    return;
+  }
+  wrap.innerHTML = `<table class="tbl"><thead><tr><th>Producto</th><th>Técnica</th><th>Precio Base ($/unidad)</th><th></th></tr></thead><tbody>` +
+    tarifario.items.map((it, i) => `<tr>
+      <td><input type="text" value="${it.producto || ''}" oninput="tarifario.items[${i}].producto=this.value" onchange="guardarTarifarioLocal()"></td>
+      <td><input type="text" value="${it.tecnica || ''}" oninput="tarifario.items[${i}].tecnica=this.value" onchange="guardarTarifarioLocal()"></td>
+      <td><input type="number" value="${it.precioBase || 0}" oninput="tarifario.items[${i}].precioBase=parseFloat(this.value)||0" onchange="guardarTarifarioLocal()"></td>
+      <td><button class="icon-btn" onclick="borrarTarifaRow(${i})" title="Eliminar">🗑️</button></td>
+    </tr>`).join('') + `</tbody></table>`;
+}
+
+function agregarTarifaRow() {
+  tarifario.items.push({ id: Date.now() + Math.random(), producto: '', tecnica: 'Sublimación', precioBase: 0 });
+  guardarTarifarioLocal();
+  renderTarifarioTable();
+}
+
+function borrarTarifaRow(i) {
+  if (confirm('¿Eliminar esta fila del tarifario?')) {
+    tarifario.items.splice(i, 1);
+    guardarTarifarioLocal();
+    renderTarifarioTable();
+  }
+}
+
+function setConfigTarifario(campo, valor) {
+  tarifario[campo] = parseFloat(valor) || 0;
+  guardarTarifarioLocal();
+}
+
+// ===== COTIZACIONES ENVIADAS =====
+
+function setFiltroEstado(f, btn) {
+  filtroEstadoActual = f;
+  document.querySelectorAll('.pill-filters .pill').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  renderCotizacionesTable();
+}
+
+function cambiarEstado(id, nuevoEstado) {
+  const c = cotizaciones.find(x => x.id === id);
+  if (c) { c.estado = nuevoEstado; guardarCotizacionesLocal(); renderCotizacionesTable(); }
+}
+
+function renderCotizacionesTable() {
+  const wrap = document.getElementById('cotizacionesTableWrap');
+  let lista = cotizaciones.slice().sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
+  if (filtroEstadoActual !== 'todas') lista = lista.filter(c => c.estado === filtroEstadoActual);
+
+  if (lista.length === 0) {
+    wrap.innerHTML = '<div class="empty-state">No hay cotizaciones para mostrar.</div>';
+    return;
+  }
+
+  const estados = ['pendiente', 'aceptada', 'rechazada'];
+  wrap.innerHTML = `<table class="tbl"><thead><tr><th>Fecha</th><th>Cliente</th><th>Producto</th><th>Cant.</th><th>Monto</th><th>Estado</th></tr></thead><tbody>` +
+    lista.map(c => `<tr>
+      <td>${c.fecha || '-'}</td>
+      <td>${c.cliente || '-'}</td>
+      <td>${c.producto || '-'}${c.tecnica ? ' <span style="color:var(--muted);font-size:11px">(' + c.tecnica + ')</span>' : ''}</td>
+      <td>${c.cantidad || 0}</td>
+      <td>${fmt(c.montoTotal)}</td>
+      <td><select class="badge ${c.estado}" onchange="cambiarEstado(${c.id}, this.value)">` +
+        estados.map(e => `<option value="${e}" ${c.estado === e ? 'selected' : ''}>${e.charAt(0).toUpperCase() + e.slice(1)}</option>`).join('') +
+      `</select></td>
+    </tr>`).join('') + `</tbody></table>`;
+}
+
+// ===== COMPARAR COTIZADO VS COSTO REAL =====
+
+function renderComparar() {
+  const wrap = document.getElementById('compararTableWrap');
+  if (cotizaciones.length === 0) {
+    wrap.innerHTML = '<div class="empty-state">Aún no hay cotizaciones para comparar.</div>';
+    return;
+  }
+
+  // Agrupar cotizaciones por producto, usando el precio unitario más reciente
+  const porProducto = {};
+  cotizaciones.slice().sort((a, b) => (a.fecha || '').localeCompare(b.fecha || '')).forEach(c => {
+    porProducto[c.producto] = c;
+  });
+
+  const filas = Object.values(porProducto).map(c => {
+    const ficha = fichasCosto.find(f => (f.nombre || '').trim().toLowerCase() === (c.producto || '').trim().toLowerCase());
+    const costoReal = ficha ? ficha.total : null;
+    const margenReal = costoReal !== null ? (c.precioUnitario - costoReal) : null;
+    const margenRealPct = (costoReal !== null && c.precioUnitario > 0) ? (margenReal / c.precioUnitario * 100) : null;
+    return { producto: c.producto, precioCotizado: c.precioUnitario, costoReal, margenReal, margenRealPct };
+  });
+
+  wrap.innerHTML = `<table class="tbl"><thead><tr><th>Producto</th><th>Precio Cotizado (unit.)</th><th>Costo Real de Producción</th><th>Margen Real</th><th>Margen Real %</th></tr></thead><tbody>` +
+    filas.map(f => `<tr>
+      <td>${f.producto}</td>
+      <td>${fmt(f.precioCotizado)}</td>
+      <td>${f.costoReal !== null ? fmt(f.costoReal) : '<span style="color:var(--muted)">Sin ficha de costo</span>'}</td>
+      <td style="${f.margenReal !== null && f.margenReal < 0 ? 'color:var(--red);font-weight:700' : ''}">${f.margenReal !== null ? fmt(f.margenReal) : '-'}</td>
+      <td style="${f.margenRealPct !== null && f.margenRealPct < 0 ? 'color:var(--red);font-weight:700' : ''}">${f.margenRealPct !== null ? f.margenRealPct.toFixed(1) + '%' : '-'}</td>
+    </tr>`).join('') + `</tbody></table>`;
+}
+
+window.onload = async function () {
+  const cloudTarifario = await loadFromCloud(KEY_TARIFARIO);
+  if (cloudTarifario) tarifario = Object.assign({ items: [], recargoKpop: 10, margenDefault: 20 }, cloudTarifario);
+  else {
+    const local = localStorage.getItem(KEY_TARIFARIO);
+    if (local) tarifario = JSON.parse(local);
+  }
+
+  const cloudCotizaciones = await loadFromCloud(KEY_COTIZACIONES);
+  if (cloudCotizaciones) cotizaciones = cloudCotizaciones;
+  else cotizaciones = JSON.parse(localStorage.getItem(KEY_COTIZACIONES) || '[]');
+
+  const cloudClientes = await loadFromCloud(KEY_CLIENTES);
+  const clientesData = cloudClientes || JSON.parse(localStorage.getItem(KEY_CLIENTES) || '[]');
+  clientesNombres = clientesData.map(c => c.razonSocial).filter(Boolean);
+
+  const cloudCostos = await loadFromCloud(KEY_COSTOS);
+  const costosData = cloudCostos || JSON.parse(localStorage.getItem(KEY_COSTOS) || 'null');
+  fichasCosto = (costosData && costosData.fichas) ? costosData.fichas : [];
+
+  poblarSelectsCotizador();
+};
+</script>
+</body>
+</html>
