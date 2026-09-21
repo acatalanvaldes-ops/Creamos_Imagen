@@ -339,13 +339,23 @@ function precioItemTarifario(producto, tecnica) {
   return tarifario.items.find(i => i.producto === producto && i.tecnica === tecnica);
 }
 
+// El cotizador solo debe ofrecer productos que ya existan en el Tarifario Base
+// (no el catálogo fijo completo), para que el listado sea siempre el mismo del tarifario.
+function productosDisponibles() {
+  const enTarifario = new Set(tarifario.items.map(i => i.producto));
+  return PRODUCTOS_FIJOS.filter(p => enTarifario.has(p));
+}
+
 // ===== COTIZADOR: ITEMS (hasta 10 productos) =====
 
 function nuevoItemVacio() {
-  return { producto: PRODUCTOS_FIJOS[0], tecnica: TECNICAS_FIJAS[0], lista: 0, cantidad: 1, personalizacion: 'Diseño propio' };
+  const productos = productosDisponibles();
+  const producto = productos.length ? productos[0] : '';
+  return { producto, tecnica: producto ? tecnicasParaProducto(producto)[0] : '', lista: 0, cantidad: 1, personalizacion: 'Diseño propio' };
 }
 
 function agregarItem() {
+  if (productosDisponibles().length === 0) { alert('Primero agrega productos con precio en la pestaña "Tarifario Base".'); return; }
   if (itemsCotizador.length >= MAX_ITEMS) { alert('Una cotización admite hasta ' + MAX_ITEMS + ' productos.'); return; }
   itemsCotizador.push(nuevoItemVacio());
   renderItemsTable();
@@ -370,13 +380,33 @@ function calcularItem(item) {
 function renderItemsTable() {
   const tbody = document.getElementById('itemsTableBody');
   const nombresListas = tarifario.nombresListas || ['Lista 1', 'Lista 2', 'Lista 3'];
+  const productos = productosDisponibles();
+
+  if (productos.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Aún no hay productos con precio en el Tarifario Base. Agrégalos ahí primero.</td></tr>';
+    document.getElementById('itemsCount').textContent = '0 / ' + MAX_ITEMS + ' productos';
+    document.getElementById('btn-agregar-item').disabled = true;
+    document.getElementById('rp-subtotal').textContent = fmt(0);
+    document.getElementById('rp-iva').textContent = fmt(0);
+    document.getElementById('rp-total').textContent = fmt(0);
+    document.getElementById('cz-warning').textContent = '';
+    return;
+  }
+
+  // Si un item quedó apuntando a un producto que ya no está en el tarifario, lo reasignamos.
+  itemsCotizador.forEach(item => {
+    if (!productos.includes(item.producto)) {
+      item.producto = productos[0];
+      item.tecnica = tecnicasParaProducto(item.producto)[0];
+    }
+  });
 
   tbody.innerHTML = itemsCotizador.map((item, i) => {
     const calc = calcularItem(item);
     const tecnicasDisponibles = tecnicasParaProducto(item.producto);
     return `<tr>
       <td><select onchange="cambiarProductoItem(${i}, this.value)">` +
-        PRODUCTOS_FIJOS.map(p => `<option value="${p}" ${item.producto === p ? 'selected' : ''}>${p}</option>`).join('') +
+        productos.map(p => `<option value="${p}" ${item.producto === p ? 'selected' : ''}>${p}</option>`).join('') +
       `</select></td>
       <td><select onchange="cambiarCampoItem(${i}, 'tecnica', this.value)">` +
         tecnicasDisponibles.map(t => `<option value="${t}" ${item.tecnica === t ? 'selected' : ''}>${t}</option>`).join('') +
