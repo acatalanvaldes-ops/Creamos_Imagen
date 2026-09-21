@@ -73,7 +73,7 @@ table.tbl input:focus,table.tbl select:focus{border-bottom:2px solid var(--gold)
 .detail-inner{padding:12px 16px}
 .detail-item{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px dashed var(--border)}
 .detail-item:last-child{border-bottom:none}
-.detail-actions{padding:10px 16px 4px}
+.detail-actions{padding:10px 16px 4px;display:flex;gap:8px}
 .clickable-row{cursor:pointer}
 .clickable-row:hover{background:var(--bg)}
 .cliente-readonly{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -151,10 +151,14 @@ table.tbl input:focus,table.tbl select:focus{border-bottom:2px solid var(--gold)
 
       <div class="resumen-panel">
         <div class="rp-title">Resumen de la Cotización</div>
+        <div id="cz-editing-banner" style="display:none;font-size:11px;font-weight:700;color:var(--gold);background:rgba(200,151,58,0.12);border-radius:8px;padding:8px 10px;margin-bottom:10px">
+          Editando Cotización N° <span id="cz-editing-num"></span> —
+          <a href="#" onclick="cancelarEdicion(); return false;" style="color:inherit">cancelar edición</a>
+        </div>
         <div class="rp-row"><span>Subtotal Neto</span><span class="rp-val" id="rp-subtotal">$ 0</span></div>
         <div class="rp-row"><span>IVA (<span id="rp-iva-pct">19</span>%)</span><span class="rp-val" id="rp-iva">$ 0</span></div>
         <div class="rp-tot"><span>Total</span><span id="rp-total">$ 0</span></div>
-        <button class="act-btn primary" style="width:100%;margin-top:16px" onclick="guardarCotizacion()">Guardar Cotización</button>
+        <button class="act-btn primary" id="btn-guardar-cotizacion" style="width:100%;margin-top:16px" onclick="guardarCotizacion()">Guardar Cotización</button>
         <div id="cz-warning" style="margin-top:10px;font-size:11px;color:#FCA5A5"></div>
       </div>
     </div>
@@ -258,6 +262,7 @@ let fichasCosto = [];
 let filtroEstadoActual = 'todas';
 let itemsCotizador = [];
 let filaDetalleAbierta = null;
+let editandoId = null;
 
 async function saveToCloud(key, dataObj) {
   try {
@@ -485,9 +490,13 @@ function recalcularResumen() {
 
 function poblarSelectsCotizador() {
   const selCliente = document.getElementById('cz-clienteSelect');
+  const valorPrevio = selCliente.value;
   selCliente.innerHTML = clientesData.length
     ? clientesData.map(c => `<option value="${c.id}">${c.razonSocial}</option>`).join('')
     : '<option value="">— No hay clientes registrados —</option>';
+  if (valorPrevio && clientesData.some(c => String(c.id) === String(valorPrevio))) {
+    selCliente.value = valorPrevio;
+  }
   onClienteRegistradoChange();
 
   const fechaInput = document.getElementById('cz-fecha');
@@ -508,8 +517,51 @@ function guardarCotizacion() {
   const resumen = recalcularResumen();
   const nombresListas = tarifario.nombresListas || ['Lista 1', 'Lista 2', 'Lista 3'];
   const fechaInput = document.getElementById('cz-fecha').value;
-  const correlativo = tarifario.correlativoActual || 1;
 
+  const itemsGuardados = itemsValidos.map(item => {
+    const calc = calcularItem(item);
+    return {
+      producto: item.producto, tecnica: item.tecnica, lista: item.lista,
+      listaNombre: nombresListas[item.lista] || ('Lista ' + (item.lista + 1)),
+      cantidad: calc.cantidad, personalizacion: item.personalizacion,
+      precioUnitario: calc.unit, subtotal: calc.subtotal
+    };
+  });
+
+  if (editandoId != null) {
+    const cot = cotizaciones.find(x => x.id === editandoId);
+    if (!cot) {
+      alert('Esta cotización ya no existe (pudo haber sido eliminada).');
+      limpiarFormularioCotizador();
+      return;
+    }
+    cot.fecha = fechaInput || todayISO();
+    cot.clienteTipo = cliente.tipo;
+    cot.clienteId = cliente.id;
+    cot.cliente = cliente.razonSocial;
+    cot.clienteRut = cliente.rut;
+    cot.clienteTelefono = cliente.telefono;
+    cot.clienteContacto = cliente.contacto;
+    cot.clienteDireccion = cliente.direccion;
+    cot.items = itemsGuardados;
+    cot.subtotalNeto = resumen.subtotalNeto;
+    cot.ivaPct = resumen.ivaPct;
+    cot.iva = resumen.iva;
+    cot.montoTotal = resumen.total;
+    // El correlativo y el estado de la cotización no cambian al editarla.
+
+    guardarCotizacionesLocal();
+    alert('Cotización N° ' + fmtCorrelativo(cot.correlativo) + ' actualizada.');
+
+    const idEditado = cot.id;
+    limpiarFormularioCotizador();
+    setTab('enviadas');
+    filaDetalleAbierta = idEditado;
+    renderCotizacionesTable();
+    return;
+  }
+
+  const correlativo = tarifario.correlativoActual || 1;
   const cot = {
     id: Date.now(),
     correlativo: correlativo,
@@ -521,15 +573,7 @@ function guardarCotizacion() {
     clienteTelefono: cliente.telefono,
     clienteContacto: cliente.contacto,
     clienteDireccion: cliente.direccion,
-    items: itemsValidos.map(item => {
-      const calc = calcularItem(item);
-      return {
-        producto: item.producto, tecnica: item.tecnica, lista: item.lista,
-        listaNombre: nombresListas[item.lista] || ('Lista ' + (item.lista + 1)),
-        cantidad: calc.cantidad, personalizacion: item.personalizacion,
-        precioUnitario: calc.unit, subtotal: calc.subtotal
-      };
-    }),
+    items: itemsGuardados,
     subtotalNeto: resumen.subtotalNeto,
     ivaPct: resumen.ivaPct,
     iva: resumen.iva,
@@ -544,20 +588,83 @@ function guardarCotizacion() {
 
   alert('Cotización N° ' + fmtCorrelativo(correlativo) + ' guardada. Puedes verla en "Cotizaciones Enviadas".');
 
-  itemsCotizador = [nuevoItemVacio()];
+  limpiarFormularioCotizador();
+}
+
+function limpiarFormularioCotizador() {
+  editandoId = null;
+  document.getElementById('cz-editing-banner').style.display = 'none';
+  document.getElementById('btn-guardar-cotizacion').textContent = 'Guardar Cotización';
+
+  document.querySelector('input[name="cz-clienteTipo"][value="registrado"]').checked = true;
+  onClienteTipoChange();
+  const selCliente = document.getElementById('cz-clienteSelect');
+  if (selCliente.options.length) selCliente.selectedIndex = 0;
+  onClienteRegistradoChange();
+
   document.getElementById('cz-razon-f').value = '';
   document.getElementById('cz-rut-f').value = '';
   document.getElementById('cz-telefono-f').value = '';
   document.getElementById('cz-contacto-f').value = '';
   document.getElementById('cz-direccion-f').value = '';
   document.getElementById('cz-fecha').value = todayISO();
+
+  itemsCotizador = [nuevoItemVacio()];
   actualizarPreviewCorrelativo();
   renderItemsTable();
 }
 
+function editarCotizacion(id) {
+  const c = cotizaciones.find(x => x.id === id);
+  if (!c) return;
+
+  editandoId = id;
+  setTab('cotizador');
+
+  document.getElementById('cz-fecha').value = c.fecha || todayISO();
+
+  const clienteMatch = c.clienteTipo === 'registrado' && c.clienteId != null &&
+    clientesData.some(x => String(x.id) === String(c.clienteId));
+  if (clienteMatch) {
+    document.querySelector('input[name="cz-clienteTipo"][value="registrado"]').checked = true;
+    onClienteTipoChange();
+    document.getElementById('cz-clienteSelect').value = c.clienteId;
+    onClienteRegistradoChange();
+  } else {
+    document.querySelector('input[name="cz-clienteTipo"][value="fortuito"]').checked = true;
+    onClienteTipoChange();
+    document.getElementById('cz-razon-f').value = c.cliente || '';
+    document.getElementById('cz-rut-f').value = c.clienteRut || '';
+    document.getElementById('cz-telefono-f').value = c.clienteTelefono || '';
+    document.getElementById('cz-contacto-f').value = c.clienteContacto || '';
+    document.getElementById('cz-direccion-f').value = c.clienteDireccion || '';
+  }
+
+  itemsCotizador = (c.items && c.items.length)
+    ? c.items.map(it => ({ producto: it.producto, tecnica: it.tecnica, lista: it.lista, cantidad: it.cantidad, personalizacion: it.personalizacion || 'Diseño propio' }))
+    : [nuevoItemVacio()];
+
+  document.getElementById('cz-editing-banner').style.display = 'block';
+  document.getElementById('cz-editing-num').textContent = fmtCorrelativo(c.correlativo);
+  document.getElementById('btn-guardar-cotizacion').textContent = 'Guardar Cambios';
+
+  actualizarPreviewCorrelativo();
+  renderItemsTable();
+}
+
+function cancelarEdicion() {
+  limpiarFormularioCotizador();
+}
+
 function actualizarPreviewCorrelativo() {
   const el = document.getElementById('cz-correlativo-preview');
-  if (el) el.value = fmtCorrelativo(tarifario.correlativoActual || 1);
+  if (!el) return;
+  if (editandoId != null) {
+    const c = cotizaciones.find(x => x.id === editandoId);
+    el.value = c ? fmtCorrelativo(c.correlativo) : fmtCorrelativo(tarifario.correlativoActual || 1);
+  } else {
+    el.value = fmtCorrelativo(tarifario.correlativoActual || 1);
+  }
 }
 
 // ===== TARIFARIO =====
@@ -684,7 +791,10 @@ function renderCotizacionesTable() {
           `<div class="detail-item"><span>Subtotal Neto</span><span>${fmt(c.subtotalNeto)}</span></div>` +
           `<div class="detail-item"><span>IVA (${c.ivaPct !== undefined ? c.ivaPct : 19}%)</span><span>${fmt(c.iva)}</span></div>` +
           `<div class="detail-item" style="font-weight:700"><span>Total</span><span>${fmt(c.montoTotal)}</span></div>` +
-          `</div><div class="detail-actions"><button class="act-btn primary small" onclick="event.stopPropagation(); exportCotizacionPDF(${c.id})">📄 Descargar PDF</button></div></td></tr>`;
+          `</div><div class="detail-actions">` +
+            `<button class="act-btn primary small" onclick="event.stopPropagation(); exportCotizacionPDF(${c.id})">📄 Descargar PDF</button>` +
+            `<button class="act-btn small" onclick="event.stopPropagation(); editarCotizacion(${c.id})">✏️ Editar</button>` +
+          `</div></td></tr>`;
       }
       return filas;
     }).join('') + `</tbody></table></div>`;
