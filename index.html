@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Portal Creamos Imagen</title>
   <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 24px 0; }
     .container { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; max-width: 400px; width: 100%; }
     h1 { color: #1f2937; font-size: 24px; margin-bottom: 8px; }
     p { color: #6b7280; margin-bottom: 30px; font-size: 14px; }
@@ -21,19 +21,31 @@
     .menu-btn.teal:hover { background-color: #09594D; }
     .menu-btn.purple { background-color: #6D28D9; }
     .menu-btn.purple:hover { background-color: #5B21B6; }
+    .menu-btn.brown { background-color: #92400E; }
+    .menu-btn.brown:hover { background-color: #78350F; }
+    .menu-btn.pink { background-color: #BE185D; }
+    .menu-btn.pink:hover { background-color: #9D174D; }
+    .menu-btn.maroon { background-color: #991B1B; }
+    .menu-btn.maroon:hover { background-color: #7F1D1D; }
+    .section-label { font-size: 11px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; text-align: left; margin: 18px 0 8px; }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Portal Creamos Imagen</h1>
     <p>Selecciona la aplicación a la que deseas ingresar:</p>
-    
+
     <a href="calendario.html" class="menu-btn alt">📅 Calendario de Producciones</a>
     <a href="clientes.html" class="menu-btn purple">👥 Base de Datos Clientes</a>
     <a href="rendicion.html" class="menu-btn">💵 Rendición de Caja</a>
     <a href="ventas.html" class="menu-btn dark">📊 Ventas Local (Vendedores)</a>
     <a href="ventasci.html" class="menu-btn blue">🏢 Ventas Empresa (Marcelo)</a>
     <a href="costos.html" class="menu-btn teal">⚙️ Calculadora de Costos</a>
+
+    <div class="section-label">Nuevo</div>
+    <a href="proveedores.html" class="menu-btn brown">📦 Proveedores</a>
+    <a href="cotizaciones.html" class="menu-btn pink">🧾 Cotizaciones &amp; Precios</a>
+    <a href="dashboard.html" class="menu-btn maroon">📈 Dashboard de Indicadores</a>
   </div>
 </body>
 </html>
