@@ -549,6 +549,17 @@ const CANTIDAD_FIELDS = {
   '': []
 };
 const PRENDA_LABELS = { camiseta:'Camiseta', camisetas:'Camisetas', conjunto:'Conjunto', conjuntos:'Conjuntos', manta:'Manta', banner:'Banner', panuelos:'Pañuelos', panoletas:'Pañoletas', buzo:'Buzo', polerones:'Polerones', lienzo:'Lienzo', otros:'Otros' };
+// Algunas producciones (por ej. las cargadas desde el historial) quedaron guardadas con la
+// forma plural de la clave (camisetas/conjuntos) aunque el tipo sea "Confección", cuyo
+// formulario usa la forma singular (camiseta/conjunto). Este alias permite que el formulario
+// encuentre el valor guardado sin importar cuál de las dos formas se usó al guardar.
+const CANTIDAD_KEY_ALIAS = { camiseta:'camisetas', camisetas:'camiseta', conjunto:'conjuntos', conjuntos:'conjunto' };
+function getCantidadValue(values, k) {
+  if (values[k] || values[k] === 0) return values[k];
+  const alias = CANTIDAD_KEY_ALIAS[k];
+  if (alias && (values[alias] || values[alias] === 0)) return values[alias];
+  return '';
+}
 
 function renderCantidadFields(tipo, values) {
   values = values || {};
@@ -562,7 +573,7 @@ function renderCantidadFields(tipo, values) {
   }
   grid.innerHTML = keys.map(k => {
     const label = PRENDA_LABELS[k] || k;
-    const val = values[k] || '';
+    const val = getCantidadValue(values, k) || '';
     if (k === 'otros') {
       const desc = values.otrosDesc || '';
       return `<div class="cantidad-item" style="grid-column:span 2"><label>Otros</label><div style="display:flex;gap:6px"><input type="number" id="cant_otros" placeholder="0" min="0" value="${val}" style="flex:0 0 70px" oninput="calcTotalPrendas()"><input type="text" id="cant_otros_desc" placeholder="Especificar…" value="${desc}" style="flex:1;text-align:left;text-transform:none;font-weight:400"></div></div>`;
