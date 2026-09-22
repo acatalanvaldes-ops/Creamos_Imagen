@@ -768,7 +768,7 @@ function renderGrid() {
 function showTooltip(e, dateStr, prods) {
   const t = document.getElementById('tooltip'); const [y,m,d] = dateStr.split('-');
   let html = `<div class="tooltip-date">${d} de ${MONTHS[parseInt(m)-1]} de ${y}</div>`;
-  prods.forEach(p => { html += `<div class="tooltip-prod"><span class="tooltip-prod-dot" style="background:${TAG_COLORS[p.tag]}"></span>${p.name}<span style="color:var(--text3);font-size:0.6rem"> [${p.tag}]</span></div>`; });
+  prods.forEach(p => { html += `<div class="tooltip-prod"><span class="tooltip-prod-dot" style="background:${TAG_COLORS[p.tag]}"></span>${p.name}<span style="color:var(--text3);font-size:0.6rem"> [${p.tag}]</span><div style="font-size:0.65rem;color:var(--text3);margin:2px 0 4px 14px">${prendasDetalleTexto(p)}</div></div>`; });
   t.innerHTML = html; t.style.display = 'block'; t.style.left = (e.clientX + 14) + 'px'; t.style.top = (e.clientY - 10) + 'px';
 }
 function hideTooltip() { document.getElementById('tooltip').style.display = 'none'; }
