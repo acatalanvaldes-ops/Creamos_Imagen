@@ -101,291 +101,7 @@ tfoot td{padding:11px 12px;font-weight:700;white-space:nowrap}
 <a href="index.html" style="position:fixed; top:14px; left:20px; background:#1C1917; color:#C8973A; padding:8px 14px; border-radius:6px; border:1px solid #C8973A; text-decoration:none; font-family:Arial, sans-serif; font-size:11px; font-weight:bold; box-shadow:0 4px 6px rgba(0,0,0,0.2); z-index:9999;">← Menú</a>
 <div id="app"></div>
 <script>
-// ============================================================
-// HISTORIAL DE VENTAS
-// ============================================================
-var HISTORIAL_VENTAS = [
-  {"id": 1711000000001, "fecha": "2026-05-04", "cliente": "Sally", "producto": "Mantas", "formaPago": "Transferencia", "montoBase": 20000, "comision": 6.0, "factura": false},
-  {"id": 1711000000002, "fecha": "2026-05-04", "cliente": "Melany", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 206500, "comision": 6.0, "factura": false},
-  {"id": 1711000000003, "fecha": "2026-05-04", "cliente": "Eduardo", "producto": "Banderas", "formaPago": "Transferencia", "montoBase": 90000, "comision": 6.0, "factura": false},
-  {"id": 1711000000004, "fecha": "2026-05-04", "cliente": "Nats", "producto": "Estampados", "formaPago": "Transferencia", "montoBase": 28560, "comision": 6.0, "factura": false},
-  {"id": 1711000000005, "fecha": "2026-05-05", "cliente": "Taberna", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 140000, "comision": 6.0, "factura": false},
-  {"id": 1711000000006, "fecha": "2026-05-05", "cliente": "Julieta", "producto": "Bandanas", "formaPago": "Transferencia", "montoBase": 71400, "comision": 6.0, "factura": false},
-  {"id": 1711000000007, "fecha": "2026-05-06", "cliente": "Iron Swim", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 70000, "comision": 6.0, "factura": false},
-  {"id": 1711000000008, "fecha": "2026-05-07", "cliente": "Aparicio", "producto": "Banderas", "formaPago": "Transferencia", "montoBase": 28560, "comision": 6.0, "factura": false},
-  {"id": 1711000000009, "fecha": "2026-05-08", "cliente": "Gremio", "producto": "Banner", "formaPago": "Transferencia", "montoBase": 13000, "comision": 6.0, "factura": false},
-  {"id": 1711000000010, "fecha": "2026-05-08", "cliente": "Tomasa", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 105000, "comision": 6.0, "factura": false},
-  {"id": 1711000000011, "fecha": "2026-05-08", "cliente": "Alcazar", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 630000, "comision": 6.0, "factura": false},
-  {"id": 1711000000012, "fecha": "2026-05-11", "cliente": "Karma", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 35000, "comision": 6.0, "factura": false},
-  {"id": 1711000000013, "fecha": "2026-05-11", "cliente": "Matias", "producto": "Conjuntos", "formaPago": "Efectivo", "montoBase": 20000, "comision": 6.0, "factura": false},
-  {"id": 1711000000014, "fecha": "2026-05-11", "cliente": "Rulo", "producto": "Lienzo", "formaPago": "Transferencia", "montoBase": 65000, "comision": 6.0, "factura": false},
-  {"id": 1711000000015, "fecha": "2026-05-11", "cliente": "Beto", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 25000, "comision": 6.0, "factura": false},
-  {"id": 1711000000016, "fecha": "2026-05-12", "cliente": "Legendarios", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 27000, "comision": 6.0, "factura": false},
-  {"id": 1711000000017, "fecha": "2026-05-13", "cliente": "Trujillo", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 45000, "comision": 6.0, "factura": false},
-  {"id": 1711000000018, "fecha": "2026-05-13", "cliente": "Sublimación", "producto": "Sublimación", "formaPago": "Efectivo", "montoBase": 15000, "comision": 6.0, "factura": false},
-  {"id": 1711000000019, "fecha": "2026-05-13", "cliente": "La Salle", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 500000, "comision": 6.0, "factura": false},
-  {"id": 1711000000020, "fecha": "2026-05-13", "cliente": "Beauty", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 70000, "comision": 6.0, "factura": false},
-  {"id": 1711000000021, "fecha": "2026-05-14", "cliente": "Minotauro", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 50000, "comision": 6.0, "factura": false},
-  {"id": 1711000000022, "fecha": "2026-05-15", "cliente": "Ollantay", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 120000, "comision": 6.0, "factura": false},
-  {"id": 1711000000023, "fecha": "2026-05-15", "cliente": "Qatar", "producto": "Conjuntos", "formaPago": "Efectivo", "montoBase": 50000, "comision": 6.0, "factura": false},
-  {"id": 1711000000024, "fecha": "2026-05-18", "cliente": "PARTICULAR", "producto": "Bolsas", "formaPago": "Webpay", "montoBase": 6300, "comision": 6.0, "factura": false},
-  {"id": 1711000000025, "fecha": "2026-05-18", "cliente": "PARTICULAR", "producto": "Bandanas", "formaPago": "Webpay", "montoBase": 4000, "comision": 6.0, "factura": false},
-  {"id": 1711000000026, "fecha": "2026-05-18", "cliente": "Sublimación", "producto": "Sublimación", "formaPago": "Transferencia", "montoBase": 35700, "comision": 6.0, "factura": false},
-  {"id": 1711000000027, "fecha": "2026-05-18", "cliente": "Danilo", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 90000, "comision": 6.0, "factura": false},
-  {"id": 1711000000028, "fecha": "2026-05-18", "cliente": "PARTICULAR", "producto": "Estampados", "formaPago": "Efectivo", "montoBase": 10000, "comision": 6.0, "factura": false},
-  {"id": 1711000000029, "fecha": "2026-05-19", "cliente": "Danilo", "producto": "Sublimación", "formaPago": "Transferencia", "montoBase": 100000, "comision": 6.0, "factura": false},
-  {"id": 1711000000030, "fecha": "2026-05-19", "cliente": "PARTICULAR", "producto": "Pañuelos", "formaPago": "Webpay", "montoBase": 40000, "comision": 6.0, "factura": false},
-  {"id": 1711000000031, "fecha": "2026-05-19", "cliente": "La Salle", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 500000, "comision": 6.0, "factura": false},
-  {"id": 1711000000032, "fecha": "2026-05-19", "cliente": "Cordillera", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 70000, "comision": 6.0, "factura": false},
-  {"id": 1711000000033, "fecha": "2026-05-20", "cliente": "La Salle", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 300000, "comision": 6.0, "factura": false},
-  {"id": 1711000000034, "fecha": "2026-05-20", "cliente": "Tomasa", "producto": "Camisetas", "formaPago": "Efectivo", "montoBase": 30000, "comision": 6.0, "factura": false},
-  {"id": 1711000000035, "fecha": "2026-05-20", "cliente": "Karma", "producto": "Camisetas", "formaPago": "Efectivo", "montoBase": 10000, "comision": 6.0, "factura": false},
-  {"id": 1711000000036, "fecha": "2026-05-20", "cliente": "PARTICULAR", "producto": "Mantas", "formaPago": "Webpay", "montoBase": 40000, "comision": 6.0, "factura": false},
-  {"id": 1711000000037, "fecha": "2026-05-20", "cliente": "Iron Swim", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 33200, "comision": 6.0, "factura": false},
-  {"id": 1711000000038, "fecha": "2026-05-22", "cliente": "Batucada", "producto": "Camisetas", "formaPago": "Efectivo", "montoBase": 50000, "comision": 6.0, "factura": false},
-  {"id": 1711000000039, "fecha": "2026-05-22", "cliente": "Melany", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 45000, "comision": 6.0, "factura": false},
-  {"id": 1711000000040, "fecha": "2026-05-22", "cliente": "Tomasa", "producto": "Camisetas", "formaPago": "Efectivo", "montoBase": 10000, "comision": 6.0, "factura": false},
-  {"id": 1711000000041, "fecha": "2026-05-22", "cliente": "Wallmapu", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 70000, "comision": 6.0, "factura": false},
-  {"id": 1711000000042, "fecha": "2026-05-22", "cliente": "Ollantay", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 100000, "comision": 6.0, "factura": false},
-  {"id": 1711000000043, "fecha": "2026-05-22", "cliente": "Qatar", "producto": "Conjuntos", "formaPago": "Efectivo", "montoBase": 40000, "comision": 6.0, "factura": false},
-  {"id": 1711000000044, "fecha": "2026-05-22", "cliente": "Cordillera", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 70000, "comision": 6.0, "factura": false},
-  {"id": 1711000000045, "fecha": "2026-05-25", "cliente": "PARTICULAR", "producto": "Sublimación", "formaPago": "Transferencia", "montoBase": 5950, "comision": 6.0, "factura": false},
-  {"id": 1711000000046, "fecha": "2026-05-25", "cliente": "Sunday", "producto": "Camisetas", "formaPago": "Efectivo", "montoBase": 200000, "comision": 6.0, "factura": false},
-  {"id": 1711000000047, "fecha": "2026-05-25", "cliente": "PARTICULAR", "producto": "Banner", "formaPago": "Webpay", "montoBase": 10000, "comision": 6.0, "factura": false},
-  {"id": 1711000000048, "fecha": "2026-05-25", "cliente": "PARTICULAR", "producto": "Camisetas", "formaPago": "Webpay", "montoBase": 30000, "comision": 6.0, "factura": false},
-  {"id": 1711000000049, "fecha": "2026-05-26", "cliente": "PARTICULAR", "producto": "Estampados", "formaPago": "Efectivo", "montoBase": 20000, "comision": 6.0, "factura": false},
-  {"id": 1711000000050, "fecha": "2026-05-26", "cliente": "Sunday", "producto": "Camisetas", "formaPago": "Efectivo", "montoBase": 200000, "comision": 6.0, "factura": false},
-  {"id": 1711000000051, "fecha": "2026-05-26", "cliente": "San Nicolas", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 50000, "comision": 6.0, "factura": false},
-  {"id": 1711000000052, "fecha": "2026-05-26", "cliente": "Batucada", "producto": "Camisetas", "formaPago": "Efectivo", "montoBase": 55000, "comision": 6.0, "factura": false},
-  {"id": 1711000000053, "fecha": "2026-05-26", "cliente": "Trujillo", "producto": "Conjuntos", "formaPago": "Efectivo", "montoBase": 20000, "comision": 6.0, "factura": false},
-  {"id": 1711000000054, "fecha": "2026-05-26", "cliente": "Leaf Color", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 20000, "comision": 6.0, "factura": false},
-  {"id": 1711000000055, "fecha": "2026-05-26", "cliente": "Equus San Pedro", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 50000, "comision": 6.0, "factura": false},
-  {"id": 1711000000056, "fecha": "2026-05-26", "cliente": "Equus Italia", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 50000, "comision": 6.0, "factura": false},
-  {"id": 1711000000057, "fecha": "2026-05-26", "cliente": "Equus Grecia", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 80000, "comision": 6.0, "factura": false},
-  {"id": 1711000000058, "fecha": "2026-05-26", "cliente": "Equus Tomasa", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 80000, "comision": 6.0, "factura": false},
-  {"id": 1711000000059, "fecha": "2026-05-28", "cliente": "Nico Apara", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 200000, "comision": 6.0, "factura": false},
-  {"id": 1711000000060, "fecha": "2026-05-28", "cliente": "Beauty", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 56000, "comision": 6.0, "factura": false},
-  {"id": 1711000000061, "fecha": "2026-05-28", "cliente": "Dragon Fortaleza", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 500000, "comision": 6.0, "factura": false},
-  {"id": 1711000000062, "fecha": "2026-05-28", "cliente": "Orsi", "producto": "Conjuntos", "formaPago": "Efectivo", "montoBase": 50000, "comision": 6.0, "factura": false},
-  {"id": 1711000000063, "fecha": "2026-05-28", "cliente": "Alcazar", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 350000, "comision": 6.0, "factura": true},
-  {"id": 1711000000064, "fecha": "2026-05-28", "cliente": "Alcazar", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 100000, "comision": 6.0, "factura": false},
-  {"id": 1711000000065, "fecha": "2026-05-29", "cliente": "Minotauro", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 48000, "comision": 6.0, "factura": false},
-  {"id": 1711000000066, "fecha": "2026-05-29", "cliente": "Esgrima Punta Arenas", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 100000, "comision": 6.0, "factura": false},
-  {"id": 1711000000067, "fecha": "2026-05-29", "cliente": "La Salle", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 300000, "comision": 6.0, "factura": true},
-  {"id": 1711000000068, "fecha": "2026-05-29", "cliente": "Ollantay", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 40000, "comision": 6.0, "factura": false},
-  {"id": 1711000000069, "fecha": "2026-05-30", "cliente": "PARTICULAR", "producto": "Camisetas", "formaPago": "Efectivo", "montoBase": 40000, "comision": 6.0, "factura": false},
-  {"id": 1711000000070, "fecha": "2026-05-30", "cliente": "DOMINGO", "producto": "Camisetas", "formaPago": "Efectivo", "montoBase": 754000, "comision": 6.0, "factura": false},
-  {"id": 1711000000071, "fecha": "2026-06-01", "cliente": "PARTICULAR", "producto": "Mantas", "formaPago": "Efectivo", "montoBase": 59821, "comision": 6.0, "factura": false},
-  {"id": 1711000000072, "fecha": "2026-06-02", "cliente": "PARTICULAR", "producto": "Sublimación", "formaPago": "Efectivo", "montoBase": 19040, "comision": 6.0, "factura": false},
-  {"id": 1711000000073, "fecha": "2026-06-02", "cliente": "PARTICULAR", "producto": "Mantas", "formaPago": "Webpay", "montoBase": 35700, "comision": 6.0, "factura": false},
-  {"id": 1711000000074, "fecha": "2026-06-02", "cliente": "WALLMAPU", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 70000, "comision": 6.0, "factura": false},
-  {"id": 1711000000075, "fecha": "2026-06-03", "cliente": "SUBPESCA", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 200000, "comision": 6.0, "factura": false},
-  {"id": 1711000000076, "fecha": "2026-06-03", "cliente": "AQUARIUS", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 80000, "comision": 6.0, "factura": false},
-  {"id": 1711000000077, "fecha": "2026-06-03", "cliente": "BRYAN", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 100000, "comision": 6.0, "factura": false},
-  {"id": 1711000000078, "fecha": "2026-06-03", "cliente": "PARTICULAR", "producto": "Camisetas", "formaPago": "Webpay", "montoBase": 40000, "comision": 6.0, "factura": false},
-  {"id": 1711000000079, "fecha": "2026-06-04", "cliente": "KARMA", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 25000, "comision": 6.0, "factura": false},
-  {"id": 1711000000080, "fecha": "2026-06-04", "cliente": "DANILO", "producto": "Sublimación", "formaPago": "Transferencia", "montoBase": 89000, "comision": 6.0, "factura": false},
-  {"id": 1711000000081, "fecha": "2026-06-04", "cliente": "CORDILLERA", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 70000, "comision": 6.0, "factura": false},
-  {"id": 1711000000082, "fecha": "2026-06-05", "cliente": "PARTICULAR", "producto": "Banderas", "formaPago": "Efectivo", "montoBase": 23800, "comision": 6.0, "factura": false},
-  {"id": 1711000000083, "fecha": "2026-06-05", "cliente": "PARTICULAR", "producto": "Estampados", "formaPago": "Webpay", "montoBase": 28560, "comision": 6.0, "factura": false},
-  {"id": 1711000000084, "fecha": "2026-06-05", "cliente": "MARISELA", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 232050, "comision": 6.0, "factura": false},
-  {"id": 1711000000085, "fecha": "2026-06-08", "cliente": "MARINEROS", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 130000, "comision": 6.0, "factura": false},
-  {"id": 1711000000086, "fecha": "2026-06-08", "cliente": "MELANI BTS", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 100000, "comision": 6.0, "factura": false},
-  {"id": 1711000000087, "fecha": "2026-06-08", "cliente": "CHE CLAU", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 50000, "comision": 6.0, "factura": false},
-  {"id": 1711000000088, "fecha": "2026-06-08", "cliente": "CERRO PORTEÑO", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 80000, "comision": 6.0, "factura": false},
-  {"id": 1711000000089, "fecha": "2026-06-09", "cliente": "LEAF COLOR", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 28000, "comision": 6.0, "factura": false},
-  {"id": 1711000000090, "fecha": "2026-06-09", "cliente": "LA SALLE", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 30000, "comision": 6.0, "factura": false},
-  {"id": 1711000000091, "fecha": "2026-06-10", "cliente": "PARTICULAR", "producto": "Lienzo", "formaPago": "Webpay", "montoBase": 14280, "comision": 6.0, "factura": false},
-  {"id": 1711000000092, "fecha": "2026-06-10", "cliente": "EQUUS SAN PEDRO", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 46000, "comision": 6.0, "factura": false},
-  {"id": 1711000000093, "fecha": "2026-06-10", "cliente": "EQUUS ITALIA", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 55000, "comision": 6.0, "factura": false},
-  {"id": 1711000000094, "fecha": "2026-06-10", "cliente": "EQUUS GRECIA", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 95000, "comision": 6.0, "factura": false},
-  {"id": 1711000000095, "fecha": "2026-06-10", "cliente": "EQUUS TOMASA", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 88000, "comision": 6.0, "factura": false},
-  {"id": 1711000000096, "fecha": "2026-06-11", "cliente": "NICO APARA", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 240000, "comision": 6.0, "factura": false},
-  {"id": 1711000000097, "fecha": "2026-06-11", "cliente": "OSCAR GUERRA", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 70000, "comision": 6.0, "factura": false},
-  {"id": 1711000000098, "fecha": "2026-06-11", "cliente": "PARTICULAR", "producto": "Pañuelos", "formaPago": "Webpay", "montoBase": 15000, "comision": 6.0, "factura": false},
-  {"id": 1711000000099, "fecha": "2026-06-11", "cliente": "PARTICULAR", "producto": "Sublimación", "formaPago": "Efectivo", "montoBase": 10000, "comision": 6.0, "factura": false},
-  {"id": 1711000000100, "fecha": "2026-06-12", "cliente": "RINCON CATITA", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 100000, "comision": 6.0, "factura": false},
-  {"id": 1711000000101, "fecha": "2026-06-12", "cliente": "LEGIONARIOS", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 30000, "comision": 6.0, "factura": false},
-  {"id": 1711000000102, "fecha": "2026-06-12", "cliente": "PARTICULAR", "producto": "Mantas", "formaPago": "Webpay", "montoBase": 24000, "comision": 6.0, "factura": false},
-  {"id": 1711000000103, "fecha": "2026-06-12", "cliente": "PARTICULAR", "producto": "Estampados", "formaPago": "Webpay", "montoBase": 10000, "comision": 6.0, "factura": false},
-  {"id": 1711000000104, "fecha": "2026-06-15", "cliente": "PARTICULAR", "producto": "Banderas", "formaPago": "Webpay", "montoBase": 28560, "comision": 6.0, "factura": false},
-  {"id": 1711000000105, "fecha": "2026-06-15", "cliente": "SUBPESCA", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 157000, "comision": 6.0, "factura": false},
-  {"id": 1711000000106, "fecha": "2026-06-15", "cliente": "MELANI BTS", "producto": "Camisetas", "formaPago": "Efectivo", "montoBase": 103000, "comision": 6.0, "factura": false},
-  {"id": 1711000000107, "fecha": "2026-06-16", "cliente": "MELANY ARIRANG", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 32500, "comision": 6.0, "factura": false},
-  {"id": 1711000000108, "fecha": "2026-06-16", "cliente": "DRAGON FORTALEZA", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 556000, "comision": 6.0, "factura": false},
-  {"id": 1711000000109, "fecha": "2026-06-16", "cliente": "ORSI", "producto": "Conjuntos", "formaPago": "Efectivo", "montoBase": 46000, "comision": 6.0, "factura": false},
-  {"id": 1711000000110, "fecha": "2026-06-17", "cliente": "PARTICULAR", "producto": "Pañuelos", "formaPago": "Efectivo", "montoBase": 20000, "comision": 6.0, "factura": false},
-  {"id": 1711000000111, "fecha": "2026-06-17", "cliente": "ESGRIMA PUNTA ARENAS", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 131000, "comision": 6.0, "factura": false},
-  {"id": 1711000000112, "fecha": "2026-06-18", "cliente": "CERRO PORTEÑO", "producto": "Conjuntos", "formaPago": "Efectivo", "montoBase": 64000, "comision": 6.0, "factura": false},
-  {"id": 1711000000113, "fecha": "2026-06-18", "cliente": "PARTICULAR", "producto": "Sublimación", "formaPago": "Efectivo", "montoBase": 10000, "comision": 6.0, "factura": false},
-  {"id": 1711000000114, "fecha": "2026-06-19", "cliente": "BULLS BIKE", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 50000, "comision": 6.0, "factura": false},
-  {"id": 1711000000115, "fecha": "2026-06-19", "cliente": "FUTPRO", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 80000, "comision": 6.0, "factura": false},
-  {"id": 1711000000116, "fecha": "2026-06-19", "cliente": "PARTICULAR", "producto": "Estampados", "formaPago": "Webpay", "montoBase": 20000, "comision": 6.0, "factura": false},
-  {"id": 1711000000117, "fecha": "2026-06-22", "cliente": "IBARRA", "producto": "Sublimación", "formaPago": "Transferencia", "montoBase": 500000, "comision": 6.0, "factura": false},
-  {"id": 1711000000118, "fecha": "2026-06-22", "cliente": "MAX", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 50000, "comision": 6.0, "factura": false},
-  {"id": 1711000000119, "fecha": "2026-06-22", "cliente": "CARDENAL", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 70000, "comision": 6.0, "factura": false},
-  {"id": 1711000000120, "fecha": "2026-06-22", "cliente": "SAN NICOLAS", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 34000, "comision": 6.0, "factura": false},
-  {"id": 1711000000121, "fecha": "2026-06-23", "cliente": "FABIOLA BTS", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 70000, "comision": 6.0, "factura": false},
-  {"id": 1711000000122, "fecha": "2026-06-23", "cliente": "KYMSTAR", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 150000, "comision": 6.0, "factura": false},
-  {"id": 1711000000123, "fecha": "2026-06-23", "cliente": "EURE", "producto": "Sublimación", "formaPago": "Transferencia", "montoBase": 85000, "comision": 6.0, "factura": false},
-  {"id": 1711000000124, "fecha": "2026-06-23", "cliente": "TOTAL ENERGY", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 50000, "comision": 6.0, "factura": false},
-  {"id": 1711000000125, "fecha": "2026-06-24", "cliente": "PARTICULAR", "producto": "Estampados", "formaPago": "Efectivo", "montoBase": 10000, "comision": 6.0, "factura": false},
-  {"id": 1711000000126, "fecha": "2026-06-24", "cliente": "PARTICULAR", "producto": "Pañuelos", "formaPago": "Efectivo", "montoBase": 15000, "comision": 6.0, "factura": false},
-  {"id": 1711000000127, "fecha": "2026-06-24", "cliente": "PARTICULAR", "producto": "Banderas", "formaPago": "Webpay", "montoBase": 28560, "comision": 6.0, "factura": false},
-  {"id": 1711000000128, "fecha": "2026-06-25", "cliente": "PARTICULAR", "producto": "Sublimación", "formaPago": "Webpay", "montoBase": 15000, "comision": 6.0, "factura": false},
-  {"id": 1711000000129, "fecha": "2026-06-25", "cliente": "PARTICULAR", "producto": "Pañuelos", "formaPago": "Transferencia", "montoBase": 15000, "comision": 6.0, "factura": false},
-  {"id": 1711000000130, "fecha": "2026-06-25", "cliente": "PARTICULAR", "producto": "Mantas", "formaPago": "Efectivo", "montoBase": 20000, "comision": 6.0, "factura": false},
-  {"id": 1711000000131, "fecha": "2026-06-26", "cliente": "MARINEROS", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 130000, "comision": 6.0, "factura": false},
-  {"id": 1711000000132, "fecha": "2026-06-26", "cliente": "AQUARIUS", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 80000, "comision": 6.0, "factura": false},
-  {"id": 1711000000133, "fecha": "2026-06-26", "cliente": "SAN PEDRO EQUUS", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 50000, "comision": 6.0, "factura": false},
-  {"id": 1711000000134, "fecha": "2026-06-26", "cliente": "PARTICULAR", "producto": "Banderas", "formaPago": "Webpay", "montoBase": 28560, "comision": 6.0, "factura": false},
-  {"id": 1711000000135, "fecha": "2026-06-29", "cliente": "CHE CLAU", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 30000, "comision": 6.0, "factura": false},
-  {"id": 1711000000136, "fecha": "2026-06-29", "cliente": "BRYAN", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 60000, "comision": 6.0, "factura": false},
-  {"id": 1711000000137, "fecha": "2026-06-29", "cliente": "IGNACIA", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 60000, "comision": 6.0, "factura": false},
-  {"id": 1711000000138, "fecha": "2026-06-29", "cliente": "YENNIFER", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 80000, "comision": 6.0, "factura": false},
-  {"id": 1711000000139, "fecha": "2026-06-29", "cliente": "EQUUS FROILAN", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 40000, "comision": 6.0, "factura": false},
-  {"id": 1711000000140, "fecha": "2026-06-29", "cliente": "FABIOLA", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 15000, "comision": 6.0, "factura": false},
-  {"id": 1711000000141, "fecha": "2026-06-29", "cliente": "MELANY", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 40000, "comision": 6.0, "factura": false},
-  {"id": 1711000000142, "fecha": "2026-06-29", "cliente": "OSCAR GUERRA", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 20000, "comision": 6.0, "factura": false},
-  {"id": 1711000000143, "fecha": "2026-06-29", "cliente": "EQUUS LO BARNECHEA", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 1000000, "comision": 6.0, "factura": false},
-  {"id": 1711000000144, "fecha": "2026-06-29", "cliente": "DRAGONES CLAUDIA", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 20000, "comision": 6.0, "factura": false},
-  {"id": 1711000000145, "fecha": "2026-06-29", "cliente": "PARTICULAR", "producto": "Pañuelos", "formaPago": "Webpay", "montoBase": 15000, "comision": 6.0, "factura": false},
-  {"id": 1711000000146, "fecha": "2026-06-30", "cliente": "VALENTINA", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 60000, "comision": 6.0, "factura": false},
-  {"id": 1711000000147, "fecha": "2026-06-30", "cliente": "TITO", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 66500, "comision": 6.0, "factura": false},
-  {"id": 1711000000148, "fecha": "2026-07-01", "cliente": "JUAN CARLOS", "producto": "Banderas", "formaPago": "Transferencia", "montoBase": 47600, "comision": 6.0, "factura": false},
-  {"id": 1711000000149, "fecha": "2026-07-01", "cliente": "RODRIGO", "producto": "Sublimación", "formaPago": "Webpay", "montoBase": 121380, "comision": 6.0, "factura": false},
-  {"id": 1711000000150, "fecha": "2026-07-01", "cliente": "CARLA", "producto": "Bandanas", "formaPago": "Transferencia", "montoBase": 35700, "comision": 6.0, "factura": false},
-  {"id": 1711000000151, "fecha": "2026-07-02", "cliente": "PARTICULAR", "producto": "Estampados", "formaPago": "Webpay", "montoBase": 15000, "comision": 6.0, "factura": false},
-  {"id": 1711000000152, "fecha": "2026-07-03", "cliente": "PARTICULAR", "producto": "Pañuelos", "formaPago": "Efectivo", "montoBase": 20000, "comision": 6.0, "factura": false},
-  {"id": 1711000000153, "fecha": "2026-07-03", "cliente": "PARTICULAR", "producto": "Banderas", "formaPago": "Transferencia", "montoBase": 28560, "comision": 6.0, "factura": false},
-  {"id": 1711000000154, "fecha": "2026-07-06", "cliente": "MAX", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 42000, "comision": 6.0, "factura": false},
-  {"id": 1711000000155, "fecha": "2026-07-06", "cliente": "IBARRA", "producto": "Sublimación", "formaPago": "Transferencia", "montoBase": 480000, "comision": 6.0, "factura": false},
-  {"id": 1711000000156, "fecha": "2026-07-06", "cliente": "EQUUS SANTA BARBARA", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 70000, "comision": 6.0, "factura": false},
-  {"id": 1711000000157, "fecha": "2026-07-06", "cliente": "VORA", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 60000, "comision": 6.0, "factura": false},
-  {"id": 1711000000158, "fecha": "2026-07-06", "cliente": "ESCUDERO", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 80000, "comision": 6.0, "factura": false},
-  {"id": 1711000000159, "fecha": "2026-07-07", "cliente": "PARTICULAR", "producto": "Estampados", "formaPago": "Webpay", "montoBase": 18000, "comision": 6.0, "factura": false},
-  {"id": 1711000000160, "fecha": "2026-07-08", "cliente": "RINCON CATITA", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 89000, "comision": 6.0, "factura": false},
-  {"id": 1711000000161, "fecha": "2026-07-08", "cliente": "LEGIONARIOS", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 26000, "comision": 6.0, "factura": false},
-  {"id": 1711000000162, "fecha": "2026-07-08", "cliente": "OSCAR GUERRA", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 77000, "comision": 6.0, "factura": false},
-  {"id": 1711000000163, "fecha": "2026-07-08", "cliente": "PARTICULAR", "producto": "Mantas", "formaPago": "Efectivo", "montoBase": 25000, "comision": 6.0, "factura": false},
-  {"id": 1711000000164, "fecha": "2026-07-09", "cliente": "PARTICULAR", "producto": "Sublimación", "formaPago": "Webpay", "montoBase": 22000, "comision": 6.0, "factura": false},
-  {"id": 1711000000165, "fecha": "2026-07-10", "cliente": "LEGIONARIOS", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 50000, "comision": 6.0, "factura": false},
-  {"id": 1711000000166, "fecha": "2026-07-10", "cliente": "KYMSTAR", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 45000, "comision": 6.0, "factura": false},
-  {"id": 1711000000167, "fecha": "2026-07-10", "cliente": "DROPSHOP", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 80000, "comision": 6.0, "factura": false},
-  {"id": 1711000000168, "fecha": "2026-07-10", "cliente": "PASE GOL", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 50000, "comision": 6.0, "factura": false},
-  {"id": 1711000000169, "fecha": "2026-07-13", "cliente": "QUITALMAHUE", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 120000, "comision": 6.0, "factura": false},
-  {"id": 1711000000170, "fecha": "2026-07-13", "cliente": "SPORCASTING", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 80000, "comision": 6.0, "factura": false},
-  {"id": 1711000000171, "fecha": "2026-07-13", "cliente": "RODRIGO ARIAS", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 60000, "comision": 6.0, "factura": false},
-  {"id": 1711000000172, "fecha": "2026-07-13", "cliente": "PARTICULAR", "producto": "Lienzo", "formaPago": "Efectivo", "montoBase": 18000, "comision": 6.0, "factura": false},
-  {"id": 1711000000173, "fecha": "2026-07-14", "cliente": "PARTICULAR", "producto": "Banner", "formaPago": "Webpay", "montoBase": 15000, "comision": 6.0, "factura": false},
-  {"id": 1711000000174, "fecha": "2026-07-15", "cliente": "ANTONIO", "producto": "Sublimación", "formaPago": "Transferencia", "montoBase": 40000, "comision": 6.0, "factura": false},
-  {"id": 1711000000175, "fecha": "2026-07-15", "cliente": "ROSY", "producto": "Sublimación", "formaPago": "Transferencia", "montoBase": 70000, "comision": 6.0, "factura": false},
-  {"id": 1711000000176, "fecha": "2026-07-15", "cliente": "TALLER VOLEIBOL", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 50000, "comision": 6.0, "factura": false},
-  {"id": 1711000000177, "fecha": "2026-07-16", "cliente": "BULLS BIKE", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 41000, "comision": 6.0, "factura": false},
-  {"id": 1711000000178, "fecha": "2026-07-16", "cliente": "FUTPRO", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 60000, "comision": 6.0, "factura": false},
-  {"id": 1711000000179, "fecha": "2026-07-17", "cliente": "CARDENAL", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 49000, "comision": 6.0, "factura": false},
-  {"id": 1711000000180, "fecha": "2026-07-17", "cliente": "FABIOLA BTS", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 56000, "comision": 6.0, "factura": false},
-  {"id": 1711000000181, "fecha": "2026-07-20", "cliente": "EURE", "producto": "Sublimación", "formaPago": "Transferencia", "montoBase": 83000, "comision": 6.0, "factura": false},
-  {"id": 1711000000182, "fecha": "2026-07-20", "cliente": "PARTICULAR", "producto": "Bandanas", "formaPago": "Webpay", "montoBase": 12000, "comision": 6.0, "factura": false},
-  {"id": 1711000000183, "fecha": "2026-07-21", "cliente": "KYMSTAR", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 158000, "comision": 6.0, "factura": false},
-  {"id": 1711000000184, "fecha": "2026-07-22", "cliente": "TOTAL ENERGY", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 41000, "comision": 6.0, "factura": false},
-  {"id": 1711000000185, "fecha": "2026-07-22", "cliente": "PARTICULAR", "producto": "Camisetas", "formaPago": "Efectivo", "montoBase": 25000, "comision": 6.0, "factura": false},
-  {"id": 1711000000186, "fecha": "2026-07-23", "cliente": "IGNACIA", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 59000, "comision": 6.0, "factura": false},
-  {"id": 1711000000187, "fecha": "2026-07-24", "cliente": "PARTICULAR", "producto": "Sublimación", "formaPago": "Webpay", "montoBase": 18000, "comision": 6.0, "factura": false},
-  {"id": 1711000000188, "fecha": "2026-07-27", "cliente": "YENNIFER", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 60000, "comision": 6.0, "factura": false},
-  {"id": 1711000000189, "fecha": "2026-07-27", "cliente": "EQUUS FROILAN", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 44000, "comision": 6.0, "factura": false},
-  {"id": 1711000000190, "fecha": "2026-07-28", "cliente": "FABIOLA", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 13000, "comision": 6.0, "factura": false},
-  {"id": 1711000000191, "fecha": "2026-07-28", "cliente": "MELANY", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 37000, "comision": 6.0, "factura": false},
-  {"id": 1711000000192, "fecha": "2026-07-28", "cliente": "OSCAR GUERRA", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 15000, "comision": 6.0, "factura": false},
-  {"id": 1711000000193, "fecha": "2026-07-29", "cliente": "EQUUS LO BARNECHEA", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 890000, "comision": 6.0, "factura": false},
-  {"id": 1711000000194, "fecha": "2026-07-29", "cliente": "DRAGONES CLAUDIA", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 15000, "comision": 6.0, "factura": false},
-  {"id": 1711000000195, "fecha": "2026-07-30", "cliente": "EQUUS SANTA BARBARA", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 70000, "comision": 6.0, "factura": false},
-  {"id": 1711000000196, "fecha": "2026-07-30", "cliente": "VORA", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 52000, "comision": 6.0, "factura": false},
-  {"id": 1711000000197, "fecha": "2026-07-31", "cliente": "ESCUDERO", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 72000, "comision": 6.0, "factura": false},
-  {"id": 1711000000198, "fecha": "2026-07-31", "cliente": "IGNACIA", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 283220, "comision": 6.0, "factura": false},
-  {"id": 1711000000199, "fecha": "2026-07-31", "cliente": "AME", "producto": "Estampados", "formaPago": "Efectivo", "montoBase": 539070, "comision": 6.0, "factura": false},
-  {"id": 1711000000200, "fecha": "2026-08-01", "cliente": "PARTICULAR", "producto": "Pañuelos", "formaPago": "Efectivo", "montoBase": 15000, "comision": 6.0, "factura": false},
-  {"id": 1711000000201, "fecha": "2026-08-01", "cliente": "PARTICULAR", "producto": "Camisetas", "formaPago": "Webpay", "montoBase": 40000, "comision": 6.0, "factura": false},
-  {"id": 1711000000202, "fecha": "2026-08-01", "cliente": "PARTICULAR", "producto": "Mantas", "formaPago": "Transferencia", "montoBase": 45000, "comision": 6.0, "factura": false},
-  {"id": 1711000000203, "fecha": "2026-08-01", "cliente": "PARTICULAR", "producto": "Mantas", "formaPago": "Webpay", "montoBase": 177000, "comision": 6.0, "factura": false},
-  {"id": 1711000000204, "fecha": "2026-08-01", "cliente": "PARTICULAR", "producto": "Mantas", "formaPago": "Webpay", "montoBase": 24000, "comision": 6.0, "factura": false},
-  {"id": 1711000000205, "fecha": "2026-08-03", "cliente": "LEGIONARIOS", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 43000, "comision": 6.0, "factura": false},
-  {"id": 1711000000206, "fecha": "2026-08-03", "cliente": "KYMSTAR", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 34000, "comision": 6.0, "factura": false},
-  {"id": 1711000000207, "fecha": "2026-08-03", "cliente": "PARTICULAR", "producto": "Bandanas", "formaPago": "Efectivo", "montoBase": 12000, "comision": 6.0, "factura": false},
-  {"id": 1711000000208, "fecha": "2026-08-04", "cliente": "DROPSHOP", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 67000, "comision": 6.0, "factura": false},
-  {"id": 1711000000209, "fecha": "2026-08-04", "cliente": "PASE GOL", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 41000, "comision": 6.0, "factura": false},
-  {"id": 1711000000210, "fecha": "2026-08-05", "cliente": "QUITALMAHUE", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 115000, "comision": 6.0, "factura": false},
-  {"id": 1711000000211, "fecha": "2026-08-05", "cliente": "SPORCASTING", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 60000, "comision": 6.0, "factura": false},
-  {"id": 1711000000212, "fecha": "2026-08-05", "cliente": "PARTICULAR", "producto": "Pañuelos", "formaPago": "Webpay", "montoBase": 20000, "comision": 6.0, "factura": false},
-  {"id": 1711000000213, "fecha": "2026-08-06", "cliente": "RODRIGO ARIAS", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 54000, "comision": 6.0, "factura": false},
-  {"id": 1711000000214, "fecha": "2026-08-06", "cliente": "ANTONIO", "producto": "Sublimación", "formaPago": "Transferencia", "montoBase": 38000, "comision": 6.0, "factura": false},
-  {"id": 1711000000215, "fecha": "2026-08-07", "cliente": "ROSY", "producto": "Sublimación", "formaPago": "Transferencia", "montoBase": 64000, "comision": 6.0, "factura": false},
-  {"id": 1711000000216, "fecha": "2026-08-07", "cliente": "LIENZO", "producto": "Lienzo", "formaPago": "Efectivo", "montoBase": 22000, "comision": 6.0, "factura": false},
-  {"id": 1711000000217, "fecha": "2026-08-07", "cliente": "TALLER VOLEIBOL", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 48000, "comision": 6.0, "factura": false},
-  {"id": 1711000000218, "fecha": "2026-08-08", "cliente": "PARTICULAR", "producto": "Estampados", "formaPago": "Webpay", "montoBase": 15000, "comision": 6.0, "factura": false},
-  {"id": 1711000000219, "fecha": "2026-08-10", "cliente": "YENNIFER", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 200000, "comision": 6.0, "factura": false},
-  {"id": 1711000000220, "fecha": "2026-08-10", "cliente": "EQUUS FROILAN", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 120000, "comision": 6.0, "factura": false},
-  {"id": 1711000000221, "fecha": "2026-08-10", "cliente": "FABIOLA", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 40000, "comision": 6.0, "factura": false},
-  {"id": 1711000000222, "fecha": "2026-08-10", "cliente": "MELANY", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 110000, "comision": 6.0, "factura": false},
-  {"id": 1711000000223, "fecha": "2026-08-10", "cliente": "OSCAR GUERRA", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 50000, "comision": 6.0, "factura": false},
-  {"id": 1711000000224, "fecha": "2026-08-11", "cliente": "EQUUS LO BARNECHEA", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 2700000, "comision": 6.0, "factura": true},
-  {"id": 1711000000225, "fecha": "2026-08-12", "cliente": "DRAGONES CLAUDIA", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 50000, "comision": 6.0, "factura": false},
-  {"id": 1711000000226, "fecha": "2026-08-12", "cliente": "PARTICULAR", "producto": "Banner", "formaPago": "Efectivo", "montoBase": 18000, "comision": 6.0, "factura": false},
-  {"id": 1711000000227, "fecha": "2026-08-13", "cliente": "VORA", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 160000, "comision": 6.0, "factura": false},
-  {"id": 1711000000228, "fecha": "2026-08-13", "cliente": "PARTICULAR", "producto": "Pañuelos", "formaPago": "Webpay", "montoBase": 25000, "comision": 6.0, "factura": false},
-  {"id": 1711000000229, "fecha": "2026-08-14", "cliente": "PARTICULAR", "producto": "Camisetas", "formaPago": "Webpay", "montoBase": 35000, "comision": 6.0, "factura": false},
-  {"id": 1711000000230, "fecha": "2026-08-17", "cliente": "EQUUS SANTA BARBARA", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 200000, "comision": 6.0, "factura": false},
-  {"id": 1711000000231, "fecha": "2026-08-17", "cliente": "PARTICULAR", "producto": "Sublimación", "formaPago": "Efectivo", "montoBase": 20000, "comision": 6.0, "factura": false},
-  {"id": 1711000000232, "fecha": "2026-08-18", "cliente": "PARTICULAR", "producto": "Banderas", "formaPago": "Webpay", "montoBase": 28560, "comision": 6.0, "factura": false},
-  {"id": 1711000000233, "fecha": "2026-08-19", "cliente": "ESCUDERO", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 220000, "comision": 6.0, "factura": false},
-  {"id": 1711000000234, "fecha": "2026-08-19", "cliente": "PARTICULAR", "producto": "Estampados", "formaPago": "Efectivo", "montoBase": 15000, "comision": 6.0, "factura": false},
-  {"id": 1711000000235, "fecha": "2026-08-20", "cliente": "LEGIONARIOS", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 110000, "comision": 6.0, "factura": false},
-  {"id": 1711000000236, "fecha": "2026-08-20", "cliente": "PARTICULAR", "producto": "Bandanas", "formaPago": "Webpay", "montoBase": 18000, "comision": 6.0, "factura": false},
-  {"id": 1711000000237, "fecha": "2026-08-21", "cliente": "KYMSTAR", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 130000, "comision": 6.0, "factura": false},
-  {"id": 1711000000238, "fecha": "2026-08-21", "cliente": "PARTICULAR", "producto": "Sublimación", "formaPago": "Efectivo", "montoBase": 25000, "comision": 6.0, "factura": false},
-  {"id": 1711000000239, "fecha": "2026-08-24", "cliente": "DROPSHOP", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 210000, "comision": 6.0, "factura": false},
-  {"id": 1711000000240, "fecha": "2026-08-24", "cliente": "PASE GOL", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 130000, "comision": 6.0, "factura": false},
-  {"id": 1711000000241, "fecha": "2026-08-25", "cliente": "QUITALMAHUE", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 360000, "comision": 6.0, "factura": false},
-  {"id": 1711000000242, "fecha": "2026-08-25", "cliente": "PARTICULAR", "producto": "Pañuelos", "formaPago": "Webpay", "montoBase": 20000, "comision": 6.0, "factura": false},
-  {"id": 1711000000243, "fecha": "2026-08-26", "cliente": "SPORCASTING", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 190000, "comision": 6.0, "factura": false},
-  {"id": 1711000000244, "fecha": "2026-08-26", "cliente": "RODRIGO ARIAS", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 170000, "comision": 6.0, "factura": false},
-  {"id": 1711000000245, "fecha": "2026-08-27", "cliente": "ANTONIO", "producto": "Sublimación", "formaPago": "Transferencia", "montoBase": 120000, "comision": 6.0, "factura": false},
-  {"id": 1711000000246, "fecha": "2026-08-27", "cliente": "PARTICULAR", "producto": "Mantas", "formaPago": "Efectivo", "montoBase": 30000, "comision": 6.0, "factura": false},
-  {"id": 1711000000247, "fecha": "2026-08-28", "cliente": "ROSY", "producto": "Sublimación", "formaPago": "Transferencia", "montoBase": 200000, "comision": 6.0, "factura": false},
-  {"id": 1711000000248, "fecha": "2026-08-28", "cliente": "LIENZO", "producto": "Lienzo", "formaPago": "Efectivo", "montoBase": 70000, "comision": 6.0, "factura": false},
-  {"id": 1711000000249, "fecha": "2026-08-28", "cliente": "TALLER VOLEIBOL", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 150000, "comision": 6.0, "factura": false},
-  {"id": 1711000000250, "fecha": "2026-08-28", "cliente": "PARTICULAR", "producto": "Camisetas", "formaPago": "Webpay", "montoBase": 40000, "comision": 6.0, "factura": false},
-  {"id": 1711000000251, "fecha": "2026-08-31", "cliente": "GEORGE CASTILLO", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 355810, "comision": 6.0, "factura": false},
-  {"id": 1711000000252, "fecha": "2026-08-31", "cliente": "PARTICULAR", "producto": "Camisetas", "formaPago": "Webpay", "montoBase": 40000, "comision": 6.0, "factura": false},
-  {"id": 1711000000253, "fecha": "2026-09-01", "cliente": "BORIS", "producto": "Sublimación", "formaPago": "Transferencia", "montoBase": 124950, "comision": 6.0, "factura": false},
-  {"id": 1711000000254, "fecha": "2026-09-01", "cliente": "OSCAR MUÑOZ", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 393000, "comision": 6.0, "factura": true},
-  {"id": 1711000000255, "fecha": "2026-09-01", "cliente": "JORGE", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 80000, "comision": 6.0, "factura": false},
-  {"id": 1711000000256, "fecha": "2026-09-02", "cliente": "ROBERTO", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 150000, "comision": 6.0, "factura": false},
-  {"id": 1711000000257, "fecha": "2026-09-02", "cliente": "PARTICULAR", "producto": "Pañuelos", "formaPago": "Efectivo", "montoBase": 25000, "comision": 6.0, "factura": false},
-  {"id": 1711000000258, "fecha": "2026-09-03", "cliente": "CAROLINA", "producto": "Sublimación", "formaPago": "Transferencia", "montoBase": 65000, "comision": 6.0, "factura": false},
-  {"id": 1711000000259, "fecha": "2026-09-03", "cliente": "PARTICULAR", "producto": "Estampados", "formaPago": "Webpay", "montoBase": 18000, "comision": 6.0, "factura": false},
-  {"id": 1711000000260, "fecha": "2026-09-04", "cliente": "ANDRES", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 95000, "comision": 6.0, "factura": false},
-  {"id": 1711000000261, "fecha": "2026-09-04", "cliente": "PARTICULAR", "producto": "Bandanas", "formaPago": "Efectivo", "montoBase": 15000, "comision": 6.0, "factura": false},
-  {"id": 1711000000262, "fecha": "2026-09-07", "cliente": "PARTICULAR", "producto": "Banderas", "formaPago": "Webpay", "montoBase": 35000, "comision": 6.0, "factura": false},
-  {"id": 1711000000263, "fecha": "2026-09-07", "cliente": "MIGUEL", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 210000, "comision": 6.0, "factura": false},
-  {"id": 1711000000264, "fecha": "2026-09-08", "cliente": "GABRIELA", "producto": "Sublimación", "formaPago": "Transferencia", "montoBase": 88000, "comision": 6.0, "factura": false},
-  {"id": 1711000000265, "fecha": "2026-09-08", "cliente": "PARTICULAR", "producto": "Mantas", "formaPago": "Webpay", "montoBase": 42000, "comision": 6.0, "factura": false},
-  {"id": 1711000000266, "fecha": "2026-09-09", "cliente": "FRANCISCO", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 130000, "comision": 6.0, "factura": false},
-  {"id": 1711000000267, "fecha": "2026-09-09", "cliente": "PARTICULAR", "producto": "Pañuelos", "formaPago": "Efectivo", "montoBase": 18000, "comision": 6.0, "factura": false},
-  {"id": 1711000000268, "fecha": "2026-09-10", "cliente": "CLAUDIA", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 175000, "comision": 6.0, "factura": false},
-  {"id": 1711000000269, "fecha": "2026-09-10", "cliente": "PARTICULAR", "producto": "Banner", "formaPago": "Webpay", "montoBase": 25000, "comision": 6.0, "factura": false},
-  {"id": 1711000000270, "fecha": "2026-09-11", "cliente": "GONZALO", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 110000, "comision": 6.0, "factura": false},
-  {"id": 1711000000271, "fecha": "2026-09-11", "cliente": "PARTICULAR", "producto": "Estampados", "formaPago": "Efectivo", "montoBase": 12000, "comision": 6.0, "factura": false},
-  {"id": 1711000000272, "fecha": "2026-09-14", "cliente": "PATRICIO", "producto": "Sublimación", "formaPago": "Transferencia", "montoBase": 240000, "comision": 6.0, "factura": false},
-  {"id": 1711000000273, "fecha": "2026-09-14", "cliente": "PARTICULAR", "producto": "Pañuelos", "formaPago": "Webpay", "montoBase": 30000, "comision": 6.0, "factura": false},
-  {"id": 1711000000274, "fecha": "2026-09-15", "cliente": "DANIELA", "producto": "Conjuntos", "formaPago": "Transferencia", "montoBase": 190000, "comision": 6.0, "factura": false},
-  {"id": 1711000000275, "fecha": "2026-09-15", "cliente": "PARTICULAR", "producto": "Banderas", "formaPago": "Efectivo", "montoBase": 45000, "comision": 6.0, "factura": false},
-  {"id": 1711000000276, "fecha": "2026-09-16", "cliente": "HERNAN", "producto": "Camisetas", "formaPago": "Transferencia", "montoBase": 85000, "comision": 6.0, "factura": false},
-  {"id": 1711000000277, "fecha": "2026-09-16", "cliente": "PARTICULAR", "producto": "Pañuelos", "formaPago": "Webpay", "montoBase": 15000, "comision": 6.0, "factura": false},
-  {"id": 1711000000278, "fecha": "2026-09-17", "cliente": "PARTICULAR", "producto": "Pañuelos", "formaPago": "Webpay", "montoBase": 40000, "comision": 6.0, "factura": false},
-  {"id": 1711000000279, "fecha": "2026-09-17", "cliente": "PARTICULAR", "producto": "Camisetas", "formaPago": "Webpay", "montoBase": 23000, "comision": 6.0, "factura": false},
-  {"id": 1711000000280, "fecha": "2026-09-17", "cliente": "PARTICULAR", "producto": "Banner", "formaPago": "Webpay", "montoBase": 3000, "comision": 6.0, "factura": false}
-];
+// (Sin datos de ejemplo: las ventas reales se cargan desde la nube)
 
 // ============================================================
 // CONEXIÓN A BASE DE DATOS (NUBE)
@@ -404,6 +120,69 @@ async function loadFromCloud(key) {
     const json = await res.json();
     return json.valor ? JSON.parse(json.valor) : null;
   } catch (e) { console.error("Error cargando de la nube", e); return null; }
+}
+
+// Version "estricta": en vez de devolver null ante cualquier falla (red, HTTP,
+// o error del servidor), lanza una excepción. Así se puede distinguir "la nube
+// respondió que está vacío" de "no se pudo confirmar el estado de la nube",
+// y evitar sobreescribir datos reales con un guardado hecho tras una carga
+// fallida (el mismo problema que borró el historial de ventas real).
+async function loadFromCloudStrict(key) {
+  const res = await fetch(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const json = await res.json();
+  if (json.estado === 'error') throw new Error(json.detalle || 'Error del servidor');
+  return json.valor ? JSON.parse(json.valor) : null;
+}
+
+// Google Sheets limita cada celda a 50.000 caracteres. El array de ventas ya
+// superó ese límite una vez (por eso una carga con datos incompletos terminó
+// sobreescribiendo la nube). Para que esto no vuelva a pasar, las ventas se
+// guardan repartidas ("sharded") en varias llaves de la nube si hace falta:
+// STORAGE_KEY guarda el primer bloque + comDefPct + filtroMes + shardCount,
+// y STORAGE_KEY + "_sh" + i guarda cada bloque adicional.
+var MAX_SHARD_CHARS = 40000; // margen de seguridad bajo el límite de 50.000
+
+function splitVentasEnBloques(ventasArray) {
+  var bloques = [];
+  var actual = [];
+  var largoActual = 2; // "[" + "]"
+  for (var i = 0; i < ventasArray.length; i++) {
+    var entryStr = JSON.stringify(ventasArray[i]);
+    var addLen = entryStr.length + 1;
+    if (largoActual + addLen > MAX_SHARD_CHARS && actual.length > 0) {
+      bloques.push(actual);
+      actual = [];
+      largoActual = 2;
+    }
+    actual.push(ventasArray[i]);
+    largoActual += addLen;
+  }
+  bloques.push(actual); // aunque quede vacío, para poder guardar comDefPct/filtroMes
+  return bloques;
+}
+
+async function saveToCloudSharded(ventasArray, comDefPct, filtroMes) {
+  var bloques = splitVentasEnBloques(ventasArray);
+  var shardCount = bloques.length;
+  var principal = { ventas: bloques[0], comDefPct: comDefPct, filtroMes: filtroMes, shardCount: shardCount };
+  await saveToCloud(STORAGE_KEY, principal);
+  for (var i = 1; i < shardCount; i++) {
+    await saveToCloud(STORAGE_KEY + '_sh' + i, { ventas: bloques[i] });
+  }
+}
+
+// Carga estricta y con bloques: lanza si algún bloque no puede confirmarse.
+async function loadFromCloudSharded() {
+  var principal = await loadFromCloudStrict(STORAGE_KEY);
+  if (!principal) return null;
+  var ventas = (principal.ventas || []).slice();
+  var shardCount = principal.shardCount || 1;
+  for (var i = 1; i < shardCount; i++) {
+    var bloque = await loadFromCloudStrict(STORAGE_KEY + '_sh' + i);
+    if (bloque && bloque.ventas) ventas = ventas.concat(bloque.ventas);
+  }
+  return { ventas: ventas, comDefPct: principal.comDefPct, filtroMes: principal.filtroMes };
 }
 
 // ============================================================
@@ -435,6 +214,12 @@ function fDate(f)            { return new Date(f+"T12:00").toLocaleDateString("e
 // ============================================================
 var STORAGE_KEY = "sublipro_v2";
 
+// Se pone en true solo si la carga inicial desde la nube pudo confirmarse
+// (éxito o "está vacío"). Mientras sea false, guardarDatos() NO manda nada a
+// la nube (solo guarda localmente), para no arriesgarse a sobreescribir datos
+// reales con un estado incompleto por una carga que falló.
+var cargaVentasOk = false;
+
 function guardarDatos() {
   try {
     var datos = {
@@ -443,7 +228,11 @@ function guardarDatos() {
       filtroMes: state.filtroMes
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(datos));
-    saveToCloud(STORAGE_KEY, datos);
+    if (!cargaVentasOk) {
+      console.warn("No se pudo confirmar la conexión con la nube al abrir esta página; no se sube nada hasta recargar (F5).");
+      return;
+    }
+    saveToCloudSharded(state.ventas, state.comDefPct, state.filtroMes);
   } catch(e) {}
 }
 
@@ -451,22 +240,15 @@ function cargarDatos() {
   try {
     var raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      state.ventas = HISTORIAL_VENTAS.slice();
+      state.ventas = [];
       return;
     }
     var datos = JSON.parse(raw);
-    if (datos.ventas && datos.ventas.length > 0) {
-      var map = new Map();
-      HISTORIAL_VENTAS.forEach(function(v){ map.set(v.id, v); });
-      datos.ventas.forEach(function(v){ map.set(v.id, v); });
-      state.ventas = Array.from(map.values());
-    } else {
-      state.ventas = HISTORIAL_VENTAS.slice();
-    }
+    state.ventas = (datos.ventas && datos.ventas.length > 0) ? datos.ventas : [];
     if (datos.comDefPct) state.comDefPct = datos.comDefPct;
     if (datos.filtroMes !== undefined) state.filtroMes = datos.filtroMes;
   } catch(e) {
-    state.ventas = HISTORIAL_VENTAS.slice();
+    state.ventas = [];
   }
 }
 
@@ -480,7 +262,7 @@ function borrarDatos() {
 // ESTADO
 // ============================================================
 var state = {
-  ventas: HISTORIAL_VENTAS.slice(),
+  ventas: [],
   tab:"ventas",
   filtroMes:"",
   rangoDesde:"",
@@ -1262,23 +1044,37 @@ function exportPDF() {
 // ============================================================
 async function initApp() {
   try {
-    const cloudData = await loadFromCloud(STORAGE_KEY);
+    const cloudData = await loadFromCloudSharded();
+    // Carga confirmada (con datos o genuinamente vacía): ya se puede guardar
+    // en la nube con seguridad.
+    cargaVentasOk = true;
     if (cloudData) {
       if (cloudData.ventas && cloudData.ventas.length > 0) {
-        var map = new Map();
-        HISTORIAL_VENTAS.forEach(function(v){ map.set(v.id, v); });
-        cloudData.ventas.forEach(function(v){ map.set(v.id, v); });
-        state.ventas = Array.from(map.values());
+        state.ventas = cloudData.ventas;
       }
       if (cloudData.comDefPct) state.comDefPct = cloudData.comDefPct;
       if (cloudData.filtroMes !== undefined) state.filtroMes = cloudData.filtroMes;
+      // Se sincroniza localStorage con lo que llegó de la nube, sin volver a
+      // subir nada (evita el bug que sobreescribía la nube en cada carga).
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ ventas: state.ventas, comDefPct: state.comDefPct, filtroMes: state.filtroMes }));
+      } catch(e) {}
     } else {
+      // La nube respondió pero no hay nada guardado todavía: se usa el
+      // respaldo local si existe, y recién ahí (con carga ya confirmada) se
+      // sube para inicializar la nube.
       cargarDatos();
+      guardarDatos();
     }
   } catch (e) {
+    // No se pudo confirmar el estado de la nube (red, HTTP o error del
+    // servidor). cargaVentasOk queda en false: se usa el respaldo local para
+    // no dejar la pantalla vacía, pero NO se sube nada, para no arriesgarse a
+    // borrar datos reales que sí están en la nube.
+    console.error("No se pudo cargar desde la nube; usando respaldo local sin sincronizar.", e);
     cargarDatos();
+    alert("No se pudo confirmar la conexión con la nube al abrir esta página. Se muestran los datos guardados en este dispositivo. Para evitar perder ventas ya registradas, recarga la página (F5) antes de agregar o editar ventas.");
   }
-  guardarDatos();
   render();
 }
 
