@@ -309,7 +309,15 @@ function renderCostos(r) {
 function renderProduccion(r, producciones) {
   const enPeriodo = (producciones || []).filter(p => enRango(p.date, r));
   const totalPrendas = enPeriodo.reduce((s, p) => s + (p.totalPrendas || 0), 0);
-  const dotacion = costosConfig && costosConfig.rrhh ? costosConfig.rrhh.length : 0;
+
+  const rrhh = (costosConfig && costosConfig.rrhh) ? costosConfig.rrhh : [];
+  const disenadores = rrhh.filter(p => p.cargo === 'Diseño / Producción');
+  // Si nadie tiene un cargo asignado todavía en Costos (dato nuevo, aún sin migrar),
+  // se usa el total de la nómina como respaldo para no mostrar "0 personas" de la nada;
+  // apenas se asignen cargos, este cálculo pasa a contar solo a quienes producen.
+  const nadieTieneCargo = rrhh.length > 0 && rrhh.every(p => !p.cargo);
+  const dotacion = nadieTieneCargo ? rrhh.length : disenadores.length;
+  const etiquetaDotacion = nadieTieneCargo ? 'Dotación registrada (Nómina en Costos, sin cargos asignados)' : 'Dotación de Diseño / Producción (Nómina en Costos)';
   const prendasPorPersona = dotacion > 0 ? (totalPrendas / dotacion) : null;
 
   document.getElementById('kpi-producciones').textContent = enPeriodo.length;
@@ -318,9 +326,9 @@ function renderProduccion(r, producciones) {
   document.getElementById('produccionDetalle').innerHTML = `
     <div class="dr-row"><span>Producciones registradas</span><span>${enPeriodo.length}</span></div>
     <div class="dr-row"><span>Total de prendas producidas</span><span>${totalPrendas}</span></div>
-    <div class="dr-row"><span>Dotación registrada (Nómina en Costos)</span><span>${dotacion} personas</span></div>
+    <div class="dr-row"><span>${etiquetaDotacion}</span><span>${dotacion} personas</span></div>
     <div class="dr-row tot"><span>Prendas producidas por persona</span><span>${prendasPorPersona !== null ? prendasPorPersona.toFixed(1) : '-'}</span></div>
-    <div class="note">"Dotación" corresponde a la cantidad de personas cargadas en la pestaña Nómina de la Calculadora de Costos. No existe hoy un dato de capacidad máxima por persona, por lo que esta cifra es una referencia de carga (prendas por persona), no una comparación contra una meta.</div>
+    <div class="note">${nadieTieneCargo ? 'Todavía no se asignó el cargo "Diseño / Producción" a nadie en la pestaña Nómina de Costos, así que esta cifra divide por el total del equipo (ventas, administración, etc. incluidos). Asigna el cargo a quienes diseñan/producen en Costos para que esta cifra refleje solo a ellos.' : 'Solo se cuentan las personas de la Nómina con cargo "Diseño / Producción", ya que las producciones del Calendario se asocian a diseñadores específicos, no a todo el equipo. No existe hoy un dato de capacidad máxima por persona, por lo que esta cifra es una referencia de carga, no una comparación contra una meta.'}</div>
   `;
 }
 
