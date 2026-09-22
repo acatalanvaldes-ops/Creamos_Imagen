@@ -214,9 +214,9 @@
         <!-- SELECTOR DE RANGO DE FECHAS: filtra el calendario, la lista y las estadísticas, y se usa también para el PDF -->
         <div style="display:flex;gap:8px;margin-left:auto;align-items:center;flex-wrap:wrap;">
           <span style="font-size:0.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Desde:</span>
-          <input type="date" id="pdfDesde" onchange="renderAll()" style="background:var(--card);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.75rem;padding:6px;outline:none;">
+          <input type="date" id="pdfDesde" onchange="timelinePage=1; renderAll()" style="background:var(--card);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.75rem;padding:6px;outline:none;">
           <span style="font-size:0.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-left:4px">Hasta:</span>
-          <input type="date" id="pdfHasta" onchange="renderAll()" style="background:var(--card);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.75rem;padding:6px;outline:none;">
+          <input type="date" id="pdfHasta" onchange="timelinePage=1; renderAll()" style="background:var(--card);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.75rem;padding:6px;outline:none;">
           <button class="toggle-form-btn" onclick="clearDateRange()" title="Quitar filtro de rango de fechas" style="border-color:var(--text3);color:var(--text3);margin-left:2px;padding:8px 12px">✕</button>
           <button class="toggle-form-btn" onclick="exportPDF()" title="Exportar rango seleccionado a PDF" style="border-color:#e84040;color:#e84040;margin-left:6px">📄 PDF</button>
         </div>
@@ -263,6 +263,9 @@ function showSaveStatus(st) {
     el.style.background = '#132a18'; el.style.borderColor = '#2a9d8f'; el.style.color = '#7fd9c4';
     el.textContent = '✓ Guardado';
     _saveStatusTimer = setTimeout(() => { el.style.opacity = '0'; setTimeout(() => { el.style.display = 'none'; }, 300); }, 2200);
+  } else if (st === 'local') {
+    el.style.background = '#241d10'; el.style.borderColor = '#c99a2e'; el.style.color = '#e8c468';
+    el.textContent = '💾 Guardado solo en este dispositivo (recarga la página)';
   } else if (st === 'error') {
     el.style.background = '#2e1414'; el.style.borderColor = '#e84040'; el.style.color = '#f08080';
     el.textContent = '⚠ Error al guardar, revisa tu conexión';
@@ -271,7 +274,7 @@ function showSaveStatus(st) {
 
 async function checkForConflict(key) {
   try {
-    const fresh = await loadFromCloud(key);
+    const fresh = await loadFromCloudSharded(key);
     const freshStr = JSON.stringify(fresh || []);
     if (lastSyncedSnapshot !== null && freshStr !== lastSyncedSnapshot) return true;
     return false;
@@ -284,6 +287,75 @@ async function loadFromCloud(key) {
     const json = await res.json();
     return json.valor ? JSON.parse(json.valor) : null;
   } catch (e) { console.error("Error cargando de la nube", e); return null; }
+}
+
+// Version "estricta": en vez de devolver null ante cualquier falla (red, HTTP,
+// o error del servidor), lanza una excepción. Así se puede distinguir "la nube
+// respondió que está vacío" de "no se pudo confirmar el estado de la nube", y
+// evitar que un guardado hecho tras una carga fallida sobrescriba datos reales
+// (el mismo problema ya visto y corregido en otros módulos de esta app).
+async function loadFromCloudStrict(key) {
+  const res = await fetch(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const json = await res.json();
+  if (json.estado === 'error') throw new Error(json.detalle || 'Error del servidor');
+  return json.valor ? JSON.parse(json.valor) : null;
+}
+
+// Google Sheets limita cada celda a 50.000 caracteres. Las producciones de un
+// año se guardaban en una sola celda sin repartir: a medida que el calendario
+// crece (ya iba en 76 registros / ~22.000 caracteres), tarde o temprano un
+// guardado hubiera superado el límite y se hubiera perdido silenciosamente,
+// igual que ya pasó una vez con el historial de ventas. Para evitarlo, las
+// producciones se guardan repartidas ("sharded") si hace falta: la llave
+// principal (prods<año>) guarda el primer bloque + shardCount, y cada bloque
+// extra se guarda en prods<año>_sh<N>.
+var MAX_SHARD_CHARS = 40000; // margen de seguridad bajo el límite de 50.000
+
+function splitProduccionesEnBloques(arr) {
+  var bloques = [];
+  var actual = [];
+  var largoActual = 2; // "[" + "]"
+  for (var i = 0; i < arr.length; i++) {
+    var entryStr = JSON.stringify(arr[i]);
+    var addLen = entryStr.length + 1;
+    if (largoActual + addLen > MAX_SHARD_CHARS && actual.length > 0) {
+      bloques.push(actual);
+      actual = [];
+      largoActual = 2;
+    }
+    actual.push(arr[i]);
+    largoActual += addLen;
+  }
+  bloques.push(actual); // aunque quede vacío, para poder guardar shardCount
+  return bloques;
+}
+
+async function saveToCloudSharded(key, arr) {
+  var bloques = splitProduccionesEnBloques(arr);
+  var shardCount = bloques.length;
+  var principal = { producciones: bloques[0], shardCount: shardCount };
+  var ok = await saveToCloud(key, principal);
+  for (var i = 1; i < shardCount; i++) {
+    var okI = await saveToCloud(key + '_sh' + i, { producciones: bloques[i] });
+    ok = ok && okI;
+  }
+  return ok;
+}
+
+// Carga estricta y con bloques. Compatible con el formato antiguo (un array
+// plano guardado directo en la llave, sin repartir).
+async function loadFromCloudSharded(key) {
+  var principal = await loadFromCloudStrict(key);
+  if (!principal) return null;
+  if (Array.isArray(principal)) return principal; // formato antiguo, sin sharding
+  var arr = (principal.producciones || []).slice();
+  var shardCount = principal.shardCount || 1;
+  for (var i = 1; i < shardCount; i++) {
+    var bloque = await loadFromCloudStrict(key + '_sh' + i);
+    if (bloque && bloque.producciones) arr = arr.concat(bloque.producciones);
+  }
+  return arr;
 }
 
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -374,26 +446,46 @@ let currentViewMonth = today.getMonth();
 
 function storageKey() { return 'prods' + currentViewYear; }
 
+// Se pone en true solo si la carga inicial desde la nube pudo confirmarse
+// (éxito o "está vacío"). Mientras sea false, save() NO manda nada a la nube
+// (solo guarda localmente), para no arriesgarse a sobreescribir datos reales
+// con un estado incompleto por una carga que falló.
+let cargaProdsOk = false;
+
 async function loadYearData() {
   const key = storageKey();
-  const cloudData = await loadFromCloud(key);
-  if (cloudData) { 
-    // Merge cloud data with hardcoded data (preferring cloud data by ID)
-    const mergedMap = new Map();
-    productions.forEach(p => mergedMap.set(p.id, p));
-    cloudData.forEach(p => mergedMap.set(p.id, p));
-    productions = Array.from(mergedMap.values());
-    lastSyncedSnapshot = JSON.stringify(productions); 
-  }
-  else { 
-    const localData = JSON.parse(localStorage.getItem(key) || '[]'); 
-    if(localData.length > 0) {
+  try {
+    const cloudData = await loadFromCloudSharded(key);
+    cargaProdsOk = true;
+    if (cloudData) {
+      // Merge cloud data with hardcoded data (preferring cloud data by ID)
+      const mergedMap = new Map();
+      productions.forEach(p => mergedMap.set(p.id, p));
+      cloudData.forEach(p => mergedMap.set(p.id, p));
+      productions = Array.from(mergedMap.values());
+      lastSyncedSnapshot = JSON.stringify(productions);
+    } else {
+      const localData = JSON.parse(localStorage.getItem(key) || '[]');
+      if (localData.length > 0) {
+        const mergedMap = new Map();
+        productions.forEach(p => mergedMap.set(p.id, p));
+        localData.forEach(p => mergedMap.set(p.id, p));
+        productions = Array.from(mergedMap.values());
+      }
+      lastSyncedSnapshot = JSON.stringify(productions);
+    }
+  } catch (e) {
+    cargaProdsOk = false;
+    console.error('No se pudo confirmar la carga de producciones desde la nube', e);
+    const localData = JSON.parse(localStorage.getItem(key) || '[]');
+    if (localData.length > 0) {
       const mergedMap = new Map();
       productions.forEach(p => mergedMap.set(p.id, p));
       localData.forEach(p => mergedMap.set(p.id, p));
       productions = Array.from(mergedMap.values());
     }
-    lastSyncedSnapshot = JSON.stringify(productions); 
+    lastSyncedSnapshot = null; // no confirmado: evita falsos conflictos más adelante
+    alert('No se pudo confirmar la conexión con la nube al cargar las producciones de ' + currentViewYear + '. Se están mostrando los datos guardados en este dispositivo; nada se subirá a la nube hasta que recargues la página (F5) con conexión.');
   }
 }
 
@@ -420,6 +512,7 @@ async function changeYear(newYearStr) {
   document.getElementById('pdfDesde').value = '';
   document.getElementById('pdfHasta').value = '';
   currentViewMonth = (currentViewYear === today.getFullYear()) ? today.getMonth() : 0;
+  timelinePage = 1;
   await loadYearData();
   renderAll(); updateDataLists();
 }
@@ -430,13 +523,19 @@ async function save() {
   try {
     const key = storageKey();
     localStorage.setItem(key, JSON.stringify(productions));
+    if (!cargaProdsOk) {
+      console.warn('No se pudo confirmar la conexión con la nube al abrir esta página; no se sube nada hasta recargar (F5).');
+      showSaveStatus('local');
+      updateDataLists();
+      return;
+    }
     showSaveStatus('saving');
     const conflict = await checkForConflict(key);
     if (conflict) {
       const overwrite = confirm('Los datos en la nube cambiaron desde que cargaste esta página (probablemente los editaste desde otro dispositivo, o alguien más lo hizo). ¿Guardar de todas formas y sobrescribir con lo que tienes aquí?\n\nSi cancelas, recarga la página para ver los datos más recientes antes de seguir editando.');
       if (!overwrite) { showSaveStatus('error'); return; }
     }
-    const ok = await saveToCloud(key, productions);
+    const ok = await saveToCloudSharded(key, productions);
     if (ok) lastSyncedSnapshot = JSON.stringify(productions);
     showSaveStatus(ok ? 'saved' : 'error');
     updateDataLists();
@@ -455,12 +554,27 @@ function updateDataLists() {
 let activeFilterType = '';
 let activeFilterValue = '';
 
+// Paginación de "Producciones registradas": antes se renderizaban todos los
+// registros filtrados de una sola vez en una lista sin límite, que con muchos
+// pedidos se volvía muy larga de recorrer. Ahora se muestran de a
+// RECORDS_PER_PAGE por página, con controles para pasar de página.
+const RECORDS_PER_PAGE = 40;
+let timelinePage = 1;
+
 function setFilter(type, value) {
   activeFilterType = type; activeFilterValue = value;
+  timelinePage = 1;
   document.querySelectorAll('.tag-btn').forEach(b => b.classList.remove('active-filter'));
   const btn = document.getElementById(`fbtn-${type === 'tag' ? '' : type + '-'}${value}`);
   if (btn) btn.classList.add('active-filter'); else document.getElementById('fbtn-').classList.add('active-filter');
   renderAll();
+}
+
+function goToTimelinePage(n) {
+  timelinePage = n;
+  renderTimeline();
+  const tl = document.getElementById('timeline');
+  if (tl) tl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 function getFiltered() {
@@ -498,6 +612,7 @@ function clearDateRange() {
   const hastaEl = document.getElementById('pdfHasta');
   if (desdeEl) desdeEl.value = '';
   if (hastaEl) hastaEl.value = '';
+  timelinePage = 1;
   renderAll();
 }
 
@@ -788,9 +903,16 @@ function formatPesos(n) { if (!n && n !== 0) return ''; return '$' + Number(n).t
 function renderTimeline() {
   const tl = document.getElementById('timeline');
   const filtered = getFiltered();
+  const totalPages = Math.max(1, Math.ceil(filtered.length / RECORDS_PER_PAGE));
+  if (timelinePage > totalPages) timelinePage = totalPages;
+  if (timelinePage < 1) timelinePage = 1;
   if (filtered.length === 0) { tl.innerHTML = '<div class="timeline-empty">No hay producciones.</div>'; return; }
+
+  const startIdx = (timelinePage - 1) * RECORDS_PER_PAGE;
+  const pageItems = filtered.slice(startIdx, startIdx + RECORDS_PER_PAGE);
+
   let html = `<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:8px;padding:6px 8px;border-bottom:1px solid var(--border);margin-bottom:4px"><span style="font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--text3)">Nombre / Cliente</span><span style="font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--text3)">Prendas</span><span style="font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--text3)">Diseñador</span><span style="font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--text3)">F. Ingreso</span><span style="font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--text3)">F. Entrega</span><span></span></div>`;
-  filtered.forEach(p => {
+  pageItems.forEach(p => {
     const [y,m,d] = p.date.split('-'); const ingresoLabel = `${parseInt(d)} ${MONTHS_SHORT[parseInt(m)-1]}`;
     let entregaLabel = '—';
     if (p.fechaEntrega) { const [ey,em,ed] = p.fechaEntrega.split('-'); entregaLabel = `${parseInt(ed)} ${MONTHS_SHORT[parseInt(em)-1]}`; }
@@ -813,7 +935,52 @@ function renderTimeline() {
       <div style="font-size:0.85rem;color:${p.fechaEntrega ? 'var(--accent)' : 'var(--text3)'}">${entregaLabel}</div>
       <div style="display:flex;gap:4px"><button class="prod-delete" style="color:var(--accent);border:1px solid var(--accent)22" onclick="editProduction(${p.id})">✏</button><button class="prod-delete" onclick="deleteProduction(${p.id})">✕</button></div></div>`;
   });
+
+  if (totalPages > 1) {
+    const desde = startIdx + 1;
+    const hasta = Math.min(startIdx + RECORDS_PER_PAGE, filtered.length);
+    html += `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 8px 4px">
+      <span style="font-size:0.7rem;color:var(--text3)">Mostrando ${desde}–${hasta} de ${filtered.length} producciones</span>
+      <div style="display:flex;align-items:center;gap:6px">${renderTimelinePageButtons(totalPages)}</div>
+    </div>`;
+  }
+
   tl.innerHTML = html;
+}
+
+function timelinePageBtnStyle(active, disabled) {
+  return `padding:6px 10px;background:${active ? 'var(--accent)' : 'transparent'};border:1px solid var(--accent);border-radius:2px;color:${active ? 'var(--bg)' : 'var(--accent)'};font-family:'DM Mono',monospace;font-size:0.7rem;cursor:${disabled ? 'default' : 'pointer'};min-width:30px;opacity:${disabled ? '0.35' : '1'}`;
+}
+
+function renderTimelinePageButtons(totalPages) {
+  const prevDisabled = timelinePage <= 1;
+  const nextDisabled = timelinePage >= totalPages;
+  let out = `<button style="${timelinePageBtnStyle(false, prevDisabled)}" ${prevDisabled ? 'disabled' : ''} onclick="goToTimelinePage(${timelinePage - 1})" title="Página anterior">‹</button>`;
+
+  // Con muchas páginas, muestra la primera, la última, y un rango alrededor de
+  // la actual, con "…" en el medio, para no llenar la barra de botones.
+  const pageNums = [];
+  const addRange = (from, to) => { for (let i = from; i <= to; i++) if (i >= 1 && i <= totalPages) pageNums.push(i); };
+  if (totalPages <= 9) {
+    addRange(1, totalPages);
+  } else {
+    addRange(1, 1);
+    if (timelinePage > 4) pageNums.push('…');
+    addRange(Math.max(2, timelinePage - 2), Math.min(totalPages - 1, timelinePage + 2));
+    if (timelinePage < totalPages - 3) pageNums.push('…');
+    addRange(totalPages, totalPages);
+  }
+  const seen = new Set();
+  pageNums.forEach(n => {
+    if (n === '…') { out += `<span style="padding:6px 4px;color:var(--text3);font-size:0.7rem">…</span>`; return; }
+    if (seen.has(n)) return;
+    seen.add(n);
+    const active = n === timelinePage;
+    out += `<button style="${timelinePageBtnStyle(active, active)}" ${active ? 'disabled' : ''} onclick="goToTimelinePage(${n})">${n}</button>`;
+  });
+
+  out += `<button style="${timelinePageBtnStyle(false, nextDisabled)}" ${nextDisabled ? 'disabled' : ''} onclick="goToTimelinePage(${timelinePage + 1})" title="Página siguiente">›</button>`;
+  return out;
 }
 
 function renderStats() {
