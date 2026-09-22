@@ -26,24 +26,22 @@ input,select,button{font-family:inherit;outline:none}
 .act-btn.small{padding:5px 10px;font-size:11px}
 .search-bar{display:flex;gap:12px;margin-bottom:24px;background:#fff;padding:12px;border-radius:12px;border:1px solid var(--border)}
 .search-bar input{flex:1;border:none;background:transparent;font-size:16px;padding:8px;color:var(--dark)}
-.client-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));gap:16px}
-.client-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px;cursor:pointer;transition:all 0.2s}
+.client-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));gap:16px}
+.client-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px;cursor:pointer;transition:all 0.2s;display:flex;flex-direction:column}
 .client-card:hover{border-color:var(--gold);box-shadow:0 4px 12px rgba(0,0,0,0.05);transform:translateY(-2px)}
 .c-name{font-size:18px;font-weight:700;color:var(--dark);margin-bottom:4px}
 .c-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;display:inline-block;margin-bottom:12px;text-transform:uppercase;letter-spacing:0.3px}
-.c-badge.textil{background:#EFF6FF;color:var(--blue)}
-.c-badge.transfer{background:#F5F3FF;color:var(--purple)}
-.c-badge.otros{background:#F0FDF4;color:var(--teal)}
+.c-badge.rubro{background:#FEF3E2;color:#92400E;border:1px solid #FDE68A}
 .c-row{font-size:13px;color:var(--muted);margin-bottom:6px;display:flex;gap:8px}
-.c-row strong{color:var(--dark)}
+.c-row strong{color:var(--dark);min-width:65px}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity 0.2s;overflow-y:auto}
 .modal-bg.open{opacity:1;pointer-events:all}
 .modal{background:#fff;border-radius:14px;padding:30px;width:100%;max-width:640px;box-shadow:0 24px 60px rgba(0,0,0,.2);max-height:92vh;overflow-y:auto;transform:translateY(20px);transition:transform 0.2s;margin:auto}
 .modal-bg.open .modal{transform:translateY(0)}
 .modal h2{font-family:'DM Serif Display',serif;font-size:24px;margin-bottom:20px;color:var(--gold)}
 .fld{margin-bottom:14px;}
-.fld label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;}
-.fld input,.fld select{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;font-size:15px;color:var(--dark);font-weight:600;}
+.fld label{display:block;font-size:10px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;}
+.fld input,.fld select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 12px;font-size:14px;color:var(--dark);font-weight:500;}
 .fld input:focus,.fld select:focus{border-color:var(--gold);background:#fff;}
 .hist-card{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;}
 .hist-hdr{display:flex;justify-content:space-between;margin-bottom:6px;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase}
@@ -132,15 +130,16 @@ table.tbl tr:last-child td{border-bottom:none}
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
       <div class="fld" style="grid-column:1/-1"><label>Nombre del Proveedor *</label><input type="text" id="p-nombre"></div>
-      <div class="fld">
-        <label>Rubro</label>
-        <select id="p-rubro">
-          <option value="Textil">Textil</option>
-          <option value="Transfer">Transfer</option>
-          <option value="Otros insumos">Otros insumos</option>
-        </select>
-      </div>
-      <div class="fld"><label>Contacto</label><input type="text" id="p-contacto" placeholder="Nombre / teléfono / email"></div>
+      
+      <div class="fld"><label>RUT</label><input type="text" id="p-rut" placeholder="Ej: 76.123.456-7"></div>
+      <div class="fld"><label>Rubro</label><input type="text" id="p-rubro" list="rubroList" placeholder="Ej: Textil, Transfer, Insumos..."><datalist id="rubroList"><option value="Textil"><option value="Transfer"><option value="Insumos de oficina"><option value="Maquinaria"></datalist></div>
+      
+      <div class="fld"><label>Dirección</label><input type="text" id="p-direccion" placeholder="Calle, N°..."></div>
+      <div class="fld"><label>Comuna / Ciudad</label><input type="text" id="p-comuna" placeholder="Ej: Recoleta"></div>
+      
+      <div class="fld"><label>Contacto (Nombre)</label><input type="text" id="p-contacto" placeholder="Nombre de quien atiende"></div>
+      <div class="fld"><label>Teléfono</label><input type="text" id="p-telefono" placeholder="+56 9 ..."></div>
+
       <div class="fld"><label>Condiciones de Pago</label><input type="text" id="p-condiciones" placeholder="Ej: 30 días, contado, 50% anticipo..."></div>
       <div class="fld"><label>Plazo de Entrega Habitual</label><input type="text" id="p-plazo" placeholder="Ej: 5 días hábiles"></div>
     </div>
@@ -197,7 +196,7 @@ let proveedores = [];
 let compras = [];
 let editId = null;
 let editCompraId = null;
-let insumosEdit = []; // insumos en edición dentro del modal de proveedor
+let insumosEdit = []; 
 
 async function saveToCloud(key, dataObj) {
   try {
@@ -231,12 +230,6 @@ function setTab(t) {
   if (t === 'compras') { renderConcentracion(); renderComprasTable(); }
 }
 
-function rubroBadgeClass(r) {
-  if (r === 'Textil') return 'textil';
-  if (r === 'Transfer') return 'transfer';
-  return 'otros';
-}
-
 function renderProveedores() {
   const q = (document.getElementById('searchInput').value || '').toLowerCase();
   const grid = document.getElementById('proveedoresGrid');
@@ -253,11 +246,16 @@ function renderProveedores() {
 
   grid.innerHTML = filtrados.map(p => `
     <div class="client-card" onclick="abrirForm(${p.id})">
-      <div class="c-name">${p.nombre}</div>
-      <div class="c-badge ${rubroBadgeClass(p.rubro)}">${p.rubro || 'Otros insumos'}</div>
-      <div class="c-row"><strong>👤 Contacto:</strong> ${p.contacto || '-'}</div>
-      <div class="c-row"><strong>💳 Pago:</strong> ${p.condicionesPago || '-'}</div>
-      <div class="c-row"><strong>🚚 Entrega:</strong> ${p.plazoEntrega || '-'}</div>
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div class="c-name">${p.nombre}</div>
+        <div class="c-badge rubro">${p.rubro || '-'}</div>
+      </div>
+      <div style="border-top:1px dashed var(--border); margin:8px 0; padding-top:8px;">
+        <div class="c-row"><strong>RUT:</strong> ${p.rut || '-'}</div>
+        <div class="c-row"><strong>Contacto:</strong> ${p.contacto || '-'}</div>
+        <div class="c-row"><strong>Teléfono:</strong> ${p.telefono || '-'}</div>
+        <div class="c-row"><strong>Ubicación:</strong> ${p.comuna ? p.comuna + (p.direccion ? ', ' + p.direccion : '') : (p.direccion || '-')}</div>
+      </div>
     </div>
   `).join('');
 }
@@ -302,8 +300,12 @@ function abrirForm(id) {
     insumosEdit = JSON.parse(JSON.stringify(p.insumos || []));
     document.getElementById('m-title').textContent = 'Ficha de Proveedor';
     document.getElementById('p-nombre').value = p.nombre;
-    document.getElementById('p-rubro').value = p.rubro || 'Textil';
+    document.getElementById('p-rut').value = p.rut || '';
+    document.getElementById('p-direccion').value = p.direccion || '';
+    document.getElementById('p-comuna').value = p.comuna || '';
+    document.getElementById('p-rubro').value = p.rubro || '';
     document.getElementById('p-contacto').value = p.contacto || '';
+    document.getElementById('p-telefono').value = p.telefono || '';
     document.getElementById('p-condiciones').value = p.condicionesPago || '';
     document.getElementById('p-plazo').value = p.plazoEntrega || '';
     btnDel.style.display = 'block';
@@ -331,8 +333,12 @@ function abrirForm(id) {
     insumosEdit = [];
     document.getElementById('m-title').textContent = 'Nuevo Proveedor';
     document.getElementById('p-nombre').value = '';
-    document.getElementById('p-rubro').value = 'Textil';
+    document.getElementById('p-rut').value = '';
+    document.getElementById('p-direccion').value = '';
+    document.getElementById('p-comuna').value = '';
+    document.getElementById('p-rubro').value = '';
     document.getElementById('p-contacto').value = '';
+    document.getElementById('p-telefono').value = '';
     document.getElementById('p-condiciones').value = '';
     document.getElementById('p-plazo').value = '';
     btnDel.style.display = 'none';
@@ -353,8 +359,12 @@ function guardarProveedor() {
   const p = {
     id: editId || Date.now(),
     nombre: nombre,
-    rubro: document.getElementById('p-rubro').value,
+    rut: document.getElementById('p-rut').value.trim(),
+    direccion: document.getElementById('p-direccion').value.trim(),
+    comuna: document.getElementById('p-comuna').value.trim(),
+    rubro: document.getElementById('p-rubro').value.trim(),
     contacto: document.getElementById('p-contacto').value.trim(),
+    telefono: document.getElementById('p-telefono').value.trim(),
     condicionesPago: document.getElementById('p-condiciones').value.trim(),
     plazoEntrega: document.getElementById('p-plazo').value.trim(),
     insumos: insumosLimpios
