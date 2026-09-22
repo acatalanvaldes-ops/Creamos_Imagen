@@ -148,6 +148,7 @@
     </div>
   </div>
 </div>
+
 <script>
 // ============================================================
 // AUTENTICACIÓN CON GOOGLE + CONTROL DE ACCESO POR MÓDULO
@@ -301,7 +302,7 @@ function renderMenu(sess) {
   if (!grid) return;
   var visibles = MODULOS.filter(function(m){ return isModuleAllowed(sess, m.key); });
   if (visibles.length === 0) {
-    grid.outerHTML = '<div class="empty-access">No tienes acceso a ningún módulo todavía. Pide a Alejandra que te agregue desde "Accesos".</div>';
+    grid.innerHTML = '<div class="empty-access">No tienes acceso a ningún módulo todavía. Pide a Alejandra que te agregue desde "Accesos".</div>';
     return;
   }
   grid.innerHTML = visibles.map(function(m){
@@ -350,45 +351,10 @@ function renderMenu(sess) {
   <div class="container">
     <h1>Portal Creamos Imagen</h1>
     <p>Selecciona la aplicación a la que deseas ingresar:</p>
-
-    <div class="grid-menu">
-      <a href="rendicion.html" class="menu-btn caja">
-        <span class="icon">💵</span>
-        <span>Caja</span>
-      </a>
-      <a href="clientes.html" class="menu-btn clientes">
-        <span class="icon">👥</span>
-        <span>Clientes</span>
-      </a>
-      <a href="costos.html" class="menu-btn costos">
-        <span class="icon">⚙️</span>
-        <span>Costos</span>
-      </a>
-      <a href="cotizaciones.html" class="menu-btn cotizaciones">
-        <span class="icon">🧾</span>
-        <span>Cotizaciones</span>
-      </a>
-      <a href="dashboard.html" class="menu-btn dashboard">
-        <span class="icon">📈</span>
-        <span>Indicadores</span>
-      </a>
-      <a href="calendario.html" class="menu-btn producciones">
-        <span class="icon">📅</span>
-        <span>Producciones</span>
-      </a>
-      <a href="proveedores.html" class="menu-btn proveedores">
-        <span class="icon">📦</span>
-        <span>Proveedores</span>
-      </a>
-      <a href="ventasci.html" class="menu-btn ventasci">
-        <span class="icon">🏢</span>
-        <span style="text-align:center;">Ventas Empresa<br><small style="font-size:10px;color:#888;font-weight:normal;">(Creamos Imagen)</small></span>
-      </a>
-      <a href="ventas.html" class="menu-btn ventas">
-        <span class="icon">📊</span>
-        <span style="text-align:center;">Ventas Local<br><small style="font-size:10px;color:#888;font-weight:normal;">(Vendedores)</small></span>
-      </a>
-    </div>
+    
+    <!-- El contenedor del menú lo llenará la función de arriba -->
+    <div class="grid-menu"></div>
+    
   </div>
 </body>
 </html>
