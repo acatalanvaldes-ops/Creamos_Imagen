@@ -1,7 +1,1173 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+<meta charset="UTF-8">a<!DOCTYPE html>
+<html lang="es">
+<head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calendario de Producciones 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Mono:wght@300;400;500&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+  :root {
+    --bg: #0e0c09; --surface: #181410; --card: #1f1a14; --border: #2e2619;
+    --accent: #e8a020; --accent2: #c45c1a; --accent3: #5a8f5a; --accent4: #3d6fa8;
+    --accent5: #8b3fa8; --text: #f0e8d8; --text2: #a09070; --text3: #c2b090;
+    --today: #e8a020; --prod1: #2a9d8f; --prod2: #e76f51; --prod3: #a855f7;
+    --prod4: #3d6fa8; --prod5: #e8a020;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  ::placeholder { color: var(--text3); opacity: 1; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; min-height: 100vh; overflow-x: hidden; }
+  body::before { content: ''; position: fixed; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events: none; z-index: 1000; opacity: 0.4; }
+  .app { max-width: 1400px; margin: 0 auto; padding: 40px 24px; }
+  .header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 48px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+  .header-left h1 { font-family: 'Playfair Display', serif; font-size: clamp(2.5rem, 6vw, 5rem); font-weight: 900; line-height: 0.9; letter-spacing: -2px; color: var(--text); }
+  .header-left h1 span { color: var(--accent); display: block; }
+  .header-left h1 select { color: var(--accent); display: block; background: transparent; border: none; font-family: inherit; font-size: inherit; font-weight: inherit; letter-spacing: inherit; line-height: inherit; cursor: pointer; padding: 0; margin: 0; outline: none; }
+  .header-left h1 select:hover, .header-left h1 select:focus { opacity: 0.85; }
+  .header-left p { margin-top: 12px; font-size: 0.75rem; color: var(--text3); letter-spacing: 3px; text-transform: uppercase; }
+  .header-right { text-align: right; }
+  .today-badge { display: inline-block; background: var(--accent); color: var(--bg); font-size: 0.65rem; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; padding: 6px 14px; border-radius: 2px; margin-bottom: 8px; }
+  .today-date { font-family: 'Playfair Display', serif; font-size: 1.1rem; color: var(--text2); }
+  
+  .controls { display: flex; gap: 12px; margin-bottom: 32px; flex-wrap: wrap; align-items: center; }
+  .controls-label { font-size: 0.65rem; letter-spacing: 2px; text-transform: uppercase; color: var(--text3); margin-right: 4px; }
+  .tag-btn { display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: var(--card); border: 1px solid var(--border); border-radius: 2px; color: var(--text2); font-family: 'DM Mono', monospace; font-size: 0.7rem; cursor: pointer; transition: all 0.2s; letter-spacing: 1px; text-transform: uppercase; }
+  .tag-btn:hover { border-color: var(--accent); color: var(--text); }
+  .tag-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .tag-btn.active-filter { border-color: var(--accent); color: var(--accent); background: var(--accent)18; }
+  
+  .add-form { background: var(--card); border: 1px solid var(--border); border-radius: 4px; padding: 24px; margin-bottom: 32px; display: none; }
+  .add-form.open { display: block; animation: slideDown 0.3s ease; }
+  @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+  .form-title { font-family: 'Playfair Display', serif; font-size: 1.1rem; margin-bottom: 16px; color: var(--accent); }
+  .form-group label { display: block; font-size: 0.6rem; letter-spacing: 2px; text-transform: uppercase; color: var(--text3); margin-bottom: 6px; }
+  .form-group input, .form-group select { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 2px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 0.8rem; padding: 10px 12px; outline: none; transition: border-color 0.2s; }
+  .form-group input:focus, .form-group select:focus { border-color: var(--accent); }
+  .btn-add { padding: 10px 20px; background: var(--accent); border: none; border-radius: 2px; color: var(--bg); font-family: 'DM Mono', monospace; font-size: 0.75rem; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+  .btn-add:hover { background: #f0b030; transform: translateY(-1px); }
+  .toggle-form-btn { padding: 10px 20px; background: transparent; border: 1px solid var(--accent); border-radius: 2px; color: var(--accent); font-family: 'DM Mono', monospace; font-size: 0.7rem; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
+  .toggle-form-btn:hover { background: var(--accent); color: var(--bg); }
+  
+  /* NUEVO DISEÑO CALENDARIO GRANDE */
+  .large-month-card { background: var(--card); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; margin-bottom: 24px; box-shadow: 0 8px 30px rgba(0,0,0,0.4); }
+  .large-month-header { padding: 24px 30px; display: flex; align-items: baseline; justify-content: space-between; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .large-month-name { font-family: 'Playfair Display', serif; font-size: 2.2rem; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: 2px; }
+  .large-month-body { padding: 20px; }
+  .large-dow-row { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 12px; }
+  .large-dow { text-align: center; font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; color: var(--text3); padding: 8px 0; font-weight: bold; border-bottom: 1px solid var(--border); }
+  .large-days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+  .large-day-cell { position: relative; min-height: 110px; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; padding: 10px; font-size: 1.2rem; border-radius: 4px; cursor: pointer; transition: background 0.2s, border-color 0.2s; color: var(--text2); border: 1px solid var(--border); background: var(--surface); }
+  .large-day-cell:hover:not(.empty) { background: var(--border); color: var(--text); }
+  .large-day-cell.empty { cursor: default; background: transparent; border-color: transparent; }
+  .large-day-cell.weekend { color: var(--text3); background: rgba(0,0,0,0.15); }
+  .large-day-cell.today { border-color: var(--accent); color: var(--text); font-weight: 600; background: rgba(232, 160, 32, 0.05); }
+  .large-day-cell.today::after { content: 'HOY'; position: absolute; top: 12px; right: 10px; font-size: 0.55rem; background: var(--accent); color: var(--bg); padding: 2px 6px; border-radius: 10px; font-weight: 700; letter-spacing: 1px; }
+  .large-day-dots { display: flex; flex-direction: column; gap: 4px; margin-top: auto; padding-top: 12px; width: 100%; }
+  .large-day-bar { font-size: 0.6rem; padding: 4px 6px 4px 8px; border-radius: 3px; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; text-shadow: 0 1px 2px rgba(0,0,0,0.6); box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+
+  /* NAVEGADOR DE MESES INFERIOR */
+  .month-nav { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 48px; background: var(--surface); padding: 16px; border-radius: 6px; border: 1px solid var(--border); }
+  .month-nav-btn { flex: 1; min-width: 80px; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text3); font-family: 'DM Mono', monospace; font-size: 0.75rem; cursor: pointer; transition: all 0.2s; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; text-align: center; }
+  .month-nav-btn:hover { border-color: var(--text2); color: var(--text); }
+  .month-nav-btn.active { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 700; }
+
+  .bottom-section { display: grid; grid-template-columns: 1fr 340px; gap: 24px; }
+  @media (max-width: 900px) { .bottom-section { grid-template-columns: 1fr; } }
+  .section-title { font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 700; margin-bottom: 16px; color: var(--text); display: flex; align-items: center; gap: 12px; }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .timeline { background: var(--card); border: 1px solid var(--border); border-radius: 4px; padding: 20px; }
+  .timeline-empty { color: var(--text3); font-size: 0.75rem; text-align: center; padding: 32px; letter-spacing: 1px; }
+  .prod-delete { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 0.9rem; padding: 2px 6px; border-radius: 2px; transition: color 0.2s, background 0.2s; flex-shrink: 0; }
+  .prod-delete:hover { color: #e05555; background: rgba(224,85,85,0.1); }
+  .stats-panel { display: flex; flex-direction: column; gap: 16px; }
+  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 4px; padding: 20px; }
+  .stat-label { font-size: 0.6rem; letter-spacing: 2px; text-transform: uppercase; color: var(--text3); margin-bottom: 8px; }
+  .stat-value { font-family: 'Playfair Display', serif; font-size: 2.2rem; font-weight: 700; color: var(--accent); line-height: 1; }
+  .stat-sub { font-size: 0.7rem; color: var(--text3); margin-top: 4px; }
+  .month-bar-list { display: flex; flex-direction: column; gap: 8px; }
+  .month-bar-row { display: flex; align-items: center; gap: 10px; }
+  .month-bar-label { font-size: 0.6rem; letter-spacing: 1px; text-transform: uppercase; color: var(--text3); width: 28px; flex-shrink: 0; }
+  .month-bar-track { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .month-bar-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.5s ease; }
+  .month-bar-count { font-size: 0.6rem; color: var(--text3); width: 16px; text-align: right; }
+  .tooltip { position: fixed; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 12px 16px; font-size: 0.75rem; color: var(--text); pointer-events: none; z-index: 999; min-width: 180px; display: none; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+  .tooltip-date { font-size: 0.6rem; letter-spacing: 2px; text-transform: uppercase; color: var(--text3); margin-bottom: 6px; }
+  .tooltip-prod { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+  .tooltip-prod-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .cantidad-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 4px; }
+  .cantidad-item label { display: block; font-size: 0.55rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text3); margin-bottom: 4px; }
+  .cantidad-item input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 2px; color: var(--accent); font-family: 'DM Mono', monospace; font-size: 0.85rem; font-weight: 500; padding: 7px 10px; outline: none; transition: border-color 0.2s; text-align: center; }
+  .cantidad-item input:focus { border-color: var(--accent); }
+  .cantidad-total-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--accent)18; border: 1px solid var(--accent)44; border-radius: 2px; padding: 3px 10px; font-size: 0.7rem; color: var(--accent); font-weight: 500; letter-spacing: 1px; margin-top: 2px; }
+  
+  @media print { body::before { display: none; } .controls, .add-form, .toggle-form-btn, .month-nav { display: none !important; } }
+</style>
+</head>
+<body>
+<script>
+(function(){
+  var MODULE_KEY = 'calendario';
+  var SESSION_KEY = 'cimagen_session';
+  var SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+  var sess = null;
+  try { sess = JSON.parse(localStorage.getItem(SESSION_KEY)); } catch(e){}
+  var valid = sess && sess.email && sess.ts && (Date.now() - sess.ts < SESSION_TTL_MS);
+  var allowed = valid && (sess.isAdmin || (sess.modules && sess.modules.indexOf(MODULE_KEY) !== -1));
+  if (!allowed) {
+    window.location.replace('index.html');
+  }
+})();
+</script>
+
+<div id="cloudSaveBadge" style="position:fixed;bottom:18px;right:18px;z-index:999998;display:none;align-items:center;gap:8px;padding:8px 16px;border-radius:2px;font-family:'DM Mono',monospace;font-size:0.7rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;border:1px solid var(--border);box-shadow:0 6px 20px rgba(0,0,0,0.5);transition:opacity 0.25s ease;"></div>
+<div class="app">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <a href="index.html" style="display:inline-block; margin-bottom:12px; color:var(--accent); text-decoration:none; font-size:0.75rem; font-weight:bold; text-transform:uppercase; letter-spacing:1px; transition:opacity 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">← Volver al Menú</a>
+      <h1>Calendario<select id="yearSelect" onchange="changeYear(this.value)"><option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option><option value="2028">2028</option><option value="2029">2029</option><option value="2030">2030</option><option value="2031">2031</option></select></h1>
+      <p>Gestor de producciones &mdash; Planificación anual</p>
+    </div>
+    <div class="header-right">
+      <div class="today-badge">Hoy</div>
+      <div class="today-date" id="todayDisplay"></div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls" style="flex-direction:column;align-items:flex-start;gap:10px">
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;width:100%">
+      <span class="controls-label">Categoría:</span>
+      <button class="tag-btn active-filter" id="fbtn-" onclick="setFilter('tag','')"><span class="tag-dot" style="background:#a09070"></span> Todas</button>
+      <button class="tag-btn" id="fbtn-tag-Ingreso" onclick="setFilter('tag','Ingreso')"><span class="tag-dot" style="background:var(--prod1)"></span> Ingreso</button>
+      <button class="tag-btn" id="fbtn-tag-Confección" onclick="setFilter('tag','Confección')"><span class="tag-dot" style="background:var(--prod2)"></span> Confección</button>
+      <button class="tag-btn" id="fbtn-tag-Sublimación" onclick="setFilter('tag','Sublimación')"><span class="tag-dot" style="background:var(--prod3)"></span> Sublimación</button>
+      <button class="tag-btn" id="fbtn-tag-Abono" onclick="setFilter('tag','Abono')"><span class="tag-dot" style="background:var(--prod4)"></span> Abono</button>
+      <button class="tag-btn" id="fbtn-tag-Saldo" onclick="setFilter('tag','Saldo')"><span class="tag-dot" style="background:var(--prod5)"></span> Saldo</button>
+      <button class="tag-btn" id="fbtn-tag-Entrega" onclick="setFilter('tag','Entrega')"><span class="tag-dot" style="background:#e84040"></span> Entrega</button>
+      <button class="tag-btn" id="fbtn-tag-Otros" onclick="setFilter('tag','Otros')"><span class="tag-dot" style="background:#6b7280"></span> Otros</button>
+      <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="toggle-form-btn" onclick="toggleForm()"><span id="formBtnTxt">＋ Agregar producción</span></button>
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+      <span class="controls-label">Estado:</span>
+      <span style="font-size:0.6rem;color:var(--text3);letter-spacing:0.5px;margin-right:6px">(borde izquierdo en el calendario)</span>
+      <button class="tag-btn" id="fbtn-estado-" onclick="setFilter('estado','')"><span class="tag-dot" style="background:#a09070"></span> Todos</button>
+      <button class="tag-btn" id="fbtn-estado-saldo" onclick="setFilter('estado','saldo')"><span class="tag-dot" style="background:#e84040"></span> Con saldo pendiente</button>
+      <button class="tag-btn" id="fbtn-estado-abono" onclick="setFilter('estado','abono')"><span class="tag-dot" style="background:var(--prod4)"></span> Con abono registrado</button>
+      <button class="tag-btn" id="fbtn-estado-pagado" onclick="setFilter('estado','pagado')"><span class="tag-dot" style="background:var(--prod3)"></span> Pagadas</button>
+    </div>
+  </div>
+
+  <!-- Add Form -->
+  <div class="add-form" id="addForm">
+    <div class="form-title" style="margin-bottom:16px">Nueva Producción</div>
+    <div style="display:grid;grid-template-columns:80px 2fr 1fr 1fr 1fr 1fr;gap:12px;margin-bottom:12px">
+      <div class="form-group"><label>N° Orden</label><input type="text" id="prodOrden" placeholder="Auto" autocomplete="off" readonly style="opacity:0.7;cursor:not-allowed;text-align:center;font-weight:600;color:var(--accent)"></div>
+      <div class="form-group"><label>Nombre / Cliente</label><input type="text" id="prodName" placeholder="Nombre de la producción…" list="listNombres" autocomplete="off"><datalist id="listNombres"></datalist></div>
+      <div class="form-group"><label>Tipo de producción</label><select id="prodTipo" onchange="renderCantidadFields(this.value)" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.8rem;padding:10px 12px;outline:none;transition:border-color 0.2s"><option value="">— Seleccionar —</option><option value="Confección">Confección</option><option value="Sublimación">Sublimación</option><option value="Otros">Otros</option></select></div>
+      
+      <div class="form-group">
+        <label>Diseñador</label>
+        <select id="prodDiseñador" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.8rem;padding:10px 12px;outline:none;transition:border-color 0.2s">
+          <option value="">— Seleccionar —</option>
+          <option value="Sebastián Gutiérrez">Sebastián Gutiérrez</option>
+          <option value="Alejandro Velozo">Alejandro Velozo</option>
+          <option value="Ingrid Vargas">Ingrid Vargas</option>
+        </select>
+      </div>
+      
+      <div class="form-group"><label>Fecha Ingreso</label><input type="date" id="prodDate" min="2026-01-01" max="2026-12-31" onchange="autoCalcEntrega()"></div>
+      <div class="form-group"><label>Fecha Entrega</label><input type="date" id="prodFechaEntrega" min="2026-01-01" max="2026-12-31"></div>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:14px 16px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <span style="font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--text3)">Cantidad de prendas</span>
+        <span id="totalPrendasBadge" class="cantidad-total-badge">Total: 0 prendas</span>
+      </div>
+      <div class="cantidad-grid" id="cantidadGrid"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px">
+      <div class="form-group"><label>Valor Total ($)</label><input type="number" id="prodMonto" placeholder="0" min="0" oninput="calcSaldo()"></div>
+      <div class="form-group"><label>Abono ($)</label><input type="number" id="prodAbono" placeholder="0" min="0" oninput="calcSaldo()"></div>
+      <div class="form-group"><label>Saldo Pendiente ($)</label><input type="number" id="prodSaldo" placeholder="0" readonly style="opacity:0.6;cursor:not-allowed"></div>
+      <div class="form-group"><label>&nbsp;</label><button class="btn-add" onclick="addProduction()">Guardar</button></div>
+    </div>
+  </div>
+
+  <!-- VISTA GRANDE DEL MES ACTUAL -->
+  <div id="largeMonthView"></div>
+  
+  <!-- NAVEGADOR DE MESES INFERIOR -->
+  <div id="monthNav" class="month-nav"></div>
+
+  <!-- Bottom section -->
+  <div class="bottom-section">
+    <div>
+      <div class="section-title" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        Producciones registradas
+        
+        <!-- SELECTOR DE RANGO DE FECHAS: filtra el calendario, la lista y las estadísticas, y se usa también para el PDF -->
+        <div style="display:flex;gap:8px;margin-left:auto;align-items:center;flex-wrap:wrap;">
+          <span style="font-size:0.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Desde:</span>
+          <input type="date" id="pdfDesde" onchange="timelinePage=1; renderAll()" style="background:var(--card);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.75rem;padding:6px;outline:none;">
+          <span style="font-size:0.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-left:4px">Hasta:</span>
+          <input type="date" id="pdfHasta" onchange="timelinePage=1; renderAll()" style="background:var(--card);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.75rem;padding:6px;outline:none;">
+          <button class="toggle-form-btn" onclick="clearDateRange()" title="Quitar filtro de rango de fechas" style="border-color:var(--text3);color:var(--text3);margin-left:2px;padding:8px 12px">✕</button>
+          <button class="toggle-form-btn" onclick="exportPDF()" title="Exportar rango seleccionado a PDF" style="border-color:#e84040;color:#e84040;margin-left:6px">📄 PDF</button>
+        </div>
+        
+      </div>
+      <div class="timeline" id="timeline">
+        <div class="timeline-empty">No hay producciones aún.<br>Usa el botón "Agregar producción" para comenzar.</div>
+      </div>
+    </div>
+    <div class="stats-panel">
+      <div class="stat-card"><div class="stat-label">Total producciones</div><div class="stat-value" id="statTotal">0</div><div class="stat-sub" id="statYearLabel">en todo el año 2026</div></div>
+      <div class="stat-card"><div class="stat-label">Distribución mensual</div><div class="month-bar-list" id="monthBars"></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbxP5-vB59e80qpXdx4AcCyS28C4H58thdh0XXtLcDWZD8Q_47fDbBvLn1ahqx7RoJor/exec";
+const CLOUD_TOKEN = "b5bd161b4ef581c6114b7bb4";
+
+// El backend (Google Apps Script) a veces devuelve una falla transitoria —una
+// página de error en vez de JSON, o un HTTP no-OK— que se resuelve sola al
+// reintentar. Sin reintentos, esas fallas pasajeras se veían igual que una
+// caída real de la conexión (alertas de "no se pudo conectar" de más).
+function esperar(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+const CLOUD_INTENTOS = 3;
+// Google Apps Script a veces responde muy lento bajo carga (varios segundos, a
+// veces mucho mas) en vez de fallar de inmediato. Sin un limite, un intento
+// lento se queda esperando indefinidamente y bloquea la pagina por minutos en
+// vez de reintentar o avisar. CLOUD_TIMEOUT_MS pone un tope por intento.
+const CLOUD_TIMEOUT_MS = 12000;
+async function fetchConTimeout(url, opts) {
+  const controller = new AbortController();
+  const timer = setTimeout(function () { controller.abort(); }, CLOUD_TIMEOUT_MS);
+  try {
+    return await fetch(url, Object.assign({}, opts, { signal: controller.signal }));
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function saveToCloud(key, dataObj) {
+  let ultimoError;
+  for (let intento = 0; intento < CLOUD_INTENTOS; intento++) {
+    try {
+      const res = await fetchConTimeout(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj), token: CLOUD_TOKEN }) });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return true;
+    } catch (e) {
+      ultimoError = e;
+      if (intento < CLOUD_INTENTOS - 1) await esperar(500 * (intento + 1));
+    }
+  }
+  console.error("Error guardando en la nube", ultimoError);
+  return false;
+}
+
+let lastSyncedSnapshot = null;
+let _saveStatusTimer = null;
+
+function showSaveStatus(st) {
+  const el = document.getElementById('cloudSaveBadge');
+  if (!el) return;
+  clearTimeout(_saveStatusTimer);
+  el.style.display = 'flex';
+  el.style.opacity = '1';
+  if (st === 'saving') {
+    el.style.background = '#181410'; el.style.borderColor = 'var(--border)'; el.style.color = 'var(--text2)';
+    el.textContent = '⏳ Guardando…';
+  } else if (st === 'saved') {
+    el.style.background = '#132a18'; el.style.borderColor = '#2a9d8f'; el.style.color = '#7fd9c4';
+    el.textContent = '✓ Guardado';
+    _saveStatusTimer = setTimeout(() => { el.style.opacity = '0'; setTimeout(() => { el.style.display = 'none'; }, 300); }, 2200);
+  } else if (st === 'local') {
+    el.style.background = '#241d10'; el.style.borderColor = '#c99a2e'; el.style.color = '#e8c468';
+    el.textContent = '💾 Guardado solo en este dispositivo (recarga la página)';
+  } else if (st === 'error') {
+    el.style.background = '#2e1414'; el.style.borderColor = '#e84040'; el.style.color = '#f08080';
+    el.textContent = '⚠ Error al guardar, revisa tu conexión';
+  }
+}
+
+async function checkForConflict(key) {
+  try {
+    const fresh = await loadFromCloudSharded(key);
+    const freshStr = JSON.stringify(fresh || []);
+    if (lastSyncedSnapshot !== null && freshStr !== lastSyncedSnapshot) return true;
+    return false;
+  } catch (e) { return false; }
+}
+
+async function loadFromCloud(key) {
+  let ultimoError;
+  for (let intento = 0; intento < CLOUD_INTENTOS; intento++) {
+    try {
+      const res = await fetchConTimeout(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const json = await res.json();
+      return json.valor ? JSON.parse(json.valor) : null;
+    } catch (e) {
+      ultimoError = e;
+      if (intento < CLOUD_INTENTOS - 1) await esperar(500 * (intento + 1));
+    }
+  }
+  console.error("Error cargando de la nube", ultimoError);
+  return null;
+}
+
+// Version "estricta": en vez de devolver null ante cualquier falla (red, HTTP,
+// o error del servidor), lanza una excepción tras agotar los reintentos. Así
+// se puede distinguir "la nube respondió que está vacío" de "no se pudo
+// confirmar el estado de la nube", y evitar que un guardado hecho tras una
+// carga fallida sobrescriba datos reales (el mismo problema ya visto y
+// corregido en otros módulos de esta app).
+async function loadFromCloudStrict(key) {
+  let ultimoError;
+  for (let intento = 0; intento < CLOUD_INTENTOS; intento++) {
+    try {
+      const res = await fetchConTimeout(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const json = await res.json();
+      if (json.estado === 'error') throw new Error(json.detalle || 'Error del servidor');
+      return json.valor ? JSON.parse(json.valor) : null;
+    } catch (e) {
+      ultimoError = e;
+      if (intento < CLOUD_INTENTOS - 1) await esperar(500 * (intento + 1));
+    }
+  }
+  throw ultimoError;
+}
+
+// Google Sheets limita cada celda a 50.000 caracteres. Las producciones de un
+// año se guardaban en una sola celda sin repartir: a medida que el calendario
+// crece (ya iba en 76 registros / ~22.000 caracteres), tarde o temprano un
+// guardado hubiera superado el límite y se hubiera perdido silenciosamente,
+// igual que ya pasó una vez con el historial de ventas. Para evitarlo, las
+// producciones se guardan repartidas ("sharded") si hace falta: la llave
+// principal (prods<año>) guarda el primer bloque + shardCount, y cada bloque
+// extra se guarda en prods<año>_sh<N>.
+var MAX_SHARD_CHARS = 40000; // margen de seguridad bajo el límite de 50.000
+
+function splitProduccionesEnBloques(arr) {
+  var bloques = [];
+  var actual = [];
+  var largoActual = 2; // "[" + "]"
+  for (var i = 0; i < arr.length; i++) {
+    var entryStr = JSON.stringify(arr[i]);
+    var addLen = entryStr.length + 1;
+    if (largoActual + addLen > MAX_SHARD_CHARS && actual.length > 0) {
+      bloques.push(actual);
+      actual = [];
+      largoActual = 2;
+    }
+    actual.push(arr[i]);
+    largoActual += addLen;
+  }
+  bloques.push(actual); // aunque quede vacío, para poder guardar shardCount
+  return bloques;
+}
+
+async function saveToCloudSharded(key, arr) {
+  var bloques = splitProduccionesEnBloques(arr);
+  var shardCount = bloques.length;
+  var principal = { producciones: bloques[0], shardCount: shardCount };
+  var ok = await saveToCloud(key, principal);
+  for (var i = 1; i < shardCount; i++) {
+    var okI = await saveToCloud(key + '_sh' + i, { producciones: bloques[i] });
+    ok = ok && okI;
+  }
+  return ok;
+}
+
+// Carga estricta y con bloques. Compatible con el formato antiguo (un array
+// plano guardado directo en la llave, sin repartir).
+async function loadFromCloudSharded(key) {
+  var principal = await loadFromCloudStrict(key);
+  if (!principal) return null;
+  if (Array.isArray(principal)) return principal; // formato antiguo, sin sharding
+  var arr = (principal.producciones || []).slice();
+  var shardCount = principal.shardCount || 1;
+  for (var i = 1; i < shardCount; i++) {
+    var bloque = await loadFromCloudStrict(key + '_sh' + i);
+    if (bloque && bloque.producciones) arr = arr.concat(bloque.producciones);
+  }
+  return arr;
+}
+
+const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const MONTHS_SHORT = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const DAYS = ['Lu','Ma','Mi','Ju','Vi','Sa','Do'];
+const TAG_COLORS = { 'Ingreso':'var(--prod1)', 'Confección':'var(--prod2)', 'Sublimación':'var(--prod3)', 'Abono':'var(--prod4)', 'Saldo':'var(--prod5)', 'Entrega':'#e84040', 'Otros':'#6b7280' };
+function estadoColor(p) {
+  if (p.saldo > 0) return '#e84040';
+  if (p.monto > 0 && p.saldo === 0) return '#a855f7';
+  if (p.abono > 0) return '#3d6fa8';
+  return 'transparent';
+}
+
+let productions = [
+  { id: 1711000000001, orden: '001', name: 'TRUJILLO', prenda: '3 Camisetas, 7 Conjuntos', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-05-28', fechaEntrega: '2026-05-11', tag: 'Ingreso', cantidad: { camisetas: 3, conjuntos: 7 }, totalPrendas: 10, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000002, orden: '002', name: 'LA SALLE', prenda: '18 Camisetas, 146 Conjuntos', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-05-30', fechaEntrega: '2026-05-11', tag: 'Ingreso', cantidad: { camisetas: 18, conjuntos: 146 }, totalPrendas: 164, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000003, orden: '003', name: 'BEAUTYSTAR', prenda: '18 Camisetas', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-05-29', fechaEntrega: '2026-05-12', tag: 'Ingreso', cantidad: { camisetas: 18 }, totalPrendas: 18, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000004, orden: '004', name: 'OLLANTAY', prenda: '32 Camisetas', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-05-12', fechaEntrega: '2026-05-29', tag: 'Ingreso', cantidad: { camisetas: 32 }, totalPrendas: 32, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000005, orden: '005', name: 'TABERNA', prenda: '12 Camisetas, 20 Conjuntos', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-05-13', fechaEntrega: '2026-05-30', tag: 'Ingreso', cantidad: { camisetas: 12, conjuntos: 20 }, totalPrendas: 32, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000007, orden: '007', name: 'IRON SWIM 2', prenda: '11 Camisetas', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-05-15', fechaEntrega: '2026-06-02', tag: 'Ingreso', cantidad: { camisetas: 11 }, totalPrendas: 11, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000015, orden: '015', name: 'LEGENDARIOS', prenda: '2 Camisetas, 3 Conjuntos', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-05-15', fechaEntrega: '2026-06-02', tag: 'Ingreso', cantidad: { camisetas: 2, conjuntos: 3 }, totalPrendas: 5, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000006, orden: '006', name: 'BTS NEGRA MELANY', prenda: '49 Camisetas', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-05-18', fechaEntrega: '2026-06-04', tag: 'Ingreso', cantidad: { camisetas: 49 }, totalPrendas: 49, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000012, orden: '012', name: 'KARMA', prenda: '5 Camisetas', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-05-19', fechaEntrega: '2026-06-08', tag: 'Ingreso', cantidad: { camisetas: 5 }, totalPrendas: 5, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000008, orden: '008', name: 'ALCAZAR', prenda: '78 Conjuntos', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-05-22', fechaEntrega: '2026-06-08', tag: 'Ingreso', cantidad: { conjuntos: 78 }, totalPrendas: 78, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000009, orden: '009', name: 'TOMASA', prenda: '15 Camisetas', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-06-10', fechaEntrega: '2026-05-22', tag: 'Ingreso', cantidad: { camisetas: 15 }, totalPrendas: 15, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000011, orden: '011', name: 'MINOTAURO', prenda: '14 Camisetas', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-06-11', fechaEntrega: '2026-05-22', tag: 'Ingreso', cantidad: { camisetas: 14 }, totalPrendas: 14, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000013, orden: '013', name: 'QATAR', prenda: '14 Conjuntos', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-05-25', fechaEntrega: '2026-06-11', tag: 'Ingreso', cantidad: { conjuntos: 14 }, totalPrendas: 14, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000014, orden: '014', name: 'DANILO', prenda: '27 Camisetas', tipo: 'Sublimación', diseñador: 'Ingrid Vargas', date: '2026-05-25', fechaEntrega: '2026-06-05', tag: 'Ingreso', cantidad: { camisetas: 27 }, totalPrendas: 27, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000016, orden: '016', name: 'CORDILLERA', prenda: '20 Camisetas', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-05-25', fechaEntrega: '2026-06-05', tag: 'Ingreso', cantidad: { camisetas: 20 }, totalPrendas: 20, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000017, orden: '017', name: 'BATUCADA', prenda: '15 Camisetas', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-06-13', fechaEntrega: '2026-05-27', tag: 'Ingreso', cantidad: { camisetas: 15 }, totalPrendas: 15, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000019, orden: '019', name: 'MELANY ARIRANG', prenda: '11 Camisetas', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-05-29', fechaEntrega: '2026-06-16', tag: 'Ingreso', cantidad: { camisetas: 11 }, totalPrendas: 11, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000018, orden: '018', name: 'WALLMAPU', prenda: '2 Camisetas, 16 Conjuntos', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-05-31', fechaEntrega: '2026-06-16', tag: 'Ingreso', cantidad: { camisetas: 2, conjuntos: 16 }, totalPrendas: 18, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000020, orden: '020', name: 'DOMINGO', prenda: '58 Camisetas', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-06-01', fechaEntrega: '2026-06-15', tag: 'Ingreso', cantidad: { camisetas: 58 }, totalPrendas: 58, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000021, orden: '021', name: 'LEAF COLOR', prenda: '6 Conjuntos', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-06-10', fechaEntrega: '2026-06-27', tag: 'Ingreso', cantidad: { conjuntos: 6 }, totalPrendas: 6, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000022, orden: '022', name: 'SAN NICOLAS DE MIRA', prenda: '12 Camisetas', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-06-10', fechaEntrega: '2026-06-27', tag: 'Ingreso', cantidad: { camisetas: 12 }, totalPrendas: 12, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000023, orden: '023', name: 'NICO APARA', prenda: '55 Conjuntos', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-06-11', fechaEntrega: '2026-06-29', tag: 'Ingreso', cantidad: { conjuntos: 55 }, totalPrendas: 55, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000024, orden: '024', name: 'ESCUELA SAN PEDRO EQUUS', prenda: '12 Conjuntos', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-06-11', fechaEntrega: '2026-06-20', tag: 'Ingreso', cantidad: { conjuntos: 12 }, totalPrendas: 12, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000025, orden: '025', name: 'ESCUELA ITALIA EQUUS', prenda: '15 Camisetas', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-06-11', fechaEntrega: '2026-06-29', tag: 'Ingreso', cantidad: { camisetas: 15 }, totalPrendas: 15, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000026, orden: '026', name: 'ESCUELA GRECIA EQUUS', prenda: '25 Camisetas', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-06-11', fechaEntrega: '2026-06-29', tag: 'Ingreso', cantidad: { camisetas: 25 }, totalPrendas: 25, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000027, orden: '027', name: 'ESCUELA TOMASA EQUUS', prenda: '24 Camisetas', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-06-11', fechaEntrega: '2026-06-29', tag: 'Ingreso', cantidad: { camisetas: 24 }, totalPrendas: 24, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000028, orden: '028', name: 'DRAGON FORTALEZA', prenda: '103 Camisetas, 34 Otros', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-06-19', fechaEntrega: '2026-07-06', tag: 'Ingreso', cantidad: { camisetas: 103, otros: 34, otrosDesc: 'Otros' }, totalPrendas: 137, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000029, orden: '029', name: 'ORSI', prenda: '12 Conjuntos', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-06-19', fechaEntrega: '2026-07-06', tag: 'Ingreso', cantidad: { conjuntos: 12 }, totalPrendas: 12, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000030, orden: '030', name: 'ESGRIMA PUNTA ARENAS', prenda: '33 Camisetas', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-06-22', fechaEntrega: '2026-07-08', tag: 'Ingreso', cantidad: { camisetas: 33 }, totalPrendas: 33, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000031, orden: '031', name: 'BRYAN', prenda: '20 Conjuntos', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-06-25', fechaEntrega: '2026-07-04', tag: 'Ingreso', cantidad: { conjuntos: 20 }, totalPrendas: 20, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000032, orden: '032', name: 'CHE CLAU', prenda: '10 Conjuntos', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-06-26', fechaEntrega: '2026-07-17', tag: 'Ingreso', cantidad: { conjuntos: 10 }, totalPrendas: 10, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000033, orden: '033', name: 'CERRO PORTEÑO', prenda: '18 Conjuntos', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-06-26', fechaEntrega: '2026-07-18', tag: 'Ingreso', cantidad: { conjuntos: 18 }, totalPrendas: 18, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000034, orden: '034', name: 'MELANI BTS', prenda: '29 Camisetas', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-06-26', fechaEntrega: '2026-07-15', tag: 'Ingreso', cantidad: { camisetas: 29 }, totalPrendas: 29, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000035, orden: '035', name: 'LA SALLE', prenda: '6 Camisetas, 2 Conjuntos', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-06-30', fechaEntrega: '2026-07-17', tag: 'Ingreso', cantidad: { camisetas: 6, conjuntos: 2 }, totalPrendas: 8, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000037, orden: '037', name: 'IBARRA', prenda: '140 Camisetas', tipo: 'Sublimación', diseñador: 'Sebastián Gutiérrez', date: '2026-07-01', fechaEntrega: '2026-07-10', tag: 'Ingreso', cantidad: { camisetas: 140 }, totalPrendas: 140, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000036, orden: '036', name: 'MAX', prenda: '14 Camisetas', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-07-03', fechaEntrega: '2026-07-21', tag: 'Ingreso', cantidad: { camisetas: 14 }, totalPrendas: 14, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000038, orden: '038', name: 'RINCON DE CATITA', prenda: '27 Camisetas', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-07-06', fechaEntrega: '2026-07-22', tag: 'Ingreso', cantidad: { camisetas: 27 }, totalPrendas: 27, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000039, orden: '039', name: 'LEGIONARIOS', prenda: '8 Conjuntos', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-07-06', fechaEntrega: '2026-07-22', tag: 'Ingreso', cantidad: { conjuntos: 8 }, totalPrendas: 8, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000040, orden: '040', name: 'OSCAR GUERRA', prenda: '21 Camisetas', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-07-06', fechaEntrega: '2026-07-22', tag: 'Ingreso', cantidad: { camisetas: 21 }, totalPrendas: 21, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000041, orden: '041', name: 'RICARDO VARAS BULL\'SBIKE', prenda: '13 Camisetas', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-07-10', fechaEntrega: '2026-07-30', tag: 'Ingreso', cantidad: { camisetas: 13 }, totalPrendas: 13, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000042, orden: '042', name: 'FUTPRO', prenda: '20 Conjuntos', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-07-10', fechaEntrega: '2026-07-30', tag: 'Ingreso', cantidad: { conjuntos: 20 }, totalPrendas: 20, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000047, orden: '047', name: 'TOTAL ENERGY', prenda: '13 Camisetas', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-07-13', fechaEntrega: '', tag: 'Ingreso', cantidad: { camisetas: 13 }, totalPrendas: 13, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000043, orden: '043', name: 'CLUB DEPORTIVO CARDENAL', prenda: '10 Camisetas, 7 Conjuntos', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-07-16', fechaEntrega: '2026-08-03', tag: 'Ingreso', cantidad: { camisetas: 10, conjuntos: 7 }, totalPrendas: 17, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000044, orden: '044', name: 'FABIOLA BTS', prenda: '18 Camisetas', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-07-20', fechaEntrega: '2026-08-05', tag: 'Ingreso', cantidad: { camisetas: 18 }, totalPrendas: 18, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000045, orden: '045', name: 'KYMSTAR', prenda: '44 Conjuntos', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-07-22', fechaEntrega: '2026-08-10', tag: 'Ingreso', cantidad: { conjuntos: 44 }, totalPrendas: 44, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000046, orden: '046', name: 'EURE', prenda: '24 Camisetas', tipo: 'Sublimación', diseñador: 'Alejandro Velozo', date: '2026-07-23', fechaEntrega: '2026-07-25', tag: 'Ingreso', cantidad: { camisetas: 24 }, totalPrendas: 24, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000048, orden: '048', name: 'IGNACIA CRICHTON', prenda: '17 Camisetas', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-07-31', fechaEntrega: '2026-08-20', tag: 'Ingreso', cantidad: { camisetas: 17 }, totalPrendas: 17, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000049, orden: '049', name: 'YENNIFER', prenda: '20 Camisetas', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-08-03', fechaEntrega: '2026-08-15', tag: 'Ingreso', cantidad: { camisetas: 20 }, totalPrendas: 20, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000050, orden: '050', name: 'EQUUS ESCUELA FROILAN', prenda: '12 Camisetas', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-08-10', fechaEntrega: '2026-08-26', tag: 'Ingreso', cantidad: { camisetas: 12 }, totalPrendas: 12, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000051, orden: '051', name: 'FABIOLA', prenda: '4 Camisetas', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-08-10', fechaEntrega: '2026-08-26', tag: 'Ingreso', cantidad: { camisetas: 4 }, totalPrendas: 4, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000052, orden: '052', name: 'MELANY', prenda: '11 Camisetas', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-08-10', fechaEntrega: '2026-08-26', tag: 'Ingreso', cantidad: { camisetas: 11 }, totalPrendas: 11, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000053, orden: '053', name: 'OSCAR GUERRA', prenda: '5 Camisetas', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-08-10', fechaEntrega: '2026-08-26', tag: 'Ingreso', cantidad: { camisetas: 5 }, totalPrendas: 5, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000054, orden: '054', name: 'EQUUS LO BARNECHEA', prenda: '270 Conjuntos', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-08-11', fechaEntrega: '2026-08-30', tag: 'Ingreso', cantidad: { conjuntos: 270 }, totalPrendas: 270, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000055, orden: '055', name: 'DRAGONES CLAUDIA', prenda: '5 Camisetas', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-08-12', fechaEntrega: '2026-08-20', tag: 'Ingreso', cantidad: { camisetas: 5 }, totalPrendas: 5, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000057, orden: '057', name: 'VORA', prenda: '13 Conjuntos, 3 Otros', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-08-13', fechaEntrega: '2026-08-26', tag: 'Ingreso', cantidad: { conjuntos: 13, otros: 3, otrosDesc: 'Otros' }, totalPrendas: 16, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000056, orden: '056', name: 'EQUUS SANTA BARBARA', prenda: '20 Conjuntos', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-08-20', fechaEntrega: '2026-08-07', tag: 'Ingreso', cantidad: { conjuntos: 20 }, totalPrendas: 20, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000058, orden: '058', name: 'ESCUDERO', prenda: '22 Camisetas', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-08-24', fechaEntrega: '2026-09-08', tag: 'Ingreso', cantidad: { camisetas: 22 }, totalPrendas: 22, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000059, orden: '059', name: 'LEGIONARIOS', prenda: '11 Conjuntos', tipo: 'Confección', diseñador: 'Alejandro Velozo', date: '2026-09-10', fechaEntrega: '2026-08-24', tag: 'Ingreso', cantidad: { conjuntos: 11 }, totalPrendas: 11, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000062, orden: '062', name: 'KYMSTAR', prenda: '13 Camisetas', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-08-28', fechaEntrega: '2026-09-15', tag: 'Ingreso', cantidad: { camisetas: 13 }, totalPrendas: 13, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000060, orden: '060', name: 'CAMISETA DROPSHOP (CLAUSURA)', prenda: '21 Camisetas', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-08-31', fechaEntrega: '2026-09-17', tag: 'Ingreso', cantidad: { camisetas: 21 }, totalPrendas: 21, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000069, orden: '069', name: 'PASE GOL', prenda: '13 Conjuntos', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-08-31', fechaEntrega: '2026-09-17', tag: 'Ingreso', cantidad: { conjuntos: 13 }, totalPrendas: 13, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000061, orden: '061', name: 'QUITALMAHUE', prenda: '36 Conjuntos', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-09-01', fechaEntrega: '2026-09-17', tag: 'Ingreso', cantidad: { conjuntos: 36 }, totalPrendas: 36, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000063, orden: '063', name: 'SPORCASTING', prenda: '3 Camisetas, 16 Conjuntos', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-09-02', fechaEntrega: '2026-09-16', tag: 'Ingreso', cantidad: { camisetas: 3, conjuntos: 16 }, totalPrendas: 19, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000064, orden: '064', name: 'RODRIGO ARIAS CRUZ DEL SUR', prenda: '17 Conjuntos', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-09-08', fechaEntrega: '2026-09-30', tag: 'Ingreso', cantidad: { conjuntos: 17 }, totalPrendas: 17, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000066, orden: '066', name: 'ΑΝΤΟΝΙΟ', prenda: '12 Camisetas', tipo: 'Sublimación', diseñador: 'Sebastián Gutiérrez', date: '2026-09-15', fechaEntrega: '2026-09-11', tag: 'Ingreso', cantidad: { camisetas: 12 }, totalPrendas: 12, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000067, orden: '067', name: 'ROSY', prenda: '20 Camisetas', tipo: 'Sublimación', diseñador: 'Ingrid Vargas', date: '2026-09-12', fechaEntrega: '2026-09-15', tag: 'Ingreso', cantidad: { camisetas: 20 }, totalPrendas: 20, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000065, orden: '065', name: 'LIENZO', prenda: '7 Otros', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-09-30', fechaEntrega: '2026-09-14', tag: 'Ingreso', cantidad: { otros: 7, otrosDesc: 'Otros' }, totalPrendas: 7, monto: 0, abono: 0, saldo: 0 },
+  { id: 1711000000068, orden: '068', name: 'TALLER VOLEIBOL', prenda: '15 Camisetas', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-09-15', fechaEntrega: '2026-10-05', tag: 'Ingreso', cantidad: { camisetas: 15 }, totalPrendas: 15, monto: 0, abono: 0, saldo: 0 }
+];
+const today = new Date();
+const todayStr = today.toISOString().slice(0,10);
+let currentViewYear = Math.min(2031, Math.max(2025, today.getFullYear()));
+let currentViewMonth = today.getMonth();
+
+function storageKey() { return 'prods' + currentViewYear; }
+
+// Se pone en true solo si la carga inicial desde la nube pudo confirmarse
+// (éxito o "está vacío"). Mientras sea false, save() NO manda nada a la nube
+// (solo guarda localmente), para no arriesgarse a sobreescribir datos reales
+// con un estado incompleto por una carga que falló.
+let cargaProdsOk = false;
+
+async function loadYearData() {
+  const key = storageKey();
+  try {
+    const cloudData = await loadFromCloudSharded(key);
+    cargaProdsOk = true;
+    if (cloudData) {
+      // Merge cloud data with hardcoded data (preferring cloud data by ID)
+      const mergedMap = new Map();
+      productions.forEach(p => mergedMap.set(p.id, p));
+      cloudData.forEach(p => mergedMap.set(p.id, p));
+      productions = Array.from(mergedMap.values());
+      lastSyncedSnapshot = JSON.stringify(productions);
+    } else {
+      const localData = JSON.parse(localStorage.getItem(key) || '[]');
+      if (localData.length > 0) {
+        const mergedMap = new Map();
+        productions.forEach(p => mergedMap.set(p.id, p));
+        localData.forEach(p => mergedMap.set(p.id, p));
+        productions = Array.from(mergedMap.values());
+      }
+      lastSyncedSnapshot = JSON.stringify(productions);
+    }
+  } catch (e) {
+    cargaProdsOk = false;
+    console.error('No se pudo confirmar la carga de producciones desde la nube', e);
+    const localData = JSON.parse(localStorage.getItem(key) || '[]');
+    if (localData.length > 0) {
+      const mergedMap = new Map();
+      productions.forEach(p => mergedMap.set(p.id, p));
+      localData.forEach(p => mergedMap.set(p.id, p));
+      productions = Array.from(mergedMap.values());
+    }
+    lastSyncedSnapshot = null; // no confirmado: evita falsos conflictos más adelante
+    alert('No se pudo confirmar la conexión con la nube al cargar las producciones de ' + currentViewYear + '. Se están mostrando los datos guardados en este dispositivo; nada se subirá a la nube hasta que recargues la página (F5) con conexión.');
+  }
+}
+
+function applyYearBounds() {
+  document.getElementById('prodDate').min = currentViewYear + '-01-01';
+  document.getElementById('prodDate').max = currentViewYear + '-12-31';
+  document.getElementById('prodFechaEntrega').min = currentViewYear + '-01-01';
+  document.getElementById('prodFechaEntrega').max = currentViewYear + '-12-31';
+  
+  document.getElementById('pdfDesde').min = currentViewYear + '-01-01';
+  document.getElementById('pdfDesde').max = currentViewYear + '-12-31';
+  document.getElementById('pdfHasta').min = currentViewYear + '-01-01';
+  document.getElementById('pdfHasta').max = currentViewYear + '-12-31';
+
+  document.title = 'Calendario de Producciones ' + currentViewYear;
+}
+
+async function changeYear(newYearStr) {
+  const newYear = parseInt(newYearStr, 10);
+  if (newYear === currentViewYear) return;
+  currentViewYear = newYear;
+  applyYearBounds();
+  // El rango de fechas es específico de cada año; se limpia al cambiar de año para evitar un filtro fuera de rango.
+  document.getElementById('pdfDesde').value = '';
+  document.getElementById('pdfHasta').value = '';
+  currentViewMonth = (currentViewYear === today.getFullYear()) ? today.getMonth() : 0;
+  timelinePage = 1;
+  await loadYearData();
+  renderAll(); updateDataLists();
+}
+
+document.getElementById('todayDisplay').textContent = today.toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long' });
+
+async function save() {
+  try {
+    const key = storageKey();
+    localStorage.setItem(key, JSON.stringify(productions));
+    if (!cargaProdsOk) {
+      console.warn('No se pudo confirmar la conexión con la nube al abrir esta página; no se sube nada hasta recargar (F5).');
+      showSaveStatus('local');
+      updateDataLists();
+      return;
+    }
+    showSaveStatus('saving');
+    const conflict = await checkForConflict(key);
+    if (conflict) {
+      const overwrite = confirm('Los datos en la nube cambiaron desde que cargaste esta página (probablemente los editaste desde otro dispositivo, o alguien más lo hizo). ¿Guardar de todas formas y sobrescribir con lo que tienes aquí?\n\nSi cancelas, recarga la página para ver los datos más recientes antes de seguir editando.');
+      if (!overwrite) { showSaveStatus('error'); return; }
+    }
+    const ok = await saveToCloudSharded(key, productions);
+    if (ok) lastSyncedSnapshot = JSON.stringify(productions);
+    showSaveStatus(ok ? 'saved' : 'error');
+    updateDataLists();
+  } catch (e) { showSaveStatus('error'); }
+}
+
+function updateDataLists() {
+  const nombresProds = productions.map(p => p.name).filter(Boolean);
+  const nombresClientes = clientesData.map(c => c.razonSocial).filter(Boolean);
+  const nombres = [...new Set([...nombresClientes, ...nombresProds])].sort();
+  
+  const listN = document.getElementById('listNombres');
+  if (listN) listN.innerHTML = nombres.map(n => `<option value="${n}">`).join('');
+}
+
+let activeFilterType = '';
+let activeFilterValue = '';
+
+// Paginación de "Producciones registradas": antes se renderizaban todos los
+// registros filtrados de una sola vez en una lista sin límite, que con muchos
+// pedidos se volvía muy larga de recorrer. Ahora se muestran de a
+// RECORDS_PER_PAGE por página, con controles para pasar de página.
+const RECORDS_PER_PAGE = 40;
+let timelinePage = 1;
+
+function setFilter(type, value) {
+  activeFilterType = type; activeFilterValue = value;
+  timelinePage = 1;
+  document.querySelectorAll('.tag-btn').forEach(b => b.classList.remove('active-filter'));
+  const btn = document.getElementById(`fbtn-${type === 'tag' ? '' : type + '-'}${value}`);
+  if (btn) btn.classList.add('active-filter'); else document.getElementById('fbtn-').classList.add('active-filter');
+  renderAll();
+}
+
+function goToTimelinePage(n) {
+  timelinePage = n;
+  renderTimeline();
+  const tl = document.getElementById('timeline');
+  if (tl) tl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function getFiltered() {
+  let list = productions;
+
+  if (activeFilterValue) {
+    if (activeFilterType === 'tag') list = list.filter(p => p.tag === activeFilterValue);
+    else if (activeFilterType === 'tipo') list = list.filter(p => p.tipo === activeFilterValue);
+    else if (activeFilterType === 'estado') {
+      if (activeFilterValue === 'saldo') list = list.filter(p => p.saldo > 0);
+      else if (activeFilterValue === 'abono') list = list.filter(p => p.abono > 0);
+      else if (activeFilterValue === 'pagado') list = list.filter(p => p.monto > 0 && p.saldo === 0);
+    }
+  }
+
+  // FILTRO DE RANGO DE FECHAS (Desde / Hasta): aplica a calendario, lista, estadísticas y PDF
+  const desdeEl = document.getElementById('pdfDesde');
+  const hastaEl = document.getElementById('pdfHasta');
+  const desdeStr = desdeEl ? desdeEl.value : '';
+  const hastaStr = hastaEl ? hastaEl.value : '';
+  if (desdeStr) list = list.filter(p => p.date >= desdeStr);
+  if (hastaStr) list = list.filter(p => p.date <= hastaStr);
+
+  return list;
+}
+
+function isDateRangeActive() {
+  const desdeEl = document.getElementById('pdfDesde');
+  const hastaEl = document.getElementById('pdfHasta');
+  return !!((desdeEl && desdeEl.value) || (hastaEl && hastaEl.value));
+}
+
+function clearDateRange() {
+  const desdeEl = document.getElementById('pdfDesde');
+  const hastaEl = document.getElementById('pdfHasta');
+  if (desdeEl) desdeEl.value = '';
+  if (hastaEl) hastaEl.value = '';
+  timelinePage = 1;
+  renderAll();
+}
+
+let editingId = null;
+
+function autoCalcEntrega() {
+  const dVal = document.getElementById('prodDate').value;
+  if(dVal) {
+    const [y, m, d] = dVal.split('-');
+    const dateObj = new Date(y, m - 1, d);
+    
+    let daysAdded = 0;
+    while (daysAdded < 15) {
+      dateObj.setDate(dateObj.getDate() + 1);
+      if (dateObj.getDay() !== 0) {
+        daysAdded++;
+      }
+    }
+    
+    document.getElementById('prodFechaEntrega').value = `${dateObj.getFullYear()}-${String(dateObj.getMonth()+1).padStart(2,'0')}-${String(dateObj.getDate()).padStart(2,'0')}`;
+  }
+}
+
+function editProduction(id) {
+  const p = productions.find(x => x.id === id);
+  if (!p) return;
+  editingId = id;
+  const f = document.getElementById('addForm');
+  if (!f.classList.contains('open')) f.classList.add('open');
+  document.getElementById('formBtnTxt').textContent = '✕ Cancelar';
+  document.getElementById('prodOrden').value = p.orden || '';
+  document.getElementById('prodName').value = p.name || '';
+  document.getElementById('prodTipo').value = p.tipo || '';
+  document.getElementById('prodDiseñador').value = p.diseñador || '';
+  document.getElementById('prodDate').value = p.date || '';
+  document.getElementById('prodFechaEntrega').value = p.fechaEntrega || '';
+  document.getElementById('prodMonto').value = p.monto || '';
+  document.getElementById('prodAbono').value = p.abono || '';
+  document.getElementById('prodSaldo').value = p.saldo || '';
+  renderCantidadFields(p.tipo || '', p.cantidad || {});
+  document.querySelector('.btn-add').textContent = 'Actualizar';
+  f.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+const CANTIDAD_FIELDS = {
+  'Confección': ['camiseta','conjunto','manta','banner','panuelos','panoletas'],
+  'Sublimación': ['camisetas','conjuntos','manta','banner','panuelos','panoletas','buzo','polerones','lienzo','otros'],
+  'Otros': ['otros'],
+  '': []
+};
+const PRENDA_LABELS = { camiseta:'Camiseta', camisetas:'Camisetas', conjunto:'Conjunto', conjuntos:'Conjuntos', manta:'Manta', banner:'Banner', panuelos:'Pañuelos', panoletas:'Pañoletas', buzo:'Buzo', polerones:'Polerones', lienzo:'Lienzo', otros:'Otros' };
+// Algunas producciones (por ej. las cargadas desde el historial) quedaron guardadas con la
+// forma plural de la clave (camisetas/conjuntos) aunque el tipo sea "Confección", cuyo
+// formulario usa la forma singular (camiseta/conjunto). Este alias permite que el formulario
+// encuentre el valor guardado sin importar cuál de las dos formas se usó al guardar.
+const CANTIDAD_KEY_ALIAS = { camiseta:'camisetas', camisetas:'camiseta', conjunto:'conjuntos', conjuntos:'conjunto' };
+function getCantidadValue(values, k) {
+  if (values[k] || values[k] === 0) return values[k];
+  const alias = CANTIDAD_KEY_ALIAS[k];
+  if (alias && (values[alias] || values[alias] === 0)) return values[alias];
+  return '';
+}
+
+function renderCantidadFields(tipo, values) {
+  values = values || {};
+  const keys = CANTIDAD_FIELDS[tipo] || [];
+  const grid = document.getElementById('cantidadGrid');
+  if (!grid) return;
+  if (keys.length === 0) {
+    grid.innerHTML = '<div style="grid-column:1/-1;font-size:0.75rem;color:var(--text3);padding:2px 0">Selecciona un tipo de producción para ver los campos de prendas.</div>';
+    calcTotalPrendas();
+    return;
+  }
+  grid.innerHTML = keys.map(k => {
+    const label = PRENDA_LABELS[k] || k;
+    const val = getCantidadValue(values, k) || '';
+    if (k === 'otros') {
+      const desc = values.otrosDesc || '';
+      return `<div class="cantidad-item" style="grid-column:span 2"><label>Otros</label><div style="display:flex;gap:6px"><input type="number" id="cant_otros" placeholder="0" min="0" value="${val}" style="flex:0 0 70px" oninput="calcTotalPrendas()"><input type="text" id="cant_otros_desc" placeholder="Especificar…" value="${desc}" style="flex:1;text-align:left;text-transform:none;font-weight:400"></div></div>`;
+    }
+    return `<div class="cantidad-item"><label>${label}</label><input type="number" id="cant_${k}" placeholder="0" min="0" value="${val}" oninput="calcTotalPrendas()"></div>`;
+  }).join('');
+  calcTotalPrendas();
+}
+
+function buildCantidadFromForm() {
+  const tipo = document.getElementById('prodTipo').value;
+  const keys = CANTIDAD_FIELDS[tipo] || [];
+  const cantidad = {};
+  keys.forEach(k => {
+    const el = document.getElementById('cant_' + k);
+    cantidad[k] = el ? (parseInt(el.value) || 0) : 0;
+  });
+  if (keys.includes('otros')) {
+    const descEl = document.getElementById('cant_otros_desc');
+    cantidad.otrosDesc = descEl ? descEl.value.trim() : '';
+  }
+  return cantidad;
+}
+
+function prendasDetalleTexto(p) {
+  if (!p.cantidad) return p.prenda || '—';
+  const parts = Object.entries(p.cantidad).filter(([k,v]) => k !== 'otrosDesc' && v > 0).map(([k,v]) => {
+    const label = (k === 'otros' && p.cantidad.otrosDesc) ? p.cantidad.otrosDesc : (PRENDA_LABELS[k] || k);
+    return `${v} ${label.toLowerCase()}`;
+  });
+  return parts.length ? parts.join(', ') : '—';
+}
+
+function calcTotalPrendas() {
+  const inputs = document.querySelectorAll('#cantidadGrid input[type=number]');
+  let total = 0;
+  inputs.forEach(i => { total += (parseInt(i.value) || 0); });
+  document.getElementById('totalPrendasBadge').textContent = `Total: ${total} prenda${total !== 1 ? 's' : ''}`;
+}
+
+function getNextOrden() {
+  if (productions.length === 0) return '001';
+  const nums = productions.map(p => parseInt(p.orden) || 0);
+  const max = Math.max(...nums);
+  return String(max + 1).padStart(3, '0');
+}
+
+function toggleForm() {
+  const f = document.getElementById('addForm');
+  const open = f.classList.toggle('open');
+  document.getElementById('formBtnTxt').textContent = open ? '✕ Cancelar' : '＋ Agregar producción';
+  document.querySelector('.btn-add').textContent = 'Guardar';
+  editingId = null;
+  if (open) {
+    ['prodName','prodDiseñador','prodDate','prodFechaEntrega','prodMonto','prodAbono','prodSaldo']
+      .forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+    document.getElementById('prodTipo').value = '';
+    renderCantidadFields('');
+    document.getElementById('prodOrden').value = getNextOrden();
+  }
+}
+
+function calcSaldo() {
+  const monto = parseFloat(document.getElementById('prodMonto').value) || 0;
+  const abono = parseFloat(document.getElementById('prodAbono').value) || 0;
+  document.getElementById('prodSaldo').value = Math.max(0, monto - abono);
+}
+
+function addProduction() {
+  const name = document.getElementById('prodName').value.trim();
+  const date = document.getElementById('prodDate').value;
+  const tipo = document.getElementById('prodTipo').value;
+  if (!name || !date) { alert('Completa el nombre y la fecha.'); return; }
+  if (!date.startsWith(String(currentViewYear))) { alert('Por favor selecciona una fecha dentro de ' + currentViewYear + '.'); return; }
+  const monto = parseFloat(document.getElementById('prodMonto').value) || 0;
+  const abono = parseFloat(document.getElementById('prodAbono').value) || 0;
+  const cantidad = buildCantidadFromForm();
+  const totalPrendas = Object.entries(cantidad).filter(([k]) => k !== 'otrosDesc').reduce((s,[,v]) => s + (v||0), 0);
+  let orden = editingId ? document.getElementById('prodOrden').value.trim() : getNextOrden();
+
+  const prod = {
+    id: editingId || Date.now(), name, date, tag: tipo, orden, prenda: tipo,
+    tipo, diseñador: document.getElementById('prodDiseñador').value.trim(),
+    fechaEntrega: document.getElementById('prodFechaEntrega').value, monto, abono, saldo: Math.max(0, monto - abono), cantidad, totalPrendas
+  };
+  if (editingId) {
+    const idx = productions.findIndex(x => x.id === editingId);
+    if (idx !== -1) productions[idx] = prod;
+  } else { productions.push(prod); }
+  productions.sort((a,b) => a.date.localeCompare(b.date));
+  currentViewMonth = parseInt(prod.date.split('-')[1], 10) - 1;
+  save(); renderAll(); toggleForm();
+}
+
+function deleteProduction(id) { productions = productions.filter(p => p.id !== id); save(); renderAll(); }
+function getProdsForDate(dateStr) { return productions.filter(p => p.date === dateStr); }
+
+function renderAll() { renderGrid(); renderTimeline(); renderStats(); }
+
+function renderGrid() {
+  const navContainer = document.getElementById('monthNav');
+  const viewContainer = document.getElementById('largeMonthView');
+  if(!navContainer || !viewContainer) return;
+
+  navContainer.innerHTML = '';
+  MONTHS.forEach((mName, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'month-nav-btn' + (i === currentViewMonth ? ' active' : '');
+    btn.textContent = mName;
+    btn.onclick = () => { currentViewMonth = i; renderGrid(); };
+    navContainer.appendChild(btn);
+  });
+
+  viewContainer.innerHTML = '';
+  const m = currentViewMonth;
+
+  const card = document.createElement('div');
+  card.className = 'large-month-card';
+
+  const hdr = document.createElement('div');
+  hdr.className = 'large-month-header';
+  hdr.innerHTML = `<span class="large-month-name">${MONTHS[m]} ${currentViewYear}</span>`;
+  card.appendChild(hdr);
+
+  const body = document.createElement('div');
+  body.className = 'large-month-body';
+
+  const dow = document.createElement('div');
+  dow.className = 'large-dow-row';
+  DAYS.forEach(d => { const s = document.createElement('div'); s.className='large-dow'; s.textContent=d; dow.appendChild(s); });
+  body.appendChild(dow);
+
+  const daysGrid = document.createElement('div');
+  daysGrid.className = 'large-days-grid';
+
+  const firstDay = new Date(currentViewYear, m, 1).getDay();
+  const startOffset = firstDay === 0 ? 6 : firstDay - 1;
+  const daysInMonth = new Date(currentViewYear, m+1, 0).getDate();
+
+  for (let i = 0; i < startOffset; i++) {
+    const empty = document.createElement('div'); empty.className = 'large-day-cell empty';
+    daysGrid.appendChild(empty);
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${currentViewYear}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const filteredProds = getFiltered().filter(p => dateStr >= p.date && dateStr <= (p.fechaEntrega || p.date));
+
+    const cell = document.createElement('div');
+    cell.className = 'large-day-cell';
+
+    const dow_idx = new Date(currentViewYear, m, d).getDay();
+    if (dow_idx === 0 || dow_idx === 6) cell.classList.add('weekend');
+    if (dateStr === todayStr) cell.classList.add('today');
+
+    cell.textContent = d;
+
+    if (filteredProds.length > 0) {
+      const dotsContainer = document.createElement('div');
+      dotsContainer.className = 'large-day-dots';
+      
+      filteredProds.slice(0, 4).forEach(p => {
+        const bar = document.createElement('div');
+        bar.className = 'large-day-bar';
+        // Fondo = categoría, borde izquierdo = estado (saldo/abono/pagado)
+        bar.style.background = TAG_COLORS[p.tag] || 'var(--accent)';
+        bar.style.borderLeft = '4px solid ' + estadoColor(p);
+        bar.textContent = p.name;
+        dotsContainer.appendChild(bar);
+      });
+      
+      if (filteredProds.length > 4) {
+        const extra = document.createElement('div');
+        extra.style.fontSize = '0.6rem';
+        extra.style.marginTop = '2px';
+        extra.style.color = 'var(--text3)';
+        extra.style.fontWeight = 'bold';
+        extra.textContent = `+${filteredProds.length - 4} producciones...`;
+        dotsContainer.appendChild(extra);
+      }
+      
+      cell.appendChild(dotsContainer);
+
+      cell.addEventListener('mousemove', (e) => showTooltip(e, dateStr, filteredProds));
+      cell.addEventListener('mouseleave', hideTooltip);
+    }
+
+    cell.addEventListener('click', () => {
+      const f = document.getElementById('addForm');
+      if (!f.classList.contains('open')) { toggleForm(); }
+      document.getElementById('prodDate').value = dateStr;
+      autoCalcEntrega();
+    });
+
+    daysGrid.appendChild(cell);
+  }
+
+  body.appendChild(daysGrid);
+  card.appendChild(body);
+  viewContainer.appendChild(card);
+}
+
+function showTooltip(e, dateStr, prods) {
+  const t = document.getElementById('tooltip'); const [y,m,d] = dateStr.split('-');
+  let html = `<div class="tooltip-date">${d} de ${MONTHS[parseInt(m)-1]} de ${y}</div>`;
+  prods.forEach(p => { html += `<div class="tooltip-prod"><span class="tooltip-prod-dot" style="background:${TAG_COLORS[p.tag]}"></span>${p.name}<span style="color:var(--text3);font-size:0.6rem"> [${p.tag}]</span><div style="font-size:0.65rem;color:var(--text3);margin:2px 0 4px 14px">${prendasDetalleTexto(p)}</div></div>`; });
+  t.innerHTML = html; t.style.display = 'block'; t.style.left = (e.clientX + 14) + 'px'; t.style.top = (e.clientY - 10) + 'px';
+}
+function hideTooltip() { document.getElementById('tooltip').style.display = 'none'; }
+function formatPesos(n) { if (!n && n !== 0) return ''; return '$' + Number(n).toLocaleString('es-CL'); }
+
+function renderTimeline() {
+  const tl = document.getElementById('timeline');
+  const filtered = getFiltered();
+  const totalPages = Math.max(1, Math.ceil(filtered.length / RECORDS_PER_PAGE));
+  if (timelinePage > totalPages) timelinePage = totalPages;
+  if (timelinePage < 1) timelinePage = 1;
+  if (filtered.length === 0) { tl.innerHTML = '<div class="timeline-empty">No hay producciones.</div>'; return; }
+
+  const startIdx = (timelinePage - 1) * RECORDS_PER_PAGE;
+  const pageItems = filtered.slice(startIdx, startIdx + RECORDS_PER_PAGE);
+
+  let html = `<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:8px;padding:6px 8px;border-bottom:1px solid var(--border);margin-bottom:4px"><span style="font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--text3)">Nombre / Cliente</span><span style="font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--text3)">Prendas</span><span style="font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--text3)">Diseñador</span><span style="font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--text3)">F. Ingreso</span><span style="font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--text3)">F. Entrega</span><span></span></div>`;
+  pageItems.forEach(p => {
+    const [y,m,d] = p.date.split('-'); const ingresoLabel = `${parseInt(d)} ${MONTHS_SHORT[parseInt(m)-1]}`;
+    let entregaLabel = '—';
+    if (p.fechaEntrega) { const [ey,em,ed] = p.fechaEntrega.split('-'); entregaLabel = `${parseInt(ed)} ${MONTHS_SHORT[parseInt(em)-1]}`; }
+    let prendasHtml = '—';
+    if (p.cantidad && Object.keys(p.cantidad).length) {
+      const items = Object.entries(p.cantidad).filter(([k,v]) => k !== 'otrosDesc' && v > 0).map(([k,v]) => {
+        const label = (k === 'otros' && p.cantidad.otrosDesc) ? p.cantidad.otrosDesc : (PRENDA_LABELS[k] || k);
+        return `<span style="display:inline-block;margin-right:4px;margin-bottom:2px;background:var(--accent)14;border:1px solid var(--accent)30;border-radius:2px;padding:1px 5px;font-size:0.7rem;color:var(--accent);white-space:nowrap"><b>${v}</b> ${label}</span>`;
+      });
+      if (items.length > 0) prendasHtml = `<div style="line-height:1.8">${items.join('')}</div>`;
+    } else if (p.prenda) { prendasHtml = `<span style="font-size:0.85rem;color:var(--text2)">${p.prenda}</span>`; }
+    let filtroExtra = '';
+    if (activeFilterType === 'estado' && activeFilterValue === 'saldo') filtroExtra = `<div style="margin-top:3px;font-size:0.7rem;color:#e84040;font-weight:600">Saldo: ${formatPesos(p.saldo)}</div>`;
+    else if (activeFilterType === 'estado' && activeFilterValue === 'abono') filtroExtra = `<div style="margin-top:3px;font-size:0.7rem;color:var(--prod4);font-weight:600">Abono: ${formatPesos(p.abono)}</div>`;
+    else if (activeFilterType === 'estado' && activeFilterValue === 'pagado') filtroExtra = `<div style="margin-top:3px;font-size:0.7rem;color:var(--prod3);font-weight:600">✓ Pagado</div>`;
+    else if (activeFilterType === 'tag') filtroExtra = `<div style="margin-top:3px"><span style="font-size:0.6rem;padding:1px 6px;border-radius:2px;background:${TAG_COLORS[p.tag]}22;color:${TAG_COLORS[p.tag]}">${p.tag}</span></div>`;
+    html += `<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:8px;align-items:center;padding:12px 8px;border-bottom:1px solid var(--border)22">
+      <div><div style="font-size:1rem;color:var(--text);font-weight:600">${p.name}</div>${p.orden ? `<div style="font-size:0.7rem;color:var(--accent);font-weight:600">#${p.orden}</div>` : ''}${filtroExtra}</div>
+      <div>${prendasHtml}</div><div style="font-size:0.85rem;color:var(--text2)">${p.diseñador || '—'}</div><div style="font-size:0.85rem;color:var(--text2)">${ingresoLabel}</div>
+      <div style="font-size:0.85rem;color:${p.fechaEntrega ? 'var(--accent)' : 'var(--text3)'}">${entregaLabel}</div>
+      <div style="display:flex;gap:4px"><button class="prod-delete" style="color:var(--accent);border:1px solid var(--accent)22" onclick="editProduction(${p.id})">✏</button><button class="prod-delete" onclick="deleteProduction(${p.id})">✕</button></div></div>`;
+  });
+
+  if (totalPages > 1) {
+    const desde = startIdx + 1;
+    const hasta = Math.min(startIdx + RECORDS_PER_PAGE, filtered.length);
+    html += `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 8px 4px">
+      <span style="font-size:0.7rem;color:var(--text3)">Mostrando ${desde}–${hasta} de ${filtered.length} producciones</span>
+      <div style="display:flex;align-items:center;gap:6px">${renderTimelinePageButtons(totalPages)}</div>
+    </div>`;
+  }
+
+  tl.innerHTML = html;
+}
+
+function timelinePageBtnStyle(active, disabled) {
+  return `padding:6px 10px;background:${active ? 'var(--accent)' : 'transparent'};border:1px solid var(--accent);border-radius:2px;color:${active ? 'var(--bg)' : 'var(--accent)'};font-family:'DM Mono',monospace;font-size:0.7rem;cursor:${disabled ? 'default' : 'pointer'};min-width:30px;opacity:${disabled ? '0.35' : '1'}`;
+}
+
+function renderTimelinePageButtons(totalPages) {
+  const prevDisabled = timelinePage <= 1;
+  const nextDisabled = timelinePage >= totalPages;
+  let out = `<button style="${timelinePageBtnStyle(false, prevDisabled)}" ${prevDisabled ? 'disabled' : ''} onclick="goToTimelinePage(${timelinePage - 1})" title="Página anterior">‹</button>`;
+
+  // Con muchas páginas, muestra la primera, la última, y un rango alrededor de
+  // la actual, con "…" en el medio, para no llenar la barra de botones.
+  const pageNums = [];
+  const addRange = (from, to) => { for (let i = from; i <= to; i++) if (i >= 1 && i <= totalPages) pageNums.push(i); };
+  if (totalPages <= 9) {
+    addRange(1, totalPages);
+  } else {
+    addRange(1, 1);
+    if (timelinePage > 4) pageNums.push('…');
+    addRange(Math.max(2, timelinePage - 2), Math.min(totalPages - 1, timelinePage + 2));
+    if (timelinePage < totalPages - 3) pageNums.push('…');
+    addRange(totalPages, totalPages);
+  }
+  const seen = new Set();
+  pageNums.forEach(n => {
+    if (n === '…') { out += `<span style="padding:6px 4px;color:var(--text3);font-size:0.7rem">…</span>`; return; }
+    if (seen.has(n)) return;
+    seen.add(n);
+    const active = n === timelinePage;
+    out += `<button style="${timelinePageBtnStyle(active, active)}" ${active ? 'disabled' : ''} onclick="goToTimelinePage(${n})">${n}</button>`;
+  });
+
+  out += `<button style="${timelinePageBtnStyle(false, nextDisabled)}" ${nextDisabled ? 'disabled' : ''} onclick="goToTimelinePage(${timelinePage + 1})" title="Página siguiente">›</button>`;
+  return out;
+}
+
+function renderStats() {
+  const filtered = getFiltered();
+  document.getElementById('statTotal').textContent = filtered.length;
+  if (isDateRangeActive()) {
+    const desdeStr = document.getElementById('pdfDesde').value;
+    const hastaStr = document.getElementById('pdfHasta').value;
+    const fmt = (s) => { if (!s) return null; const [y,m,d] = s.split('-'); return `${parseInt(d)} ${MONTHS_SHORT[parseInt(m)-1]}`; };
+    document.getElementById('statYearLabel').textContent = 'en el rango: ' + (fmt(desdeStr) || 'inicio') + ' – ' + (fmt(hastaStr) || 'fin');
+  } else {
+    document.getElementById('statYearLabel').textContent = 'en todo el año ' + currentViewYear;
+  }
+  const bars = document.getElementById('monthBars'); bars.innerHTML = '';
+  const max = Math.max(...MONTHS.map((_,i) => filtered.filter(p=>new Date(p.date).getMonth()===i).length), 1);
+  MONTHS_SHORT.forEach((abbr, i) => {
+    const count = filtered.filter(p => new Date(p.date).getMonth() === i).length;
+    const pct = Math.round((count / max) * 100);
+    const row = document.createElement('div'); row.className = 'month-bar-row';
+    row.innerHTML = `<span class="month-bar-label">${abbr}</span><div class="month-bar-track"><div class="month-bar-fill" style="width:${pct}%"></div></div><span class="month-bar-count">${count}</span>`;
+    bars.appendChild(row);
+  });
+}
+
+function exportPDF() {
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    alert('No se pudo cargar el generador de PDF. Verifica tu conexión a internet e inténtalo nuevamente.');
+    return;
+  }
+  
+  const desdeStr = document.getElementById('pdfDesde').value;
+  const hastaStr = document.getElementById('pdfHasta').value;
+
+  // getFiltered() ya aplica el rango de fechas (Desde/Hasta) además de los filtros de categoría/estado
+  const filtered = getFiltered();
+
+  if (filtered.length === 0) {
+    alert('No hay producciones en el rango de fechas seleccionado para exportar.');
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+  const marginX = 40;
+  let y = 40;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  doc.text('Calendario de Producciones ' + currentViewYear, marginX, y);
+  y += 20;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(90);
+  const fechaGen = new Date().toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' });
+  
+  // FORMATO DE LA FECHA EN EL PDF
+  const formatearCorta = (str) => {
+    if (!str) return '';
+    const [yy, mm, dd] = str.split('-');
+    return `${dd}/${mm}/${yy}`;
+  };
+  
+  let rangoTexto = 'Generado el ' + fechaGen;
+  if (desdeStr || hastaStr) {
+    rangoTexto += `   |   Rango: ${desdeStr ? formatearCorta(desdeStr) : 'Inicio'} - ${hastaStr ? formatearCorta(hastaStr) : 'Fin'}`;
+  }
+  doc.text(rangoTexto, marginX, y);
+  y += 24;
+
+  doc.setTextColor(0);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.text('Total producciones: ' + filtered.length, marginX, y);
+  y += 18;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  
+  // RECALCULAR ESTADÍSTICAS MENSUALES CON EL FILTRO APLICADO
+  const monthCounts = MONTHS.map((m, i) => ({ m, count: filtered.filter(p => new Date(p.date).getMonth() === i).length })).filter(x => x.count > 0);
+  const monthLine = monthCounts.length ? monthCounts.map(x => `${x.m}: ${x.count}`).join('   |   ') : 'Sin datos por mes';
+  doc.text('Distribución mensual: ' + monthLine, marginX, y, { maxWidth: 760 });
+  y += 22;
+
+  const fmtFecha = (str) => {
+    if (!str) return '—';
+    const [yy, mm, dd] = str.split('-');
+    return `${parseInt(dd)} ${MONTHS_SHORT[parseInt(mm) - 1]} ${yy}`;
+  };
+
+  // ORDENAR POR FECHA DE INGRESO
+  const rows = filtered.sort((a,b) => a.date.localeCompare(b.date)).map(p => {
+    return [
+      p.orden || '—', p.name || '—', p.tipo || '—', p.diseñador || '—',
+      fmtFecha(p.date), fmtFecha(p.fechaEntrega), prendasDetalleTexto(p)
+    ];
+  });
+
+  doc.autoTable({
+    startY: y,
+    margin: { left: marginX, right: marginX },
+    head: [['N° Orden', 'Nombre / Cliente', 'Tipo', 'Diseñador', 'F. Ingreso', 'F. Entrega', 'Detalle de Prendas']],
+    body: rows,
+    styles: { font: 'helvetica', fontSize: 8, cellPadding: 4 },
+    headStyles: { fillColor: [30, 26, 20], textColor: 255 },
+    alternateRowStyles: { fillColor: [245, 242, 235] },
+    columnStyles: { 6: { cellWidth: 260 } }
+  });
+
+  const sufijoFiltro = activeFilterValue ? '_filtrado' : '';
+  doc.save(`Producciones_${currentViewYear}${sufijoFiltro}.pdf`);
+}
+
+window.onload = async function() {
+  document.getElementById('yearSelect').value = String(currentViewYear);
+  applyYearBounds();
+  
+  // Cargar clientes para el autocompletado
+  const cloudClientes = await loadFromCloud('clientes_ci_v1');
+  if (cloudClientes) {
+    clientesData = cloudClientes;
+  } else {
+    clientesData = JSON.parse(localStorage.getItem('clientes_ci_v1') || '[]');
+  }
+
+  await loadYearData();
+  renderAll(); 
+  updateDataLists();
+  
+  save(); // Save the initial hardcoded data to the cloud on first load
+};
+</script>
+</body>
+</html>
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Calendario de Producciones 2026</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Mono:wght@300;400;500&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
