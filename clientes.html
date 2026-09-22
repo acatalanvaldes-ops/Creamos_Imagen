@@ -127,12 +127,26 @@ let editId = null;
 // todos los que ya existían.
 function esperar(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 const CLOUD_INTENTOS = 3;
+// Google Apps Script a veces responde muy lento bajo carga (varios segundos, a
+// veces mucho mas) en vez de fallar de inmediato. Sin un limite, un intento
+// lento se queda esperando indefinidamente y bloquea la pagina por minutos en
+// vez de reintentar o avisar. CLOUD_TIMEOUT_MS pone un tope por intento.
+const CLOUD_TIMEOUT_MS = 12000;
+async function fetchConTimeout(url, opts) {
+  const controller = new AbortController();
+  const timer = setTimeout(function () { controller.abort(); }, CLOUD_TIMEOUT_MS);
+  try {
+    return await fetch(url, Object.assign({}, opts, { signal: controller.signal }));
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 async function saveToCloud(key, dataObj) {
   let ultimoError;
   for (let intento = 0; intento < CLOUD_INTENTOS; intento++) {
     try {
-      const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj), token: CLOUD_TOKEN }) });
+      const res = await fetchConTimeout(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj), token: CLOUD_TOKEN }) });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return true;
     } catch (e) {
@@ -147,7 +161,7 @@ async function loadFromCloud(key) {
   let ultimoError;
   for (let intento = 0; intento < CLOUD_INTENTOS; intento++) {
     try {
-      const res = await fetch(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
+      const res = await fetchConTimeout(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const json = await res.json();
       return json.valor ? JSON.parse(json.valor) : null;
@@ -169,7 +183,7 @@ async function loadFromCloudStrict(key) {
   let ultimoError;
   for (let intento = 0; intento < CLOUD_INTENTOS; intento++) {
     try {
-      const res = await fetch(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
+      const res = await fetchConTimeout(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const json = await res.json();
       if (json.estado === 'error') throw new Error(json.detalle || 'Error del servidor');
@@ -196,6 +210,25 @@ async function cargarProducciones() {
     try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) { return []; }
   }));
   producciones = porAño.flat();
+}
+
+// Las producciones (para el historial de cada ficha) se cargaban SIEMPRE al
+// abrir esta página, aunque casi nunca se necesitan de inmediato: son 7
+// llamadas más (una por año) sumadas a la de clientes, y con el backend lento
+// eso fue parte de por qué la página tardaba varios minutos en mostrar algo.
+// Ahora los clientes se muestran apenas cargan, y el historial se trae recién
+// la primera vez que se abre una ficha (y queda en caché para las siguientes).
+let produccionesCargadas = false;
+let cargandoProducciones = null;
+function asegurarProducciones() {
+  if (produccionesCargadas) return Promise.resolve();
+  if (!cargandoProducciones) {
+    cargandoProducciones = cargarProducciones()
+      .then(() => { produccionesCargadas = true; })
+      .catch(e => { console.error('No se pudo cargar el historial de producciones', e); })
+      .finally(() => { cargandoProducciones = null; });
+  }
+  return cargandoProducciones;
 }
 
 const PRENDA_LABELS = { camiseta:'Camiseta', camisetas:'Camisetas', conjunto:'Conjunto', conjuntos:'Conjuntos', manta:'Manta', banner:'Banner', panuelos:'Pañuelos', panoletas:'Pañoletas', buzo:'Buzo', polerones:'Polerones', lienzo:'Lienzo', otros:'Otros' };
@@ -244,11 +277,11 @@ function renderClientes() {
   `).join('');
 }
 
-function abrirForm(id) {
+async function abrirForm(id) {
   const modal = document.getElementById('modalForm');
   const hist = document.getElementById('historialSection');
   const btnDel = document.getElementById('btn-del');
-  
+
   if (id) {
     const c = clientes.find(x => x.id === id);
     editId = id;
@@ -259,11 +292,19 @@ function abrirForm(id) {
     document.getElementById('c-contacto').value = c.contacto || '';
     document.getElementById('c-dir').value = c.direccion || '';
     btnDel.style.display = 'block';
-    
-    // Cargar historial (cruzando por nombre con las producciones del Calendario de Producciones)
+
+    // Muestra la ficha de inmediato con los datos del cliente (ya están en
+    // memoria); el historial de producciones se trae aparte y puede demorar
+    // un poco más, así que se ve un estado de carga mientras tanto.
+    hist.style.display = 'block';
+    document.getElementById('historialList').innerHTML = '<div style="font-size:13px;color:var(--muted)">Cargando historial…</div>';
+    modal.classList.add('open');
+
+    await asegurarProducciones();
+    if (editId !== id) return; // se cerró la ficha o se abrió otra mientras cargaba
+
     const historial = producciones.filter(p => p.name && c.razonSocial && p.name.trim().toLowerCase() === c.razonSocial.trim().toLowerCase());
     if (historial.length > 0) {
-      hist.style.display = 'block';
       historial.sort((a,b) => (b.date||'').localeCompare(a.date||''));
       document.getElementById('historialList').innerHTML = historial.slice(0,5).map(p => `
         <div class="hist-card">
@@ -274,10 +315,12 @@ function abrirForm(id) {
           </div>
         </div>
       `).join('');
-    } else {
-      hist.style.display = 'block';
+    } else if (produccionesCargadas) {
       document.getElementById('historialList').innerHTML = '<div style="font-size:13px;color:var(--muted)">Sin producciones registradas.</div>';
+    } else {
+      document.getElementById('historialList').innerHTML = '<div style="font-size:13px;color:var(--muted)">No se pudo cargar el historial de producciones. Vuelve a intentarlo más tarde.</div>';
     }
+    return;
   } else {
     editId = null;
     document.getElementById('m-title').textContent = 'Nuevo Cliente';
@@ -333,9 +376,9 @@ window.onload = async function() {
     alert('No se pudo conectar con la nube para cargar los clientes guardados. Se está mostrando una copia local que puede estar incompleta. Revisa tu conexión y recarga la página antes de agregar, editar o eliminar clientes.');
   }
 
-  // Cargar Producciones de todos los años (para el historial)
-  await cargarProducciones();
-
+  // El historial de producciones ya no se carga aquí: se trae recién la
+  // primera vez que se abre la ficha de un cliente (ver asegurarProducciones),
+  // para que la lista de clientes aparezca apenas responda esa única llamada.
   renderClientes();
 };
 </script>
