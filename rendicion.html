@@ -221,6 +221,19 @@ async function loadFromCloud(key) {
   catch (e) { return null; }
 }
 
+// Version "estricta": en vez de devolver null ante cualquier falla (red, HTTP,
+// o error del servidor), lanza una excepción. Así se distingue "la nube
+// respondió que está vacía" de "no se pudo confirmar el estado de la nube",
+// evitando que un guardado hecho tras una carga fallida sobreescriba en la
+// nube datos reales con un estado incompleto.
+async function loadFromCloudStrict(key) {
+  const res = await fetch(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const json = await res.json();
+  if (json.estado === 'error') throw new Error(json.detalle || 'Error del servidor');
+  return json.valor ? JSON.parse(json.valor) : null;
+}
+
 let currentYear = new Date().getFullYear();
 if (currentYear < 2025) currentYear = 2025;
 if (currentYear > 2031) currentYear = 2031;
@@ -1185,9 +1198,23 @@ function rowsForDate(k){ return data[k]||(data[k]=[]); }
 function rowsForMonth(mi){ let a=[]; const dias = getDiasMes(mi, currentYear); for(let d=1;d<=dias;d++) a=a.concat(rowsForDate(daysKey(mi,d))); return a; }
 function totalAll(){ return Object.keys(data).filter(k => k.startsWith(currentYear.toString())).reduce((s,k) => s + data[k].reduce((ss,r)=>ss+(+r.ef||0)+(+r.tr||0)+(+r.wp||0),0),0); }
 
-function saveData(){ try{ localStorage.setItem('rendicion2026_v2', JSON.stringify(data)); saveToCloud('rendicion2026_v2', data); } catch(e){} }
+// Se pone en true solo si la carga inicial desde la nube pudo confirmarse
+// (éxito o "está vacía"). Mientras sea false, saveData() NO manda nada a la
+// nube (solo guarda localmente), para no arriesgarse a sobreescribir datos
+// reales con un estado incompleto por una carga que falló.
+var rendicionCargaOk = false;
 
-// MODIFICADO: Forzar inyección si es la primera vez que se carga este código (repara cachés antiguos)
+function saveData(){
+  try{
+    localStorage.setItem('rendicion2026_v2', JSON.stringify(data));
+    if (!rendicionCargaOk) {
+      console.warn("No se pudo confirmar la conexión con la nube al abrir esta página; no se sube nada hasta recargar (F5).");
+      return;
+    }
+    saveToCloud('rendicion2026_v2', data);
+  } catch(e){}
+}
+
 async function loadData() {
   const t = new Date();
   currentYear = t.getFullYear();
@@ -1196,13 +1223,14 @@ async function loadData() {
   const sel = document.getElementById('year-select');
   if(sel) sel.value = currentYear;
 
-  // 1. CARGAR DATOS DESDE LA NUBE
+  // 1. CARGAR DATOS DESDE LA NUBE (estricto: distingue "vacío" de "no se pudo confirmar")
   try {
-    const cloudData = await loadFromCloud('rendicion2026_v2');
+    const cloudData = await loadFromCloudStrict('rendicion2026_v2');
+    rendicionCargaOk = true;
     if (cloudData && Object.keys(cloudData).length > 0) {
       Object.keys(cloudData).forEach(k => { data[k] = cloudData[k]; });
     } else {
-      // Si falla o está vacío, intentamos con el local
+      // La nube respondió que está vacía: se usa el respaldo local si existe.
       const rawLocal = localStorage.getItem('rendicion2026_v2');
       if (rawLocal) {
         const p = JSON.parse(rawLocal);
@@ -1210,25 +1238,36 @@ async function loadData() {
       }
     }
   } catch(e) {
+      // No se pudo confirmar el estado de la nube (red, HTTP o error del
+      // servidor). rendicionCargaOk queda en false: se usa el respaldo local
+      // para no dejar la pantalla vacía, pero NO se sube nada, para no
+      // arriesgarse a borrar datos reales que sí están en la nube.
+      console.error("No se pudo cargar desde la nube; usando respaldo local sin sincronizar.", e);
       const rawLocal = localStorage.getItem('rendicion2026_v2');
       if (rawLocal) {
         const p = JSON.parse(rawLocal);
         Object.keys(p).forEach(k => { data[k] = p[k]; });
       }
+      alert("No se pudo confirmar la conexión con la nube al abrir esta página. Se muestran los datos guardados en este dispositivo. Para evitar perder registros ya guardados, recarga la página (F5) antes de agregar o editar rendiciones.");
   }
 
-  // 2. FORZAR LA INYECCIÓN DEL HISTORIAL SI NUNCA SE HA HECHO CON ÉXITO
-  if (localStorage.getItem('historial_cargado_final') !== '1') {
+  // 2. INYECTAR HISTORIAL PRE-CARGADO SOLO EN FECHAS QUE SIGAN VACÍAS, Y SOLO
+  // SI LA CARGA DE LA NUBE SE PUDO CONFIRMAR (para no inyectar datos viejos
+  // por encima de datos reales que no se pudieron leer, ni subir un estado
+  // incompleto a la nube).
+  if (rendicionCargaOk && localStorage.getItem('historial_cargado_final') !== '1') {
+      var seInyectoAlgo = false;
       Object.keys(INITIAL_DATA).forEach(dateKey => {
-          if (!data[dateKey]) data[dateKey] = [];
-          
-          INITIAL_DATA[dateKey].forEach(item => {
-              data[dateKey].push(item);
-          });
+          if (!data[dateKey] || data[dateKey].length === 0) {
+              data[dateKey] = INITIAL_DATA[dateKey].slice();
+              seInyectoAlgo = true;
+          }
+          // Si la fecha ya tiene registros (venidos de la nube), no se toca:
+          // evita duplicar filas que ya están guardadas.
       });
       localStorage.setItem('historial_cargado_final', '1');
-      saveData(); // Esto actualizará el LocalStorage Y la Nube con los datos combinados
-  } else {
+      if (seInyectoAlgo) saveData();
+  } else if (rendicionCargaOk) {
       // Guardar en local para asegurar que estemos en sintonía con la nube
       localStorage.setItem('rendicion2026_v2', JSON.stringify(data));
   }
