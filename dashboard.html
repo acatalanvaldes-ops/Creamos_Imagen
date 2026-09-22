@@ -137,15 +137,33 @@ const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto'
 const ANIOS = [2025,2026,2027,2028,2029,2030,2031];
 const COM_WP_PCT = 2; // recargo webpay, igual que en ventas.html / ventasci.html
 
+async function fetchClaveNube(key) {
+  const url = API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN;
+  const res = await fetch(url);
+  const json = await res.json();
+  return json.valor ? JSON.parse(json.valor) : null;
+}
+
 async function loadFromCloud(key, useToken) {
   try {
     // El backend exige el token de seguridad para TODAS las llaves, así que
     // siempre se envía (el parámetro useToken se mantiene por compatibilidad
     // pero ya no cambia el comportamiento).
-    const url = API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN;
-    const res = await fetch(url);
-    const json = await res.json();
-    return json.valor ? JSON.parse(json.valor) : null;
+    const parsed = await fetchClaveNube(key);
+    // Algunas llaves (p.ej. sublipro_v2) reparten sus datos en varios bloques
+    // cuando superan el límite de caracteres de Google Sheets (ver ventas.html:
+    // saveToCloudSharded/loadFromCloudSharded). Si el bloque principal trae
+    // shardCount > 1, hay que traer y unir los bloques adicionales "<key>_sh1",
+    // "<key>_sh2", etc., o se pierde silenciosamente parte de los datos.
+    if (parsed && parsed.shardCount && parsed.shardCount > 1 && Array.isArray(parsed.ventas)) {
+      let ventas = parsed.ventas.slice();
+      for (let i = 1; i < parsed.shardCount; i++) {
+        const bloque = await fetchClaveNube(key + '_sh' + i);
+        if (bloque && Array.isArray(bloque.ventas)) ventas = ventas.concat(bloque.ventas);
+      }
+      parsed.ventas = ventas;
+    }
+    return parsed;
   } catch (e) { console.error('Error cargando de la nube', key, e); return null; }
 }
 
