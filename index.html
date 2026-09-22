@@ -158,6 +158,7 @@ var SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 horas
 var SUPER_ADMIN_EMAIL = "a.catalan.valdes@gmail.com";
 var ACL_KEY = "accesos_ci_v1";
 var API_URL = "https://script.google.com/macros/s/AKfycbxP5-vB59e80qpXdx4AcCyS28C4H58thdh0XXtLcDWZD8Q_47fDbBvLn1ahqx7RoJor/exec";
+var CLOUD_TOKEN = "b5bd161b4ef581c6114b7bb4";
 
 var MODULOS = [
   { key: "rendicion",    label: "Caja",           icon: "💵", href: "rendicion.html",   cls: "caja" },
@@ -173,7 +174,7 @@ var MODULOS = [
 
 async function loadFromCloud(key) {
   try {
-    const res = await fetch(API_URL + "?key=" + key);
+    const res = await fetch(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
     const json = await res.json();
     return json.valor ? JSON.parse(json.valor) : null;
   } catch (e) { return null; }
