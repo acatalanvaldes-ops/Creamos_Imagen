@@ -66,9 +66,10 @@ table.tbl tr:last-child td{border-bottom:none}
 .conc-bar-fill{height:100%;background:var(--gold);border-radius:6px}
 .conc-pct{width:56px;text-align:right;font-size:13px;font-weight:700;color:var(--dark);flex-shrink:0}
 .conc-warn{font-size:11px;color:var(--red);font-weight:700;margin-top:2px}
-.compra-item-header{display:grid;grid-template-columns:1fr 90px 140px 32px;gap:8px;margin-bottom:6px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px}
-.compra-item-row{display:grid;grid-template-columns:1fr 90px 140px 32px;gap:8px;align-items:center;margin-bottom:8px}
+.compra-item-header{display:grid;grid-template-columns:1fr 70px 120px 110px 32px;gap:8px;margin-bottom:6px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px}
+.compra-item-row{display:grid;grid-template-columns:1fr 70px 120px 110px 32px;gap:8px;align-items:center;margin-bottom:8px}
 .compra-item-row input{background:var(--bg);border:1.5px solid var(--border);border-radius:6px;padding:8px 10px;font-size:13px;color:var(--dark);font-weight:600;width:100%}
+.compra-item-row .civ-subtotal{font-size:13px;font-weight:700;color:var(--dark);text-align:right;padding-right:4px}
 .compra-totales{margin-top:6px}
 .compra-totales .dr-row{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);padding:4px 0}
 .compra-totales .dr-row.tot{font-size:16px;font-weight:700;color:var(--dark);border-top:1px solid var(--border);padding-top:10px;margin-top:4px}
@@ -185,7 +186,7 @@ table.tbl tr:last-child td{border-bottom:none}
 
     <div class="sub-section" style="margin-top:8px">
       <div class="sub-title">Productos de la Compra</div>
-      <div class="compra-item-header"><div>Producto</div><div>Cantidad</div><div>Monto Neto ($)</div><div></div></div>
+      <div class="compra-item-header"><div>Producto</div><div>Cantidad</div><div>Precio Neto Unit. ($)</div><div>Subtotal</div><div></div></div>
       <div id="compraItemsList"></div>
       <button class="act-btn small" onclick="agregarCompraItemRow()">+ Agregar producto</button>
       <datalist id="insumosDatalist"></datalist>
@@ -459,7 +460,21 @@ function abrirFormCompra() {
 }
 
 function nuevoCompraItem() {
-  return { producto: '', cantidad: '', montoNeto: '' };
+  return { producto: '', cantidad: 1, montoNeto: '' };
+}
+
+// La Cantidad multiplica al Precio Neto Unitario para obtener el subtotal de
+// cada producto. Si la cantidad queda vacía o inválida, se asume 1 (no 0),
+// para no anular el monto por accidente.
+function cantidadCompraItem(it) {
+  const v = parseFloat(it.cantidad);
+  return isNaN(v) || v <= 0 ? 1 : v;
+}
+function precioNetoCompraItem(it) {
+  return parseFloat(it.montoNeto) || 0;
+}
+function subtotalCompraItem(it) {
+  return cantidadCompraItem(it) * precioNetoCompraItem(it);
 }
 
 function agregarCompraItemRow() {
@@ -480,8 +495,9 @@ function renderCompraItemsList() {
   wrap.innerHTML = compraItemsEdit.map((it, i) => `
     <div class="compra-item-row">
       <input type="text" list="insumosDatalist" placeholder="Ej: Tela Poliéster Blanca" value="${it.producto || ''}" oninput="compraItemsEdit[${i}].producto = this.value">
-      <input type="number" min="0" placeholder="0" value="${it.cantidad === '' ? '' : it.cantidad}" oninput="compraItemsEdit[${i}].cantidad = this.value">
+      <input type="number" min="0" step="1" placeholder="1" value="${it.cantidad === '' ? '' : it.cantidad}" oninput="compraItemsEdit[${i}].cantidad = this.value; recalcularTotalesCompra()">
       <input type="number" min="0" placeholder="0" value="${it.montoNeto === '' ? '' : it.montoNeto}" oninput="compraItemsEdit[${i}].montoNeto = this.value; recalcularTotalesCompra()">
+      <div class="civ-subtotal" id="civ-sub-${i}">${fmtMonedaCompra(subtotalCompraItem(it))}</div>
       <button class="icon-btn" onclick="quitarCompraItemRow(${i})" title="Eliminar producto">🗑️</button>
     </div>
   `).join('');
@@ -489,7 +505,14 @@ function renderCompraItemsList() {
 }
 
 function recalcularTotalesCompra() {
-  const subtotal = Math.round(compraItemsEdit.reduce((s, it) => s + (parseFloat(it.montoNeto) || 0), 0));
+  // Actualiza el subtotal de cada fila (Cantidad × Precio Neto Unitario) sin
+  // volver a dibujar los inputs, para no perder el foco mientras se escribe.
+  compraItemsEdit.forEach((it, i) => {
+    const elFila = document.getElementById('civ-sub-' + i);
+    if (elFila) elFila.textContent = fmtMonedaCompra(subtotalCompraItem(it));
+  });
+
+  const subtotal = Math.round(compraItemsEdit.reduce((s, it) => s + subtotalCompraItem(it), 0));
   const iva = Math.round(subtotal * IVA_PCT / 100);
   const total = subtotal + iva;
   const elSub = document.getElementById('cp-subtotal');
@@ -514,17 +537,18 @@ function guardarCompra() {
   const proveedorId = parseFloat(document.getElementById('cp-proveedor').value);
   const fecha = document.getElementById('cp-fecha').value;
   const itemsLimpios = compraItemsEdit
-    .map(it => ({
-      producto: (it.producto || '').trim(),
-      cantidad: parseFloat(it.cantidad) || 0,
-      montoNeto: parseFloat(it.montoNeto) || 0
-    }))
-    .filter(it => it.producto !== '' && it.montoNeto > 0);
+    .filter(it => (it.producto || '').trim() !== '' && (parseFloat(it.montoNeto) || 0) > 0)
+    .map(it => {
+      const producto = it.producto.trim();
+      const cantidad = cantidadCompraItem(it);
+      const montoNeto = precioNetoCompraItem(it);
+      return { producto: producto, cantidad: cantidad, montoNeto: montoNeto, subtotal: Math.round(cantidad * montoNeto) };
+    });
 
   if (!proveedorId || !fecha) { alert('Completa proveedor y fecha.'); return; }
-  if (itemsLimpios.length === 0) { alert('Agrega al menos un producto con su nombre y monto neto.'); return; }
+  if (itemsLimpios.length === 0) { alert('Agrega al menos un producto con su nombre y precio neto.'); return; }
 
-  const subtotalNeto = Math.round(itemsLimpios.reduce((s, it) => s + it.montoNeto, 0));
+  const subtotalNeto = Math.round(itemsLimpios.reduce((s, it) => s + it.subtotal, 0));
   const iva = Math.round(subtotalNeto * IVA_PCT / 100);
   const total = subtotalNeto + iva;
 
