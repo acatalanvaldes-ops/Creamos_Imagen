@@ -116,16 +116,77 @@ let clientes = [];
 let producciones = [];
 let editId = null;
 
+// El backend (Google Apps Script) a veces devuelve una falla transitoria —una
+// página de error en vez de JSON, o un HTTP no-OK— que se resuelve sola al
+// reintentar. Sin reintentos, y sin distinguir "la nube está vacía" de "no se
+// pudo confirmar qué hay en la nube", un fallo pasajero al cargar hacía que
+// esta página se quedara con una lista de clientes vacía (o desactualizada) en
+// memoria, y el primer guardado después de eso sobrescribía en la nube la
+// lista real de clientes con esa copia incompleta. Esto es lo que le pasó a
+// Ale: la nube quedó con un solo cliente (el último que agregó) en vez de
+// todos los que ya existían.
+function esperar(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+const CLOUD_INTENTOS = 3;
+
 async function saveToCloud(key, dataObj) {
-  try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj), token: CLOUD_TOKEN }) }); } catch (e) {}
+  let ultimoError;
+  for (let intento = 0; intento < CLOUD_INTENTOS; intento++) {
+    try {
+      const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj), token: CLOUD_TOKEN }) });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return true;
+    } catch (e) {
+      ultimoError = e;
+      if (intento < CLOUD_INTENTOS - 1) await esperar(500 * (intento + 1));
+    }
+  }
+  console.error('Error guardando en la nube', ultimoError);
+  return false;
 }
 async function loadFromCloud(key) {
-  try {
-    const res = await fetch(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
-    const json = await res.json();
-    return json.valor ? JSON.parse(json.valor) : null;
-  } catch (e) { return null; }
+  let ultimoError;
+  for (let intento = 0; intento < CLOUD_INTENTOS; intento++) {
+    try {
+      const res = await fetch(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const json = await res.json();
+      return json.valor ? JSON.parse(json.valor) : null;
+    } catch (e) {
+      ultimoError = e;
+      if (intento < CLOUD_INTENTOS - 1) await esperar(500 * (intento + 1));
+    }
+  }
+  console.error('Error cargando de la nube', ultimoError);
+  return null;
 }
+
+// Version "estricta": en vez de devolver null ante cualquier falla (red, HTTP,
+// o error del servidor), lanza una excepción tras agotar los reintentos. Se
+// usa para los clientes (dato crítico), donde guardar sobre una carga fallida
+// podría borrar clientes reales ya guardados en la nube — exactamente el
+// problema que ya ocurrió una vez.
+async function loadFromCloudStrict(key) {
+  let ultimoError;
+  for (let intento = 0; intento < CLOUD_INTENTOS; intento++) {
+    try {
+      const res = await fetch(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const json = await res.json();
+      if (json.estado === 'error') throw new Error(json.detalle || 'Error del servidor');
+      return json.valor ? JSON.parse(json.valor) : null;
+    } catch (e) {
+      ultimoError = e;
+      if (intento < CLOUD_INTENTOS - 1) await esperar(500 * (intento + 1));
+    }
+  }
+  throw ultimoError;
+}
+
+// Se pone en true solo cuando la carga inicial desde la nube se confirma
+// (éxito o "está vacía de verdad"). Mientras siga en false, guardarLocal() NO
+// sube nada a la nube (solo guarda localmente), para no repetir el problema
+// de sobrescribir clientes reales con una lista incompleta.
+let cargaClientesOk = false;
 
 async function cargarProducciones() {
   const porAño = await Promise.all(PROD_YEARS.map(async y => {
@@ -150,6 +211,10 @@ function prendasDetalleTexto(p) {
 
 function guardarLocal() {
   localStorage.setItem(KEY_CLIENTES, JSON.stringify(clientes));
+  if (!cargaClientesOk) {
+    alert('No se pudo confirmar la conexión con la nube al abrir esta página. Para no perder clientes ya guardados, recarga la página (F5) antes de agregar, editar o eliminar clientes.');
+    return;
+  }
   saveToCloud(KEY_CLIENTES, clientes);
 }
 
@@ -257,9 +322,16 @@ function borrarCliente() {
 
 window.onload = async function() {
   // Cargar Clientes
-  const cloudClientes = await loadFromCloud(KEY_CLIENTES);
-  if (cloudClientes) clientes = cloudClientes;
-  else clientes = JSON.parse(localStorage.getItem(KEY_CLIENTES) || '[]');
+  try {
+    const cloudClientes = await loadFromCloudStrict(KEY_CLIENTES);
+    clientes = cloudClientes || [];
+    cargaClientesOk = true;
+  } catch (e) {
+    console.error('No se pudieron cargar los clientes desde la nube', e);
+    clientes = JSON.parse(localStorage.getItem(KEY_CLIENTES) || '[]');
+    cargaClientesOk = false;
+    alert('No se pudo conectar con la nube para cargar los clientes guardados. Se está mostrando una copia local que puede estar incompleta. Revisa tu conexión y recarga la página antes de agregar, editar o eliminar clientes.');
+  }
 
   // Cargar Producciones de todos los años (para el historial)
   await cargarProducciones();
