@@ -1211,16 +1211,68 @@ function totalAll(){ return Object.keys(data).filter(k => k.startsWith(currentYe
 // reales con un estado incompleto por una carga que falló.
 var rendicionCargaOk = false;
 
+// ------------------------------------------------------------------
+// Envío a la nube: con debounce y en serie (nunca dos guardados en vuelo
+// a la vez). Antes, cada tecleo en un monto (Efectivo/Transferencia/Webpay)
+// disparaba de inmediato un POST completo a la nube sin esperar el anterior;
+// si la red entregaba esas respuestas fuera de orden (algo común con
+// conexiones lentas, como en un celular/tablet de venta), la petición de un
+// tecleo A MEDIO ESCRIBIR podía llegar y guardarse DESPUÉS que la del monto
+// ya completo, dejando en la nube un número recortado (p.ej. escribir
+// "8000" mandaba primero "8", "80", "800" y recién "8000"; si el POST de
+// "800" llegaba último, eso es lo que quedaba guardado: "$8.000" se veía
+// como "$800" para cualquiera que abriera la Caja después). Ahora se espera
+// una pausa breve al escribir, y solo se manda un guardado a la nube a la
+// vez: si llegan cambios nuevos mientras uno sigue en camino, se encolan y
+// se suben apenas ese termine, así el último valor real siempre gana.
+// ------------------------------------------------------------------
+var _saveDebounceTimer = null;
+var _cloudSaveInFlight = false;
+var _cloudSaveQueued = false;
+
 function saveData(){
   try{
     localStorage.setItem('rendicion2026_v2', JSON.stringify(data));
-    if (!rendicionCargaOk) {
-      console.warn("No se pudo confirmar la conexión con la nube al abrir esta página; no se sube nada hasta recargar (F5).");
-      return;
-    }
-    saveToCloud('rendicion2026_v2', data);
   } catch(e){}
+  if (!rendicionCargaOk) {
+    console.warn("No se pudo confirmar la conexión con la nube al abrir esta página; no se sube nada hasta recargar (F5).");
+    return;
+  }
+  clearTimeout(_saveDebounceTimer);
+  _saveDebounceTimer = setTimeout(dispararGuardadoNube, 500);
 }
+
+async function dispararGuardadoNube(){
+  if (_cloudSaveInFlight) { _cloudSaveQueued = true; return; }
+  _cloudSaveInFlight = true;
+  try {
+    await saveToCloud('rendicion2026_v2', data);
+  } finally {
+    _cloudSaveInFlight = false;
+    if (_cloudSaveQueued) {
+      _cloudSaveQueued = false;
+      dispararGuardadoNube();
+    }
+  }
+}
+
+// Si la persona cierra la pestaña o cambia de app justo después de escribir
+// un monto, no hay por qué esperar los 500ms del debounce: se adelanta el
+// guardado pendiente de inmediato para no dejarlo colgando.
+document.addEventListener('visibilitychange', function () {
+  if (document.visibilityState === 'hidden' && _saveDebounceTimer) {
+    clearTimeout(_saveDebounceTimer);
+    _saveDebounceTimer = null;
+    dispararGuardadoNube();
+  }
+});
+window.addEventListener('pagehide', function () {
+  if (_saveDebounceTimer) {
+    clearTimeout(_saveDebounceTimer);
+    _saveDebounceTimer = null;
+    dispararGuardadoNube();
+  }
+});
 
 async function loadData() {
   const t = new Date();
