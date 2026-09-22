@@ -294,12 +294,39 @@ async function loadFromCloud(key) {
   } catch (e) { console.error('Error cargando de la nube', e); return null; }
 }
 
+// A diferencia de loadFromCloud, esta versión SÍ distingue entre "no había nada
+// guardado todavía" (devuelve null normalmente) y "la carga realmente falló"
+// (lanza el error). Se usa para los datos críticos (tarifario y cotizaciones),
+// donde guardar sobre una carga fallida podría borrar información real ya
+// guardada en la nube.
+async function loadFromCloudStrict(key) {
+  const res = await fetch(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const json = await res.json();
+  if (json.estado === 'error') throw new Error(json.detalle || 'Error del servidor');
+  return json.valor ? JSON.parse(json.valor) : null;
+}
+
+// Se ponen en true solo cuando la carga inicial desde la nube se confirma con
+// éxito. Mientras sigan en false, no se permite guardar (para no sobrescribir
+// datos reales en la nube con una copia local vacía o desactualizada).
+let tarifarioCargadoOk = false;
+let cotizacionesCargadasOk = false;
+
 function guardarTarifarioLocal() {
   localStorage.setItem(KEY_TARIFARIO, JSON.stringify(tarifario));
+  if (!tarifarioCargadoOk) {
+    alert('No se pudo confirmar la conexión con la nube al abrir esta página. Para no perder información, recarga la página (F5) antes de seguir editando el tarifario.');
+    return;
+  }
   saveToCloud(KEY_TARIFARIO, tarifario);
 }
 function guardarCotizacionesLocal() {
   localStorage.setItem(KEY_COTIZACIONES, JSON.stringify(cotizaciones));
+  if (!cotizacionesCargadasOk) {
+    alert('No se pudo confirmar la conexión con la nube al abrir esta página. Para no perder cotizaciones ya guardadas, recarga la página (F5) antes de seguir editando.');
+    return;
+  }
   saveToCloud(KEY_COTIZACIONES, cotizaciones);
 }
 
@@ -987,21 +1014,33 @@ function exportCotizacionPDF(id) {
 }
 
 window.onload = async function () {
-  const cloudTarifario = await loadFromCloud(KEY_TARIFARIO);
-  if (cloudTarifario) {
-    tarifario = Object.assign({ items: [], nombresListas: ['Lista 1', 'Lista 2', 'Lista 3'], ivaPct: 19, configPdf: Object.assign({}, CONFIG_PDF_DEFAULT) }, cloudTarifario);
-  } else {
+  try {
+    const cloudTarifario = await loadFromCloudStrict(KEY_TARIFARIO);
+    if (cloudTarifario) {
+      tarifario = Object.assign({ items: [], nombresListas: ['Lista 1', 'Lista 2', 'Lista 3'], ivaPct: 19, configPdf: Object.assign({}, CONFIG_PDF_DEFAULT) }, cloudTarifario);
+    }
+    tarifarioCargadoOk = true;
+  } catch (e) {
+    console.error('No se pudo cargar el tarifario desde la nube', e);
     const local = localStorage.getItem(KEY_TARIFARIO);
     if (local) tarifario = JSON.parse(local);
+    tarifarioCargadoOk = false;
   }
   if (!tarifario.nombresListas) tarifario.nombresListas = ['Lista 1', 'Lista 2', 'Lista 3'];
   if (tarifario.ivaPct === undefined) tarifario.ivaPct = 19;
   if (!tarifario.configPdf) tarifario.configPdf = Object.assign({}, CONFIG_PDF_DEFAULT);
   if (tarifario.correlativoActual === undefined) tarifario.correlativoActual = 1;
 
-  const cloudCotizaciones = await loadFromCloud(KEY_COTIZACIONES);
-  if (cloudCotizaciones) cotizaciones = cloudCotizaciones;
-  else cotizaciones = JSON.parse(localStorage.getItem(KEY_COTIZACIONES) || '[]');
+  try {
+    const cloudCotizaciones = await loadFromCloudStrict(KEY_COTIZACIONES);
+    cotizaciones = cloudCotizaciones || [];
+    cotizacionesCargadasOk = true;
+  } catch (e) {
+    console.error('No se pudieron cargar las cotizaciones desde la nube', e);
+    cotizaciones = JSON.parse(localStorage.getItem(KEY_COTIZACIONES) || '[]');
+    cotizacionesCargadasOk = false;
+    alert('No se pudo conectar con la nube para cargar las cotizaciones guardadas. Se está mostrando una copia local que puede estar incompleta. Revisa tu conexión y recarga la página antes de crear o editar cotizaciones.');
+  }
 
   const cloudClientes = await loadFromCloud(KEY_CLIENTES);
   clientesData = cloudClientes || JSON.parse(localStorage.getItem(KEY_CLIENTES) || '[]');
