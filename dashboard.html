@@ -42,6 +42,15 @@ input,select,button{font-family:inherit;outline:none}
 .conc-bar-fill{height:100%;background:var(--gold);border-radius:6px}
 .conc-pct{width:52px;text-align:right;font-size:13px;font-weight:700;color:var(--dark);flex-shrink:0}
 .conc-warn{font-size:11px;color:var(--red);font-weight:700;margin-top:2px}
+.dis-row{position:relative;display:flex;align-items:center;gap:12px;margin-bottom:4px;padding:6px 4px;border-radius:6px;transition:background .15s}
+.dis-row:hover,.dis-row:focus{background:var(--bg);outline:none}
+.dis-name{width:170px;font-size:13px;font-weight:600;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dis-bar-bg{flex:1;background:var(--bg);border-radius:6px;height:16px;overflow:hidden}
+.dis-bar-fill{height:100%;background:var(--gold);border-radius:6px;transition:filter .15s}
+.dis-row:hover .dis-bar-fill,.dis-row:focus .dis-bar-fill{filter:brightness(0.9)}
+.dis-value{width:64px;text-align:right;font-size:13px;font-weight:700;color:var(--dark);flex-shrink:0}
+.dis-tooltip{position:absolute;top:-6px;left:170px;transform:translateY(-100%);background:var(--dark);color:#fff;font-size:11px;font-weight:600;padding:6px 10px;border-radius:6px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s;z-index:10;box-shadow:0 4px 10px rgba(0,0,0,.2)}
+.dis-row:hover .dis-tooltip,.dis-row:focus .dis-tooltip{opacity:1}
 .empty-note{font-size:13px;color:var(--muted);padding:10px 0}
 .note{font-size:12px;color:var(--muted);background:var(--bg);border:1px dashed var(--border);border-radius:8px;padding:10px 12px;margin-top:10px}
 .loading{text-align:center;padding:60px;color:var(--muted)}
@@ -112,6 +121,11 @@ input,select,button{font-family:inherit;outline:none}
         <div class="card-title">Retorno de Sala de Ventas (Local)</div>
         <div id="retornoDetalle"></div>
       </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Producción por Diseñador en el Período</div>
+      <div id="disenadorDetalle"></div>
     </div>
 
     <div class="card">
@@ -237,8 +251,13 @@ async function recalcularTodo() {
   renderVentas(r);
   renderCostos(r);
   renderProduccion(r, producciones);
+  renderPorDisenador(r, producciones);
   renderRetorno(r);
   renderConcentracion(r);
+}
+
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
 // ===== VENTAS =====
@@ -330,6 +349,41 @@ function renderProduccion(r, producciones) {
     <div class="dr-row tot"><span>Prendas producidas por persona</span><span>${prendasPorPersona !== null ? prendasPorPersona.toFixed(1) : '-'}</span></div>
     <div class="note">${nadieTieneCargo ? 'Todavía no se asignó el cargo "Diseño / Producción" a nadie en la pestaña Nómina de Costos, así que esta cifra divide por el total del equipo (ventas, administración, etc. incluidos). Asigna el cargo a quienes diseñan/producen en Costos para que esta cifra refleje solo a ellos.' : 'Solo se cuentan las personas de la Nómina con cargo "Diseño / Producción", ya que las producciones del Calendario se asocian a diseñadores específicos, no a todo el equipo. No existe hoy un dato de capacidad máxima por persona, por lo que esta cifra es una referencia de carga, no una comparación contra una meta.'}</div>
   `;
+}
+
+// ===== PRODUCCIÓN POR DISEÑADOR =====
+function renderPorDisenador(r, producciones) {
+  const enPeriodo = (producciones || []).filter(p => enRango(p.date, r));
+  const porDisenador = {};
+  enPeriodo.forEach(p => {
+    const nombre = (p['diseñador'] || '').trim();
+    if (!nombre) return;
+    porDisenador[nombre] = (porDisenador[nombre] || 0) + (p.totalPrendas || 0);
+  });
+  const filas = Object.entries(porDisenador).sort((a, b) => b[1] - a[1]);
+  const panel = document.getElementById('disenadorDetalle');
+
+  if (filas.length === 0) {
+    panel.innerHTML = '<div class="empty-note">No hay producciones con diseñador asignado en el período (módulo Calendario).</div>';
+    return;
+  }
+
+  const totalGeneral = filas.reduce((s, [, v]) => s + v, 0);
+  const max = filas[0][1];
+
+  panel.innerHTML = filas.map(([nombre, valor]) => {
+    const anchoBarra = max > 0 ? Math.max(2, (valor / max * 100)) : 0;
+    const pct = totalGeneral > 0 ? (valor / totalGeneral * 100) : 0;
+    const nombreSeguro = escapeHtml(nombre);
+    return `
+      <div class="dis-row" tabindex="0">
+        <div class="dis-name" title="${nombreSeguro}">${nombreSeguro}</div>
+        <div class="dis-bar-bg"><div class="dis-bar-fill" style="width:${anchoBarra}%"></div></div>
+        <div class="dis-value">${valor}</div>
+        <div class="dis-tooltip">${nombreSeguro}: <strong>${valor} prendas</strong> · ${pct.toFixed(1)}% del período</div>
+      </div>
+    `;
+  }).join('') + `<div class="note">Prendas producidas en el período, agrupadas por el diseñador asignado a cada producción en el Calendario (campo "Diseñador"). Independiente de la Dotación de Costos: aquí se ve quién produjo realmente, con o sin cargo asignado.</div>`;
 }
 
 // ===== RETORNO SALA DE VENTAS (LOCAL) =====
