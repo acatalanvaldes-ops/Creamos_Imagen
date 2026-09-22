@@ -151,11 +151,28 @@ const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto'
 const ANIOS = [2025,2026,2027,2028,2029,2030,2031];
 const COM_WP_PCT = 2; // recargo webpay, igual que en ventas.html / ventasci.html
 
+// El backend (Google Apps Script) a veces devuelve una falla transitoria —una
+// página de error en vez de JSON, o un HTTP no-OK— que se resuelve sola al
+// reintentar. Sin reintentos, una falla pasajera al leer un solo bloque hacía
+// que el dashboard mostrara un número incompleto (o $0) sin ningún aviso.
+function esperar(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+const CLOUD_INTENTOS = 3;
+
 async function fetchClaveNube(key) {
   const url = API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN;
-  const res = await fetch(url);
-  const json = await res.json();
-  return json.valor ? JSON.parse(json.valor) : null;
+  let ultimoError;
+  for (let intento = 0; intento < CLOUD_INTENTOS; intento++) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const json = await res.json();
+      return json.valor ? JSON.parse(json.valor) : null;
+    } catch (e) {
+      ultimoError = e;
+      if (intento < CLOUD_INTENTOS - 1) await esperar(500 * (intento + 1));
+    }
+  }
+  throw ultimoError;
 }
 
 async function loadFromCloud(key, useToken) {
