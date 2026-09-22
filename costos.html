@@ -91,16 +91,17 @@ input,select,button{font-family:inherit;outline:none}
 // CONEXIÓN A BASE DE DATOS (NUBE)
 // ============================================================
 const API_URL = "https://script.google.com/macros/s/AKfycbxP5-vB59e80qpXdx4AcCyS28C4H58thdh0XXtLcDWZD8Q_47fDbBvLn1ahqx7RoJor/exec";
+const CLOUD_TOKEN = "b5bd161b4ef581c6114b7bb4";
 const STORAGE_KEY = "costos_ci_v1";
 
 async function saveToCloud(key, dataObj) {
-  try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj) }) }); }
+  try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj), token: CLOUD_TOKEN }) }); }
   catch (e) {}
 }
 
 async function loadFromCloud(key) {
   try {
-    const res = await fetch(API_URL + "?key=" + key);
+    const res = await fetch(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
     const json = await res.json();
     return json.valor ? JSON.parse(json.valor) : null;
   } catch (e) { return null; }
