@@ -208,6 +208,16 @@ async function loadFromCloud(key, useToken) {
       }
       parsed.ventas = ventas;
     }
+    // Igual que arriba, pero para las llaves prods<año> de calendario.html, que
+    // reparten sus datos bajo la propiedad "producciones" en vez de "ventas".
+    if (parsed && parsed.shardCount && parsed.shardCount > 1 && Array.isArray(parsed.producciones)) {
+      let producciones = parsed.producciones.slice();
+      for (let i = 1; i < parsed.shardCount; i++) {
+        const bloque = await fetchClaveNube(key + '_sh' + i);
+        if (bloque && Array.isArray(bloque.producciones)) producciones = producciones.concat(bloque.producciones);
+      }
+      parsed.producciones = producciones;
+    }
     return parsed;
   } catch (e) { console.error('Error cargando de la nube', key, e); return null; }
 }
@@ -232,7 +242,22 @@ function comWP(base, formaPago) { return formaPago === 'Webpay' ? Math.round(bas
 async function cargarProduccionesAnio(anio) {
   if (prodsPorAnio[anio]) return prodsPorAnio[anio];
   const data = await loadFromCloud('prods' + anio, true);
-  prodsPorAnio[anio] = data || [];
+  // calendario.html guarda cada año como un arreglo plano (formato antiguo) o,
+  // desde que se agregó el particionado por límite de caracteres, como un
+  // objeto { producciones: [...], shardCount } (formato nuevo). Sin este
+  // desempaquetado, cargarProduccionesAnio devolvía el objeto entero en vez
+  // del arreglo, y renderProduccion/renderPorDisenador/renderRetorno/
+  // renderConcentracion fallaban silenciosamente al intentar usar .filter()
+  // sobre un objeto, dejando esas secciones del dashboard en blanco.
+  let arr;
+  if (Array.isArray(data)) {
+    arr = data;
+  } else if (data && Array.isArray(data.producciones)) {
+    arr = data.producciones;
+  } else {
+    arr = [];
+  }
+  prodsPorAnio[anio] = arr;
   return prodsPorAnio[anio];
 }
 
