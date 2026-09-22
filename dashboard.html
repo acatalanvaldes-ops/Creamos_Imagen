@@ -139,7 +139,10 @@ const COM_WP_PCT = 2; // recargo webpay, igual que en ventas.html / ventasci.htm
 
 async function loadFromCloud(key, useToken) {
   try {
-    const url = API_URL + "?key=" + key + (useToken ? ("&token=" + CLOUD_TOKEN) : "");
+    // El backend exige el token de seguridad para TODAS las llaves, así que
+    // siempre se envía (el parámetro useToken se mantiene por compatibilidad
+    // pero ya no cambia el comportamiento).
+    const url = API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN;
     const res = await fetch(url);
     const json = await res.json();
     return json.valor ? JSON.parse(json.valor) : null;
