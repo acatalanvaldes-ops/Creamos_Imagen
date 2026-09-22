@@ -239,12 +239,27 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbxP5-vB59e80qpXdx4AcCyS28C4H58thdh0XXtLcDWZD8Q_47fDbBvLn1ahqx7RoJor/exec";
 const CLOUD_TOKEN = "b5bd161b4ef581c6114b7bb4";
 
+// El backend (Google Apps Script) a veces devuelve una falla transitoria —una
+// página de error en vez de JSON, o un HTTP no-OK— que se resuelve sola al
+// reintentar. Sin reintentos, esas fallas pasajeras se veían igual que una
+// caída real de la conexión (alertas de "no se pudo conectar" de más).
+function esperar(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+const CLOUD_INTENTOS = 3;
+
 async function saveToCloud(key, dataObj) {
-  try {
-    const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj), token: CLOUD_TOKEN }) });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    return true;
-  } catch (e) { console.error("Error guardando en la nube", e); return false; }
+  let ultimoError;
+  for (let intento = 0; intento < CLOUD_INTENTOS; intento++) {
+    try {
+      const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj), token: CLOUD_TOKEN }) });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return true;
+    } catch (e) {
+      ultimoError = e;
+      if (intento < CLOUD_INTENTOS - 1) await esperar(500 * (intento + 1));
+    }
+  }
+  console.error("Error guardando en la nube", ultimoError);
+  return false;
 }
 
 let lastSyncedSnapshot = null;
@@ -282,24 +297,43 @@ async function checkForConflict(key) {
 }
 
 async function loadFromCloud(key) {
-  try {
-    const res = await fetch(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
-    const json = await res.json();
-    return json.valor ? JSON.parse(json.valor) : null;
-  } catch (e) { console.error("Error cargando de la nube", e); return null; }
+  let ultimoError;
+  for (let intento = 0; intento < CLOUD_INTENTOS; intento++) {
+    try {
+      const res = await fetch(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const json = await res.json();
+      return json.valor ? JSON.parse(json.valor) : null;
+    } catch (e) {
+      ultimoError = e;
+      if (intento < CLOUD_INTENTOS - 1) await esperar(500 * (intento + 1));
+    }
+  }
+  console.error("Error cargando de la nube", ultimoError);
+  return null;
 }
 
 // Version "estricta": en vez de devolver null ante cualquier falla (red, HTTP,
-// o error del servidor), lanza una excepción. Así se puede distinguir "la nube
-// respondió que está vacío" de "no se pudo confirmar el estado de la nube", y
-// evitar que un guardado hecho tras una carga fallida sobrescriba datos reales
-// (el mismo problema ya visto y corregido en otros módulos de esta app).
+// o error del servidor), lanza una excepción tras agotar los reintentos. Así
+// se puede distinguir "la nube respondió que está vacío" de "no se pudo
+// confirmar el estado de la nube", y evitar que un guardado hecho tras una
+// carga fallida sobrescriba datos reales (el mismo problema ya visto y
+// corregido en otros módulos de esta app).
 async function loadFromCloudStrict(key) {
-  const res = await fetch(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  const json = await res.json();
-  if (json.estado === 'error') throw new Error(json.detalle || 'Error del servidor');
-  return json.valor ? JSON.parse(json.valor) : null;
+  let ultimoError;
+  for (let intento = 0; intento < CLOUD_INTENTOS; intento++) {
+    try {
+      const res = await fetch(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const json = await res.json();
+      if (json.estado === 'error') throw new Error(json.detalle || 'Error del servidor');
+      return json.valor ? JSON.parse(json.valor) : null;
+    } catch (e) {
+      ultimoError = e;
+      if (intento < CLOUD_INTENTOS - 1) await esperar(500 * (intento + 1));
+    }
+  }
+  throw ultimoError;
 }
 
 // Google Sheets limita cada celda a 50.000 caracteres. Las producciones de un
