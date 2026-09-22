@@ -469,6 +469,16 @@ function nombreProveedor(id) {
   return p ? p.nombre : '(proveedor eliminado)';
 }
 
+// Proveedores.html guarda cada compra en el formato antiguo (un solo insumo,
+// monto total en c.monto) o, desde que se agregó el registro de varios
+// productos con cálculo de IVA, en el formato nuevo (c.items[] + c.total).
+// Sin este ajuste, las compras nuevas se contaban como $0 aquí porque no
+// tienen c.monto, y la Concentración de Proveedores quedaba mal calculada.
+function compraMontoTotalDash(c) {
+  if (c.total !== undefined && c.total !== null) return c.total;
+  return c.monto || 0;
+}
+
 function renderConcentracion(r) {
   const comprasPeriodo = compras.filter(c => enRango(c.fecha, r));
   const panel = document.getElementById('concentracionDetalle');
@@ -483,8 +493,9 @@ function renderConcentracion(r) {
   const totales = {};
   let totalGeneral = 0;
   comprasPeriodo.forEach(c => {
-    totales[c.proveedorId] = (totales[c.proveedorId] || 0) + (c.monto || 0);
-    totalGeneral += (c.monto || 0);
+    const monto = compraMontoTotalDash(c);
+    totales[c.proveedorId] = (totales[c.proveedorId] || 0) + monto;
+    totalGeneral += monto;
   });
   const filas = Object.entries(totales)
     .map(([provId, monto]) => ({ nombre: nombreProveedor(parseFloat(provId)), monto, pct: totalGeneral > 0 ? (monto / totalGeneral * 100) : 0 }))
