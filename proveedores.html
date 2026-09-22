@@ -66,6 +66,12 @@ table.tbl tr:last-child td{border-bottom:none}
 .conc-bar-fill{height:100%;background:var(--gold);border-radius:6px}
 .conc-pct{width:56px;text-align:right;font-size:13px;font-weight:700;color:var(--dark);flex-shrink:0}
 .conc-warn{font-size:11px;color:var(--red);font-weight:700;margin-top:2px}
+.compra-item-header{display:grid;grid-template-columns:1fr 90px 140px 32px;gap:8px;margin-bottom:6px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px}
+.compra-item-row{display:grid;grid-template-columns:1fr 90px 140px 32px;gap:8px;align-items:center;margin-bottom:8px}
+.compra-item-row input{background:var(--bg);border:1.5px solid var(--border);border-radius:6px;padding:8px 10px;font-size:13px;color:var(--dark);font-weight:600;width:100%}
+.compra-totales{margin-top:6px}
+.compra-totales .dr-row{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);padding:4px 0}
+.compra-totales .dr-row.tot{font-size:16px;font-weight:700;color:var(--dark);border-top:1px solid var(--border);padding-top:10px;margin-top:4px}
 </style>
 </head>
 <body>
@@ -167,19 +173,31 @@ table.tbl tr:last-child td{border-bottom:none}
 
 <!-- Modal Registrar Compra -->
 <div class="modal-bg" id="modalCompra">
-  <div class="modal" style="max-width:520px">
+  <div class="modal" style="max-width:700px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
       <h2>Registrar Compra</h2>
       <button class="act-btn" style="padding:4px 8px;font-size:16px;border:none" onclick="cerrarModalCompra()">✕</button>
     </div>
-    <div class="fld"><label>Proveedor *</label><select id="cp-proveedor" onchange="actualizarInsumosDatalist()"></select></div>
-    <div class="fld"><label>Insumo *</label><input type="text" id="cp-insumo" list="insumosDatalist" placeholder="Ej: Tela Poliéster Blanca"><datalist id="insumosDatalist"></datalist></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="fld"><label>Proveedor *</label><select id="cp-proveedor" onchange="actualizarInsumosDatalist()"></select></div>
       <div class="fld"><label>Fecha *</label><input type="date" id="cp-fecha"></div>
-      <div class="fld"><label>Cantidad</label><input type="number" id="cp-cantidad" placeholder="0" min="0"></div>
     </div>
-    <div class="fld"><label>Monto ($) *</label><input type="number" id="cp-monto" placeholder="0" min="0"></div>
-    <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:10px">
+
+    <div class="sub-section" style="margin-top:8px">
+      <div class="sub-title">Productos de la Compra</div>
+      <div class="compra-item-header"><div>Producto</div><div>Cantidad</div><div>Monto Neto ($)</div><div></div></div>
+      <div id="compraItemsList"></div>
+      <button class="act-btn small" onclick="agregarCompraItemRow()">+ Agregar producto</button>
+      <datalist id="insumosDatalist"></datalist>
+    </div>
+
+    <div class="sub-section compra-totales">
+      <div class="dr-row"><span>Subtotal Neto</span><span id="cp-subtotal">$ 0</span></div>
+      <div class="dr-row"><span>IVA (19%)</span><span id="cp-iva">$ 0</span></div>
+      <div class="dr-row tot"><span>Total</span><span id="cp-total">$ 0</span></div>
+    </div>
+
+    <div style="margin-top:16px;display:flex;justify-content:flex-end;gap:10px">
       <button class="act-btn" onclick="cerrarModalCompra()">Cancelar</button>
       <button class="act-btn primary" onclick="guardarCompra()">Guardar Compra</button>
     </div>
@@ -196,7 +214,9 @@ let proveedores = [];
 let compras = [];
 let editId = null;
 let editCompraId = null;
-let insumosEdit = []; 
+let insumosEdit = [];
+let compraItemsEdit = []; // productos de la compra que se está registrando: [{ producto, cantidad, montoNeto }]
+const IVA_PCT = 19;
 
 async function saveToCloud(key, dataObj) {
   try {
@@ -260,8 +280,45 @@ function renderProveedores() {
   `).join('');
 }
 
+// Una compra puede venir en el formato antiguo (un solo insumo por registro,
+// campo c.insumo) o en el formato nuevo (varios productos por registro,
+// c.items = [{producto, cantidad, montoNeto}]). Estas funciones normalizan
+// ambos formatos para el resto de la pantalla.
+function compraTieneProducto(c, nombreBuscado) {
+  if (!nombreBuscado) return true;
+  const n = nombreBuscado.trim().toLowerCase();
+  if (Array.isArray(c.items) && c.items.length) {
+    return c.items.some(it => (it.producto || '').trim().toLowerCase() === n);
+  }
+  return (c.insumo || '').trim().toLowerCase() === n;
+}
+function compraMontoTotal(c) {
+  if (c.total !== undefined && c.total !== null) return c.total;
+  return c.monto || 0;
+}
+function compraSubtotalNeto(c) {
+  if (c.subtotalNeto !== undefined && c.subtotalNeto !== null) return c.subtotalNeto;
+  return c.monto || 0;
+}
+function compraIva(c) {
+  return (c.iva !== undefined && c.iva !== null) ? c.iva : null;
+}
+function compraResumenProductos(c) {
+  if (Array.isArray(c.items) && c.items.length) {
+    if (c.items.length === 1) return c.items[0].producto || '-';
+    return c.items.map(it => it.producto).filter(Boolean).join(', ') || (c.items.length + ' productos');
+  }
+  return c.insumo || '-';
+}
+function compraCantidadTotal(c) {
+  if (Array.isArray(c.items) && c.items.length) {
+    return c.items.reduce((s, it) => s + (parseFloat(it.cantidad) || 0), 0);
+  }
+  return c.cantidad || 0;
+}
+
 function ultimaCompraDe(proveedorId, insumo) {
-  const relacionadas = compras.filter(c => c.proveedorId === proveedorId && (!insumo || (c.insumo || '').trim().toLowerCase() === insumo.trim().toLowerCase()));
+  const relacionadas = compras.filter(c => c.proveedorId === proveedorId && compraTieneProducto(c, insumo));
   if (!relacionadas.length) return null;
   return relacionadas.reduce((a, b) => (b.fecha || '') > (a.fecha || '') ? b : a).fecha;
 }
@@ -316,15 +373,18 @@ function abrirForm(id) {
     const historial = compras.filter(c => c.proveedorId === id);
     if (historial.length > 0) {
       historial.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
-      document.getElementById('historialList').innerHTML = historial.slice(0, 5).map(c => `
+      document.getElementById('historialList').innerHTML = historial.slice(0, 5).map(c => {
+        const cant = compraCantidadTotal(c);
+        return `
         <div class="hist-card">
-          <div class="hist-hdr"><span>Fecha: ${c.fecha || '-'}</span><span style="color:var(--teal)">${c.cantidad ? c.cantidad + ' un.' : ''}</span></div>
+          <div class="hist-hdr"><span>Fecha: ${c.fecha || '-'}</span><span style="color:var(--teal)">${cant ? cant + ' un.' : ''}</span></div>
           <div class="hist-bdy">
-            <span style="font-weight:700;color:var(--dark)">${c.insumo || '-'}</span>
-            <span style="font-size:12px;color:var(--muted)">$${(c.monto || 0).toLocaleString('es-CL')}</span>
+            <span style="font-weight:700;color:var(--dark)">${compraResumenProductos(c)}</span>
+            <span style="font-size:12px;color:var(--muted)">$${compraMontoTotal(c).toLocaleString('es-CL')}</span>
           </div>
         </div>
-      `).join('');
+      `;
+      }).join('');
     } else {
       document.getElementById('historialList').innerHTML = '<div style="font-size:13px;color:var(--muted)">Sin compras registradas.</div>';
     }
@@ -389,12 +449,56 @@ function abrirFormCompra() {
   editCompraId = null;
   const sel = document.getElementById('cp-proveedor');
   sel.innerHTML = '<option value="">— Seleccionar —</option>' + proveedores.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
-  document.getElementById('cp-insumo').value = '';
   document.getElementById('cp-fecha').value = new Date().toISOString().slice(0, 10);
-  document.getElementById('cp-cantidad').value = '';
-  document.getElementById('cp-monto').value = '';
+  // Arranca con 1 fila y se pueden agregar todas las que hagan falta (10 o más)
+  // con el botón "+ Agregar producto"; no hay un tope artificial de filas.
+  compraItemsEdit = [nuevoCompraItem()];
   actualizarInsumosDatalist();
+  renderCompraItemsList();
   document.getElementById('modalCompra').classList.add('open');
+}
+
+function nuevoCompraItem() {
+  return { producto: '', cantidad: '', montoNeto: '' };
+}
+
+function agregarCompraItemRow() {
+  compraItemsEdit.push(nuevoCompraItem());
+  renderCompraItemsList();
+}
+
+function quitarCompraItemRow(i) {
+  compraItemsEdit.splice(i, 1);
+  if (compraItemsEdit.length === 0) compraItemsEdit.push(nuevoCompraItem());
+  renderCompraItemsList();
+}
+
+function fmtMonedaCompra(n) { return "$ " + Math.round(n || 0).toLocaleString('es-CL'); }
+
+function renderCompraItemsList() {
+  const wrap = document.getElementById('compraItemsList');
+  wrap.innerHTML = compraItemsEdit.map((it, i) => `
+    <div class="compra-item-row">
+      <input type="text" list="insumosDatalist" placeholder="Ej: Tela Poliéster Blanca" value="${it.producto || ''}" oninput="compraItemsEdit[${i}].producto = this.value">
+      <input type="number" min="0" placeholder="0" value="${it.cantidad === '' ? '' : it.cantidad}" oninput="compraItemsEdit[${i}].cantidad = this.value">
+      <input type="number" min="0" placeholder="0" value="${it.montoNeto === '' ? '' : it.montoNeto}" oninput="compraItemsEdit[${i}].montoNeto = this.value; recalcularTotalesCompra()">
+      <button class="icon-btn" onclick="quitarCompraItemRow(${i})" title="Eliminar producto">🗑️</button>
+    </div>
+  `).join('');
+  recalcularTotalesCompra();
+}
+
+function recalcularTotalesCompra() {
+  const subtotal = Math.round(compraItemsEdit.reduce((s, it) => s + (parseFloat(it.montoNeto) || 0), 0));
+  const iva = Math.round(subtotal * IVA_PCT / 100);
+  const total = subtotal + iva;
+  const elSub = document.getElementById('cp-subtotal');
+  const elIva = document.getElementById('cp-iva');
+  const elTot = document.getElementById('cp-total');
+  if (elSub) elSub.textContent = fmtMonedaCompra(subtotal);
+  if (elIva) elIva.textContent = fmtMonedaCompra(iva);
+  if (elTot) elTot.textContent = fmtMonedaCompra(total);
+  return { subtotal, iva, total };
 }
 
 function actualizarInsumosDatalist() {
@@ -408,18 +512,30 @@ function cerrarModalCompra() { document.getElementById('modalCompra').classList.
 
 function guardarCompra() {
   const proveedorId = parseFloat(document.getElementById('cp-proveedor').value);
-  const insumo = document.getElementById('cp-insumo').value.trim();
   const fecha = document.getElementById('cp-fecha').value;
-  const monto = parseFloat(document.getElementById('cp-monto').value) || 0;
-  if (!proveedorId || !insumo || !fecha || !monto) { alert('Completa proveedor, insumo, fecha y monto.'); return; }
+  const itemsLimpios = compraItemsEdit
+    .map(it => ({
+      producto: (it.producto || '').trim(),
+      cantidad: parseFloat(it.cantidad) || 0,
+      montoNeto: parseFloat(it.montoNeto) || 0
+    }))
+    .filter(it => it.producto !== '' && it.montoNeto > 0);
+
+  if (!proveedorId || !fecha) { alert('Completa proveedor y fecha.'); return; }
+  if (itemsLimpios.length === 0) { alert('Agrega al menos un producto con su nombre y monto neto.'); return; }
+
+  const subtotalNeto = Math.round(itemsLimpios.reduce((s, it) => s + it.montoNeto, 0));
+  const iva = Math.round(subtotalNeto * IVA_PCT / 100);
+  const total = subtotalNeto + iva;
 
   const c = {
     id: Date.now(),
     fecha: fecha,
-    insumo: insumo,
-    cantidad: parseFloat(document.getElementById('cp-cantidad').value) || 0,
     proveedorId: proveedorId,
-    monto: monto
+    items: itemsLimpios,
+    subtotalNeto: subtotalNeto,
+    iva: iva,
+    total: total
   };
   compras.push(c);
   guardarComprasLocal();
@@ -451,8 +567,9 @@ function renderConcentracion() {
   const totales = {};
   let totalGeneral = 0;
   compras.forEach(c => {
-    totales[c.proveedorId] = (totales[c.proveedorId] || 0) + (c.monto || 0);
-    totalGeneral += (c.monto || 0);
+    const monto = compraMontoTotal(c);
+    totales[c.proveedorId] = (totales[c.proveedorId] || 0) + monto;
+    totalGeneral += monto;
   });
   const filas = Object.entries(totales)
     .map(([provId, monto]) => ({ nombre: nombreProveedor(parseFloat(provId)), monto, pct: totalGeneral > 0 ? (monto / totalGeneral * 100) : 0 }))
@@ -474,15 +591,20 @@ function renderComprasTable() {
     return;
   }
   const ordenadas = compras.slice().sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
-  wrap.innerHTML = `<table class="tbl"><thead><tr><th>Fecha</th><th>Proveedor</th><th>Insumo</th><th>Cantidad</th><th>Monto</th><th></th></tr></thead><tbody>` +
-    ordenadas.map(c => `<tr>
+  wrap.innerHTML = `<table class="tbl"><thead><tr><th>Fecha</th><th>Proveedor</th><th>Producto(s)</th><th>Cantidad</th><th>Neto</th><th>IVA</th><th>Total</th><th></th></tr></thead><tbody>` +
+    ordenadas.map(c => {
+      const iva = compraIva(c);
+      return `<tr>
       <td>${c.fecha || '-'}</td>
       <td>${nombreProveedor(c.proveedorId)}</td>
-      <td>${c.insumo || '-'}</td>
-      <td>${c.cantidad || 0}</td>
-      <td>$${(c.monto || 0).toLocaleString('es-CL')}</td>
+      <td>${compraResumenProductos(c)}</td>
+      <td>${compraCantidadTotal(c)}</td>
+      <td>$${compraSubtotalNeto(c).toLocaleString('es-CL')}</td>
+      <td>${iva !== null ? '$' + iva.toLocaleString('es-CL') : '-'}</td>
+      <td>$${compraMontoTotal(c).toLocaleString('es-CL')}</td>
       <td><button class="icon-btn" onclick="borrarCompra(${c.id})" title="Eliminar">🗑️</button></td>
-    </tr>`).join('') +
+    </tr>`;
+    }).join('') +
     `</tbody></table>`;
 }
 
