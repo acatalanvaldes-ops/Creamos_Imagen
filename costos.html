@@ -107,6 +107,26 @@ async function loadFromCloud(key) {
   } catch (e) { return null; }
 }
 
+// Igual que en ventas.html / rendicion.html: esta versión "estricta" lanza un
+// error ante cualquier falla (red, HTTP no-OK, o estado:"error" del backend)
+// en vez de devolver null en silencio. Así se puede distinguir "la nube está
+// realmente vacía" de "no se pudo confirmar qué hay en la nube", y evitar que
+// un guardado posterior sobreescriba datos reales por un fallo de carga que
+// pasó desapercibido.
+async function loadFromCloudStrict(key) {
+  const res = await fetch(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const json = await res.json();
+  if (json.estado === 'error') throw new Error(json.detalle || 'Error del servidor');
+  return json.valor ? JSON.parse(json.valor) : null;
+}
+
+// Se pone en true solo cuando la carga inicial desde la nube fue confirmada
+// (ya sea con datos o realmente vacía). Mientras sea false, guardarDatos()
+// sigue guardando en este navegador pero NO sube nada a la nube, para no
+// arriesgarse a pisar datos reales con una carga que no se pudo confirmar.
+var cargaCostosOk = false;
+
 // ============================================================
 // LÓGICA Y ESTADO
 // ============================================================
@@ -115,13 +135,13 @@ var defaultCfg = {
   hilos: 200, maquina: 300, admin: 1000, traslado: 0,
   margen: 20,
   rrhh: [
-    { nombre: "Persona 1", sueldo: 500000, afp: 11.44, fonasa: 7, bono: 0, comision: 0 },
-    { nombre: "Persona 2", sueldo: 500000, afp: 11.44, fonasa: 7, bono: 0, comision: 0 },
-    { nombre: "Persona 3", sueldo: 500000, afp: 11.44, fonasa: 7, bono: 0, comision: 0 },
-    { nombre: "Persona 4", sueldo: 500000, afp: 11.44, fonasa: 7, bono: 0, comision: 0 },
-    { nombre: "Persona 5", sueldo: 500000, afp: 11.44, fonasa: 7, bono: 0, comision: 0 },
-    { nombre: "Persona 6", sueldo: 500000, afp: 11.44, fonasa: 7, bono: 0, comision: 0 },
-    { nombre: "Persona 7", sueldo: 500000, afp: 11.44, fonasa: 7, bono: 0, comision: 0 }
+    { nombre: "Persona 1", cargo: "", sueldo: 500000, afp: 11.44, fonasa: 7, bono: 0, comision: 0 },
+    { nombre: "Persona 2", cargo: "", sueldo: 500000, afp: 11.44, fonasa: 7, bono: 0, comision: 0 },
+    { nombre: "Persona 3", cargo: "", sueldo: 500000, afp: 11.44, fonasa: 7, bono: 0, comision: 0 },
+    { nombre: "Persona 4", cargo: "", sueldo: 500000, afp: 11.44, fonasa: 7, bono: 0, comision: 0 },
+    { nombre: "Persona 5", cargo: "", sueldo: 500000, afp: 11.44, fonasa: 7, bono: 0, comision: 0 },
+    { nombre: "Persona 6", cargo: "", sueldo: 500000, afp: 11.44, fonasa: 7, bono: 0, comision: 0 },
+    { nombre: "Persona 7", cargo: "", sueldo: 500000, afp: 11.44, fonasa: 7, bono: 0, comision: 0 }
   ],
   gastos: {
     arriendo: 1330000,
@@ -145,9 +165,20 @@ var state = {
 
 function fmt(n) { return "$ " + Math.round(n).toLocaleString("es-CL"); }
 
+// Cargos disponibles para clasificar a cada persona de la Nómina. Solo las
+// personas con cargo "Diseño / Producción" se cuentan como "Dotación" para
+// calcular prendas producidas por persona en el Dashboard, ya que las
+// producciones (Calendario) se asocian a diseñadores, no a todo el equipo
+// (ventas, administración, etc.).
+var CARGOS = ["", "Diseño / Producción", "Ventas Local", "Ventas Empresa", "Administración", "Otro"];
+
 function guardarDatos() {
   var datos = { fichas: state.fichas, config: state.config };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(datos));
+  if (!cargaCostosOk) {
+    console.warn('Carga inicial desde la nube no confirmada: se guarda solo localmente, no se sube.');
+    return;
+  }
   saveToCloud(STORAGE_KEY, datos);
 }
 
@@ -200,7 +231,7 @@ function toggleTallerExterno(el) {
 function setState(p) { Object.assign(state, p); render(); }
 function setConfig(k, v) { state.config[k] = parseFloat(v) || 0; guardarDatos(); render(); }
 function setRrhh(idx, field, value) {
-  if(field==='nombre') state.config.rrhh[idx][field] = value;
+  if(field==='nombre' || field==='cargo') state.config.rrhh[idx][field] = value;
   else state.config.rrhh[idx][field] = parseFloat(value) || 0;
   guardarDatos(); render();
 }
@@ -235,10 +266,15 @@ function buildAdmin() {
   var totalNomina = 0;
   var rowsRrhh = c.rrhh.map(function(p, i) {
     var com = p.comision || 0;
+    var cargoActual = p.cargo || "";
     var costoEmpresa = p.sueldo + (p.sueldo * (p.afp / 100)) + (p.sueldo * (p.fonasa / 100)) + p.bono + com;
     totalNomina += costoEmpresa;
+    var cargoOptions = CARGOS.map(function(cg) {
+      return '<option value="'+cg+'"'+(cg===cargoActual?' selected':'')+'>'+(cg===''?'(sin asignar)':cg)+'</option>';
+    }).join('');
     return '<tr>'+
       '<td><input type="text" value="'+p.nombre+'" onchange="setRrhh('+i+',\'nombre\',this.value)"></td>'+
+      '<td><select onchange="setRrhh('+i+',\'cargo\',this.value)">'+cargoOptions+'</select></td>'+
       '<td><input type="number" value="'+p.sueldo+'" onchange="setRrhh('+i+',\'sueldo\',this.value)"></td>'+
       '<td><input type="number" step="0.01" value="'+p.afp+'" onchange="setRrhh('+i+',\'afp\',this.value)"></td>'+
       '<td><input type="number" step="0.1" value="'+p.fonasa+'" onchange="setRrhh('+i+',\'fonasa\',this.value)"></td>'+
@@ -259,9 +295,9 @@ function buildAdmin() {
     '<div class="card" style="margin-bottom:20px; overflow-x:auto;">'+
       '<div class="card-title">Equipo de Trabajo (7 Personas)</div>'+
       '<table class="tbl-rrhh">'+
-        '<thead><tr><th>Nombre</th><th>Sueldo Base ($)</th><th>AFP (%)</th><th>Fonasa (%)</th><th>Bonos ($)</th><th>Comisiones ($)</th><th>Costo Real ($)</th></tr></thead>'+
+        '<thead><tr><th>Nombre</th><th>Cargo</th><th>Sueldo Base ($)</th><th>AFP (%)</th><th>Fonasa (%)</th><th>Bonos ($)</th><th>Comisiones ($)</th><th>Costo Real ($)</th></tr></thead>'+
         '<tbody>'+rowsRrhh+'</tbody>'+
-        '<tfoot><tr><td colspan="6" style="text-align:right;font-weight:700;font-size:11px;color:var(--muted);text-transform:uppercase;">Costo Total Nómina Mensual</td><td style="font-weight:800;font-size:16px;color:var(--gold);">'+fmt(totalNomina)+'</td></tr></tfoot>'+
+        '<tfoot><tr><td colspan="7" style="text-align:right;font-weight:700;font-size:11px;color:var(--muted);text-transform:uppercase;">Costo Total Nómina Mensual</td><td style="font-weight:800;font-size:16px;color:var(--gold);">'+fmt(totalNomina)+'</td></tr></tfoot>'+
       '</table>'+
     '</div>'+
 
@@ -466,8 +502,8 @@ function borrarFicha(idx) {
 // INICIALIZACIÓN
 // ============================================================
 async function initApp() {
+  const rawLocal = localStorage.getItem(STORAGE_KEY);
   try {
-    const rawLocal = localStorage.getItem(STORAGE_KEY);
     if (rawLocal) {
       const p = JSON.parse(rawLocal);
       if (p.fichas) state.fichas = p.fichas;
@@ -479,26 +515,35 @@ async function initApp() {
         if(state.config.traslado === undefined) state.config.traslado = defaultCfg.traslado;
       }
     }
+  } catch (e) {}
 
-    const cloudData = await loadFromCloud(STORAGE_KEY);
+  try {
+    const cloudData = await loadFromCloudStrict(STORAGE_KEY);
+    cargaCostosOk = true;
     if (cloudData) {
       if (cloudData.fichas) state.fichas = cloudData.fichas;
       if (cloudData.config) {
         Object.assign(state.config, cloudData.config);
         if (!state.config.rrhh) state.config.rrhh = JSON.parse(JSON.stringify(defaultCfg.rrhh));
         else {
-          state.config.rrhh.forEach(p => { if (p.comision === undefined) p.comision = 0; });
+          state.config.rrhh.forEach(p => { if (p.comision === undefined) p.comision = 0; if (p.cargo === undefined) p.cargo = ""; });
         }
         if (!state.config.gastos) state.config.gastos = JSON.parse(JSON.stringify(defaultCfg.gastos));
         if (!state.config.prodMensual) state.config.prodMensual = defaultCfg.prodMensual;
         if (state.config.traslado === undefined) state.config.traslado = defaultCfg.traslado;
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(cloudData));
-    } else if (!cloudData && rawLocal) {
-      if(state.config.rrhh) state.config.rrhh.forEach(p => { if (p.comision === undefined) p.comision = 0; });
+    } else if (rawLocal) {
+      if(state.config.rrhh) state.config.rrhh.forEach(p => { if (p.comision === undefined) p.comision = 0; if (p.cargo === undefined) p.cargo = ""; });
       if(state.config.traslado === undefined) state.config.traslado = defaultCfg.traslado;
     }
-  } catch (e) {}
+  } catch (e) {
+    console.error('No se pudo confirmar la carga de Costos desde la nube:', e);
+    cargaCostosOk = false;
+    if (rawLocal) {
+      alert('No se pudo confirmar la conexión con la nube. Se están mostrando los datos guardados en este navegador; los cambios que hagas ahora se guardarán aquí pero no se subirán hasta que la conexión se restablezca (vuelve a cargar la página más tarde).');
+    }
+  }
   render();
 }
 
