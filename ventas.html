@@ -137,6 +137,9 @@ async function saveToCloud(key, dataObj) {
     try {
       const res = await fetchConTimeout(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj), token: CLOUD_TOKEN }) });
       if (!res.ok) throw new Error('HTTP ' + res.status);
+      // El backend responde HTTP 200 también cuando falla (con estado "error").
+      const json = await res.json();
+      if (json.estado === 'error') throw new Error(json.detalle || 'Error del servidor');
       return true;
     } catch (e) {
       ultimoError = e;
@@ -214,14 +217,20 @@ function splitVentasEnBloques(ventasArray) {
   return bloques;
 }
 
+// Devuelve true solo si TODOS los bloques se guardaron. Los bloques extra se
+// escriben antes que el principal (que es el que dice cuántos bloques hay),
+// para que nadie lea un shardCount que apunte a bloques aún no escritos.
 async function saveToCloudSharded(ventasArray, comDefPct, filtroMes) {
   var bloques = splitVentasEnBloques(ventasArray);
   var shardCount = bloques.length;
-  var principal = { ventas: bloques[0], comDefPct: comDefPct, filtroMes: filtroMes, shardCount: shardCount };
-  await saveToCloud(STORAGE_KEY, principal);
+  var pedidos = [];
   for (var i = 1; i < shardCount; i++) {
-    await saveToCloud(STORAGE_KEY + '_sh' + i, { ventas: bloques[i] });
+    pedidos.push(saveToCloud(STORAGE_KEY + '_sh' + i, { ventas: bloques[i] }));
   }
+  var oks = await Promise.all(pedidos);
+  if (oks.indexOf(false) !== -1) return false;
+  var principal = { ventas: bloques[0], comDefPct: comDefPct, filtroMes: filtroMes, shardCount: shardCount };
+  return await saveToCloud(STORAGE_KEY, principal);
 }
 
 // Carga estricta y con bloques: lanza si algún bloque no puede confirmarse.
@@ -275,6 +284,49 @@ var STORAGE_KEY = "sublipro_v2";
 // reales con un estado incompleto por una carga que falló.
 var cargaVentasOk = false;
 
+// ------------------------------------------------------------
+// SINCRONIZACIÓN CON LA NUBE
+// ------------------------------------------------------------
+// Antes cada guardado subía la lista completa de este equipo "a ciegas":
+//  - si la subida fallaba, la venta quedaba solo en este navegador sin aviso;
+//  - si otro equipo había agregado ventas desde que se abrió esta página, se
+//    borraban de la nube al subir una lista que no las tenía;
+//  - al recargar, la nube reemplazaba la copia local y las ventas que nunca
+//    se subieron se perdían.
+// Ahora cada guardado relee la nube y fusiona por id antes de subir, y se
+// recuerda qué ids ya estaban confirmados en la nube (SYNC_IDS_KEY) para
+// distinguir "otro equipo la borró" de "este equipo aún no la subió".
+var SYNC_IDS_KEY = STORAGE_KEY + "_ids_nube";
+var NO_SUBIDAS_KEY = STORAGE_KEY + "_no_subidas";
+var idsEnNube = null;          // Set de ids confirmados en la nube
+var _syncTimer = null, _syncEnCurso = false, _syncPendiente = false, _syncReintento = null;
+var hayCambiosSinSubir = false;
+
+function leerIdsNube() {
+  try { var a = JSON.parse(localStorage.getItem(SYNC_IDS_KEY)); return Array.isArray(a) ? new Set(a) : null; } catch(e) { return null; }
+}
+function recordarIdsNube(ventas) {
+  idsEnNube = new Set(ventas.map(function(v){ return v.id; }));
+  try { localStorage.setItem(SYNC_IDS_KEY, JSON.stringify(Array.from(idsEnNube))); } catch(e) {}
+}
+
+function mostrarEstadoGuardado(st) {
+  var el = document.getElementById('sync-badge');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'sync-badge';
+    el.style.cssText = 'position:fixed;bottom:16px;right:16px;z-index:9000;padding:9px 14px;border-radius:8px;font-size:12px;font-weight:700;box-shadow:0 4px 12px rgba(0,0,0,.15);border:1.5px solid;transition:opacity .3s;max-width:calc(100vw - 32px)';
+    document.body.appendChild(el);
+  }
+  clearTimeout(el._t);
+  el.style.opacity = '1'; el.style.display = 'block';
+  if (st === 'guardando') { el.style.background = '#fff'; el.style.borderColor = '#E7E2D9'; el.style.color = '#78716C'; el.textContent = '⏳ Guardando en la nube…'; }
+  else if (st === 'ok') { el.style.background = '#ECFDF5'; el.style.borderColor = '#0D7A6B'; el.style.color = '#0D7A6B'; el.textContent = '✓ Guardado en la nube';
+    el._t = setTimeout(function(){ el.style.opacity = '0'; setTimeout(function(){ el.style.display = 'none'; }, 300); }, 2500); }
+  else if (st === 'error') { el.style.background = '#FEF2F2'; el.style.borderColor = '#C0392B'; el.style.color = '#C0392B'; el.textContent = '⚠ No se pudo subir a la nube. Se reintentará solo; no cierres esta página.'; }
+  else if (st === 'local') { el.style.background = '#FEF3E2'; el.style.borderColor = '#C8973A'; el.style.color = '#92400E'; el.textContent = '💾 Guardado solo en este equipo: recarga la página (F5) con conexión para subirlo.'; }
+}
+
 function guardarDatos() {
   try {
     var datos = {
@@ -283,13 +335,70 @@ function guardarDatos() {
       filtroMes: state.filtroMes
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(datos));
-    if (!cargaVentasOk) {
-      console.warn("No se pudo confirmar la conexión con la nube al abrir esta página; no se sube nada hasta recargar (F5).");
-      return;
-    }
-    saveToCloudSharded(state.ventas, state.comDefPct, state.filtroMes);
   } catch(e) {}
+  if (!cargaVentasOk) {
+    console.warn("No se pudo confirmar la conexión con la nube al abrir esta página; no se sube nada hasta recargar (F5).");
+    mostrarEstadoGuardado('local');
+    return;
+  }
+  hayCambiosSinSubir = true;
+  clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(sincronizarNube, 400);
 }
+
+async function sincronizarNube() {
+  if (_syncEnCurso) { _syncPendiente = true; return; }
+  _syncEnCurso = true;
+  clearTimeout(_syncReintento);
+  mostrarEstadoGuardado('guardando');
+  var ok = false;
+  try {
+    // 1. Leer lo que hay AHORA en la nube (puede haber ventas de otro equipo).
+    var nube = await loadFromCloudSharded();
+    var ventasNube = (nube && nube.ventas) ? nube.ventas : [];
+    // 2. Fusionar: las ventas de este equipo mandan (incluye ediciones); de la
+    //    nube se agregan las que este equipo no conoce. Las que este equipo ya
+    //    había visto en la nube y ya no tiene, las borró aquí: no se reagregan.
+    var locales = new Set(state.ventas.map(function(v){ return v.id; }));
+    var nuevasDeOtros = ventasNube.filter(function(v){
+      return !locales.has(v.id) && !(idsEnNube && idsEnNube.has(v.id));
+    });
+    var fusion = state.ventas.concat(nuevasDeOtros);
+    // 3. Subir la fusión.
+    ok = await saveToCloudSharded(fusion, state.comDefPct, state.filtroMes);
+    if (ok) {
+      recordarIdsNube(fusion);
+      if (nuevasDeOtros.length) {
+        state.ventas = state.ventas.concat(nuevasDeOtros);
+        render();
+      }
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ ventas: state.ventas, comDefPct: state.comDefPct, filtroMes: state.filtroMes })); } catch(e) {}
+    }
+  } catch (e) {
+    console.error('Error sincronizando ventas con la nube', e);
+    ok = false;
+  } finally {
+    _syncEnCurso = false;
+  }
+  if (_syncPendiente) {
+    // Hubo más cambios mientras se subía: se vuelve a sincronizar con lo último.
+    _syncPendiente = false;
+    sincronizarNube();
+    return;
+  }
+  if (ok) {
+    hayCambiosSinSubir = false;
+    mostrarEstadoGuardado('ok');
+  } else {
+    mostrarEstadoGuardado('error');
+    _syncReintento = setTimeout(sincronizarNube, 30000);
+  }
+}
+
+// Avisar antes de cerrar o recargar si hay ventas que todavía no llegan a la nube.
+window.addEventListener('beforeunload', function (e) {
+  if (hayCambiosSinSubir) { e.preventDefault(); e.returnValue = ''; }
+});
 
 function cargarDatos() {
   try {
@@ -1104,13 +1213,44 @@ async function initApp() {
     // en la nube con seguridad.
     cargaVentasOk = true;
     if (cloudData) {
-      if (cloudData.ventas && cloudData.ventas.length > 0) {
-        state.ventas = cloudData.ventas;
-      }
+      var ventasNube = cloudData.ventas || [];
+      // Antes de reemplazar la copia local con la de la nube, se rescatan las
+      // ventas que están en este equipo y nunca llegaron a la nube (así se
+      // perdían las ventas cuando una subida fallaba y luego se recargaba).
+      // Si este equipo ya las había visto en la nube (idsPrevios), es que
+      // otro equipo las borró: esas no se ofrecen.
+      var idsPrevios = leerIdsNube();
+      var idsNube = new Set(ventasNube.map(function(v){ return v.id; }));
+      var ventasLocales = [];
+      try { var rawLocal = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); if (rawLocal && Array.isArray(rawLocal.ventas)) ventasLocales = rawLocal.ventas; } catch(e) {}
+      var noSubidas = ventasLocales.filter(function(v){
+        return v && v.id && !idsNube.has(v.id) && !(idsPrevios && idsPrevios.has(v.id));
+      });
+
+      state.ventas = ventasNube;
       if (cloudData.comDefPct) state.comDefPct = cloudData.comDefPct;
       if (cloudData.filtroMes !== undefined) state.filtroMes = cloudData.filtroMes;
-      // Se sincroniza localStorage con lo que llegó de la nube, sin volver a
-      // subir nada (evita el bug que sobreescribía la nube en cada carga).
+      recordarIdsNube(ventasNube);
+
+      if (noSubidas.length > 0) {
+        var detalle = noSubidas.slice().sort(function(a,b){ return a.fecha < b.fecha ? -1 : 1; }).slice(0, 15).map(function(v){
+          return '• ' + v.fecha + '  ' + v.cliente + '  ' + fmt(v.montoBase);
+        }).join('\n') + (noSubidas.length > 15 ? '\n… y ' + (noSubidas.length - 15) + ' más' : '');
+        var subir = confirm('Este equipo tiene ' + noSubidas.length + ' venta(s) que NO están en la nube (no se alcanzaron a subir):\n\n' + detalle +
+          '\n\n¿Subirlas ahora a la nube?\n\nAceptar = subirlas.\nCancelar = no subirlas (quedan respaldadas en este equipo).');
+        if (subir) {
+          state.ventas = ventasNube.concat(noSubidas);
+          guardarDatos(); // fusiona con la nube y sube
+        } else {
+          // Respaldo aparte, para que no se pierdan al sobrescribir la copia local.
+          try {
+            var previas = JSON.parse(localStorage.getItem(NO_SUBIDAS_KEY) || '[]');
+            localStorage.setItem(NO_SUBIDAS_KEY, JSON.stringify(previas.concat(noSubidas)));
+          } catch(e) {}
+        }
+      }
+      // Se sincroniza localStorage con lo que quedó (sin volver a subir si no
+      // hubo nada que rescatar: evita el bug que sobreescribía la nube en cada carga).
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify({ ventas: state.ventas, comDefPct: state.comDefPct, filtroMes: state.filtroMes }));
       } catch(e) {}
