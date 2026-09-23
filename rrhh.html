@@ -56,7 +56,18 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
 </head>
 <body>
 <script>
-if(localStorage.getItem('cimagen_auth_ok')!=='1')window.location.replace('index.html');
+(function(){
+  var MODULE_KEY = 'rrhh';
+  var SESSION_KEY = 'cimagen_session';
+  var SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+  var sess = null;
+  try { sess = JSON.parse(localStorage.getItem(SESSION_KEY)); } catch(e){}
+  var valid = sess && sess.email && sess.ts && (Date.now() - sess.ts < SESSION_TTL_MS);
+  var allowed = valid && (sess.isAdmin || (sess.modules && sess.modules.indexOf(MODULE_KEY) !== -1));
+  if (!allowed) {
+    window.location.replace('index.html');
+  }
+})();
 </script>
 <div class="topbar">
   <div class="brand">
@@ -387,6 +398,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbxP5-vB59e80qpXdx4AcCyS
 const CLOUD_TOKEN = "b5bd161b4ef581c6114b7bb4";
 const $ = id => document.getElementById(id);
 const money = v => "$" + Math.round(Number(v||0)).toLocaleString("es-CL");
+const fmt = money; // alias: algunas plantillas (liquidación/finiquito) usan fmt()
 const fDate = iso => { if(!iso)return'-'; const [y,m,d]=iso.split('-'); return `${d}/${m}/${y}`; };
 
 let DB = { trab:[], asis:[], vac:[], lic:[], liq:[], lib:[], prev:[], fini:[], doc:[] };
@@ -396,9 +408,121 @@ const CFG = { AFP:10, SAL:7, AFC:0.6, C_AFP:{UNO:0.46, MODELO:0.58, PLANVITAL:1.
 let editId = { trab:null, vacRej:null };
 let calcObj = { liq:null, lib:null, prev:null, fini:null };
 
-async function loadCloud(k) { try{ const r=await fetch(`${API_URL}?key=${k}&token=${CLOUD_TOKEN}`); const j=await r.json(); return j.valor?JSON.parse(j.valor):[]; }catch(e){return [];} }
-function saveCloud(k,d) { fetch(API_URL,{method:'POST',body:JSON.stringify({key:k,value:JSON.stringify(d),token:CLOUD_TOKEN})}).catch(e=>console.error); }
-function sync(keyId) { const k=KEYS[keyId]; localStorage.setItem(k, JSON.stringify(DB[keyId])); saveCloud(k, DB[keyId]); }
+// El backend (Google Apps Script) a veces devuelve una falla transitoria
+// -una página de error en vez de JSON, un HTTP no-OK, o una respuesta muy
+// lenta que se queda colgada- que se resuelve sola al reintentar. Sin
+// reintentos ni un tope de tiempo por intento, una falla pasajera se veía
+// como "no hay datos" y la página podía quedarse esperando varios minutos.
+function esperar(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+const CLOUD_INTENTOS = 3;
+const CLOUD_TIMEOUT_MS = 12000;
+
+async function fetchConTimeout(url, opts) {
+  const controller = new AbortController();
+  const timer = setTimeout(function () { controller.abort(); }, CLOUD_TIMEOUT_MS);
+  try {
+    return await fetch(url, Object.assign({}, opts, { signal: controller.signal }));
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Lee una llave cruda de la nube (sin desarmar particiones), con reintentos.
+// Lanza una excepción si los 3 intentos fallan, en vez de devolver un valor
+// vacío silenciosamente -eso es justo lo que causó pérdida real de datos en
+// el módulo de Clientes: una carga fallida se confundía con "no hay nada".
+async function fetchClaveNube(key) {
+  const url = API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN;
+  let ultimoError;
+  for (let intento = 0; intento < CLOUD_INTENTOS; intento++) {
+    try {
+      const res = await fetchConTimeout(url);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const json = await res.json();
+      return json.valor ? JSON.parse(json.valor) : null;
+    } catch (e) {
+      ultimoError = e;
+      if (intento < CLOUD_INTENTOS - 1) await esperar(500 * (intento + 1));
+    }
+  }
+  throw ultimoError;
+}
+
+async function saveCloudRaw(key, dataObj) {
+  let ultimoError;
+  for (let intento = 0; intento < CLOUD_INTENTOS; intento++) {
+    try {
+      const res = await fetchConTimeout(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj), token: CLOUD_TOKEN }) });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return true;
+    } catch (e) {
+      ultimoError = e;
+      if (intento < CLOUD_INTENTOS - 1) await esperar(500 * (intento + 1));
+    }
+  }
+  console.error('Error guardando en la nube', key, ultimoError);
+  return false;
+}
+
+// Una sola celda de Google Sheets no admite más de 50.000 caracteres. Los
+// documentos del módulo (contratos, carnet, certificados) se guardan como
+// texto base64, y un solo archivo normal (una foto de carnet, un PDF
+// escaneado) puede tener cientos de miles de caracteres -muy por sobre ese
+// límite. MAX_SHARD_CHARS reparte el JSON completo de cada módulo en
+// bloques de ese tamaño, cada uno en su propia celda ("<llave>_sh1",
+// "<llave>_sh2", etc.), y los vuelve a unir al leer. A diferencia del
+// particionado por registro completo que usan otros módulos (Calendario,
+// Ventas), acá se parte el texto en cualquier punto, porque un solo
+// documento adjunto ya puede superar el límite por sí solo.
+const MAX_SHARD_CHARS = 40000;
+
+function partirTexto(texto, maxChars) {
+  const partes = [];
+  for (let i = 0; i < texto.length; i += maxChars) partes.push(texto.slice(i, i + maxChars));
+  return partes.length ? partes : [''];
+}
+
+async function saveCloudSharded(key, dataArray) {
+  const texto = JSON.stringify(dataArray || []);
+  const partes = partirTexto(texto, MAX_SHARD_CHARS);
+  let ok = await saveCloudRaw(key, { shardCount: partes.length, parte: partes[0] });
+  for (let i = 1; i < partes.length && ok; i++) {
+    ok = await saveCloudRaw(key + '_sh' + i, { shardCount: partes.length, parte: partes[i] });
+  }
+  return ok;
+}
+
+// Lanza si los datos son inconsistentes o si falta algún fragmento -para no
+// confundir "no pudimos leer una partición" con "no hay datos guardados".
+async function loadCloudSharded(key) {
+  const primero = await fetchClaveNube(key);
+  if (primero === null || primero === undefined) return [];
+  if (Array.isArray(primero)) return primero; // formato antiguo sin particionar
+  if (typeof primero === 'object' && typeof primero.shardCount === 'number') {
+    let texto = primero.parte || '';
+    for (let i = 1; i < primero.shardCount; i++) {
+      const bloque = await fetchClaveNube(key + '_sh' + i);
+      if (!bloque || typeof bloque.parte !== 'string') throw new Error('Falta la partición ' + i + ' de ' + key);
+      texto += bloque.parte;
+    }
+    if (!texto) return [];
+    return JSON.parse(texto);
+  }
+  throw new Error('Formato de datos no reconocido para ' + key);
+}
+
+const cargaOk = { trab:false, asis:false, vac:false, lic:false, liq:false, lib:false, prev:false, fini:false, doc:false };
+
+function sync(keyId) {
+  const k = KEYS[keyId];
+  localStorage.setItem(k, JSON.stringify(DB[keyId]));
+  if (!cargaOk[keyId]) {
+    alert('No se pudo confirmar la conexión con la nube al abrir esta página para esta sección de Recursos Humanos. Para no perder información ya guardada, recarga la página (F5) antes de seguir agregando o editando datos aquí.');
+    return;
+  }
+  saveCloudSharded(k, DB[keyId]);
+}
+
 function getT(id) { return DB.trab.find(x=>String(x.id)===String(id)); }
 function getTName(id) { const t=getT(id); return t ? `${t.nombres} ${t.apellidos}` : 'Eliminado'; }
 function decHr(v) { if(!v)return 0; const p=v.split(":"); return Number(p[0])+(Number(p[1])/60); }
@@ -406,10 +530,28 @@ function decHr(v) { if(!v)return 0; const p=v.split(":"); return Number(p[0])+(N
 async function init() {
   Object.keys(KEYS).forEach(k => { try{ const l=localStorage.getItem(KEYS[k]); if(l)DB[k]=JSON.parse(l); }catch(e){} });
   popSel(); renderAll();
-  try {
-    await Promise.all(Object.keys(KEYS).map(async k => { const d = await loadCloud(KEYS[k]); if(d && d.length>0){ DB[k]=d; localStorage.setItem(KEYS[k],JSON.stringify(d)); } }));
-    popSel(); renderAll();
-  } catch(e){}
+
+  const nombresClaves = Object.keys(KEYS);
+  const resultados = await Promise.allSettled(nombresClaves.map(function (k) {
+    return loadCloudSharded(KEYS[k]).then(function (cloud) { return { k: k, cloud: cloud }; });
+  }));
+  let huboFallas = false;
+  resultados.forEach(function (r, idx) {
+    const k = nombresClaves[idx];
+    if (r.status === 'fulfilled') {
+      DB[k] = r.value.cloud || [];
+      localStorage.setItem(KEYS[k], JSON.stringify(DB[k]));
+      cargaOk[k] = true;
+    } else {
+      console.error('Error cargando', KEYS[k], r.reason);
+      cargaOk[k] = false;
+      huboFallas = true;
+    }
+  });
+  if (huboFallas) {
+    alert('No se pudo confirmar la conexión con la nube para algunos datos de Recursos Humanos. Se muestran los últimos datos guardados en este equipo; si acabas de editar algo desde otro computador, recarga la página (F5) antes de seguir para no sobreescribir información.');
+  }
+  popSel(); renderAll();
 }
 
 function showTab(id, btn) {
@@ -546,7 +688,7 @@ function lmRender() {
 function lqClear() { calcObj.liq=null; $('lq-btn-save').disabled=true; ['sue','gbc','hex','imp','cmo','afp','saf','des','liq'].forEach(k=>$(`rl-${k}`).textContent='$0'); }
 function lqCalc() {
   const tid=$('lq-tra').value, per=$('lq-per').value; if(!tid||!per)return; const t=getT(tid); if(!t)return;
-  const sb=Number($('lq-sue').value)\vert{}\vert{}0, gr=Number($('lq-gra').value)||0, bo=Number($('lq-bon').value)\vert{}\vert{}0, co=Number($('lq-com').value)||0, col=Number($('lq-col').value)\vert{}\vert{}0, mov=Number($('lq-mov').value)||0;
+  const sb=Number($('lq-sue').value)||0, gr=Number($('lq-gra').value)||0, bo=Number($('lq-bon').value)||0, co=Number($('lq-com').value)||0, col=Number($('lq-col').value)||0, mov=Number($('lq-mov').value)||0;
   const hexHrs = DB.asis.filter(a=>String(a.trabajadorId)===String(tid)&&(a.fecha||"").startsWith(per)).reduce((s,a)=>s+Number(a.horasExtras||0),0);
   const mHex = hexHrs*(sb/180)*1.5; const imp=sb+gr+bo+co+mHex;
   const afp=imp*(CFG.AFP/100); const pCom=CFG.C_AFP[(t.afp||"MODELO").toUpperCase()]||0.58; const cAfp=imp*(pCom/100);
@@ -733,7 +875,7 @@ function fqCalc(){
   const l=DB.liq.filter(x=>String(x.trabajadorId)===tid).sort((a,b)=>new Date(b.fechaGeneracion)-new Date(a.fechaGeneracion))[0]; if(!l){alert("Requiere liquidación previa");return;}
   const imp=Number(l.imponible)||0; let a=0; if(t.fechaIngreso){ const diff=new Date(ter)-new Date(t.fechaIngreso); a=Math.max(0,Math.min(11,Math.floor(diff/31536000000)+(diff%31536000000>15768000000?1:0))); }
   const cau=$('fq-cau').value; let ias=0, avi=0; if(cau==="161"){ias=imp*a; if($('fq-avi').value==="NO")avi=imp;}
-  const vp=(Number($('fq-vpe').value)\vert{}\vert{}0)+(Number($('fq-vpr').value)||0); const vVac=(imp/30)*vp; const tot=ias+avi+vVac;
+  const vp=(Number($('fq-vpe').value)||0)+(Number($('fq-vpr').value)||0); const vVac=(imp/30)*vp; const tot=ias+avi+vVac;
   calcObj.fini={trabajadorId:tid,fechaTermino:ter,causal:cau,sueldoBaseImponible:imp,aniosReconocidos:a,ias,aviso:avi,vacaciones:vVac,total:tot};
   $('rf-ias').textContent=money(ias); $('rf-avi').textContent=money(avi);$('rf-vac').textContent=money(vVac); $('rf-tot').textContent=money(tot);$('fq-btn-save').disabled=false;
 }
@@ -743,7 +885,7 @@ function fqSave(){
 function fqDel(id){ if(confirm("¿Eliminar?")){ DB.fini=DB.fini.filter(x=>x.id!==id); sync('fini'); renderAll(); } }
 
 function printFin(id){
-  const f = DB.fins.find(x=>x.id===id); if(!f) return;
+  const f = DB.fini.find(x=>x.id===id); if(!f) return;
   const t = DB.trab.find(x=>String(x.id)===String(f.trabajadorId));
   
   let descCausal = "";
