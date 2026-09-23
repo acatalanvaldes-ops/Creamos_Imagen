@@ -84,6 +84,7 @@ tfoot td{padding:11px 12px;font-weight:700;white-space:nowrap}
 </head>
 <body>
 <script src="cargando.js"></script>
+<script src="hora-chile.js"></script>
 <script>
 (function(){
   var MODULE_KEY = 'ventas';
@@ -437,7 +438,7 @@ var state = {
   delId:null,
   exportMsg:"",
   xlTab:"detalle",
-  form:{fecha:new Date().toISOString().slice(0,10),cliente:"",producto:PRODUCTOS[0],formaPago:FORMAS_PAGO[0],montoBase:"",comision:"6",factura:false}
+  form:{fecha:hoyChile(),cliente:"",producto:PRODUCTOS[0],formaPago:FORMAS_PAGO[0],montoBase:"",comision:"6",factura:false}
 };
 
 // Filtro combinado: mes (dropdown existente) + rango de fechas Desde/Hasta (afecta pantalla, PDF, Excel y CSV)
@@ -789,7 +790,7 @@ function buildVistaPDF(filt, cp) {
     '<div style="background:#1C1917;border-radius:6px;padding:16px 20px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">'+
     '<div><div style="font-size:18px;font-weight:800;color:#fff">SUBLIPRO - VENTAS</div>'+
     '<div style="font-size:10px;color:#C8973A;margin-top:3px">Comision '+cp+'% - Webpay +'+COM_WP_PCT+'%</div></div>'+
-    '<div style="text-align:right;font-size:10px;color:#C8973A">'+new Date().toLocaleDateString("es-CO")+'</div></div>'+
+    '<div style="text-align:right;font-size:10px;color:#C8973A">'+fechaChileTexto(null, null, "es-CO")+'</div></div>'+
     '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">'+
     '<div style="background:#F7F5F0;border:1px solid #E7E2D9;border-radius:6px;padding:10px 14px"><div style="font-size:9px;color:#888;text-transform:uppercase;margin-bottom:3px">N Ventas</div><div style="font-size:18px;font-weight:800;color:#1E40AF">'+filt.length+'</div></div>'+
     '<div style="background:#F7F5F0;border:1px solid #E7E2D9;border-radius:6px;padding:10px 14px"><div style="font-size:9px;color:#888;text-transform:uppercase;margin-bottom:3px">Total Ventas</div><div style="font-size:18px;font-weight:800;color:#166534">'+fmt(tV)+'</div></div>'+
@@ -915,7 +916,7 @@ function buildDel() {
 // ACCIONES
 // ============================================================
 function openForm() {
-  state.form = {fecha:new Date().toISOString().slice(0,10),cliente:"",producto:PRODUCTOS[0],formaPago:FORMAS_PAGO[0],montoBase:"",comision:""+state.comDefPct,factura:false};
+  state.form = {fecha:hoyChile(),cliente:"",producto:PRODUCTOS[0],formaPago:FORMAS_PAGO[0],montoBase:"",comision:""+state.comDefPct,factura:false};
   setState({showForm:true, editId:null});
 }
 
@@ -1185,7 +1186,7 @@ function exportPDF() {
     "@media print{body{padding:0}}</style></head><body>"+
     "<div class='hdr'><div><div style='font-size:18px;font-weight:800'>SUBLIPRO - VENTAS</div>"+
     "<div style='color:#C8973A;font-size:10px'>Comision "+state.comDefPct+"% - Webpay +"+COM_WP_PCT+"%"+(rangoActivo() ? " - Rango: "+(state.rangoDesde?fDate(state.rangoDesde):"...")+" a "+(state.rangoHasta?fDate(state.rangoHasta):"...") : "")+"</div></div>"+
-    "<div style='color:#C8973A;font-size:10px'>"+new Date().toLocaleDateString("es-CO")+"</div></div>"+
+    "<div style='color:#C8973A;font-size:10px'>"+fechaChileTexto(null, null, "es-CO")+"</div></div>"+
     "<div class='kpis'>"+
     "<div class='kpi'><div class='l'>N Ventas</div><div class='v' style='color:#1E40AF'>"+filt.length+"</div></div>"+
     "<div class='kpi'><div class='l'>Total Ventas</div><div class='v' style='color:#166534'>"+fmt(tV)+"</div></div>"+

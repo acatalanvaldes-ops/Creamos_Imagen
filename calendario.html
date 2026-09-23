@@ -106,6 +106,7 @@
 </head>
 <body>
 <script src="cargando.js"></script>
+<script src="hora-chile.js"></script>
 <script>
 (function(){
   var MODULE_KEY = 'calendario';
@@ -505,8 +506,8 @@ let productions = [
   { id: 1711000000065, orden: '065', name: 'LIENZO', prenda: '7 Otros', tipo: 'Confección', diseñador: 'Ingrid Vargas', date: '2026-09-30', fechaEntrega: '2026-09-14', tag: 'Ingreso', cantidad: { otros: 7, otrosDesc: 'Otros' }, totalPrendas: 7, monto: 0, abono: 0, saldo: 0 },
   { id: 1711000000068, orden: '068', name: 'TALLER VOLEIBOL', prenda: '15 Camisetas', tipo: 'Confección', diseñador: 'Sebastián Gutiérrez', date: '2026-09-15', fechaEntrega: '2026-10-05', tag: 'Ingreso', cantidad: { camisetas: 15 }, totalPrendas: 15, monto: 0, abono: 0, saldo: 0 }
 ];
-const today = new Date();
-const todayStr = today.toISOString().slice(0,10);
+const today = ahoraChile();
+const todayStr = hoyChile();
 let currentViewYear = Math.min(2031, Math.max(2025, today.getFullYear()));
 let currentViewMonth = today.getMonth();
 
@@ -1077,9 +1078,9 @@ function renderStats() {
     document.getElementById('statYearLabel').textContent = 'en todo el año ' + currentViewYear;
   }
   const bars = document.getElementById('monthBars'); bars.innerHTML = '';
-  const max = Math.max(...MONTHS.map((_,i) => filtered.filter(p=>new Date(p.date).getMonth()===i).length), 1);
+  const max = Math.max(...MONTHS.map((_,i) => filtered.filter(p=>mesDeFecha(p.date)===i).length), 1);
   MONTHS_SHORT.forEach((abbr, i) => {
-    const count = filtered.filter(p => new Date(p.date).getMonth() === i).length;
+    const count = filtered.filter(p => mesDeFecha(p.date) === i).length;
     const pct = Math.round((count / max) * 100);
     const row = document.createElement('div'); row.className = 'month-bar-row';
     row.innerHTML = `<span class="month-bar-label">${abbr}</span><div class="month-bar-track"><div class="month-bar-fill" style="width:${pct}%"></div></div><span class="month-bar-count">${count}</span>`;
@@ -1117,7 +1118,7 @@ function exportPDF() {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   doc.setTextColor(90);
-  const fechaGen = new Date().toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' });
+  const fechaGen = fechaChileTexto(null, { day: '2-digit', month: 'long', year: 'numeric' }, 'es-CL');
   
   // FORMATO DE LA FECHA EN EL PDF
   const formatearCorta = (str) => {
@@ -1143,7 +1144,7 @@ function exportPDF() {
   doc.setFontSize(9);
   
   // RECALCULAR ESTADÍSTICAS MENSUALES CON EL FILTRO APLICADO
-  const monthCounts = MONTHS.map((m, i) => ({ m, count: filtered.filter(p => new Date(p.date).getMonth() === i).length })).filter(x => x.count > 0);
+  const monthCounts = MONTHS.map((m, i) => ({ m, count: filtered.filter(p => mesDeFecha(p.date) === i).length })).filter(x => x.count > 0);
   const monthLine = monthCounts.length ? monthCounts.map(x => `${x.m}: ${x.count}`).join('   |   ') : 'Sin datos por mes';
   doc.text('Distribución mensual: ' + monthLine, marginX, y, { maxWidth: 760 });
   y += 22;

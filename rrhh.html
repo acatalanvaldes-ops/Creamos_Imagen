@@ -56,6 +56,7 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
 </head>
 <body>
 <script src="cargando.js"></script>
+<script src="hora-chile.js"></script>
 <script>
 (function(){
   var MODULE_KEY = 'rrhh';
@@ -572,7 +573,7 @@ function popSel() {
   const ar = new Set(); DB.trab.forEach(t=>{if(t.area)ar.add(t.area)});
   const ah = '<option value="">Todas</option>' + [...ar].map(a=>`<option value="${a}">${a}</option>`).join('');
   if($('rp-are'))$('rp-are').innerHTML = ah;
-  if(!$('rp-per').value)$('rp-per').value = new Date().toISOString().slice(0,7);
+  if(!$('rp-per').value)$('rp-per').value = mesChile();
 }
 
 function renderAll() { trRender(); asRender(); vaRender(); lmRender(); lqRender(); lrRender(); prRender(); fqRender(); doRender(); rpRender(); }
@@ -633,8 +634,11 @@ function asRender() {
 
 // ================= VACACIONES =================
 function vaHabiles(fi,ff){
-  let i=new Date(fi), f=new Date(ff), h=0;
-  while(i<=f){ const tz=new Date(i.getTime()+Math.abs(i.getTimezoneOffset()*60000)); const d=tz.getUTCDay(); if(d!==0&&d!==6&&!FER.includes(tz.toISOString().slice(0,10)))h++; i.setDate(i.getDate()+1); } return h;
+  // Se recorren los días del calendario en UTC puro: así el conteo no depende
+  // de la zona horaria del equipo ni de los cambios de horario de verano.
+  const aUTC = s => Date.UTC(+s.slice(0,4), +s.slice(5,7)-1, +s.slice(8,10));
+  let i=aUTC(fi), f=aUTC(ff), h=0;
+  while(i<=f){ const dia=new Date(i); const d=dia.getUTCDay(); if(d!==0&&d!==6&&!FER.includes(dia.toISOString().slice(0,10)))h++; i+=86400000; } return h;
 }
 function vaPrev() {
   const tid=$('va-tra').value; if(!tid){['gan','usa','dis','sol','fin'].forEach(k=>$(`vp-${k}`).textContent='0'); return;}
@@ -676,7 +680,7 @@ function lmSave() {
 function lmSt(id, st){ const l=DB.lic.find(x=>x.id===id); if(l){l.estado=st; sync('lic'); renderAll();} }
 function lmDel(id){ if(confirm("¿Eliminar?")){ DB.lic=DB.lic.filter(x=>x.id!==id); sync('lic'); renderAll(); } }
 function lmRender() {
-  const q=$('lm-bus').value.toLowerCase(); const tb=$('lm-tbl'); const hoy=new Date().toISOString().slice(0,10); let act=0, dia=0;
+  const q=$('lm-bus').value.toLowerCase(); const tb=$('lm-tbl'); const hoy=hoyChile(); let act=0, dia=0;
   const h=DB.lic.filter(l=>{
     if(l.estado!=="Rechazada") { dia+=l.dias; if(l.fechaInicio<=hoy&&l.fechaFin>=hoy)act++; }
     return !q||getTName(l.trabajadorId).toLowerCase().includes(q)||l.folio.toLowerCase().includes(q);
@@ -988,7 +992,7 @@ function doDel(id){ if(confirm("¿Eliminar?")){ DB.doc=DB.doc.filter(x=>x.id!==i
 function doDL(id){ const d=DB.doc.find(x=>x.id===id); if(!d)return; const a=document.createElement('a'); a.href=d.base64; a.download=d.nombre; a.click(); }
 function doRender(){
   const tb=$('do-tbl'); const q=$('do-bus').value.toLowerCase();
-  tb.innerHTML = DB.doc.filter(d=>!q||getTName(d.trabajadorId).toLowerCase().includes(q)||d.nombre.toLowerCase().includes(q)).sort((a,b)=>b.id-a.id).map(d=>`<tr><td><b>${getTName(d.trabajadorId)}</b></td><td><span class="badge bdg-inact">${d.categoria}</span></td><td>${d.nombre}</td><td>${fDate(new Date(d.id).toISOString().slice(0,10))}</td><td><button class="act-btn small" onclick="doDL(${d.id})">⬇</button> <button class="act-btn small" style="color:red" onclick="doDel(${d.id})">🗑</button></td></tr>`).join('') || `<tr><td colspan="5" align="center">Sin datos</td></tr>`;
+  tb.innerHTML = DB.doc.filter(d=>!q||getTName(d.trabajadorId).toLowerCase().includes(q)||d.nombre.toLowerCase().includes(q)).sort((a,b)=>b.id-a.id).map(d=>`<tr><td><b>${getTName(d.trabajadorId)}</b></td><td><span class="badge bdg-inact">${d.categoria}</span></td><td>${d.nombre}</td><td>${fDate(hoyChile(new Date(d.id)))}</td><td><button class="act-btn small" onclick="doDL(${d.id})">⬇</button> <button class="act-btn small" style="color:red" onclick="doDel(${d.id})">🗑</button></td></tr>`).join('') || `<tr><td colspan="5" align="center">Sin datos</td></tr>`;
 }
 
 // ================= REPORTES =================

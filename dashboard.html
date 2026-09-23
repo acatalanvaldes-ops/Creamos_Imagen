@@ -57,6 +57,7 @@ input,select,button{font-family:inherit;outline:none}
 </style>
 </head>
 <body>
+<script src="hora-chile.js"></script>
 <script>
 (function(){
   var MODULE_KEY = 'dashboard';
@@ -290,7 +291,7 @@ function onTipoChange() {
   document.getElementById('lbl-periodo').textContent = tipo === 'mes' ? 'Mes' : 'Trimestre';
   if (tipo === 'mes') {
     selPeriodo.innerHTML = MESES.map((m, i) => `<option value="${i + 1}">${m}</option>`).join('');
-    const hoy = new Date();
+    const hoy = ahoraChile();
     selPeriodo.value = hoy.getMonth() + 1;
   } else {
     selPeriodo.innerHTML = [1, 2, 3, 4].map(q => `<option value="${q}">Trimestre ${q}</option>`).join('');
@@ -519,7 +520,7 @@ function renderConcentracion(r) {
 window.onload = async function () {
   const anioSel = document.getElementById('sel-anio');
   anioSel.innerHTML = ANIOS.map(a => `<option value="${a}">${a}</option>`).join('');
-  const hoy = new Date();
+  const hoy = ahoraChile();
   anioSel.value = Math.min(2031, Math.max(2025, hoy.getFullYear()));
   onTipoChangeSinRecalcular();
 
@@ -554,7 +555,7 @@ function onTipoChangeSinRecalcular() {
   const tipo = document.getElementById('sel-tipo').value;
   const selPeriodo = document.getElementById('sel-periodo');
   document.getElementById('lbl-periodo').textContent = tipo === 'mes' ? 'Mes' : 'Trimestre';
-  const hoy = new Date();
+  const hoy = ahoraChile();
   if (tipo === 'mes') {
     selPeriodo.innerHTML = MESES.map((m, i) => `<option value="${i + 1}">${m}</option>`).join('');
     selPeriodo.value = hoy.getMonth() + 1;

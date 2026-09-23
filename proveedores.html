@@ -77,6 +77,7 @@ table.tbl tr:last-child td{border-bottom:none}
 </head>
 <body>
 <script src="cargando.js"></script>
+<script src="hora-chile.js"></script>
 <script>
 (function(){
   var MODULE_KEY = 'proveedores';
@@ -451,7 +452,7 @@ function abrirFormCompra() {
   editCompraId = null;
   const sel = document.getElementById('cp-proveedor');
   sel.innerHTML = '<option value="">— Seleccionar —</option>' + proveedores.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
-  document.getElementById('cp-fecha').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('cp-fecha').value = hoyChile();
   // Arranca con 1 fila y se pueden agregar todas las que hagan falta (10 o más)
   // con el botón "+ Agregar producto"; no hay un tope artificial de filas.
   compraItemsEdit = [nuevoCompraItem()];

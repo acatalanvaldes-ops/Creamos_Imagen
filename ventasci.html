@@ -79,6 +79,7 @@ tfoot td{padding:11px 12px;font-weight:700;white-space:nowrap}
 </head>
 <body>
 <script src="cargando.js"></script>
+<script src="hora-chile.js"></script>
 <script>
 (function(){
   var MODULE_KEY = 'ventasci';
@@ -173,7 +174,7 @@ var state = {
   delId:null,
   exportMsg:"",
   xlTab:"detalle",
-  form:{fecha:new Date().toISOString().slice(0,10),cliente:"",producto:PRODUCTOS[0],formaPago:FORMAS_PAGO[0],montoBase:"",factura:false}
+  form:{fecha:hoyChile(),cliente:"",producto:PRODUCTOS[0],formaPago:FORMAS_PAGO[0],montoBase:"",factura:false}
 };
 
 // Filtro combinado: mes (dropdown existente) + rango de fechas Desde/Hasta (afecta pantalla, PDF, Excel y CSV)
@@ -398,7 +399,7 @@ function buildVistaPDF(filt) {
     '<div style="background:#1C1917;border-radius:6px;padding:16px 20px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">'+
     '<div><div style="font-size:18px;font-weight:800;color:#fff">CREAMOS IMAGEN - REPORTE DE VENTAS EMPRESA</div>'+
     '<div style="font-size:10px;color:#C8973A;margin-top:3px">Exclusivo Marcelo Ávila</div></div>'+
-    '<div style="text-align:right;font-size:10px;color:#C8973A">'+new Date().toLocaleDateString("es-CO")+'</div></div>'+
+    '<div style="text-align:right;font-size:10px;color:#C8973A">'+fechaChileTexto(null, null, "es-CO")+'</div></div>'+
     '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px">'+
     '<div style="background:#F7F5F0;border:1px solid #E7E2D9;border-radius:6px;padding:10px 14px"><div style="font-size:9px;color:#888;text-transform:uppercase;margin-bottom:3px">N° Ventas</div><div style="font-size:18px;font-weight:800;color:#1E40AF">'+filt.length+'</div></div>'+
     '<div style="background:#F7F5F0;border:1px solid #E7E2D9;border-radius:6px;padding:10px 14px"><div style="font-size:9px;color:#888;text-transform:uppercase;margin-bottom:3px">Ingresos Totales</div><div style="font-size:18px;font-weight:800;color:#166534">'+fmt(tV)+'</div></div>'+
@@ -429,7 +430,7 @@ function exportPDF() {
   y += 20;
 
   doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(90);
-  var fechaGen = new Date().toLocaleDateString('es-CO', { day:'2-digit', month:'long', year:'numeric' });
+  var fechaGen = fechaChileTexto(null, { day:'2-digit', month:'long', year:'numeric' }, 'es-CO');
   var rangoTexto = 'Generado el ' + fechaGen;
   if (state.filtroMes) rangoTexto += '   |   Mes: ' + state.filtroMes;
   if (rangoActivo()) rangoTexto += '   |   Rango: ' + (state.rangoDesde ? fDate(state.rangoDesde) : 'Inicio') + ' - ' + (state.rangoHasta ? fDate(state.rangoHasta) : 'Fin');
@@ -676,7 +677,7 @@ function exportCSV() {
 // ACCIONES
 // ============================================================
 function openForm() {
-  state.form = {fecha:new Date().toISOString().slice(0,10),cliente:"",producto:PRODUCTOS[0],formaPago:FORMAS_PAGO[0],montoBase:"",factura:false};
+  state.form = {fecha:hoyChile(),cliente:"",producto:PRODUCTOS[0],formaPago:FORMAS_PAGO[0],montoBase:"",factura:false};
   setState({showForm:true, editId:null});
 }
 

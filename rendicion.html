@@ -104,6 +104,7 @@ tfoot .tot-row td{background:var(--accent-l);font-family:var(--mono);font-size:1
 </head>
 <body>
 <script src="cargando.js"></script>
+<script src="hora-chile.js"></script>
 <script>
 (function(){
   var MODULE_KEY = 'rendicion';
@@ -294,7 +295,7 @@ async function loadFromCloudStrict(key) {
   throw ultimoError;
 }
 
-let currentYear = new Date().getFullYear();
+let currentYear = ahoraChile().getFullYear();
 if (currentYear < 2025) currentYear = 2025;
 if (currentYear > 2031) currentYear = 2031;
 
@@ -1328,7 +1329,7 @@ window.addEventListener('pagehide', function () {
 });
 
 async function loadData() {
-  const t = new Date();
+  const t = ahoraChile();
   currentYear = t.getFullYear();
   if (currentYear < 2025) currentYear = 2025;
   if (currentYear > 2031) currentYear = 2031;
@@ -1496,7 +1497,7 @@ function updateTotals(){ const rows=rowsForDate(curDate); document.getElementByI
 
 function addRow() { 
   if(!curDate) {
-    const t = new Date();
+    const t = ahoraChile();
     if (t.getFullYear() !== currentYear) {
       document.getElementById('year-select').value = t.getFullYear();
       changeYear(t.getFullYear());

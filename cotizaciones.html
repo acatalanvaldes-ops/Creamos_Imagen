@@ -81,6 +81,7 @@ table.tbl input:focus,table.tbl select:focus{border-bottom:2px solid var(--gold)
 </head>
 <body>
 <script src="cargando.js"></script>
+<script src="hora-chile.js"></script>
 <script>
 (function(){
   var MODULE_KEY = 'cotizaciones';
@@ -382,7 +383,7 @@ function guardarCotizacionesLocal() {
 function fmt(n) { return "$ " + Math.round(n || 0).toLocaleString('es-CL'); }
 function fmtFecha(iso) { if (!iso) return '-'; const [y, m, d] = iso.split('-'); return d + '-' + m + '-' + y; }
 function fmtCorrelativo(n) { return String(n || 0).padStart(4, '0'); }
-function todayISO() { return new Date().toISOString().slice(0, 10); }
+function todayISO() { return hoyChile(); }
 function escAttr(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
 function setTab(t) {
