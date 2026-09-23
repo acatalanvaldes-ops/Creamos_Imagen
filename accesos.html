@@ -40,6 +40,7 @@ input[type=checkbox]{width:16px;height:16px;cursor:pointer}
 </style>
 </head>
 <body>
+<script src="cargando.js"></script>
 <script>
 (function(){
   var SESSION_KEY = "cimagen_session";
@@ -197,7 +198,7 @@ async function initApp() {
   render();
 }
 
-initApp();
+initApp().finally(ocultarCargando);
 </script>
 </body>
 </html>

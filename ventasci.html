@@ -78,6 +78,7 @@ tfoot td{padding:11px 12px;font-weight:700;white-space:nowrap}
 </style>
 </head>
 <body>
+<script src="cargando.js"></script>
 <script>
 (function(){
   var MODULE_KEY = 'ventasci';
@@ -736,7 +737,7 @@ async function initApp() {
   render();
 }
 
-initApp();
+initApp().finally(ocultarCargando);
 </script>
 </body>
 </html>

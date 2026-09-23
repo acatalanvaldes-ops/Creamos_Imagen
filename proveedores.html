@@ -76,6 +76,7 @@ table.tbl tr:last-child td{border-bottom:none}
 </style>
 </head>
 <body>
+<script src="cargando.js"></script>
 <script>
 (function(){
   var MODULE_KEY = 'proveedores';
@@ -633,15 +634,21 @@ function renderComprasTable() {
 }
 
 window.onload = async function () {
-  const cloudProveedores = await loadFromCloud(KEY_PROVEEDORES);
-  if (cloudProveedores) proveedores = cloudProveedores;
-  else proveedores = JSON.parse(localStorage.getItem(KEY_PROVEEDORES) || '[]');
+  try {
+    const [cloudProveedores, cloudCompras] = await Promise.all([
+      loadFromCloud(KEY_PROVEEDORES),
+      loadFromCloud(KEY_COMPRAS)
+    ]);
+    if (cloudProveedores) proveedores = cloudProveedores;
+    else proveedores = JSON.parse(localStorage.getItem(KEY_PROVEEDORES) || '[]');
 
-  const cloudCompras = await loadFromCloud(KEY_COMPRAS);
-  if (cloudCompras) compras = cloudCompras;
-  else compras = JSON.parse(localStorage.getItem(KEY_COMPRAS) || '[]');
+    if (cloudCompras) compras = cloudCompras;
+    else compras = JSON.parse(localStorage.getItem(KEY_COMPRAS) || '[]');
 
-  renderProveedores();
+    renderProveedores();
+  } finally {
+    ocultarCargando();
+  }
 };
 </script>
 </body>

@@ -67,6 +67,7 @@ input,select,button{font-family:inherit;outline:none}
 </style>
 </head>
 <body>
+<script src="cargando.js"></script>
 <script>
 (function(){
   var MODULE_KEY = 'costos';
@@ -596,7 +597,7 @@ async function initApp() {
   render();
 }
 
-initApp();
+initApp().finally(ocultarCargando);
 </script>
 </body>
 </html>

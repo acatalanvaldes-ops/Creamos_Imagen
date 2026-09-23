@@ -242,6 +242,12 @@ async function handleCredentialResponse(response) {
     showDenied();
     return;
   }
+  // La consulta de permisos a la nube puede tardar varios segundos: se avisa
+  // en vez de dejar la pantalla de acceso sin respuesta.
+  var msg = document.getElementById("cimagen-gate-msg");
+  var btnWrap = document.getElementById("cimagen-gate-btn-wrap");
+  if (msg) msg.textContent = "⏳ Verificando tus accesos…";
+  if (btnWrap) btnWrap.style.display = "none";
   var acl = await loadFromCloud(ACL_KEY);
   var sess = computeSession(payload.email, payload.name, payload.picture, acl || {});
   if (!sess.isAdmin && sess.modules.length === 0) {

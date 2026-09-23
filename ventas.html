@@ -83,6 +83,7 @@ tfoot td{padding:11px 12px;font-weight:700;white-space:nowrap}
 </style>
 </head>
 <body>
+<script src="cargando.js"></script>
 <script>
 (function(){
   var MODULE_KEY = 'ventas';
@@ -229,10 +230,13 @@ async function loadFromCloudSharded() {
   if (!principal) return null;
   var ventas = (principal.ventas || []).slice();
   var shardCount = principal.shardCount || 1;
-  for (var i = 1; i < shardCount; i++) {
-    var bloque = await loadFromCloudStrict(STORAGE_KEY + '_sh' + i);
+  // Los bloques extra se piden en paralelo y se unen en orden.
+  var pedidos = [];
+  for (var i = 1; i < shardCount; i++) pedidos.push(loadFromCloudStrict(STORAGE_KEY + '_sh' + i));
+  var bloques = await Promise.all(pedidos);
+  bloques.forEach(function (bloque) {
     if (bloque && bloque.ventas) ventas = ventas.concat(bloque.ventas);
-  }
+  });
   return { ventas: ventas, comDefPct: principal.comDefPct, filtroMes: principal.filtroMes };
 }
 
@@ -1129,7 +1133,7 @@ async function initApp() {
   render();
 }
 
-initApp();
+initApp().finally(ocultarCargando);
 </script>
 </body>
 </html>

@@ -80,6 +80,7 @@ table.tbl input:focus,table.tbl select:focus{border-bottom:2px solid var(--gold)
 </style>
 </head>
 <body>
+<script src="cargando.js"></script>
 <script>
 (function(){
   var MODULE_KEY = 'cotizaciones';
@@ -1061,9 +1062,23 @@ function exportCotizacionPDF(id) {
   doc.save(nombreArchivo);
 }
 
-window.onload = async function () {
+window.onload = function () {
+  cargarCotizador().finally(ocultarCargando);
+};
+
+async function cargarCotizador() {
+  // Las cuatro llaves se piden a la vez (antes era una tras otra, sumando la
+  // espera de cada una) y después se procesan en el mismo orden de siempre.
+  const [rTarifario, rCotizaciones, rClientes, rCostos] = await Promise.allSettled([
+    loadFromCloudStrict(KEY_TARIFARIO),
+    loadFromCloudStrict(KEY_COTIZACIONES),
+    loadFromCloud(KEY_CLIENTES),
+    loadFromCloud(KEY_COSTOS)
+  ]);
+
   try {
-    const cloudTarifario = await loadFromCloudStrict(KEY_TARIFARIO);
+    if (rTarifario.status === 'rejected') throw rTarifario.reason;
+    const cloudTarifario = rTarifario.value;
     if (cloudTarifario) {
       tarifario = Object.assign({ items: [], nombresListas: ['Lista 1', 'Lista 2', 'Lista 3'], ivaPct: 19, configPdf: Object.assign({}, CONFIG_PDF_DEFAULT) }, cloudTarifario);
     }
@@ -1080,7 +1095,8 @@ window.onload = async function () {
   if (tarifario.correlativoActual === undefined) tarifario.correlativoActual = 1;
 
   try {
-    const cloudCotizaciones = await loadFromCloudStrict(KEY_COTIZACIONES);
+    if (rCotizaciones.status === 'rejected') throw rCotizaciones.reason;
+    const cloudCotizaciones = rCotizaciones.value;
     cotizaciones = cloudCotizaciones || [];
     cotizacionesCargadasOk = true;
   } catch (e) {
@@ -1090,15 +1106,16 @@ window.onload = async function () {
     alert('No se pudo conectar con la nube para cargar las cotizaciones guardadas. Se está mostrando una copia local que puede estar incompleta. Revisa tu conexión y recarga la página antes de crear o editar cotizaciones.');
   }
 
-  const cloudClientes = await loadFromCloud(KEY_CLIENTES);
+  // loadFromCloud nunca lanza (devuelve null si falla), así que estas dos siempre llegan "fulfilled".
+  const cloudClientes = rClientes.value;
   clientesData = cloudClientes || JSON.parse(localStorage.getItem(KEY_CLIENTES) || '[]');
 
-  const cloudCostos = await loadFromCloud(KEY_COSTOS);
+  const cloudCostos = rCostos.value;
   const costosData = cloudCostos || JSON.parse(localStorage.getItem(KEY_COSTOS) || 'null');
   fichasCosto = (costosData && costosData.fichas) ? costosData.fichas : [];
 
   poblarSelectsCotizador();
-};
+}
 </script>
 </body>
 </html>

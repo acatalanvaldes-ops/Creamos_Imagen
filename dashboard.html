@@ -189,6 +189,13 @@ async function fetchClaveNube(key) {
   throw ultimoError;
 }
 
+// Trae en paralelo los bloques "<key>_sh1".."<key>_sh<n-1>", en orden.
+function fetchBloquesExtra(key, shardCount) {
+  const pedidos = [];
+  for (let i = 1; i < shardCount; i++) pedidos.push(fetchClaveNube(key + '_sh' + i));
+  return Promise.all(pedidos);
+}
+
 async function loadFromCloud(key, useToken) {
   try {
     // El backend exige el token de seguridad para TODAS las llaves, así que
@@ -202,20 +209,16 @@ async function loadFromCloud(key, useToken) {
     // "<key>_sh2", etc., o se pierde silenciosamente parte de los datos.
     if (parsed && parsed.shardCount && parsed.shardCount > 1 && Array.isArray(parsed.ventas)) {
       let ventas = parsed.ventas.slice();
-      for (let i = 1; i < parsed.shardCount; i++) {
-        const bloque = await fetchClaveNube(key + '_sh' + i);
-        if (bloque && Array.isArray(bloque.ventas)) ventas = ventas.concat(bloque.ventas);
-      }
+      const bloques = await fetchBloquesExtra(key, parsed.shardCount);
+      bloques.forEach(bloque => { if (bloque && Array.isArray(bloque.ventas)) ventas = ventas.concat(bloque.ventas); });
       parsed.ventas = ventas;
     }
     // Igual que arriba, pero para las llaves prods<año> de calendario.html, que
     // reparten sus datos bajo la propiedad "producciones" en vez de "ventas".
     if (parsed && parsed.shardCount && parsed.shardCount > 1 && Array.isArray(parsed.producciones)) {
       let producciones = parsed.producciones.slice();
-      for (let i = 1; i < parsed.shardCount; i++) {
-        const bloque = await fetchClaveNube(key + '_sh' + i);
-        if (bloque && Array.isArray(bloque.producciones)) producciones = producciones.concat(bloque.producciones);
-      }
+      const bloques = await fetchBloquesExtra(key, parsed.shardCount);
+      bloques.forEach(bloque => { if (bloque && Array.isArray(bloque.producciones)) producciones = producciones.concat(bloque.producciones); });
       parsed.producciones = producciones;
     }
     return parsed;
@@ -526,7 +529,10 @@ window.onload = async function () {
     loadFromCloud(KEY_RENDICION, false),
     loadFromCloud(KEY_COSTOS, false),
     loadFromCloud(KEY_PROVEEDORES, false),
-    loadFromCloud(KEY_COMPRAS, false)
+    loadFromCloud(KEY_COMPRAS, false),
+    // Las producciones del año elegido se piden junto con todo lo demás
+    // (antes se pedían recién después, sumando otra espera completa).
+    cargarProduccionesAnio(parseInt(anioSel.value, 10))
   ]);
 
   ventasLocal = (datosVentasLocal && datosVentasLocal.ventas) ? datosVentasLocal.ventas : [];

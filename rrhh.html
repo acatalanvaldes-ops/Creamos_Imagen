@@ -55,6 +55,7 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
 </style>
 </head>
 <body>
+<script src="cargando.js"></script>
 <script>
 (function(){
   var MODULE_KEY = 'rrhh';
@@ -500,11 +501,14 @@ async function loadCloudSharded(key) {
   if (Array.isArray(primero)) return primero; // formato antiguo sin particionar
   if (typeof primero === 'object' && typeof primero.shardCount === 'number') {
     let texto = primero.parte || '';
-    for (let i = 1; i < primero.shardCount; i++) {
-      const bloque = await fetchClaveNube(key + '_sh' + i);
-      if (!bloque || typeof bloque.parte !== 'string') throw new Error('Falta la partición ' + i + ' de ' + key);
+    // Las particiones se piden en paralelo y se unen en orden.
+    const pedidos = [];
+    for (let i = 1; i < primero.shardCount; i++) pedidos.push(fetchClaveNube(key + '_sh' + i));
+    const bloques = await Promise.all(pedidos);
+    bloques.forEach(function (bloque, idx) {
+      if (!bloque || typeof bloque.parte !== 'string') throw new Error('Falta la partición ' + (idx + 1) + ' de ' + key);
       texto += bloque.parte;
-    }
+    });
     if (!texto) return [];
     return JSON.parse(texto);
   }
@@ -706,6 +710,8 @@ function lqDel(id){ if(confirm("¿Eliminar?")){ DB.liq=DB.liq.filter(x=>x.id!==i
 function printLiq(id){
   const l = DB.liq.find(x=>x.id===id); if(!l) return;
   const t = DB.trab.find(x=>String(x.id)===String(l.trabajadorId));
+  // La liquidación guarda la AFP en "nombreAFP" (ver lqCalc); si falta, se usa la del trabajador.
+  const afpNom = l.nombreAFP || (t && t.afp ? t.afp.toUpperCase() : '-');
   const v = window.open("","_blank");
   v.document.write(`
   <html>
@@ -744,7 +750,7 @@ function printLiq(id){
           <div class="info-line"><strong>Rut:</strong> ${t?t.rut:'-'}</div>
           <div class="info-line"><strong>Fecha de Ingreso:</strong> ${t&&t.fechaIngreso?fDate(t.fechaIngreso):'-'}</div>
           <div class="info-line"><strong>Cargo:</strong> ${t?t.cargo:'-'}</div>
-          <div class="info-line"><strong>AFP:</strong> ${l.afpName}</div>
+          <div class="info-line"><strong>AFP:</strong> ${afpNom}</div>
         </td>
         <td class="col-empresa">
           <div style="font-weight:bold; font-size:12px; margin-bottom:8px; text-transform:uppercase;">INFORMACIÓN EMPRESA</div>
@@ -776,7 +782,7 @@ function printLiq(id){
           <div class="total-row" style="background:transparent; border-top:1px solid #cbd5e1"><span>TOTAL HABERES</span><span>${fmt(l.imponible + (l.totalHaberesNoImp||0))}</span></div>
         </td>
         <td>
-          <div class="row-flex"><span>AFP (${l.afpName} ${CFG.AFP}%)</span><span>${fmt(l.afp)}</span></div>
+          <div class="row-flex"><span>AFP (${afpNom} ${CFG.AFP}%)</span><span>${fmt(l.afp)}</span></div>
           <div class="row-flex"><span>Comisión AFP (${l.porcentajeComision}%)</span><span>${fmt(l.comisionAFP)}</span></div>
           <div class="row-flex"><span>Salud (7%)</span><span>${fmt(l.salud)}</span></div>
           <div class="row-flex"><span>Seguro Cesantía Trabajador</span><span>${fmt(l.afc)}</span></div>
@@ -1011,7 +1017,7 @@ function rpRender(){
   charts.licencias=new Chart($('ch-lic').getContext('2d'),{type:'pie',data:{labels:Object.keys(cLic),datasets:[{data:Object.values(cLic),backgroundColor:['#C0392B','#B45309','#6D28D9']}]},options:{responsive:true,maintainAspectRatio:false}});
 }
 
-window.onload=init;
+window.onload=function(){ init().finally(ocultarCargando); };
 </script>
 </body>
 </html>

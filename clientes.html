@@ -45,6 +45,7 @@ input,button{font-family:inherit;outline:none}
 </style>
 </head>
 <body>
+<script src="cargando.js"></script>
 <script>
 (function(){
   var MODULE_KEY = 'clientes';
@@ -380,6 +381,7 @@ window.onload = async function() {
   // primera vez que se abre la ficha de un cliente (ver asegurarProducciones),
   // para que la lista de clientes aparezca apenas responda esa única llamada.
   renderClientes();
+  ocultarCargando();
 };
 </script>
 </body>
