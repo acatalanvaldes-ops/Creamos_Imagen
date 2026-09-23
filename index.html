@@ -131,6 +131,9 @@
     .menu-btn.ventas::before { background-color: #1f2937; }
     .menu-btn.ventas:hover { color: #1f2937; }
 
+    .menu-btn.rrhh::before { background-color: #0E7490; }
+    .menu-btn.rrhh:hover { color: #0E7490; }
+
     .empty-access { color: #6b7280; font-size: 14px; padding: 30px 10px; }
 
   </style>
@@ -170,7 +173,8 @@ var MODULOS = [
   { key: "calendario",   label: "Producciones",   icon: "📅", href: "calendario.html",  cls: "producciones" },
   { key: "proveedores",  label: "Proveedores",    icon: "📦", href: "proveedores.html", cls: "proveedores" },
   { key: "ventasci",     label: "Ventas Empresa", icon: "🏢", href: "ventasci.html",    cls: "ventasci", sub: "(Creamos Imagen)" },
-  { key: "ventas",       label: "Ventas Local",   icon: "📊", href: "ventas.html",      cls: "ventas", sub: "(Vendedores)" }
+  { key: "ventas",       label: "Ventas Local",   icon: "📊", href: "ventas.html",      cls: "ventas", sub: "(Vendedores)" },
+  { key: "rrhh",         label: "Recursos Humanos", icon: "🧑‍💼", href: "rrhh.html",    cls: "rrhh" }
 ];
 
 async function loadFromCloud(key) {
