@@ -16,8 +16,9 @@
 // por CACHE_TTL_S segundos: en ese caso, ejecutar limpiarCache() desde el
 // editor de Apps Script.
 
+const SHEET_ID = "1H1I_00xY-HdqVCrDNei35FIl2EOx7tAWA3iOP3hJ8IE";
 const SHEET_NAME = "Hoja 1"; // Debe ser el nombre de la pestaña donde están los datos
-const TOKEN = "b5bd161b4ef581c6114b7bb4"; // El mismo CLOUD_TOKEN que usan las páginas
+const APP_TOKEN = "b5bd161b4ef581c6114b7bb4"; // El mismo CLOUD_TOKEN que usan las páginas
 const CACHE_TTL_S = 21600; // 6 horas (máximo permitido por CacheService)
 const CACHE_PREFIX = "v1:";
 const CACHE_NULL = "__NULL__"; // marca "la llave no existe", para no buscarla de nuevo
@@ -29,7 +30,7 @@ function respuesta(obj) {
 }
 
 function hoja() {
-  return SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+  return SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_NAME);
 }
 
 // Devuelve el número de fila (1-based) de la llave, o -1 si no existe.
@@ -56,7 +57,7 @@ function guardarEnCache(key, value) {
 
 function doGet(e) {
   try {
-    if (!e.parameter || e.parameter.token !== TOKEN) {
+    if (!e.parameter || e.parameter.token !== APP_TOKEN) {
       return respuesta({ estado: "error", detalle: "No autorizado" });
     }
     const key = e.parameter.key;
@@ -81,7 +82,7 @@ function doPost(e) {
   const lock = LockService.getScriptLock();
   try {
     const payload = JSON.parse(e.postData.contents);
-    if (payload.token !== TOKEN) {
+    if (payload.token !== APP_TOKEN) {
       return respuesta({ estado: "error", detalle: "No autorizado" });
     }
     const key = payload.key;
