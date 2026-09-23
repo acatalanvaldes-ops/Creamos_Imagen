@@ -204,7 +204,13 @@ tfoot .tot-row td{background:var(--accent-l);font-family:var(--mono);font-size:1
   <div class="prev-head">
     <div><h2>Vista Previa Excel</h2></div>
     <div class="prev-actions" style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <span style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Desde:</span>
+      <span style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Origen:</span>
+      <select id="prevOrigen" onchange="buildPreview()" style="background:var(--card,#fff);border:1px solid var(--border,#ccc);border-radius:4px;padding:6px;font-size:0.8rem;">
+        <option value="">Todos</option>
+        <option value="Local">🏪 Local</option>
+        <option value="Empresa">🏢 Empresa</option>
+      </select>
+      <span style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-left:6px">Desde:</span>
       <input type="date" id="prevDesde" onchange="buildPreview()" style="background:var(--card,#fff);border:1px solid var(--border,#ccc);border-radius:4px;padding:6px;font-size:0.8rem;">
       <span style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-left:2px">Hasta:</span>
       <input type="date" id="prevHasta" onchange="buildPreview()" style="background:var(--card,#fff);border:1px solid var(--border,#ccc);border-radius:4px;padding:6px;font-size:0.8rem;">
@@ -1551,8 +1557,25 @@ function getAllRowsSorted(){
   let filtered = rows;
   if (desdeStr) filtered = filtered.filter(r => r.fecha >= desdeStr);
   if (hastaStr) filtered = filtered.filter(r => r.fecha <= hastaStr);
+  // FILTRO DE ORIGEN (Local / Empresa): también afecta la vista previa y el .xlsx
+  const origen = origenFiltro();
+  if (origen) filtered = filtered.filter(r => r.origen === origen);
   filtered.sort((a,b)=>a.fecha.localeCompare(b.fecha));
   return filtered;
+}
+
+function origenFiltro(){
+  const el = document.getElementById('prevOrigen');
+  return el ? el.value : '';
+}
+
+// Texto para los avisos de "no hay registros", según los filtros activos.
+function textoFiltrosPrev(){
+  const partes = [];
+  if (isPrevRangeActive()) partes.push('en el rango de fechas seleccionado');
+  else partes.push('en ' + currentYear);
+  if (origenFiltro()) partes.push('con origen ' + origenFiltro());
+  return partes.join(' ');
 }
 
 function isPrevRangeActive(){
@@ -1584,8 +1607,7 @@ function buildPreview(){
   const body = document.getElementById('ex-body');
   head.innerHTML = '<tr><th>Fecha</th><th>Cliente</th><th>Tipo de Venta</th><th>Origen</th><th>Forma de Pago</th><th style="text-align:right">Efectivo</th><th style="text-align:right">Transferencia</th><th style="text-align:right">Webpay</th><th>Observaciones</th></tr>';
   if(!rows.length){
-    const rangoTxt = isPrevRangeActive() ? 'en el rango de fechas seleccionado' : ('para ' + currentYear);
-    body.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px">No hay registros ${rangoTxt}.</td></tr>`;
+    body.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px">No hay registros ${textoFiltrosPrev()}.</td></tr>`;
     return;
   }
   let html='';
@@ -1600,8 +1622,7 @@ function buildPreview(){
 async function exportXLSX(){
   const rows = getAllRowsSorted();
   if(!rows.length){
-    const rangoTxt = isPrevRangeActive() ? 'en el rango de fechas seleccionado' : ('en ' + currentYear);
-    alert('No hay registros para exportar ' + rangoTxt + '.');
+    alert('No hay registros para exportar ' + textoFiltrosPrev() + '.');
     return;
   }
   if(typeof ExcelJS === 'undefined'){ alert('No se pudo cargar el generador de Excel. Verifica tu conexión a internet e inténtalo nuevamente.'); return; }
@@ -1629,7 +1650,7 @@ async function exportXLSX(){
 
   ws.mergeCells(1, 1, 1, cols.length);
   const titleCell = ws.getCell(1, 1);
-  titleCell.value = 'CREAMOS IMAGEN — RENDICIÓN DE CAJA ' + tituloRango;
+  titleCell.value = 'CREAMOS IMAGEN — RENDICIÓN DE CAJA ' + tituloRango + (origenFiltro() ? ' — ORIGEN: ' + origenFiltro().toUpperCase() : '');
   titleCell.font = { bold:true, size:14, color:{argb:'FFFFFFFF'} };
   titleCell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF2C5F2E'} };
   titleCell.alignment = { vertical:'middle' };
@@ -1688,7 +1709,8 @@ async function exportXLSX(){
   const a = document.createElement('a');
   a.href = url;
   const sufijoRango = isPrevRangeActive() ? '_filtrado' : '';
-  a.download = `Creamos_Imagen_Rendicion_${currentYear}${sufijoRango}.xlsx`;
+  const sufijoOrigen = origenFiltro() ? '_' + origenFiltro() : '';
+  a.download = `Creamos_Imagen_Rendicion_${currentYear}${sufijoOrigen}${sufijoRango}.xlsx`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
