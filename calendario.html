@@ -142,9 +142,9 @@
     <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;width:100%">
       <span class="controls-label">Categoría:</span>
       <button class="tag-btn active-filter" id="fbtn-" onclick="setFilter('tag','')"><span class="tag-dot" style="background:#a09070"></span> Todas</button>
-      <button class="tag-btn" id="fbtn-tag-Confección" onclick="setFilter('tag','Confección')"><span class="tag-dot" style="background:var(--prod2)"></span> Confección</button>
-      <button class="tag-btn" id="fbtn-tag-Sublimación" onclick="setFilter('tag','Sublimación')"><span class="tag-dot" style="background:var(--prod3)"></span> Sublimación</button>
-      <button class="tag-btn" id="fbtn-tag-Otros" onclick="setFilter('tag','Otros')"><span class="tag-dot" style="background:#6b7280"></span> Otros</button>
+      <button class="tag-btn" id="fbtn-tag-Confección" onclick="setFilter('tag','Confección')"><span class="tag-dot" style="background:#3b82f6"></span> Confección</button>
+      <button class="tag-btn" id="fbtn-tag-Sublimación" onclick="setFilter('tag','Sublimación')"><span class="tag-dot" style="background:#a855f7"></span> Sublimación</button>
+      <button class="tag-btn" id="fbtn-tag-Otros" onclick="setFilter('tag','Otros')"><span class="tag-dot" style="background:#64748b"></span> Otros</button>
       <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
         <button class="toggle-form-btn" onclick="toggleForm()"><span id="formBtnTxt">＋ Agregar producción</span></button>
       </div>
@@ -153,9 +153,9 @@
       <span class="controls-label">Estado:</span>
       <span style="font-size:0.6rem;color:var(--text3);letter-spacing:0.5px;margin-right:6px">(borde izquierdo en el calendario)</span>
       <button class="tag-btn" id="fbtn-estado-" onclick="setFilter('estado','')"><span class="tag-dot" style="background:#a09070"></span> Todos</button>
-      <button class="tag-btn" id="fbtn-estado-saldo" onclick="setFilter('estado','saldo')"><span class="tag-dot" style="background:#e84040"></span> Con saldo pendiente</button>
-      <button class="tag-btn" id="fbtn-estado-abono" onclick="setFilter('estado','abono')"><span class="tag-dot" style="background:var(--prod4)"></span> Con abono registrado</button>
-      <button class="tag-btn" id="fbtn-estado-pagado" onclick="setFilter('estado','pagado')"><span class="tag-dot" style="background:var(--prod3)"></span> Pagadas</button>
+      <button class="tag-btn" id="fbtn-estado-saldo" onclick="setFilter('estado','saldo')"><span class="tag-dot" style="background:#ef4444"></span> Con saldo pendiente</button>
+      <button class="tag-btn" id="fbtn-estado-abono" onclick="setFilter('estado','abono')"><span class="tag-dot" style="background:#f59e0b"></span> Con abono registrado</button>
+      <button class="tag-btn" id="fbtn-estado-pagado" onclick="setFilter('estado','pagado')"><span class="tag-dot" style="background:#22c55e"></span> Pagadas</button>
     </div>
   </div>
 
@@ -410,11 +410,28 @@ async function loadFromCloudSharded(key) {
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MONTHS_SHORT = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const DAYS = ['Lu','Ma','Mi','Ju','Vi','Sa','Do'];
-const TAG_COLORS = { 'Ingreso':'var(--prod1)', 'Confección':'var(--prod2)', 'Sublimación':'var(--prod3)', 'Abono':'var(--prod4)', 'Saldo':'var(--prod5)', 'Entrega':'#e84040', 'Otros':'#6b7280' };
+// Categorías en tonos fríos (relleno de la barra) y estados en colores de
+// semáforo (borde izquierdo), para que nunca se confundan entre sí. Antes
+// "Pagadas" usaba el mismo morado que "Sublimación" y el rojo de saldo era
+// casi igual al naranjo de "Confección". Van en hex (no var()) porque en
+// algunos lugares se les agrega transparencia como sufijo ("#rrggbb22").
+const CAT_COLORS = { 'Confección':'#3b82f6', 'Sublimación':'#a855f7', 'Otros':'#64748b' };
+const EST_COLORS = { saldo:'#ef4444', abono:'#f59e0b', pagado:'#22c55e' };
+
+// Las producciones antiguas guardaban en "tag" valores que ya no son
+// categorías (Ingreso, Abono, Saldo, Entrega); para ellas la categoría real
+// es su "tipo". Las nuevas guardan el tipo en "tag" directamente.
+function categoriaDe(p) {
+  if (CAT_COLORS[p.tag]) return p.tag;
+  if (CAT_COLORS[p.tipo]) return p.tipo;
+  return 'Otros';
+}
+function colorCategoria(p) { return CAT_COLORS[categoriaDe(p)]; }
+
 function estadoColor(p) {
-  if (p.saldo > 0) return '#e84040';
-  if (p.monto > 0 && p.saldo === 0) return '#a855f7';
-  if (p.abono > 0) return '#3d6fa8';
+  if (p.saldo > 0) return EST_COLORS.saldo;
+  if (p.monto > 0 && p.saldo === 0) return EST_COLORS.pagado;
+  if (p.abono > 0) return EST_COLORS.abono;
   return 'transparent';
 }
 
@@ -646,7 +663,7 @@ function getFiltered() {
   let list = productions;
 
   if (activeFilterValue) {
-    if (activeFilterType === 'tag') list = list.filter(p => p.tag === activeFilterValue);
+    if (activeFilterType === 'tag') list = list.filter(p => categoriaDe(p) === activeFilterValue);
     else if (activeFilterType === 'tipo') list = list.filter(p => p.tipo === activeFilterValue);
     else if (activeFilterType === 'estado') {
       if (activeFilterValue === 'saldo') list = list.filter(p => p.saldo > 0);
@@ -919,8 +936,8 @@ function renderGrid() {
         const bar = document.createElement('div');
         bar.className = 'large-day-bar';
         // Fondo = categoría, borde izquierdo = estado (saldo/abono/pagado)
-        bar.style.background = TAG_COLORS[p.tag] || 'var(--accent)';
-        bar.style.borderLeft = '4px solid ' + estadoColor(p);
+        bar.style.background = colorCategoria(p);
+        bar.style.borderLeft = '5px solid ' + estadoColor(p);
         bar.textContent = p.name;
         dotsContainer.appendChild(bar);
       });
@@ -959,7 +976,7 @@ function renderGrid() {
 function showTooltip(e, dateStr, prods) {
   const t = document.getElementById('tooltip'); const [y,m,d] = dateStr.split('-');
   let html = `<div class="tooltip-date">${d} de ${MONTHS[parseInt(m)-1]} de ${y}</div>`;
-  prods.forEach(p => { html += `<div class="tooltip-prod"><span class="tooltip-prod-dot" style="background:${TAG_COLORS[p.tag]}"></span>${p.name}<span style="color:var(--text3);font-size:0.6rem"> [${p.tag}]</span><div style="font-size:0.65rem;color:var(--text3);margin:2px 0 4px 14px">${prendasDetalleTexto(p)}</div></div>`; });
+  prods.forEach(p => { html += `<div class="tooltip-prod"><span class="tooltip-prod-dot" style="background:${colorCategoria(p)}"></span>${p.name}<span style="color:var(--text3);font-size:0.6rem"> [${categoriaDe(p)}]</span><div style="font-size:0.65rem;color:var(--text3);margin:2px 0 4px 14px">${prendasDetalleTexto(p)}</div></div>`; });
   t.innerHTML = html; t.style.display = 'block'; t.style.left = (e.clientX + 14) + 'px'; t.style.top = (e.clientY - 10) + 'px';
 }
 function hideTooltip() { document.getElementById('tooltip').style.display = 'none'; }
@@ -990,10 +1007,10 @@ function renderTimeline() {
       if (items.length > 0) prendasHtml = `<div style="line-height:1.8">${items.join('')}</div>`;
     } else if (p.prenda) { prendasHtml = `<span style="font-size:0.85rem;color:var(--text2)">${p.prenda}</span>`; }
     let filtroExtra = '';
-    if (activeFilterType === 'estado' && activeFilterValue === 'saldo') filtroExtra = `<div style="margin-top:3px;font-size:0.7rem;color:#e84040;font-weight:600">Saldo: ${formatPesos(p.saldo)}</div>`;
-    else if (activeFilterType === 'estado' && activeFilterValue === 'abono') filtroExtra = `<div style="margin-top:3px;font-size:0.7rem;color:var(--prod4);font-weight:600">Abono: ${formatPesos(p.abono)}</div>`;
-    else if (activeFilterType === 'estado' && activeFilterValue === 'pagado') filtroExtra = `<div style="margin-top:3px;font-size:0.7rem;color:var(--prod3);font-weight:600">✓ Pagado</div>`;
-    else if (activeFilterType === 'tag') filtroExtra = `<div style="margin-top:3px"><span style="font-size:0.6rem;padding:1px 6px;border-radius:2px;background:${TAG_COLORS[p.tag]}22;color:${TAG_COLORS[p.tag]}">${p.tag}</span></div>`;
+    if (activeFilterType === 'estado' && activeFilterValue === 'saldo') filtroExtra = `<div style="margin-top:3px;font-size:0.7rem;color:${EST_COLORS.saldo};font-weight:600">Saldo: ${formatPesos(p.saldo)}</div>`;
+    else if (activeFilterType === 'estado' && activeFilterValue === 'abono') filtroExtra = `<div style="margin-top:3px;font-size:0.7rem;color:${EST_COLORS.abono};font-weight:600">Abono: ${formatPesos(p.abono)}</div>`;
+    else if (activeFilterType === 'estado' && activeFilterValue === 'pagado') filtroExtra = `<div style="margin-top:3px;font-size:0.7rem;color:${EST_COLORS.pagado};font-weight:600">✓ Pagado</div>`;
+    else if (activeFilterType === 'tag') filtroExtra = `<div style="margin-top:3px"><span style="font-size:0.6rem;padding:1px 6px;border-radius:2px;background:${colorCategoria(p)}22;color:${colorCategoria(p)}">${categoriaDe(p)}</span></div>`;
     html += `<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:8px;align-items:center;padding:12px 8px;border-bottom:1px solid var(--border)22">
       <div><div style="font-size:1rem;color:var(--text);font-weight:600">${p.name}</div>${p.orden ? `<div style="font-size:0.7rem;color:var(--accent);font-weight:600">#${p.orden}</div>` : ''}${filtroExtra}</div>
       <div>${prendasHtml}</div><div style="font-size:0.85rem;color:var(--text2)">${p.diseñador || '—'}</div><div style="font-size:0.85rem;color:var(--text2)">${ingresoLabel}</div>
