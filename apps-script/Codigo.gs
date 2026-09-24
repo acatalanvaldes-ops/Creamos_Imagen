@@ -30,7 +30,8 @@ function respuesta(obj) {
 }
 
 function hoja() {
-  return SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_NAME);
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  return ss.getSheetByName(SHEET_NAME) || ss.getSheets()[0];
 }
 
 // Devuelve el número de fila (1-based) de la llave, o -1 si no existe.
@@ -55,24 +56,77 @@ function guardarEnCache(key, value) {
   }
 }
 
+function leerClave(key) {
+  const enCache = CacheService.getScriptCache().get(CACHE_PREFIX + key);
+  if (enCache !== null) return enCache === CACHE_NULL ? null : enCache;
+
+  const sheet = hoja();
+  const fila = buscarFila(sheet, key);
+  const value = fila > -1 ? sheet.getRange(fila, 2).getValue() : null;
+  const valor = (value === "" || value === undefined) ? null : value;
+  guardarEnCache(key, valor);
+  return valor;
+}
+
+function leerListaCompleta(key) {
+  const primero = leerClave(key);
+  if (primero === null || primero === undefined) return [];
+
+  let bloque;
+  try { bloque = JSON.parse(primero); } catch (error) { return []; }
+  if (Array.isArray(bloque)) return bloque;
+  if (!bloque || typeof bloque.shardCount !== "number") return [];
+
+  let texto = bloque.parte || "";
+  for (let i = 1; i < bloque.shardCount; i++) {
+    const parte = leerClave(key + "_sh" + i);
+    if (parte === null || parte === undefined) throw new Error("Falta la partición " + i + " de " + key);
+    const bloqueParte = JSON.parse(parte);
+    if (!bloqueParte || typeof bloqueParte.parte !== "string") throw new Error("Formato inválido en la partición " + i + " de " + key);
+    texto += bloqueParte.parte;
+  }
+  return texto ? JSON.parse(texto) : [];
+}
+
+function normalizarCorreo(email) {
+  return String(email || "").trim().toLowerCase();
+}
+
+function datosTrabajadorPorCorreo(key, email) {
+  const correo = normalizarCorreo(email);
+  if (!correo) return [];
+
+  const trabajadores = leerListaCompleta("rrhh_trabajadores_v1");
+  const trabajador = trabajadores.find(function (t) {
+    return normalizarCorreo(t.email) === correo;
+  });
+  if (!trabajador) return [];
+  if (key === "rrhh_trabajadores_v1") return [trabajador];
+
+  const id = String(trabajador.id);
+  const lista = leerListaCompleta(key);
+  return lista.filter(function (registro) {
+    if (!registro) return false;
+    const regId = registro.trabajadorId !== undefined ? registro.trabajadorId : registro.idTrabajador;
+    return regId !== undefined && regId !== null && String(regId) === id;
+  });
+}
+
 function doGet(e) {
   try {
     if (!e.parameter || e.parameter.token !== APP_TOKEN) {
       return respuesta({ estado: "error", detalle: "No autorizado" });
     }
     const key = e.parameter.key;
-
-    const enCache = CacheService.getScriptCache().get(CACHE_PREFIX + key);
-    if (enCache !== null) {
-      return respuesta({ estado: "éxito", valor: enCache === CACHE_NULL ? null : enCache });
+    if (e.parameter.scope === "trabajador") {
+      const email = e.parameter.email;
+      if (!email) {
+        return respuesta({ estado: "error", detalle: "Correo de trabajador requerido" });
+      }
+      return respuesta({ estado: "éxito", valor: JSON.stringify(datosTrabajadorPorCorreo(key, email)) });
     }
 
-    const sheet = hoja();
-    const fila = buscarFila(sheet, key);
-    const value = fila > -1 ? sheet.getRange(fila, 2).getValue() : null;
-    const valor = (value === "" || value === undefined) ? null : value;
-    guardarEnCache(key, valor);
-    return respuesta({ estado: "éxito", valor: valor });
+    return respuesta({ estado: "éxito", valor: leerClave(key) });
   } catch (error) {
     return respuesta({ estado: "error", detalle: error.toString() });
   }

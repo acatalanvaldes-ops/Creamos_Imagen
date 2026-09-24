@@ -192,21 +192,33 @@ async function loadFromCloud(key) {
   } catch (e) { return null; }
 }
 
-// Lista de trabajadores de RRHH (guardada en bloques de texto: {shardCount, parte}).
-async function loadTrabajadores() {
-  var primero = await loadFromCloud(TRAB_KEY);
-  if (!primero) return [];
-  if (Array.isArray(primero)) return primero;
-  if (typeof primero.shardCount !== "number") return [];
-  var pedidos = [];
-  for (var i = 1; i < primero.shardCount; i++) pedidos.push(loadFromCloud(TRAB_KEY + "_sh" + i));
-  var bloques = await Promise.all(pedidos);
-  var texto = primero.parte || "";
-  for (var j = 0; j < bloques.length; j++) {
-    if (!bloques[j] || typeof bloques[j].parte !== "string") return [];
-    texto += bloques[j].parte;
-  }
-  try { return texto ? JSON.parse(texto) : []; } catch (e) { return []; }
+// Lista de trabajadores de RRHH (admite filtrar por correo de trabajador).
+async function loadTrabajadores(email) {
+  var url = API_URL + "?key=" + TRAB_KEY + "&token=" + CLOUD_TOKEN;
+  if (email) url += "&scope=trabajador&email=" + encodeURIComponent(email);
+  try {
+    const res = await fetch(url);
+    const json = await res.json();
+    if (!json || !json.valor) return [];
+    const val = JSON.parse(json.valor);
+    if (Array.isArray(val)) return val;
+    if (typeof val.shardCount === "number") {
+      var pedidos = [];
+      for (var i = 1; i < val.shardCount; i++) {
+        var shUrl = API_URL + "?key=" + TRAB_KEY + "_sh" + i + "&token=" + CLOUD_TOKEN;
+        if (email) shUrl += "&scope=trabajador&email=" + encodeURIComponent(email);
+        pedidos.push(fetch(shUrl).then(function(r){ return r.json(); }).then(function(j){ return j.valor ? JSON.parse(j.valor) : null; }));
+      }
+      var bloques = await Promise.all(pedidos);
+      var texto = val.parte || "";
+      for (var j = 0; j < bloques.length; j++) {
+        if (!bloques[j] || typeof bloques[j].parte !== "string") return [];
+        texto += bloques[j].parte;
+      }
+      return texto ? JSON.parse(texto) : [];
+    }
+    return [];
+  } catch (e) { return []; }
 }
 
 // ¿El correo corresponde a un trabajador Activo de RRHH?
@@ -282,7 +294,7 @@ async function handleCredentialResponse(response) {
   var btnWrap = document.getElementById("cimagen-gate-btn-wrap");
   if (msg) msg.textContent = "⏳ Verificando tus accesos…";
   if (btnWrap) btnWrap.style.display = "none";
-  var datos = await Promise.all([loadFromCloud(ACL_KEY), loadTrabajadores()]);
+  var datos = await Promise.all([loadFromCloud(ACL_KEY), loadTrabajadores(payload.email)]);
   var sess = computeSession(payload.email, payload.name, payload.picture, datos[0] || {}, esCorreoTrabajador(datos[1], payload.email));
   if (!sess.isAdmin && sess.modules.length === 0 && !sess.esTrabajador) {
     showDenied();
@@ -302,7 +314,7 @@ function soloPortal(sess) {
 // registrara el correo) no saben si la persona es trabajador: se revisa en
 // segundo plano y, si cambió, se actualiza la sesión y el menú.
 async function revisarTrabajador(sess) {
-  var trabajadores = await loadTrabajadores();
+  var trabajadores = await loadTrabajadores(sess.email);
   var es = esCorreoTrabajador(trabajadores, sess.email);
   if (es === !!sess.esTrabajador) return;
   sess.esTrabajador = es;

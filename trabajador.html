@@ -406,11 +406,13 @@ async function fetchConTimeout(url, opts){
   try { return await fetch(url, Object.assign({}, opts, { signal: c.signal })); } finally { clearTimeout(t); }
 }
 // Lee una llave; lanza si no se pudo confirmar (para no confundir "falló" con "vacío").
-async function leerClave(key){
+async function leerClave(key, correoTrabajador){
   let ultimo;
   for (let i = 0; i < CLOUD_INTENTOS; i++) {
     try {
-      const res = await fetchConTimeout(API_URL + "?key=" + encodeURIComponent(key) + "&token=" + CLOUD_TOKEN);
+      let url = API_URL + "?key=" + encodeURIComponent(key) + "&token=" + CLOUD_TOKEN;
+      if (correoTrabajador) url += "&scope=trabajador&email=" + encodeURIComponent(correoTrabajador);
+      const res = await fetchConTimeout(url);
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const json = await res.json();
       if (json.estado === 'error') throw new Error(json.detalle || 'Error del servidor');
@@ -434,13 +436,13 @@ async function guardarClave(key, valor){
   return false;
 }
 // Las llaves de RRHH se guardan como texto partido en bloques {shardCount, parte}.
-async function leerRRHH(key){
-  const primero = await leerClave(key);
+async function leerRRHH(key, correoTrabajador){
+  const primero = await leerClave(key, correoTrabajador);
   if (primero === null || primero === undefined) return [];
   if (Array.isArray(primero)) return primero;
   if (typeof primero === 'object' && typeof primero.shardCount === 'number') {
     const pedidos = [];
-    for (let i = 1; i < primero.shardCount; i++) pedidos.push(leerClave(key + '_sh' + i));
+    for (let i = 1; i < primero.shardCount; i++) pedidos.push(leerClave(key + '_sh' + i, correoTrabajador));
     const bloques = await Promise.all(pedidos);
     let texto = primero.parte || '';
     bloques.forEach((b, idx) => { if (!b || typeof b.parte !== 'string') throw new Error('Falta la partición ' + (idx+1) + ' de ' + key); texto += b.parte; });
@@ -448,7 +450,7 @@ async function leerRRHH(key){
   }
   throw new Error('Formato no reconocido en ' + key);
 }
-async function leerSolicitudes(){ const v = await leerClave(KEY_SOL_VAC); return Array.isArray(v) ? v : []; }
+async function leerSolicitudes(correoTrabajador){ const v = await leerClave(KEY_SOL_VAC, correoTrabajador); return Array.isArray(v) ? v : []; }
 
 // =========================================================================
 // 2. ESTADO
@@ -484,7 +486,7 @@ async function init(){
   if (!tieneOtros) $('menu-link').style.display = 'none';
 
   try {
-    TRABS = await leerRRHH(KEYS.trab);
+    TRABS = await leerRRHH(KEYS.trab, SESION.isAdmin ? null : email);
   } catch(e) {
     mostrarEstado('⚠️', 'No se pudo conectar', 'No fue posible leer los datos de Recursos Humanos. Revisa tu conexión y vuelve a intentarlo.', '<button class="act-btn primary" onclick="location.reload()">Reintentar</button>');
     return;
@@ -501,8 +503,9 @@ async function init(){
   }
 
   // Datos de todas las secciones en paralelo; cada una puede fallar por separado.
+  const correoFiltro = SESION.isAdmin ? null : email;
   const secciones = ['liq','vac','asis','lic'];
-  const res = await Promise.allSettled([...secciones.map(k => leerRRHH(KEYS[k])), leerSolicitudes()]);
+  const res = await Promise.allSettled([...secciones.map(k => leerRRHH(KEYS[k], correoFiltro)), leerSolicitudes(correoFiltro)]);
   const fallidas = [];
   secciones.forEach((k, i) => {
     if (res[i].status === 'fulfilled') { TODO[k] = res[i].value || []; cargaOk[k] = true; }
@@ -725,7 +728,8 @@ async function cargarDocumentos(){
   if (TODO.doc) { renderDocumentos(); return; }
   if (cargandoDocs) return;
   $('tb-doc').innerHTML = `<tr><td colspan="4" class="vacio">⏳ Cargando documentos…</td></tr>`;
-  cargandoDocs = leerRRHH(KEYS.doc).then(docs => {
+  const correoFiltro = SESION.isAdmin ? null : (SESION.email || '').trim().toLowerCase();
+  cargandoDocs = leerRRHH(KEYS.doc, correoFiltro).then(docs => {
     TODO.doc = docs || [];
     misDatos.doc = TODO.doc.filter(x => mismoId(x.trabajadorId, miFicha.id));
     renderDocumentos();
