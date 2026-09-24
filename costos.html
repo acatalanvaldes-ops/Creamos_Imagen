@@ -287,13 +287,26 @@ function setRrhh(idx, field, value) {
 }
 function setGasto(field, value) { state.config.gastos[field] = parseFloat(value) || 0; guardarDatos(); render(); }
 
+function isUserAdmin() {
+  try {
+    var sess = JSON.parse(localStorage.getItem('cimagen_session'));
+    var valid = sess && sess.email && sess.ts && (Date.now() - sess.ts < 24 * 60 * 60 * 1000);
+    return !!(valid && (sess.isAdmin || (sess.email && sess.email.toLowerCase() === 'a.catalan.valdes@gmail.com')));
+  } catch(e) {
+    return false;
+  }
+}
+
 function render() {
   var s = state;
+  if (s.tab === 'admin' && !isUserAdmin()) {
+    s.tab = 'fichas';
+  }
   var html = buildTopBar(s.tab) + '<div class="content">';
 
   if (s.tab === 'fichas') html += buildFichas();
   else if (s.tab === 'config') html += buildConfig();
-  else if (s.tab === 'admin') html += buildAdmin();
+  else if (s.tab === 'admin' && isUserAdmin()) html += buildAdmin();
 
   html += '</div>' + (s.showForm ? buildModal() : '');
   document.getElementById("app").innerHTML = html;
@@ -303,9 +316,10 @@ function buildTopBar(tab) {
   var t1 = tab==='fichas'?'tab on':'tab';
   var t2 = tab==='config'?'tab on':'tab';
   var t3 = tab==='admin'?'tab on':'tab';
+  var adminBtn = isUserAdmin() ? '<button class="'+t3+'" onclick="setState({tab:\'admin\'})">Nómina y Gastos Mensuales</button>' : '';
   return '<div class="topbar"><div class="brand"><div class="brand-tag">Gestión de Producción</div><div class="brand-name">Calculadora <span>Costos</span></div></div>'+
          '<div class="tabs"><button class="'+t1+'" onclick="setState({tab:\'fichas\'})">Mis Fichas</button>'+
-         '<button class="'+t3+'" onclick="setState({tab:\'admin\'})">Nómina y Gastos Mensuales</button>'+
+         adminBtn +
          '<button class="'+t2+'" onclick="setState({tab:\'config\'})">Configuración Fichas</button></div></div>';
 }
 
@@ -408,7 +422,7 @@ function buildConfig() {
         '<div class="fld"><label>Costo Hilos</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+c.hilos+'" onchange="setConfig(\'hilos\',this.value)"></div></div>'+
         '<div class="fld"><label>Desgaste Máquina y Luz</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+c.maquina+'" onchange="setConfig(\'maquina\',this.value)"></div></div>'+
         '<div class="fld"><label>Traslado</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+(c.traslado||0)+'" onchange="setConfig(\'traslado\',this.value)"></div></div>'+
-        '<div class="fld"><label style="color:var(--purple)">Gastos de Administración <span style="font-size:9px;font-weight:400">(Viene de la pestaña Nómina)</span></label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+c.admin+'" onchange="setConfig(\'admin\',this.value)"></div></div>'+
+        '<div class="fld"><label style="color:var(--purple)">Gastos de Administración'+(isUserAdmin()?' <span style="font-size:9px;font-weight:400">(Viene de la pestaña Nómina)</span>':'')+'</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+c.admin+'" onchange="setConfig(\'admin\',this.value)"></div></div>'+
         '<div style="margin-top:30px;padding-top:20px;border-top:1px dashed var(--border)">'+
           '<div class="fld"><label style="color:var(--teal)">Margen de Ganancia Deseado (%)</label><div class="fld-row"><input type="number" value="'+c.margen+'" onchange="setConfig(\'margen\',this.value)"><span class="fld-suffix">%</span></div></div>'+
         '</div>'+
