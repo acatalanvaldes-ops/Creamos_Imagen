@@ -113,6 +113,7 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
         <div class="fld"><label>Email (acceso a Mi Portal)</label><input id="tr-ema" type="email" placeholder="correo Gmail del trabajador" title="El trabajador entra a Mi Portal con este mismo correo de Google"></div>
         <div class="fld"><label>Fecha Ingreso</label><input type="date" id="tr-ing"></div>
         <div class="fld"><label>Tipo de Contrato</label><select id="tr-con"><option value="Indefinido">Indefinido</option><option value="Plazo Fijo">Plazo Fijo</option></select></div>
+        <div class="fld"><label>Jornada Laboral</label><select id="tr-jor"><option value="Jornada ordinaria completa de trabajo">Jornada ordinaria completa</option><option value="Jornada bajo Art. 22 inc. 2° del Código del Trabajo">Artículo 22 inc. 2°</option><option value="Jornada parcial de trabajo">Jornada parcial (Part-Time)</option></select></div>
         <div class="fld"><label>Sueldo Base ($)</label><input type="number" id="tr-sue"></div>
         <div class="fld"><label>AFP</label><select id="tr-afp"><option value="CAPITAL">Capital</option><option value="CUPRUM">Cuprum</option><option value="HABITAT">Habitat</option><option value="MODELO">Modelo</option><option value="PLANVITAL">Planvital</option><option value="PROVIDA">Provida</option><option value="UNO">Uno</option></select></div>
         <div class="fld"><label>Estado</label><select id="tr-est"><option>Activo</option><option>Inactivo</option></select></div>
@@ -604,18 +605,19 @@ function trSave() {
   const r=$('tr-rut').value; if(!r){alert("RUT requerido");return;}
   const em=$('tr-ema').value.trim().toLowerCase();
   if(em && DB.trab.some(x=>x.id!==editId.trab && (x.email||'').trim().toLowerCase()===em)){ alert("Ese email ya está registrado en otro trabajador. Cada trabajador necesita su propio correo para entrar a Mi Portal."); return; }
-  const d={id:editId.trab||Date.now(),rut:r,nombres:$('tr-nom').value,apellidos:$('tr-ape').value,cargo:$('tr-car').value,area:$('tr-are').value,jefatura:$('tr-jef').value,telefono:$('tr-tel').value,email:$('tr-ema').value.trim().toLowerCase(),fechaIngreso:$('tr-ing').value,tipoContrato:$('tr-con').value||'Indefinido',sueldo:Number($('tr-sue').value)||0,afp:$('tr-afp').value,estado:$('tr-est').value};
+  const d={id:editId.trab||Date.now(),rut:r,nombres:$('tr-nom').value,apellidos:$('tr-ape').value,cargo:$('tr-car').value,area:$('tr-are').value,jefatura:$('tr-jef').value,telefono:$('tr-tel').value,email:$('tr-ema').value.trim().toLowerCase(),fechaIngreso:$('tr-ing').value,tipoContrato:$('tr-con').value||'Indefinido',jornada:$('tr-jor').value||'Jornada ordinaria completa de trabajo',sueldo:Number($('tr-sue').value)||0,afp:$('tr-afp').value,estado:$('tr-est').value};
   if(editId.trab){ const i=DB.trab.findIndex(x=>x.id===editId.trab); if(i>-1)DB.trab[i]=d; } else { DB.trab.push(d); }
   sync('trab'); trCancel(); popSel(); renderAll();
 }
 function trEdit(id) {
   const t=getT(id); if(!t)return; editId.trab=id;
-  ['rut','nom','ape','car','are','jef','tel','ema','ing','con','sue','afp','est'].forEach(k=>{$(`tr-${k}`).value=t[{rut:'rut',nom:'nombres',ape:'apellidos',car:'cargo',are:'area',jef:'jefatura',tel:'telefono',ema:'email',ing:'fechaIngreso',con:'tipoContrato',sue:'sueldo',afp:'afp',est:'estado'}[k]]||(k==='con'?'Indefinido':'');});
+  ['rut','nom','ape','car','are','jef','tel','ema','ing','con','jor','sue','afp','est'].forEach(k=>{$(`tr-${k}`).value=t[{rut:'rut',nom:'nombres',ape:'apellidos',car:'cargo',are:'area',jef:'jefatura',tel:'telefono',ema:'email',ing:'fechaIngreso',con:'tipoContrato',jor:'jornada',sue:'sueldo',afp:'afp',est:'estado'}[k]]||(k==='con'?'Indefinido':k==='jor'?'Jornada ordinaria completa de trabajo':'');});
   $('tr-rut').readOnly=true; $('tr-title').textContent="Editar Trabajador"; $('tr-btn').textContent="Actualizar"; $('tr-btn-c').style.display="inline-block";
 }
 function trCancel() {
   editId.trab=null; ['rut','nom','ape','car','are','jef','tel','ema','ing','sue'].forEach(k=>$(`tr-${k}`).value='');
   $('tr-con').value="Indefinido";
+  $('tr-jor').value="Jornada ordinaria completa de trabajo";
   $('tr-rut').readOnly=false; $('tr-est').value="Activo"; $('tr-title').textContent="Nuevo Trabajador"; $('tr-btn').textContent="Guardar"; $('tr-btn-c').style.display="none"; $('tr-rut-msg').innerHTML="";
 }
 function trDel(id) { if(!confirm("¿Eliminar?"))return; DB.trab=DB.trab.filter(x=>x.id!==id); sync('trab'); popSel(); renderAll(); }

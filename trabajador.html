@@ -205,6 +205,7 @@ table.tbl td.vacio{text-align:center;padding:28px;color:var(--muted)}
           <div class="p-box"><span>AFP</span><strong id="pf-afp"></strong></div>
           <div class="p-box"><span>Sueldo base</span><strong id="pf-sueldo"></strong></div>
           <div class="p-box"><span>Tipo de contrato</span><strong id="pf-contrato"></strong></div>
+          <div class="p-box"><span>Jornada laboral</span><strong id="pf-jornada"></strong></div>
         </div>
         <div class="nota">Si algún dato está incorrecto, avisa a Recursos Humanos para que lo actualice en tu ficha.</div>
       </div>
@@ -252,36 +253,23 @@ table.tbl td.vacio{text-align:center;padding:28px;color:var(--muted)}
             <input type="text" id="cert-dest-otro" placeholder="Ej: Banco Estado, Notaría, etc." oninput="actualizarVistaCertificado()">
           </div>
 
-          <div class="pair" style="margin-top:10px">
-            <div class="fld">
-              <label>Tipo de Contrato</label>
-              <select id="cert-tipo-contrato" onchange="actualizarVistaCertificado()">
-                <option value="Indefinido">Indefinido</option>
-                <option value="Plazo Fijo">Plazo Fijo</option>
-                <option value="Por Obra o Faena">Por Obra o Faena</option>
-              </select>
-            </div>
-            <div class="fld">
-              <label>Jornada Laboral</label>
-              <select id="cert-jornada" onchange="actualizarVistaCertificado()">
-                <option value="Jornada ordinaria completa de trabajo">Jornada ordinaria completa</option>
-                <option value="Jornada regida por Art. 22 inc. 2° del Código del Trabajo">Artículo 22 (Sin fiscalización horaria)</option>
-                <option value="Jornada parcial de trabajo">Jornada parcial (Part-time)</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="fld" style="margin-top:10px">
-            <label>Información de Remuneración</label>
-            <select id="cert-mostrar-renta" onchange="actualizarVistaCertificado()">
-              <option value="si">Sí, incluir Sueldo Base pactado</option>
-              <option value="no">No incluir información de remuneración</option>
-            </select>
-          </div>
-
           <div class="fld" style="margin-top:10px">
             <label>Fecha de emisión</label>
             <input type="date" id="cert-fecha-emision" onchange="actualizarVistaCertificado()">
+          </div>
+
+          <div class="resumen" style="margin-top:14px">
+            <div style="font-weight:700;color:var(--dark);margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:4px">
+              Datos registrados en tu ficha (RRHH):
+            </div>
+            <div><span>Tipo de Contrato:</span><strong id="cert-info-contrato">—</strong></div>
+            <div><span>Jornada Laboral:</span><strong id="cert-info-jornada">—</strong></div>
+            <div><span>Sueldo Base:</span><strong id="cert-info-sueldo">—</strong></div>
+            <div><span>Fecha de Ingreso:</span><strong id="cert-info-ingreso">—</strong></div>
+            <div><span>Antigüedad:</span><strong id="cert-info-antiguedad" style="color:var(--teal)">—</strong></div>
+          </div>
+          <div class="nota" style="margin-bottom:14px">
+            ℹ️ Estos antecedentes provienen directamente de tu ficha oficial en Recursos Humanos.
           </div>
 
           <div style="margin-top:20px;display:flex;gap:10px">
@@ -649,6 +637,7 @@ function renderInicio(){
   $('pf-afp').textContent = t.afp ? String(t.afp).toUpperCase() : '-';
   $('pf-sueldo').textContent = t.sueldo ? fmt(t.sueldo) : '-';
   if ($('pf-contrato')) $('pf-contrato').textContent = t.tipoContrato || 'Indefinido';
+  if ($('pf-jornada')) $('pf-jornada').textContent = t.jornada || 'Jornada ordinaria completa de trabajo';
 
   const s = saldoVacaciones();
   $('kp-vac').textContent = s.disponibles === null ? '—' : fmtDias(s.disponibles);
@@ -973,10 +962,6 @@ function renderCertificados(){
   const hoy = hoyChile();
   if (!$('cert-fecha-emision').value) $('cert-fecha-emision').value = hoy;
 
-  if ($('cert-tipo-contrato')) {
-    $('cert-tipo-contrato').value = miFicha.tipoContrato || 'Indefinido';
-  }
-
   const tieneIngreso = !!miFicha.fechaIngreso;
   $('cert-aviso-ingreso').style.display = tieneIngreso ? 'none' : 'block';
   $('cert-btn-imprimir').disabled = !tieneIngreso;
@@ -986,12 +971,12 @@ function renderCertificados(){
     $('cert-btn-imprimir').removeAttribute('title');
   }
 
-  // Ajustar etiqueta de sueldo
-  const tieneSueldo = miFicha.sueldo && Number(miFicha.sueldo) > 0;
-  const optSi = $('cert-mostrar-renta').querySelector('option[value="si"]');
-  if (optSi) {
-    optSi.textContent = tieneSueldo ? `Sí, incluir Sueldo Base (${fmt(miFicha.sueldo)})` : 'Sí, incluir Sueldo Base (No registrado)';
-  }
+  // Reflejar datos oficiales de la ficha en RRHH
+  if ($('cert-info-contrato')) $('cert-info-contrato').textContent = miFicha.tipoContrato || 'Indefinido';
+  if ($('cert-info-jornada')) $('cert-info-jornada').textContent = miFicha.jornada || 'Jornada ordinaria completa de trabajo';
+  if ($('cert-info-sueldo')) $('cert-info-sueldo').textContent = (miFicha.sueldo && Number(miFicha.sueldo) > 0) ? fmt(miFicha.sueldo) : 'Sin sueldo base registrado';
+  if ($('cert-info-ingreso')) $('cert-info-ingreso').textContent = miFicha.fechaIngreso ? fDate(miFicha.fechaIngreso) : 'Pendiente en RRHH';
+  if ($('cert-info-antiguedad')) $('cert-info-antiguedad').textContent = miFicha.fechaIngreso ? antiguedadTexto(miFicha.fechaIngreso) : '—';
 
   actualizarVistaCertificado();
 }
@@ -1005,9 +990,9 @@ function datosCertificadoActual(){
   const fIngresoCorta = t.fechaIngreso ? fDate(t.fechaIngreso) : '-';
   const antiguedad = t.fechaIngreso ? antiguedadTexto(t.fechaIngreso) : '—';
   const destinatario = obtenerDestinatarioCert();
-  const tipoContrato = $('cert-tipo-contrato').value || t.tipoContrato || 'Indefinido';
-  const jornada = $('cert-jornada').value;
-  const mostrarRenta = $('cert-mostrar-renta').value === 'si' && t.sueldo && Number(t.sueldo) > 0;
+  const tipoContrato = t.tipoContrato || 'Indefinido';
+  const jornada = t.jornada || 'Jornada ordinaria completa de trabajo';
+  const mostrarRenta = Boolean(t.sueldo && Number(t.sueldo) > 0);
   const folio = obtenerFolioCert();
   const nombre = nombreCompleto(t) || 'Trabajador';
   const rut = t.rut || '—';
