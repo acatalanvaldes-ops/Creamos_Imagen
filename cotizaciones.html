@@ -251,7 +251,7 @@ const PRODUCTOS_FIJOS = [
   "Camisetas por tallas 12-14", "Conjuntos por tallas xs-xxl",
   "Conjuntos por tallas 8-10", "Conjuntos por tallas 12-14"
 ];
-const TECNICAS_FIJAS = ["Plancha", "Calandra", "Servicio"];
+const TECNICAS_FIJAS = ["Calandra", "Plancha", "Servicio"];
 const MAX_ITEMS = 10;
 
 const CONFIG_PDF_DEFAULT = {
@@ -440,7 +440,7 @@ function datosClienteActuales() {
 
 function tecnicasParaProducto(producto) {
   const propias = tarifario.items.filter(i => i.producto === producto).map(i => i.tecnica);
-  return propias.length ? propias : TECNICAS_FIJAS.slice();
+  return propias.length ? propias.sort((a, b) => (a || '').localeCompare(b || '', 'es')) : TECNICAS_FIJAS.slice();
 }
 
 function precioItemTarifario(producto, tecnica) {
@@ -456,7 +456,7 @@ function productosDisponibles() {
     const p = i.producto || '';
     if (p && !vistos.has(p)) { vistos.add(p); lista.push(p); }
   });
-  return lista;
+  return lista.sort((a, b) => a.localeCompare(b, 'es'));
 }
 
 // ===== COTIZADOR: ITEMS (hasta 10 productos) =====
@@ -529,8 +529,8 @@ function renderItemsTable() {
       `</select></td>
       <td><input type="number" min="1" value="${item.cantidad}" style="width:70px" oninput="cambiarCampoItem(${i}, 'cantidad', parseFloat(this.value)||0, true)"></td>
       <td><select onchange="cambiarCampoItem(${i}, 'personalizacion', this.value)">
-        <option value="Diseño propio" ${item.personalizacion === 'Diseño propio' ? 'selected' : ''}>Diseño propio</option>
         <option value="Diseño K-pop" ${item.personalizacion === 'Diseño K-pop' ? 'selected' : ''}>Diseño K-pop</option>
+        <option value="Diseño propio" ${item.personalizacion === 'Diseño propio' ? 'selected' : ''}>Diseño propio</option>
         <option value="Otro" ${item.personalizacion === 'Otro' ? 'selected' : ''}>Otro</option>
       </select></td>
       <td id="item-unit-${i}" style="white-space:nowrap">${fmt(calc.unit)}${calc.sinPrecio ? ' <span style="color:var(--red);font-size:10px">⚠ sin precio</span>' : ''}</td>
@@ -584,7 +584,7 @@ function poblarSelectsCotizador() {
   const selCliente = document.getElementById('cz-clienteSelect');
   const valorPrevio = selCliente.value;
   selCliente.innerHTML = clientesData.length
-    ? clientesData.map(c => `<option value="${c.id}">${c.razonSocial}</option>`).join('')
+    ? clientesData.slice().sort((a, b) => (a.razonSocial || '').localeCompare(b.razonSocial || '', 'es')).map(c => `<option value="${c.id}">${c.razonSocial}</option>`).join('')
     : '<option value="">— No hay clientes registrados —</option>';
   if (valorPrevio && clientesData.some(c => String(c.id) === String(valorPrevio))) {
     selCliente.value = valorPrevio;

@@ -112,7 +112,7 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
         <div class="fld"><label>Email</label><input id="tr-ema"></div>
         <div class="fld"><label>Fecha Ingreso</label><input type="date" id="tr-ing"></div>
         <div class="fld"><label>Sueldo Base ($)</label><input type="number" id="tr-sue"></div>
-        <div class="fld"><label>AFP</label><select id="tr-afp"><option value="MODELO">Modelo</option><option value="UNO">Uno</option><option value="PLANVITAL">Planvital</option><option value="HABITAT">Habitat</option><option value="CAPITAL">Capital</option><option value="CUPRUM">Cuprum</option><option value="PROVIDA">Provida</option></select></div>
+        <div class="fld"><label>AFP</label><select id="tr-afp"><option value="CAPITAL">Capital</option><option value="CUPRUM">Cuprum</option><option value="HABITAT">Habitat</option><option value="MODELO">Modelo</option><option value="PLANVITAL">Planvital</option><option value="PROVIDA">Provida</option><option value="UNO">Uno</option></select></div>
         <div class="fld"><label>Estado</label><select id="tr-est"><option>Activo</option><option>Inactivo</option></select></div>
       </div>
       <div style="margin-top:16px"><button class="act-btn primary" onclick="trSave()" id="tr-btn">Guardar</button> <button class="act-btn" onclick="trCancel()" id="tr-btn-c" style="display:none">Cancelar</button></div>
@@ -136,8 +136,8 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
       <div class="grid-form">
         <div class="fld"><label>Trabajador</label><select class="sel-trab" id="as-tra"></select></div>
         <div class="fld"><label>Fecha</label><input type="date" id="as-fec"></div>
-        <div class="fld"><label>Jornada</label><select id="as-jor"><option value="44">44 Horas</option><option value="PART">Part Time</option><option value="ART22">Art. 22</option></select></div>
-        <div class="fld"><label>Turno</label><select id="as-tur"><option>MAÑANA</option><option>TARDE</option><option>ADMIN</option></select></div>
+        <div class="fld"><label>Jornada</label><select id="as-jor"><option value="44">44 Horas</option><option value="ART22">Art. 22</option><option value="PART">Part Time</option></select></div>
+        <div class="fld"><label>Turno</label><select id="as-tur"><option>ADMIN</option><option>MAÑANA</option><option>TARDE</option></select></div>
         <div class="fld"><label>Entrada</label><input type="time" id="as-ent"></div>
         <div class="fld"><label>Salida Colación</label><input type="time" id="as-sc"></div>
         <div class="fld"><label>Regreso Colación</label><input type="time" id="as-rc"></div>
@@ -195,7 +195,7 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
       <div class="card-title">Registrar Licencia</div>
       <div class="grid-form">
         <div class="fld"><label>Trabajador</label><select class="sel-trab" id="lm-tra"></select></div>
-        <div class="fld"><label>Tipo</label><select id="lm-tip"><option>Enfermedad Común</option><option>Maternal</option><option>Accidente Laboral</option><option>Enf. Profesional</option><option>Enf. Hijo Menor</option></select></div>
+        <div class="fld"><label>Tipo</label><select id="lm-tip"><option>Accidente Laboral</option><option>Enf. Hijo Menor</option><option>Enf. Profesional</option><option>Enfermedad Común</option><option>Maternal</option></select></div>
         <div class="fld"><label>N° Folio</label><input id="lm-fol"></div>
         <div class="fld"><label>Desde</label><input type="date" id="lm-ini" onchange="lmCalc()"></div>
         <div class="fld"><label>Hasta</label><input type="date" id="lm-fin" onchange="lmCalc()"></div>
@@ -221,16 +221,22 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
         <div class="card-title">Generar Liquidación</div>
         <div class="grid-form" style="grid-template-columns:1fr">
           <div style="display:flex;gap:10px">
-            <div class="fld" style="flex:2"><label>Trabajador</label><select class="sel-trab" id="lq-tra" onchange="lqClear()"></select></div>
+            <div class="fld" style="flex:2"><label>Trabajador</label><select class="sel-trab" id="lq-tra" onchange="lqOnTrabajador()"></select></div>
             <div class="fld" style="flex:1"><label>Período</label><input type="month" id="lq-per" onchange="lqClear()"></div>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
             <div class="fld"><label>Sueldo Base ($)</label><input type="number" id="lq-sue" oninput="lqClear()"></div>
-            <div class="fld"><label>Gratificación ($)</label><input type="number" id="lq-gra" oninput="lqClear()"></div>
+            <div class="fld"><label>Gratificación ($) — automática</label><input type="number" id="lq-gra" readonly style="background:#f1f5f9;cursor:not-allowed" title="Se calcula al presionar Calcular Totales"></div>
             <div class="fld"><label>Bonos ($)</label><input type="number" id="lq-bon" oninput="lqClear()"></div>
             <div class="fld"><label>Comisiones ($)</label><input type="number" id="lq-com" oninput="lqClear()"></div>
             <div class="fld"><label>Colación ($)</label><input type="number" id="lq-col" oninput="lqClear()"></div>
             <div class="fld"><label>Movilización ($)</label><input type="number" id="lq-mov" oninput="lqClear()"></div>
+            <div class="fld"><label>Asignación de Caja ($)</label><input type="number" id="lq-caj" oninput="lqClear()"></div>
+            <div class="fld"><label>Asignación de Viático ($)</label><input type="number" id="lq-via" oninput="lqClear()"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px;align-items:end">
+            <div class="fld"><label>Ingreso Mínimo Mensual ($)</label><input type="number" id="lq-imm" oninput="lqGuardarIMM(); lqClear()"></div>
+            <div id="lq-gra-nota" style="font-size:11px;color:var(--muted);padding-bottom:10px"></div>
           </div>
         </div>
         <button class="act-btn" style="width:100%;margin-top:16px;background:var(--dark);color:#fff" onclick="lqCalc()">Calcular Totales</button>
@@ -244,6 +250,7 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
           <div class="total" style="font-size:14px"><span>IMPONIBLE:</span><span id="rl-imp">$0</span></div>
           <div style="border-top:1px dashed #ccc;margin:8px 0"></div>
           <div class="resumen-row"><span>Colac. + Moviliz.</span><strong id="rl-cmo">$0</strong></div>
+          <div class="resumen-row"><span>Asig. Caja + Viático</span><strong id="rl-asi">$0</strong></div>
           <div style="border-top:1px dashed #ccc;margin:8px 0"></div>
           <div class="resumen-row"><span>AFP + Comisión</span><strong id="rl-afp">$0</strong></div>
           <div class="resumen-row"><span>Salud (7%) + AFC (0.6%)</span><strong id="rl-saf">$0</strong></div>
@@ -276,7 +283,11 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
         <div class="resumen-row"><span>Total AFP:</span><strong id="lrr-afp">$0</strong></div>
         <div class="resumen-row"><span>Total Salud + AFC:</span><strong id="lrr-saf">$0</strong></div>
         <div class="total"><span>TOTAL LÍQUIDO:</span><span id="lrr-liq">$0</span></div>
-        <button class="act-btn primary" style="margin-top:12px" onclick="lrSave()">Guardar Libro</button>
+        <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
+          <button class="act-btn primary" onclick="lrSave()">Guardar Libro</button>
+          <button class="act-btn" onclick="lrXL()">⬇ Excel</button>
+          <button class="act-btn" onclick="lrPDF()">⬇ PDF</button>
+        </div>
       </div>
     </div>
     <div class="card">
@@ -320,8 +331,9 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
           <div class="fld"><label>Fecha Término</label><input type="date" id="fq-ter" onchange="fqClear()"></div>
           <div class="fld"><label>Causal</label><select id="fq-cau" onchange="fqClear()"><option value="159">Art. 159 (Renuncia/Plazo)</option><option value="160">Art. 160 (Sin Indemnización)</option><option value="161">Art. 161 (Necesidades Empresa)</option></select></div>
           <div class="fld"><label>Aviso Previo (30d)</label><select id="fq-avi" onchange="fqClear()"><option value="SI">SI (Avisado)</option><option value="NO">NO (Pagar mes)</option></select></div>
-          <div class="fld"><label>Vacaciones Pend. (días)</label><input type="number" step="0.5" id="fq-vpe" oninput="fqClear()"></div>
-          <div class="fld" style="grid-column:1/-1"><label>Vacaciones Prop. (días)</label><input type="number" step="0.5" id="fq-vpr" oninput="fqClear()"></div>
+          <div class="fld"><label>Vacaciones Pend. (días hábiles) — automático</label><input type="number" id="fq-vpe" readonly style="background:#f1f5f9;cursor:not-allowed"></div>
+          <div class="fld"><label>Vacaciones Prop. (días hábiles) — automático</label><input type="number" id="fq-vpr" readonly style="background:#f1f5f9;cursor:not-allowed"></div>
+          <div id="fq-vac-nota" style="grid-column:1/-1;font-size:11px;color:var(--muted)">Selecciona el trabajador y la fecha de término para calcular las vacaciones.</div>
         </div>
         <button class="act-btn" style="width:100%;margin-top:16px;background:var(--dark);color:#fff" onclick="fqCalc()">Calcular Totales</button>
       </div>
@@ -349,7 +361,7 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
       <div class="card-title">Subir Documento</div>
       <div class="grid-form">
         <div class="fld"><label>Trabajador</label><select class="sel-trab" id="do-tra"></select></div>
-        <div class="fld"><label>Categoría</label><select id="do-cat"><option>Contrato</option><option>Anexo</option><option>Curriculum</option><option>Carnet</option><option>Certificados</option><option>Otros</option></select></div>
+        <div class="fld"><label>Categoría</label><select id="do-cat"><option>Anexo</option><option>Carnet</option><option>Certificados</option><option>Contrato</option><option>Curriculum</option><option>Otros</option></select></div>
         <div class="fld"><label>Archivo (Max 1MB)</label><input type="file" id="do-arc" accept=".pdf,.png,.jpg,.jpeg"></div>
         <div class="fld"><button class="act-btn primary" style="height:35px;width:100%" onclick="doSave()" id="do-btn">Subir Archivo</button></div>
       </div>
@@ -409,6 +421,11 @@ const CFG = { AFP:10, SAL:7, AFC:0.6, C_AFP:{UNO:0.46, MODELO:0.58, PLANVITAL:1.
 
 let editId = { trab:null, vacRej:null };
 let calcObj = { liq:null, lib:null, prev:null, fini:null };
+// Gráficos de la pestaña Reportes (rpRender). Antes no estaba declarada: el
+// primer renderAll() fallaba con "charts is not defined" y la página nunca
+// llegaba a cargar los datos de la nube (por eso las liquidaciones no
+// encontraban al trabajador).
+let charts = {};
 
 // El backend (Google Apps Script) a veces devuelve una falla transitoria
 // -una página de error en vez de JSON, un HTTP no-OK, o una respuesta muy
@@ -533,6 +550,8 @@ function getTName(id) { const t=getT(id); return t ? `${t.nombres} ${t.apellidos
 function decHr(v) { if(!v)return 0; const p=v.split(":"); return Number(p[0])+(Number(p[1])/60); }
 
 async function init() {
+  let immGuardado = null; try { immGuardado = Number(localStorage.getItem('rrhh_imm')) || null; } catch(e) {}
+  $('lq-imm').value = immGuardado || IMM_DEFECTO; lqNotaTope();
   Object.keys(KEYS).forEach(k => { try{ const l=localStorage.getItem(KEYS[k]); if(l)DB[k]=JSON.parse(l); }catch(e){} });
   popSel(); renderAll();
 
@@ -571,7 +590,7 @@ function popSel() {
   document.querySelectorAll('.sel-trab').forEach(s => {const val=s.value; s.innerHTML = h; if(val)s.value=val;});
   
   const ar = new Set(); DB.trab.forEach(t=>{if(t.area)ar.add(t.area)});
-  const ah = '<option value="">Todas</option>' + [...ar].map(a=>`<option value="${a}">${a}</option>`).join('');
+  const ah = '<option value="">Todas</option>' + [...ar].sort((a,b)=>a.localeCompare(b,'es')).map(a=>`<option value="${a}">${a}</option>`).join('');
   if($('rp-are'))$('rp-are').innerHTML = ah;
   if(!$('rp-per').value)$('rp-per').value = mesChile();
 }
@@ -633,6 +652,21 @@ function asRender() {
 }
 
 // ================= VACACIONES =================
+// Feriados legales de Chile (no cuentan como días hábiles de vacaciones).
+// Antes esta lista se usaba pero no existía, y el cálculo de días hábiles
+// fallaba. Incluye los feriados trasladables ya ajustados; hay que agregar
+// los de cada año nuevo (y feriados especiales, como elecciones) al conocerse.
+const FER = [
+  // 2025
+  '2025-01-01','2025-04-18','2025-04-19','2025-05-01','2025-05-21','2025-06-20','2025-06-29','2025-07-16','2025-08-15',
+  '2025-09-18','2025-09-19','2025-10-12','2025-10-31','2025-11-01','2025-11-16','2025-12-08','2025-12-14','2025-12-25',
+  // 2026
+  '2026-01-01','2026-04-03','2026-04-04','2026-05-01','2026-05-21','2026-06-21','2026-06-29','2026-07-16','2026-08-15',
+  '2026-09-18','2026-09-19','2026-10-12','2026-10-31','2026-11-01','2026-12-08','2026-12-25',
+  // 2027
+  '2027-01-01','2027-03-26','2027-03-27','2027-05-01','2027-05-21','2027-06-21','2027-06-28','2027-07-16','2027-08-15',
+  '2027-09-18','2027-09-19','2027-10-11','2027-10-31','2027-11-01','2027-12-08','2027-12-25'
+];
 function vaHabiles(fi,ff){
   // Se recorren los días del calendario en UTC puro: así el conteo no depende
   // de la zona horaria del equipo ni de los cambios de horario de verano.
@@ -693,21 +727,54 @@ function lmRender() {
 }
 
 // ================= LIQUIDACIONES =================
-function lqClear() { calcObj.liq=null; $('lq-btn-save').disabled=true; ['sue','gbc','hex','imp','cmo','afp','saf','des','liq'].forEach(k=>$(`rl-${k}`).textContent='$0'); }
+function lqClear() { calcObj.liq=null; $('lq-btn-save').disabled=true; $('lq-gra').value=''; ['sue','gbc','hex','imp','cmo','asi','afp','saf','des','liq'].forEach(k=>$(`rl-${k}`).textContent='$0'); lqNotaTope(); }
+
+// Gratificación legal (art. 50 del Código del Trabajo): 25% de lo devengado
+// en el mes, con tope anual de 4,75 ingresos mínimos mensuales (IMM), es decir
+// 4,75 × IMM / 12 al mes. El IMM cambia por ley: queda editable y se recuerda
+// en este equipo. Por defecto, $539.000 (vigente desde el 1 de enero de 2026).
+const IMM_DEFECTO = 539000;
+function lqIMM() { return Number($('lq-imm').value) || IMM_DEFECTO; }
+function lqTopeGratif() { return Math.round(4.75 * lqIMM() / 12); }
+function lqGuardarIMM() { try { localStorage.setItem('rrhh_imm', String(Number($('lq-imm').value) || '')); } catch(e) {} }
+function lqNotaTope() {
+  const n = $('lq-gra-nota'); if (!n) return;
+  n.textContent = 'Gratificación: 25% de sueldo + bonos + comisiones + horas extras, con tope legal de 4,75 IMM al año = ' + money(lqTopeGratif()) + ' al mes.';
+}
+
+// Al elegir al trabajador se carga su sueldo base (queda editable) y, si no
+// hay período, se propone el mes actual. Antes el selector solo limpiaba el
+// resumen y el sueldo había que escribirlo a mano.
+function lqOnTrabajador() {
+  lqClear();
+  const t = getT($('lq-tra').value); if (!t) return;
+  if (t.sueldo) $('lq-sue').value = t.sueldo;
+  if (!$('lq-per').value) $('lq-per').value = mesChile();
+}
+
 function lqCalc() {
-  const tid=$('lq-tra').value, per=$('lq-per').value; if(!tid||!per)return; const t=getT(tid); if(!t)return;
-  const sb=Number($('lq-sue').value)||0, gr=Number($('lq-gra').value)||0, bo=Number($('lq-bon').value)||0, co=Number($('lq-com').value)||0, col=Number($('lq-col').value)||0, mov=Number($('lq-mov').value)||0;
+  const tid=$('lq-tra').value, per=$('lq-per').value;
+  if(!tid){ alert('Selecciona el trabajador.'); return; }
+  if(!per){ alert('Selecciona el período.'); return; }
+  const t=getT(tid); if(!t){ alert('No se encontró el trabajador seleccionado. Recarga la página (F5).'); return; }
+  const sb=Number($('lq-sue').value)||0, bo=Number($('lq-bon').value)||0, co=Number($('lq-com').value)||0, col=Number($('lq-col').value)||0, mov=Number($('lq-mov').value)||0;
+  const caj=Number($('lq-caj').value)||0, via=Number($('lq-via').value)||0;
+  if(!sb){ alert('Ingresa el sueldo base.'); return; }
   const hexHrs = DB.asis.filter(a=>String(a.trabajadorId)===String(tid)&&(a.fecha||"").startsWith(per)).reduce((s,a)=>s+Number(a.horasExtras||0),0);
-  const mHex = hexHrs*(sb/180)*1.5; const imp=sb+gr+bo+co+mHex;
+  const mHex = hexHrs*(sb/180)*1.5;
+  const tope = lqTopeGratif();
+  const gr = Math.round(Math.min((sb+bo+co+mHex)*0.25, tope));
+  $('lq-gra').value = gr;
+  const imp=sb+gr+bo+co+mHex;
   const afp=imp*(CFG.AFP/100); const pCom=CFG.C_AFP[(t.afp||"MODELO").toUpperCase()]||0.58; const cAfp=imp*(pCom/100);
-  const sal=imp*(CFG.SAL/100); const afc=imp*(CFG.AFC/100); const desc=afp+cAfp+sal+afc; const nImp=col+mov; const liq=imp+nImp-desc;
-  calcObj.liq = { trabajadorId:tid, periodo:per, sueldoBase:sb, gratificacion:gr, bonos:bo, comisiones:co, colacion:col, movilizacion:mov, horasExtrasHoras:hexHrs, montoHorasExtras:mHex, imponible:imp, afp, comisionAFP:cAfp, porcentajeComision:pCom, nombreAFP:(t.afp||"MODELO").toUpperCase(), salud:sal, afc, totalDescuentos:desc, totalHaberesNoImp:nImp, liquido:liq, estado:"GENERADA", fechaGeneracion:new Date().toISOString() };
-  $('rl-sue').textContent=money(sb);$('rl-gbc').textContent=money(gr+bo+co); $('rl-hex').textContent=money(mHex);$('rl-imp').textContent=money(imp); $('rl-cmo').textContent=money(nImp);$('rl-afp').textContent=money(afp+cAfp); $('rl-saf').textContent=money(sal+afc);$('rl-des').textContent=money(desc); $('rl-liq').textContent=money(liq);$('lq-btn-save').disabled=false;
+  const sal=imp*(CFG.SAL/100); const afc=imp*(CFG.AFC/100); const desc=afp+cAfp+sal+afc; const nImp=col+mov+caj+via; const liq=imp+nImp-desc;
+  calcObj.liq = { trabajadorId:tid, periodo:per, sueldoBase:sb, gratificacion:gr, topeGratificacion:tope, imm:lqIMM(), bonos:bo, comisiones:co, colacion:col, movilizacion:mov, asignacionCaja:caj, asignacionViatico:via, horasExtrasHoras:hexHrs, montoHorasExtras:mHex, imponible:imp, afp, comisionAFP:cAfp, porcentajeComision:pCom, nombreAFP:(t.afp||"MODELO").toUpperCase(), salud:sal, afc, totalDescuentos:desc, totalHaberesNoImp:nImp, liquido:liq, estado:"GENERADA", fechaGeneracion:new Date().toISOString() };
+  $('rl-sue').textContent=money(sb);$('rl-gbc').textContent=money(gr+bo+co); $('rl-hex').textContent=money(mHex);$('rl-imp').textContent=money(imp); $('rl-cmo').textContent=money(col+mov); $('rl-asi').textContent=money(caj+via);$('rl-afp').textContent=money(afp+cAfp); $('rl-saf').textContent=money(sal+afc);$('rl-des').textContent=money(desc); $('rl-liq').textContent=money(liq);$('lq-btn-save').disabled=false;
 }
 function lqSave() {
   if(!calcObj.liq)return; const ex=DB.liq.findIndex(l=>l.trabajadorId===calcObj.liq.trabajadorId&&l.periodo===calcObj.liq.periodo);
   if(ex>-1){if(!confirm("¿Sobreescribir?"))return; DB.liq[ex]={id:DB.liq[ex].id,...calcObj.liq};} else { DB.liq.push({id:Date.now(),...calcObj.liq}); }
-  sync('liq'); ['tra','per','sue','gra','bon','com','col','mov'].forEach(k=>$(`lq-${k}`).value=''); lqClear(); renderAll(); alert("Guardada");
+  sync('liq'); ['tra','per','sue','gra','bon','com','col','mov','caj','via'].forEach(k=>$(`lq-${k}`).value=''); lqClear(); renderAll(); alert("Guardada");
 }
 function lqDel(id){ if(confirm("¿Eliminar?")){ DB.liq=DB.liq.filter(x=>x.id!==id); sync('liq'); renderAll(); } }
 
@@ -715,7 +782,7 @@ function printLiq(id){
   const l = DB.liq.find(x=>x.id===id); if(!l) return;
   const t = DB.trab.find(x=>String(x.id)===String(l.trabajadorId));
   // La liquidación guarda la AFP en "nombreAFP" (ver lqCalc); si falta, se usa la del trabajador.
-  const afpNom = l.nombreAFP || (t && t.afp ? t.afp.toUpperCase() : '-');
+  const afpNom = l.nombreAFP || l.afpName || (t && t.afp ? t.afp.toUpperCase() : '-');
   const v = window.open("","_blank");
   v.document.write(`
   <html>
@@ -781,6 +848,8 @@ function printLiq(id){
           <br>
           <div class="row-flex"><span>Colación</span><span>${fmt(l.colacion)}</span></div>
           <div class="row-flex"><span>Movilización</span><span>${fmt(l.movilizacion)}</span></div>
+          <div class="row-flex"><span>Asignación de Caja</span><span>${fmt(l.asignacionCaja||0)}</span></div>
+          <div class="row-flex"><span>Asignación de Viático</span><span>${fmt(l.asignacionViatico||0)}</span></div>
           <div class="total-row"><span>TOTAL NO IMPONIBLE</span><span>${fmt(l.totalHaberesNoImp)}</span></div>
           <br>
           <div class="total-row" style="background:transparent; border-top:1px solid #cbd5e1"><span>TOTAL HABERES</span><span>${fmt(l.imponible + (l.totalHaberesNoImp||0))}</span></div>
@@ -840,15 +909,77 @@ function lrSave() {
   sync('lib'); lrClear(); renderAll(); alert("Guardado");
 }
 function lrDel(id){ if(confirm("¿Eliminar?")){ DB.lib=DB.lib.filter(x=>x.id!==id); sync('lib'); renderAll(); } }
+// Columnas del Libro de Remuneraciones (Excel y PDF usan las mismas). Las
+// liquidaciones antiguas no tienen asignación de caja/viático: cuentan como 0.
+const LR_COLS = [
+  { k:'rut', h:'RUT', txt:true }, { k:'nom', h:'Trabajador', txt:true },
+  { k:'sb', h:'Sueldo Base' }, { k:'gr', h:'Gratificación' }, { k:'bo', h:'Bonos' }, { k:'co', h:'Comisiones' }, { k:'hex', h:'Horas Extras' },
+  { k:'imp', h:'Total Imponible' },
+  { k:'col', h:'Colación' }, { k:'mov', h:'Movilización' }, { k:'caj', h:'Asig. Caja' }, { k:'via', h:'Asig. Viático' }, { k:'nimp', h:'Total No Imponible' },
+  { k:'afp', h:'AFP + Comisión' }, { k:'sal', h:'Salud' }, { k:'afc', h:'AFC' }, { k:'desc', h:'Total Descuentos' },
+  { k:'liq', h:'Líquido a Pagar' }
+];
+function lrFilas(l){
+  return (l.registros||[]).map(r=>{
+    const t=getT(r.trabajadorId);
+    return { rut:t?t.rut:'-', nom:getTName(r.trabajadorId), sb:r.sueldoBase||0, gr:r.gratificacion||0, bo:r.bonos||0, co:r.comisiones||0, hex:r.montoHorasExtras||0,
+      imp:r.imponible||0, col:r.colacion||0, mov:r.movilizacion||0, caj:r.asignacionCaja||0, via:r.asignacionViatico||0, nimp:r.totalHaberesNoImp||0,
+      afp:(r.afp||0)+(r.comisionAFP||0), sal:r.salud||0, afc:r.afc||0, desc:r.totalDescuentos||0, liq:r.liquido||0 };
+  }).sort((a,b)=>a.nom.localeCompare(b.nom,'es'));
+}
+function lrTotales(filas){
+  const tot={ rut:'', nom:'TOTALES' };
+  LR_COLS.filter(c=>!c.txt).forEach(c=>{ tot[c.k]=filas.reduce((s,f)=>s+f[c.k],0); });
+  return tot;
+}
+function lrLibro(id){ return id ? DB.lib.find(x=>x.id===id) : calcObj.lib; }
+function lrPeriodoTexto(p){ const [y,m]=(p||'').split('-'); const MES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']; return m ? MES[+m-1]+' '+y : p; }
+
 async function lrXL(id){
-  const l=DB.lib.find(x=>x.id===id); if(!l||typeof ExcelJS==='undefined')return;
-  const wb=new ExcelJS.Workbook(); const ws=wb.addWorksheet(l.periodo);
-  ws.columns=[{key:'n',header:'Nombre',width:25},{key:'i',header:'Imponible',width:15},{key:'d',header:'Descuentos',width:15},{key:'l',header:'Líquido',width:15}];
-  l.registros.forEach(r=>{ const row=ws.addRow({n:getTName(r.trabajadorId),i:r.imponible,d:r.totalDescuentos,l:r.liquido}); [2,3,4].forEach(c=>row.getCell(c).numFmt="\"$\"#,##0"); });
-  const b=await wb.xlsx.writeBuffer(); const u=URL.createObjectURL(new Blob([b])); const a=document.createElement('a'); a.href=u; a.download=`Libro_${l.periodo}.xlsx`; a.click();
+  const l=lrLibro(id); if(!l) return;
+  if(typeof ExcelJS==='undefined'){ alert('No se pudo cargar el generador de Excel. Revisa tu conexión y recarga la página.'); return; }
+  const filas=lrFilas(l), tot=lrTotales(filas);
+  const wb=new ExcelJS.Workbook(); wb.creator='Creamos Imagen'; wb.created=new Date();
+  const ws=wb.addWorksheet('Libro '+l.periodo, { views:[{ state:'frozen', ySplit:4, xSplit:2 }] });
+  ws.columns=LR_COLS.map(c=>({ key:c.k, width:c.k==='nom'?28:(c.k==='rut'?13:14) }));
+  ws.mergeCells(1,1,1,LR_COLS.length);
+  const t1=ws.getCell(1,1); t1.value='CREAMOS IMAGEN LTDA. — LIBRO DE REMUNERACIONES '+lrPeriodoTexto(l.periodo).toUpperCase();
+  t1.font={ bold:true, size:14, color:{argb:'FFFFFFFF'} }; t1.fill={ type:'pattern', pattern:'solid', fgColor:{argb:'FF1E3A8A'} };
+  ws.mergeCells(2,1,2,LR_COLS.length);
+  ws.getCell(2,1).value='RUT 76.460.575-6 · Estado: '+(l.estado||'-')+' · Trabajadores: '+filas.length;
+  ws.getCell(2,1).font={ italic:true, color:{argb:'FF475569'} };
+  const hr=ws.getRow(4); LR_COLS.forEach((c,i)=>{ const cell=hr.getCell(i+1); cell.value=c.h; cell.font={ bold:true, color:{argb:'FFFFFFFF'} }; cell.fill={ type:'pattern', pattern:'solid', fgColor:{argb:'FF1E40AF'} }; cell.alignment={ wrapText:true, vertical:'middle' }; });
+  hr.height=32;
+  const monFmt='"$"#,##0';
+  filas.forEach(f=>{ const row=ws.addRow(f); LR_COLS.forEach((c,i)=>{ if(!c.txt) row.getCell(i+1).numFmt=monFmt; }); });
+  const tr=ws.addRow(tot); tr.eachCell({ includeEmpty:true }, cell=>{ cell.font={ bold:true }; cell.fill={ type:'pattern', pattern:'solid', fgColor:{argb:'FFDBEAFE'} }; cell.border={ top:{ style:'double', color:{argb:'FF1E3A8A'} } }; });
+  LR_COLS.forEach((c,i)=>{ if(!c.txt) tr.getCell(i+1).numFmt=monFmt; });
+  const b=await wb.xlsx.writeBuffer(); const u=URL.createObjectURL(new Blob([b],{ type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+  const a=document.createElement('a'); a.href=u; a.download=`Libro_Remuneraciones_${l.periodo}.xlsx`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),2000);
+}
+
+function lrPDF(id){
+  const l=lrLibro(id); if(!l) return;
+  if(!window.jspdf||!window.jspdf.jsPDF){ alert('No se pudo cargar el generador de PDF. Revisa tu conexión y recarga la página.'); return; }
+  const filas=lrFilas(l), tot=lrTotales(filas);
+  const { jsPDF }=window.jspdf; const doc=new jsPDF({ orientation:'landscape', unit:'pt', format:'legal' });
+  doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.setTextColor(30,58,138);
+  doc.text('Libro de Remuneraciones — '+lrPeriodoTexto(l.periodo), 30, 36);
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(80);
+  doc.text('Creamos Imagen Ltda. · RUT 76.460.575-6 · Estado: '+(l.estado||'-')+' · Trabajadores: '+filas.length+' · Generado el '+fechaChileTexto(null,{ day:'2-digit', month:'long', year:'numeric' },'es-CL'), 30, 52);
+  const m=v=>'$'+Math.round(v||0).toLocaleString('es-CL');
+  const aFila=f=>LR_COLS.map(c=>c.txt ? f[c.k] : m(f[c.k]));
+  doc.autoTable({
+    startY:64, head:[LR_COLS.map(c=>c.h)], body:filas.map(aFila), foot:[aFila(tot)],
+    styles:{ fontSize:7, cellPadding:3, halign:'right' }, columnStyles:{ 0:{ halign:'left' }, 1:{ halign:'left', cellWidth:110 } },
+    headStyles:{ fillColor:[30,64,175], textColor:255, halign:'center', valign:'middle' },
+    footStyles:{ fillColor:[219,234,254], textColor:[30,58,138], fontStyle:'bold' },
+    alternateRowStyles:{ fillColor:[245,247,250] }, margin:{ left:30, right:30 }
+  });
+  doc.save(`Libro_Remuneraciones_${l.periodo}.pdf`);
 }
 function lrRender() {
-  const tb=$('lr-tbl'); tb.innerHTML = DB.lib.sort((a,b)=>b.id-a.id).map(l=>`<tr><td><b>${l.periodo}</b></td><td align="center">${l.numTrabajadores}</td><td align="right">${money(l.imponible)}</td><td align="right" class="text-teal"><b>${money(l.liquidos)}</b></td><td align="center"><span class="badge ${l.estado==='Cerrado'?'bdg-act':l.estado==='Validado'?'bdg-ok':'bdg-pen'}">${l.estado}</span></td><td align="right"><button class="act-btn small" onclick="lrXL(${l.id})">⬇ XL</button> <button class="act-btn small" style="color:red" onclick="lrDel(${l.id})">🗑</button></td></tr>`).join('') || `<tr><td colspan="6" align="center">Sin datos</td></tr>`;
+  const tb=$('lr-tbl'); tb.innerHTML = DB.lib.sort((a,b)=>b.id-a.id).map(l=>`<tr><td><b>${l.periodo}</b></td><td align="center">${l.numTrabajadores}</td><td align="right">${money(l.imponible)}</td><td align="right" class="text-teal"><b>${money(l.liquidos)}</b></td><td align="center"><span class="badge ${l.estado==='Cerrado'?'bdg-act':l.estado==='Validado'?'bdg-ok':'bdg-pen'}">${l.estado}</span></td><td align="right" style="white-space:nowrap"><button class="act-btn small" onclick="lrXL(${l.id})">⬇ Excel</button> <button class="act-btn small" onclick="lrPDF(${l.id})">⬇ PDF</button> <button class="act-btn small" style="color:red" onclick="lrDel(${l.id})">🗑</button></td></tr>`).join('') || `<tr><td colspan="6" align="center">Sin datos</td></tr>`;
 }
 
 // ================= PREVIRED =================
@@ -879,14 +1010,71 @@ function prRender(){
 }
 
 // ================= FINIQUITOS =================
-function fqClear(){ calcObj.fini=null; $('fq-btn-save').disabled=true; ['ias','avi','vac','tot'].forEach(k=>$(`rf-${k}`).textContent='$0'); }
+function fqClear(){ calcObj.fini=null; $('fq-btn-save').disabled=true; ['ias','avi','vac','tot'].forEach(k=>$(`rf-${k}`).textContent='$0'); fqAutoVac(); }
+
+function fmtDias(n){ return (Math.round((n||0)*100)/100).toLocaleString('es-CL'); }
+
+// Vacaciones del finiquito, calculadas automáticamente (art. 67 y 73 del
+// Código del Trabajo):
+//  - Se ganan 15 días hábiles por año (1,25 por mes trabajado).
+//  - Pendientes: los ganados por años completos, menos los días de
+//    vacaciones Aprobadas registradas en la sección Vacaciones.
+//  - Proporcionales: 1,25 días hábiles por mes desde el último aniversario
+//    (los días sueltos cuentan como fracción de mes).
+//  - Para pagarlas, los días hábiles se convierten a corridos contando desde
+//    el día siguiente al término, sumando sábados, domingos y feriados.
+// No considera el feriado progresivo (días extra por más de 10 años).
+function aUTCdia(s){ return Date.UTC(+s.slice(0,4), +s.slice(5,7)-1, +s.slice(8,10)); }
+function mesesEntre(ini, fin){
+  const a=[+ini.slice(0,4), +ini.slice(5,7), +ini.slice(8,10)], b=[+fin.slice(0,4), +fin.slice(5,7), +fin.slice(8,10)];
+  let meses=(b[0]-a[0])*12+(b[1]-a[1]); let dias=b[2]-a[2];
+  if(dias<0){ meses--; dias+=30; }
+  return Math.max(0, meses + dias/30);
+}
+function habilesACorridos(desdeISO, habiles){
+  if(habiles<=0) return 0;
+  let dia=aUTCdia(desdeISO)+86400000, corridos=0, restantes=habiles;
+  while(restantes>=1){
+    const d=new Date(dia); const dow=d.getUTCDay();
+    corridos++;
+    if(dow!==0 && dow!==6 && !FER.includes(d.toISOString().slice(0,10))) restantes--;
+    dia+=86400000;
+  }
+  return corridos + restantes; // la fracción final de día se suma tal cual
+}
+function fqVacaciones(t, ter){
+  if(!t || !t.fechaIngreso || !ter || ter<t.fechaIngreso) return null;
+  const meses=mesesEntre(t.fechaIngreso, ter);
+  const anios=Math.floor(meses/12);
+  const ganadosAnios=15*anios;
+  const usados=DB.vac.filter(v=>String(v.trabajadorId)===String(t.id)&&v.estado==="Aprobada").reduce((s,v)=>s+(Number(v.dias)||0),0);
+  let pend=ganadosAnios-usados, prop=1.25*(meses-anios*12);
+  if(pend<0){ prop=Math.max(0, prop+pend); pend=0; } // si usó más de lo ganado por años, se descuenta del proporcional
+  pend=Math.round(pend*100)/100; prop=Math.round(prop*100)/100;
+  return { meses, anios, ganados:Math.round((ganadosAnios+1.25*(meses-anios*12))*100)/100, usados, pend, prop, corridos:Math.round(habilesACorridos(ter, pend+prop)*100)/100 };
+}
+function fqAutoVac(){
+  const t=getT($('fq-tra').value), ter=$('fq-ter').value, nota=$('fq-vac-nota');
+  const v=fqVacaciones(t, ter);
+  $('fq-vpe').value = v ? v.pend : ''; $('fq-vpr').value = v ? v.prop : '';
+  if(!nota) return;
+  if(!t || !ter) nota.textContent='Selecciona el trabajador y la fecha de término para calcular las vacaciones.';
+  else if(!t.fechaIngreso) nota.textContent='El trabajador no tiene fecha de ingreso registrada: complétala en Trabajadores para calcular las vacaciones.';
+  else if(!v) nota.textContent='La fecha de término es anterior a la fecha de ingreso.';
+  else nota.textContent=`Ganados: ${fmtDias(v.ganados)} días hábiles (${fmtDias(v.meses)} meses trabajados) · Usados (vacaciones aprobadas): ${fmtDias(v.usados)} · A pagar: ${fmtDias(v.pend+v.prop)} días hábiles = ${fmtDias(v.corridos)} días corridos.`;
+}
+
 function fqCalc(){
-  const tid=$('fq-tra').value, ter=$('fq-ter').value; if(!tid||!ter)return; const t=getT(tid); if(!t)return;
+  const tid=$('fq-tra').value, ter=$('fq-ter').value;
+  if(!tid){ alert('Selecciona el trabajador.'); return; }
+  if(!ter){ alert('Ingresa la fecha de término.'); return; }
+  const t=getT(tid); if(!t)return;
   const l=DB.liq.filter(x=>String(x.trabajadorId)===tid).sort((a,b)=>new Date(b.fechaGeneracion)-new Date(a.fechaGeneracion))[0]; if(!l){alert("Requiere liquidación previa");return;}
   const imp=Number(l.imponible)||0; let a=0; if(t.fechaIngreso){ const diff=new Date(ter)-new Date(t.fechaIngreso); a=Math.max(0,Math.min(11,Math.floor(diff/31536000000)+(diff%31536000000>15768000000?1:0))); }
   const cau=$('fq-cau').value; let ias=0, avi=0; if(cau==="161"){ias=imp*a; if($('fq-avi').value==="NO")avi=imp;}
-  const vp=(Number($('fq-vpe').value)||0)+(Number($('fq-vpr').value)||0); const vVac=(imp/30)*vp; const tot=ias+avi+vVac;
-  calcObj.fini={trabajadorId:tid,fechaTermino:ter,causal:cau,sueldoBaseImponible:imp,aniosReconocidos:a,ias,aviso:avi,vacaciones:vVac,total:tot};
+  const vac=fqVacaciones(t, ter) || { pend:0, prop:0, corridos:0 };
+  const vVac=(imp/30)*vac.corridos; const tot=ias+avi+vVac;
+  calcObj.fini={trabajadorId:tid,fechaTermino:ter,causal:cau,sueldoBaseImponible:imp,aniosReconocidos:a,ias,aviso:avi,vacPendientes:vac.pend,vacProporcionales:vac.prop,vacCorridos:vac.corridos,vacaciones:vVac,valorVacaciones:vVac,total:tot};
   $('rf-ias').textContent=money(ias); $('rf-avi').textContent=money(avi);$('rf-vac').textContent=money(vVac); $('rf-tot').textContent=money(tot);$('fq-btn-save').disabled=false;
 }
 function fqSave(){
@@ -948,8 +1136,8 @@ function printFin(id){
         <td>${fmt(f.aviso)}</td>
       </tr>
       <tr>
-        <td>Indemnización Vacaciones (Pendientes y Proporcionales)</td>
-        <td>${fmt(f.valorVacaciones)}</td>
+        <td>Indemnización Vacaciones (Pendientes y Proporcionales)${f.vacCorridos!=null ? `<div style="font-size:10px;color:#64748b;margin-top:3px">${fmtDias(f.vacPendientes)} días hábiles pendientes + ${fmtDias(f.vacProporcionales)} proporcionales = ${fmtDias(f.vacCorridos)} días corridos</div>` : ''}</td>
+        <td>${fmt(f.valorVacaciones!=null ? f.valorVacaciones : f.vacaciones)}</td>
       </tr>
       <tr class="total-row">
         <td style="padding-top:20px;">TOTAL A PAGAR</td>

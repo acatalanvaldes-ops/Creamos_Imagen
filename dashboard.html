@@ -360,14 +360,29 @@ function renderCostos(r) {
   let totalNomina = 0, totalGastos = 0;
   if (costosConfig) {
     (costosConfig.rrhh || []).forEach(p => {
-      totalNomina += (p.sueldo || 0) + (p.sueldo || 0) * ((p.afp || 0) / 100) + (p.sueldo || 0) * ((p.fonasa || 0) / 100) + (p.bono || 0) + (p.comision || 0);
+      // (p.anual || 0) / 12: provisión mensual de aguinaldos y asignaciones no mensuales (ver Costos).
+      totalNomina += (p.sueldo || 0) + (p.sueldo || 0) * ((p.afp || 0) / 100) + (p.sueldo || 0) * ((p.fonasa || 0) / 100) + (p.bono || 0) + (p.comision || 0) + (p.anual || 0) / 12;
     });
     const g = costosConfig.gastos || {};
     totalGastos = (g.arriendo || 0) + (g.servicios || 0) + (g.marketing || 0) + (g.contador || 0) + (g.software || 0) + (g.otros || 0);
   }
   const costosFijosMes = totalNomina + totalGastos;
   const costosPeriodo = costosFijosMes * r.meses;
-  const resultado = ingresos - costosPeriodo;
+
+  // Pagos a proveedores: facturas marcadas como pagadas en Proveedores, según
+  // su fecha de pago (o la de compra si no la tienen). Las pendientes y las
+  // compras antiguas sin dato de pago se muestran aparte, sin restarlas.
+  let pagosProv = 0, nPagos = 0, pendientesProv = 0, nPend = 0, sinDatoProv = 0, nSinDato = 0;
+  compras.forEach(c => {
+    const monto = compraMontoTotalDash(c);
+    if (c.pagada === true) {
+      if (enRango(c.fechaPago || c.fecha, r)) { pagosProv += monto; nPagos++; }
+    } else if (c.pagada === false) {
+      if (enRango(c.fecha, r)) { pendientesProv += monto; nPend++; }
+    } else if (enRango(c.fecha, r)) { sinDatoProv += monto; nSinDato++; }
+  });
+
+  const resultado = ingresos - costosPeriodo - pagosProv;
 
   document.getElementById('kpi-ingresos').textContent = fmt(ingresos);
   document.getElementById('kpi-ingresos-sub').textContent = 'Efectivo + Transferencia + Webpay';
@@ -379,8 +394,12 @@ function renderCostos(r) {
     <div class="dr-row"><span>Ingresos del período (Rendición de Caja)</span><span>${fmt(ingresos)}</span></div>
     <div class="dr-row"><span>Costo Nómina (mensual × ${r.meses})</span><span>${fmt(totalNomina * r.meses)}</span></div>
     <div class="dr-row"><span>Otros Gastos Fijos (mensual × ${r.meses})</span><span>${fmt(totalGastos * r.meses)}</span></div>
+    <div class="dr-row"><span>Pagos a Proveedores (${nPagos} factura${nPagos === 1 ? '' : 's'} pagada${nPagos === 1 ? '' : 's'})</span><span>${fmt(pagosProv)}</span></div>
     <div class="dr-row tot"><span>Resultado del Período</span><span class="${resultado >= 0 ? 'pos' : 'neg'}">${fmt(resultado)}</span></div>
-    <div class="note">Los costos fijos se toman de la pestaña "Nómina y Gastos Mensuales" de la Calculadora de Costos y se proyectan multiplicando por los meses del período. No incluyen materiales variables por producción.</div>
+    ${(nPend || nSinDato) ? `<div style="margin-top:10px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">No incluido en el resultado</div>` : ''}
+    ${nPend ? `<div class="dr-row"><span>Facturas pendientes de pago (${nPend})</span><span class="neg">${fmt(pendientesProv)}</span></div>` : ''}
+    ${nSinDato ? `<div class="dr-row"><span>Compras sin dato de pago (${nSinDato})</span><span>${fmt(sinDatoProv)}</span></div>` : ''}
+    <div class="note">Los costos fijos se toman de la pestaña "Nómina y Gastos Mensuales" de la Calculadora de Costos y se proyectan multiplicando por los meses del período. Los pagos a proveedores son las facturas marcadas como pagadas en el módulo Proveedores, según su fecha de pago. Las compras registradas antes del check de pago aparecen como "sin dato": edítalas en Proveedores para marcarlas como pagadas o pendientes.</div>
   `;
 }
 

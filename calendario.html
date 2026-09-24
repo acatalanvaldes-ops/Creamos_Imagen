@@ -172,9 +172,9 @@
         <label>Diseñador</label>
         <select id="prodDiseñador" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.8rem;padding:10px 12px;outline:none;transition:border-color 0.2s">
           <option value="">— Seleccionar —</option>
-          <option value="Sebastián Gutiérrez">Sebastián Gutiérrez</option>
           <option value="Alejandro Velozo">Alejandro Velozo</option>
           <option value="Ingrid Vargas">Ingrid Vargas</option>
+          <option value="Sebastián Gutiérrez">Sebastián Gutiérrez</option>
         </select>
       </div>
       
@@ -211,7 +211,11 @@
         
         <!-- SELECTOR DE RANGO DE FECHAS: filtra el calendario, la lista y las estadísticas, y se usa también para el PDF -->
         <div style="display:flex;gap:8px;margin-left:auto;align-items:center;flex-wrap:wrap;">
-          <span style="font-size:0.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Desde:</span>
+          <span style="font-size:0.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Diseñador:</span>
+          <select id="filtroDiseñador" onchange="timelinePage=1; renderAll()" style="background:var(--card);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.75rem;padding:6px;outline:none;">
+            <option value="">Todos</option>
+          </select>
+          <span style="font-size:0.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-left:4px">Desde:</span>
           <input type="date" id="pdfDesde" onchange="timelinePage=1; renderAll()" style="background:var(--card);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.75rem;padding:6px;outline:none;">
           <span style="font-size:0.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-left:4px">Hasta:</span>
           <input type="date" id="pdfHasta" onchange="timelinePage=1; renderAll()" style="background:var(--card);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.75rem;padding:6px;outline:none;">
@@ -681,7 +685,39 @@ function getFiltered() {
   if (desdeStr) list = list.filter(p => p.date >= desdeStr);
   if (hastaStr) list = list.filter(p => p.date <= hastaStr);
 
+  // FILTRO DE DISEÑADOR: igual que el rango, aplica a calendario, lista, estadísticas y PDF
+  const dis = diseñadorFiltro();
+  if (dis === SIN_DISEÑADOR) list = list.filter(p => !(p.diseñador || '').trim());
+  else if (dis) list = list.filter(p => (p.diseñador || '').trim() === dis);
+
   return list;
+}
+
+const SIN_DISEÑADOR = '__sin__';
+function diseñadorFiltro() {
+  const el = document.getElementById('filtroDiseñador');
+  return el ? el.value : '';
+}
+function diseñadorFiltroTexto() {
+  const dis = diseñadorFiltro();
+  return dis === SIN_DISEÑADOR ? 'Sin diseñador asignado' : dis;
+}
+
+// Opciones del filtro: los diseñadores del formulario más cualquier otro que
+// aparezca en las producciones, en orden alfabético. Conserva la selección.
+function poblarFiltroDiseñador() {
+  const sel = document.getElementById('filtroDiseñador');
+  if (!sel) return;
+  const actual = sel.value;
+  const nombres = new Set();
+  document.querySelectorAll('#prodDiseñador option').forEach(o => { if (o.value) nombres.add(o.value); });
+  productions.forEach(p => { const n = (p.diseñador || '').trim(); if (n) nombres.add(n); });
+  const orden = Array.from(nombres).sort((a, b) => a.localeCompare(b, 'es'));
+  const haySinDiseñador = productions.some(p => !(p.diseñador || '').trim());
+  sel.innerHTML = '<option value="">Todos</option>' +
+    orden.map(n => `<option value="${n}">${n}</option>`).join('') +
+    (haySinDiseñador ? `<option value="${SIN_DISEÑADOR}">Sin diseñador asignado</option>` : '');
+  sel.value = (orden.includes(actual) || (actual === SIN_DISEÑADOR && haySinDiseñador)) ? actual : '';
 }
 
 function isDateRangeActive() {
@@ -869,7 +905,7 @@ function addProduction() {
 function deleteProduction(id) { productions = productions.filter(p => p.id !== id); save(); renderAll(); }
 function getProdsForDate(dateStr) { return productions.filter(p => p.date === dateStr); }
 
-function renderAll() { renderGrid(); renderTimeline(); renderStats(); }
+function renderAll() { poblarFiltroDiseñador(); renderGrid(); renderTimeline(); renderStats(); }
 
 function renderGrid() {
   const navContainer = document.getElementById('monthNav');
@@ -1101,7 +1137,7 @@ function exportPDF() {
   const filtered = getFiltered();
 
   if (filtered.length === 0) {
-    alert('No hay producciones en el rango de fechas seleccionado para exportar.');
+    alert('No hay producciones con los filtros seleccionados para exportar.');
     return;
   }
 
@@ -1114,6 +1150,11 @@ function exportPDF() {
   doc.setFontSize(18);
   doc.text('Calendario de Producciones ' + currentViewYear, marginX, y);
   y += 20;
+  if (diseñadorFiltro()) {
+    doc.setFontSize(13);
+    doc.text('Diseñador: ' + diseñadorFiltroTexto(), marginX, y);
+    y += 18;
+  }
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
@@ -1137,7 +1178,8 @@ function exportPDF() {
   doc.setTextColor(0);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
-  doc.text('Total producciones: ' + filtered.length, marginX, y);
+  const totalPrendasPdf = filtered.reduce((s, p) => s + (p.totalPrendas || 0), 0);
+  doc.text('Total producciones: ' + filtered.length + '   |   Total prendas: ' + totalPrendasPdf, marginX, y);
   y += 18;
 
   doc.setFont('helvetica', 'normal');
@@ -1175,7 +1217,8 @@ function exportPDF() {
   });
 
   const sufijoFiltro = activeFilterValue ? '_filtrado' : '';
-  doc.save(`Producciones_${currentViewYear}${sufijoFiltro}.pdf`);
+  const sufijoDis = diseñadorFiltro() ? '_' + diseñadorFiltroTexto().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]+/g, '_') : '';
+  doc.save(`Producciones_${currentViewYear}${sufijoDis}${sufijoFiltro}.pdf`);
 }
 
 window.onload = async function() {

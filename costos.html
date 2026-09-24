@@ -220,7 +220,7 @@ function fmt(n) { return "$ " + Math.round(n).toLocaleString("es-CL"); }
 // calcular prendas producidas por persona en el Dashboard, ya que las
 // producciones (Calendario) se asocian a diseñadores, no a todo el equipo
 // (ventas, administración, etc.).
-var CARGOS = ["", "Diseño / Producción", "Ventas Local", "Ventas Empresa", "Administración", "Otro"];
+var CARGOS = ["", "Administración", "Diseño / Producción", "Ventas Empresa", "Ventas Local", "Otro"];
 
 function guardarDatos() {
   var datos = { fichas: state.fichas, config: state.config };
@@ -314,10 +314,17 @@ function buildAdmin() {
 
   // Calcular nómina
   var totalNomina = 0;
+  var totalProvision = 0;
   var rowsRrhh = c.rrhh.map(function(p, i) {
     var com = p.comision || 0;
     var cargoActual = p.cargo || "";
-    var costoEmpresa = p.sueldo + (p.sueldo * (p.afp / 100)) + (p.sueldo * (p.fonasa / 100)) + p.bono + com;
+    // Aguinaldos y asignaciones que no se pagan todos los meses (Fiestas
+    // Patrias, Navidad, bonos anuales): se ingresa el total del año y se
+    // provisiona 1/12 cada mes, para que el costo mensual no los omita.
+    var anual = p.anual || 0;
+    var provision = anual / 12;
+    totalProvision += provision;
+    var costoEmpresa = p.sueldo + (p.sueldo * (p.afp / 100)) + (p.sueldo * (p.fonasa / 100)) + p.bono + com + provision;
     totalNomina += costoEmpresa;
     var cargoOptions = CARGOS.map(function(cg) {
       return '<option value="'+cg+'"'+(cg===cargoActual?' selected':'')+'>'+(cg===''?'(sin asignar)':cg)+'</option>';
@@ -330,6 +337,8 @@ function buildAdmin() {
       '<td><input type="number" step="0.1" value="'+p.fonasa+'" onchange="setRrhh('+i+',\'fonasa\',this.value)"></td>'+
       '<td><input type="number" value="'+p.bono+'" onchange="setRrhh('+i+',\'bono\',this.value)"></td>'+
       '<td><input type="number" value="'+com+'" onchange="setRrhh('+i+',\'comision\',this.value)"></td>'+
+      '<td><input type="number" value="'+anual+'" onchange="setRrhh('+i+',\'anual\',this.value)" title="Total del año en aguinaldos y asignaciones no mensuales">'+
+        '<div style="font-size:10px;color:var(--muted);padding:2px 6px">= '+fmt(provision)+' /mes</div></td>'+
       '<td style="font-weight:700;color:var(--teal)">'+fmt(costoEmpresa)+'</td>'+
     '</tr>';
   }).join('');
@@ -345,10 +354,14 @@ function buildAdmin() {
     '<div class="card" style="margin-bottom:20px; overflow-x:auto;">'+
       '<div class="card-title">Equipo de Trabajo (7 Personas)</div>'+
       '<table class="tbl-rrhh">'+
-        '<thead><tr><th>Nombre</th><th>Cargo</th><th>Sueldo Base ($)</th><th>AFP (%)</th><th>Fonasa (%)</th><th>Bonos ($)</th><th>Comisiones ($)</th><th>Costo Real ($)</th></tr></thead>'+
+        '<thead><tr><th>Nombre</th><th>Cargo</th><th>Sueldo Base ($)</th><th>AFP (%)</th><th>Fonasa (%)</th><th>Bonos ($)</th><th>Comisiones ($)</th><th>Aguinaldos y Asig. no mensuales ($ al año)</th><th>Costo Real Mensual ($)</th></tr></thead>'+
         '<tbody>'+rowsRrhh+'</tbody>'+
-        '<tfoot><tr><td colspan="7" style="text-align:right;font-weight:700;font-size:11px;color:var(--muted);text-transform:uppercase;">Costo Total Nómina Mensual</td><td style="font-weight:800;font-size:16px;color:var(--gold);">'+fmt(totalNomina)+'</td></tr></tfoot>'+
+        '<tfoot><tr><td colspan="8" style="text-align:right;font-weight:700;font-size:11px;color:var(--muted);text-transform:uppercase;">Costo Total Nómina Mensual</td><td style="font-weight:800;font-size:16px;color:var(--gold);">'+fmt(totalNomina)+'</td></tr></tfoot>'+
       '</table>'+
+      '<div style="font-size:12px;color:var(--muted);background:var(--bg);border:1px dashed var(--border);border-radius:8px;padding:10px 12px">'+
+        '<b>Provisión de aguinaldos y asignaciones:</b> ingresa el total que se paga en el año a cada persona por conceptos que no son mensuales (aguinaldo de Fiestas Patrias, Navidad, bonos anuales, etc.). '+
+        'Cada mes se provisiona 1/12 de ese monto dentro del costo real. Provisión total del equipo: <b>'+fmt(totalProvision)+' al mes</b> ('+fmt(totalProvision * 12)+' al año).'+
+      '</div>'+
     '</div>'+
 
     '<div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(300px, 1fr));gap:24px;">'+
