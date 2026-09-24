@@ -137,8 +137,8 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
     <div class="card">
       <div class="card-title">Nuevo Registro</div>
       <div class="grid-form">
-        <div class="fld"><label>Trabajador</label><select class="sel-trab" id="as-tra"></select></div>
-        <div class="fld"><label>Fecha</label><input type="date" id="as-fec"></div>
+        <div class="fld"><label>Trabajador</label><select class="sel-trab" id="as-tra" onchange="asActualizarHorario()"></select></div>
+        <div class="fld"><label>Fecha</label><input type="date" id="as-fec" onchange="asActualizarHorario()"></div>
         <div class="fld"><label>Jornada</label><select id="as-jor"><option value="44">44 Horas</option><option value="ART22">Art. 22</option><option value="PART">Part Time</option></select></div>
         <div class="fld"><label>Turno</label><select id="as-tur"><option>ADMIN</option><option>MAÑANA</option><option>TARDE</option></select></div>
         <div class="fld"><label>Entrada</label><input type="time" id="as-ent"></div>
@@ -146,7 +146,8 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
         <div class="fld"><label>Regreso Colación</label><input type="time" id="as-rc"></div>
         <div class="fld"><label>Salida Fin</label><input type="time" id="as-sal"></div>
       </div>
-      <button class="act-btn primary" style="margin-top:16px" onclick="asSave()">Guardar Registro</button>
+      <div id="as-horario-ref" style="display:none;margin-top:12px;padding:10px 14px;border-radius:8px;font-size:0.85rem;line-height:1.5;background:var(--bg2,#f0f4ff);border-left:4px solid var(--teal,#0d9488)"></div>
+      <button class="act-btn primary" style="margin-top:12px" onclick="asSave()">Guardar Registro</button>
     </div>
     <div class="card">
       <div class="card-title">Historial</div>
@@ -633,12 +634,59 @@ function trRender() {
 }
 
 // ================= ASISTENCIA =================
+// Retorna el horario esperado según cargo y día de la semana
+function horarioEsperado(cargo, fechaISO) {
+  const esDiseno = cargo === 'Diseño / Producción';
+  if (esDiseno) {
+    return { entrada: null, salida: null, atrasoRef: null, label: 'Horario variable (producción según carga)' };
+  }
+  // Para todos los demás cargos: Administración, Ventas, Otro
+  const dia = fechaISO ? new Date(fechaISO + 'T12:00:00').getDay() : -1;
+  // getDay(): 0=Dom,1=Lun,2=Mar,3=Mié,4=Jue,5=Vie,6=Sáb
+  const esMiViernes = (dia >= 3 && dia <= 5); // Miércoles, Jueves, Viernes
+  const salida = esMiViernes ? '18:00' : '19:00';
+  const salidaLabel = esMiViernes
+    ? 'entre 18:00 y 18:30 (Ley 40 horas)'
+    : '19:00';
+  return { entrada: '10:00', salida, atrasoRef: '10:00', label: `Entrada: 10:00 · Salida: ${salidaLabel}` };
+}
+
+// Muestra aviso de horario esperado al seleccionar trabajador o fecha
+function asActualizarHorario() {
+  const tid = $('as-tra').value;
+  const fecha = $('as-fec').value;
+  const div = $('as-horario-ref');
+  if (!tid) { div.style.display = 'none'; return; }
+  const trab = DB.trab.find(t => String(t.id) === String(tid));
+  const cargo = trab ? (trab.cargo || '') : '';
+  const h = horarioEsperado(cargo, fecha);
+  const cargoLabel = cargo || 'Sin cargo definido';
+  const diasLabel = !fecha ? '' : (() => {
+    const dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    return ' · ' + dias[new Date(fecha + 'T12:00:00').getDay()];
+  })();
+  div.innerHTML = `<strong>📋 Horario esperado</strong> — ${cargoLabel}${diasLabel}<br>${h.label}`;
+  div.style.display = 'block';
+  div.style.borderLeftColor = cargo === 'Diseño / Producción' ? 'var(--amber,#f59e0b)' : 'var(--teal,#0d9488)';
+}
+
 function asSave() {
-  const tid=$('as-tra').value; if(!tid)return; const e=$('as-ent').value, sc=$('as-sc').value, rc=$('as-rc').value, s=$('as-sal').value;
+  const tid=$('as-tra').value; if(!tid)return;
+  const e=$('as-ent').value, sc=$('as-sc').value, rc=$('as-rc').value, s=$('as-sal').value;
   const h=Number(((decHr(s)-decHr(e))-(decHr(rc)-decHr(sc))).toFixed(2))||0;
-  const he=h>9?Number((h-9).toFixed(2)):0; const at=e?Math.max(0,Math.round((decHr(e)-9)*60)):0;
+  const he=h>9?Number((h-9).toFixed(2)):0;
+  // Calcular atraso según cargo y día
+  const trab = DB.trab.find(t => String(t.id) === String(tid));
+  const cargo = trab ? (trab.cargo || '') : '';
+  const fecha = $('as-fec').value;
+  const hor = horarioEsperado(cargo, fecha);
+  let at = 0;
+  if (e && hor.atrasoRef) {
+    at = Math.max(0, Math.round((decHr(e) - decHr(hor.atrasoRef)) * 60));
+  }
   DB.asis.push({id:Date.now(),trabajadorId:tid,fecha:$('as-fec').value,jornada:$('as-jor').value,turno:$('as-tur').value,entrada:e,salida:s,sc,rc,horas:h,horasExtras:he,atraso:at});
-  sync('asis'); ['fec','ent','sc','rc','sal'].forEach(k=>$(`as-${k}`).value=''); renderAll();
+  sync('asis'); ['fec','ent','sc','rc','sal'].forEach(k=>$(`as-${k}`).value='');
+  $('as-horario-ref').style.display='none'; renderAll();
 }
 function asDel(id){ if(confirm("¿Eliminar?")){ DB.asis=DB.asis.filter(x=>x.id!==id); sync('asis'); renderAll(); } }
 function asRender() {
