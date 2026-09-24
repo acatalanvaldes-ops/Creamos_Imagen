@@ -482,7 +482,8 @@ async function init(){
   $('as-mes').value = mesChile();
 
   // Un trabajador sin otros módulos no tiene menú al que volver.
-  const tieneOtros = SESION.isAdmin || (SESION.modules && SESION.modules.length > 0);
+  const otrosModulos = (SESION.modules || []).filter(function(m){ return m !== 'trabajador' && m !== 'costos_nomina'; });
+  const tieneOtros = SESION.isAdmin || otrosModulos.length > 0;
   if (!tieneOtros) $('menu-link').style.display = 'none';
 
   try {

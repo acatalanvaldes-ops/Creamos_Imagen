@@ -267,8 +267,8 @@ function sessionValid(sess) {
 
 function isModuleAllowed(sess, moduleKey) {
   if (!sessionValid(sess)) return false;
-  if (moduleKey === "trabajador") return !!(sess.esTrabajador || sess.isAdmin);
   if (sess.isAdmin) return true;
+  if (moduleKey === "trabajador") return !!(sess.esTrabajador || (sess.modules && sess.modules.indexOf("trabajador") !== -1));
   return !!(sess.modules && sess.modules.indexOf(moduleKey) !== -1);
 }
 
@@ -296,7 +296,8 @@ async function handleCredentialResponse(response) {
   if (btnWrap) btnWrap.style.display = "none";
   var datos = await Promise.all([loadFromCloud(ACL_KEY), loadTrabajadores(payload.email)]);
   var sess = computeSession(payload.email, payload.name, payload.picture, datos[0] || {}, esCorreoTrabajador(datos[1], payload.email));
-  if (!sess.isAdmin && sess.modules.length === 0 && !sess.esTrabajador) {
+  var tieneAcceso = sess.isAdmin || sess.esTrabajador || (sess.modules && sess.modules.length > 0);
+  if (!tieneAcceso) {
     showDenied();
     return;
   }
@@ -307,7 +308,10 @@ async function handleCredentialResponse(response) {
 }
 
 function soloPortal(sess) {
-  return !sess.isAdmin && sess.esTrabajador && (!sess.modules || sess.modules.length === 0);
+  if (sess.isAdmin) return false;
+  var otrosModulos = (sess.modules || []).filter(function(m){ return m !== "trabajador" && m !== "costos_nomina"; });
+  var tienePortal = sess.esTrabajador || (sess.modules && sess.modules.indexOf("trabajador") !== -1);
+  return tienePortal && otrosModulos.length === 0;
 }
 
 // Sesiones abiertas antes de existir Mi Portal (o antes de que RRHH
