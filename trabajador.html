@@ -102,6 +102,24 @@ table.tbl td.vacio{text-align:center;padding:28px;color:var(--muted)}
 .estado-box h2{font-family:'DM Serif Display',serif;font-size:22px;margin-bottom:10px}
 .estado-box p{color:var(--muted);font-size:14px;line-height:1.6;margin-bottom:20px}
 
+/* CERTIFICADOS LABORALES */
+.cert-papel{background:#fff;border:1px solid #dcd7ce;border-radius:8px;padding:36px 32px;box-shadow:0 4px 16px rgba(0,0,0,0.04);font-family:'DM Sans',Arial,sans-serif;color:#1c1917;font-size:13px;line-height:1.75;}
+.cert-header{border-bottom:2px solid #1c1917;padding-bottom:14px;margin-bottom:22px;display:flex;justify-content:space-between;align-items:flex-start;}
+.cert-header .emp-tit{font-size:16px;font-weight:800;color:#1c1917;letter-spacing:0.5px}
+.cert-header .emp-sub{font-size:11px;color:#78716c;line-height:1.4}
+.cert-folio{font-family:var(--mono);font-size:11px;color:#78716c;text-align:right}
+.cert-titulo{text-align:center;font-size:16px;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin:24px 0 20px 0;color:#1c1917;text-decoration:underline}
+.cert-cuerpo{text-align:justify;margin-bottom:18px;}
+.cert-cuerpo p{margin-bottom:14px;text-indent:24px;}
+.cert-dest{margin-bottom:18px;font-weight:700;font-size:13px;}
+.cert-datos-box{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:12px 16px;margin:18px 0;font-size:12px;}
+.cert-datos-box table{width:100%;border-collapse:collapse}
+.cert-datos-box td{padding:4px 6px;vertical-align:top}
+.cert-datos-box td:first-child{font-weight:700;color:var(--muted);width:38%}
+.cert-firma-wrap{margin-top:40px;display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;}
+.cert-sello{border:1.5px dashed var(--teal);color:var(--teal);padding:8px 12px;border-radius:6px;font-size:10px;text-align:center;max-width:240px;background:#f0fdfa}
+.cert-firma{border-top:1px solid #1c1917;width:240px;text-align:center;padding-top:6px;font-size:11px;font-weight:700;}
+
 @media (max-width:720px){
   .topbar{padding:10px 16px}
   .nav-tabs,.admin-bar{padding-left:16px;padding-right:16px}
@@ -109,6 +127,8 @@ table.tbl td.vacio{text-align:center;padding:28px;color:var(--muted)}
   .two-col,.profile-grid{grid-template-columns:1fr}
   .user-info{display:none}
   .kpi-value{font-size:26px}
+  .cert-papel{padding:20px 16px}
+  .cert-firma-wrap{flex-direction:column;align-items:center;gap:25px}
 }
 </style>
 </head>
@@ -154,6 +174,7 @@ table.tbl td.vacio{text-align:center;padding:28px;color:var(--muted)}
   <div class="nav-tabs">
     <button class="ntab on" onclick="showTab('inicio', this)">👤 Mi Ficha</button>
     <button class="ntab" onclick="showTab('liquidaciones', this)">💰 Liquidaciones</button>
+    <button class="ntab" onclick="showTab('certificados', this)">📜 Certificados</button>
     <button class="ntab" onclick="showTab('vacaciones', this)">🏖️ Vacaciones</button>
     <button class="ntab" onclick="showTab('asistencia', this)">🕒 Asistencia y Licencias</button>
     <button class="ntab" onclick="showTab('documentos', this)">📁 Documentos</button>
@@ -184,6 +205,7 @@ table.tbl td.vacio{text-align:center;padding:28px;color:var(--muted)}
           <div class="p-box"><span>Correo electrónico</span><strong id="pf-email"></strong></div>
           <div class="p-box"><span>AFP</span><strong id="pf-afp"></strong></div>
           <div class="p-box"><span>Sueldo base</span><strong id="pf-sueldo"></strong></div>
+          <div class="p-box"><span>Tipo de contrato</span><strong id="pf-contrato"></strong></div>
         </div>
         <div class="nota">Si algún dato está incorrecto, avisa a Recursos Humanos para que lo actualice en tu ficha.</div>
       </div>
@@ -200,6 +222,88 @@ table.tbl td.vacio{text-align:center;padding:28px;color:var(--muted)}
           </table>
         </div>
         <div class="nota">"Ver PDF" abre la liquidación lista para imprimir o guardar como PDF (en la ventana de impresión elige "Guardar como PDF").</div>
+      </div>
+    </div>
+
+    <!-- CERTIFICADOS -->
+    <div class="panel" id="p-certificados">
+      <div class="two-col" style="align-items:start">
+        <div class="card">
+          <div class="card-title">Certificado de Antigüedad Laboral</div>
+          <div class="aviso info">
+            Documento formal conforme a la legislación laboral chilena (Código del Trabajo) para acreditar relación laboral vigente, antigüedad y condiciones contractuales ante bancos, notarías, corredoras o instituciones públicas.
+          </div>
+          <div id="cert-aviso-ingreso" class="aviso warn" style="display:none">
+            ⚠️ Tu ficha no tiene registrada una fecha de ingreso en Recursos Humanos. Debe registrarse en RRHH para emitir el certificado.
+          </div>
+
+          <div class="fld">
+            <label>Destinatario / Presentar ante</label>
+            <select id="cert-dest-tipo" onchange="cambiarDestTipo()">
+              <option value="A quien corresponda">A quien corresponda (General)</option>
+              <option value="Banco / Entidad Financiera">Banco / Entidad Financiera (Crédito, Cuenta, Tarjeta)</option>
+              <option value="Corredora de Propiedades / Arrendador">Arrendamiento de Propiedad</option>
+              <option value="SERVIU / Ministerio de Vivienda">Subsidio Habitacional (SERVIU / MINVU)</option>
+              <option value="Embajada / Consulado">Embajada / Consulado (Trámite de Visa)</option>
+              <option value="OTRO">Otro (Especificar nombre)</option>
+            </select>
+          </div>
+          <div class="fld" id="fld-cert-dest-otro" style="display:none;margin-top:8px">
+            <label>Nombre de la institución o persona</label>
+            <input type="text" id="cert-dest-otro" placeholder="Ej: Banco Estado, Notaría, etc." oninput="actualizarVistaCertificado()">
+          </div>
+
+          <div class="pair" style="margin-top:10px">
+            <div class="fld">
+              <label>Tipo de Contrato</label>
+              <select id="cert-tipo-contrato" onchange="actualizarVistaCertificado()">
+                <option value="Indefinido">Indefinido</option>
+                <option value="Plazo Fijo">Plazo Fijo</option>
+                <option value="Por Obra o Faena">Por Obra o Faena</option>
+              </select>
+            </div>
+            <div class="fld">
+              <label>Jornada Laboral</label>
+              <select id="cert-jornada" onchange="actualizarVistaCertificado()">
+                <option value="Jornada ordinaria completa de trabajo">Jornada ordinaria completa</option>
+                <option value="Jornada regida por Art. 22 inc. 2° del Código del Trabajo">Artículo 22 (Sin fiscalización horaria)</option>
+                <option value="Jornada parcial de trabajo">Jornada parcial (Part-time)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="fld" style="margin-top:10px">
+            <label>Información de Remuneración</label>
+            <select id="cert-mostrar-renta" onchange="actualizarVistaCertificado()">
+              <option value="si">Sí, incluir Sueldo Base pactado</option>
+              <option value="no">No incluir información de remuneración</option>
+            </select>
+          </div>
+
+          <div class="fld" style="margin-top:10px">
+            <label>Fecha de emisión</label>
+            <input type="date" id="cert-fecha-emision" onchange="actualizarVistaCertificado()">
+          </div>
+
+          <div style="margin-top:20px;display:flex;gap:10px">
+            <button class="act-btn primary" id="cert-btn-imprimir" style="width:100%" onclick="imprimirCertificado()">
+              🖨️ Imprimir / Guardar como PDF
+            </button>
+          </div>
+          <div class="nota">
+            En la ventana de impresión que se abrirá, puedes seleccionar <b>"Guardar como PDF"</b> en la casilla de Destino para descargarlo inmediatamente.
+          </div>
+        </div>
+
+        <div class="card" style="background:#faf8f5">
+          <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+            <span>Vista Previa Oficial</span>
+            <span class="badge bdg-act">Válido en Chile</span>
+          </div>
+          <div id="cert-papel" class="cert-papel">
+            <!-- Se llena dinámicamente con actualizarVistaCertificado() -->
+          </div>
+        </div>
       </div>
     </div>
 
@@ -481,7 +585,7 @@ function seleccionarTrabajador(t){
   $('vac-solo-lectura').style.display = esPropio ? 'none' : 'block';
   $('vac-btn').disabled = !esPropio;
 
-  renderInicio(); renderLiquidaciones(); renderVacaciones(); renderAsistencia();
+  renderInicio(); renderLiquidaciones(); renderCertificados(); renderVacaciones(); renderAsistencia();
   if (TODO.doc) renderDocumentos();
   previewVac();
 }
@@ -492,6 +596,7 @@ function showTab(name, btn){
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
   $('p-' + name).classList.add('on');
   if (name === 'documentos') cargarDocumentos();
+  if (name === 'certificados') actualizarVistaCertificado();
 }
 
 // =========================================================================
@@ -544,6 +649,7 @@ function renderInicio(){
   $('pf-email').textContent = t.email || '-';
   $('pf-afp').textContent = t.afp ? String(t.afp).toUpperCase() : '-';
   $('pf-sueldo').textContent = t.sueldo ? fmt(t.sueldo) : '-';
+  if ($('pf-contrato')) $('pf-contrato').textContent = t.tipoContrato || 'Indefinido';
 
   const s = saldoVacaciones();
   $('kp-vac').textContent = s.disponibles === null ? '—' : fmtDias(s.disponibles);
@@ -826,6 +932,363 @@ function descargarLiquidacion(id){
     </div>
   </body>
   </html>`);
+  v.document.close();
+  setTimeout(() => v.print(), 350);
+}
+
+// =========================================================================
+// 8. CERTIFICADO DE ANTIGÜEDAD Y VIGENCIA LABORAL (LEGISLACIÓN CHILENA)
+// =========================================================================
+function fechaLargaChile(iso){
+  if (!iso) return '-';
+  const partes = String(iso).slice(0,10).split('-');
+  const y = partes[0], m = +partes[1], d = +partes[2];
+  const mesNom = MESES[m - 1] ? MESES[m - 1].toLowerCase() : m;
+  return `${d} de ${mesNom} de ${y}`;
+}
+
+function cambiarDestTipo(){
+  const tipo = $('cert-dest-tipo').value;
+  $('fld-cert-dest-otro').style.display = (tipo === 'OTRO') ? 'block' : 'none';
+  actualizarVistaCertificado();
+}
+
+function obtenerDestinatarioCert(){
+  const tipo = $('cert-dest-tipo').value;
+  if (tipo === 'OTRO') {
+    const txt = ($('cert-dest-otro').value || '').trim();
+    return txt || 'A quien corresponda';
+  }
+  return tipo;
+}
+
+function obtenerFolioCert(){
+  if (!miFicha) return 'CI-CERT-0000';
+  const rutNum = (miFicha.rut || '00').replace(/[^0-9kK]/g,'').toUpperCase();
+  const f = ($('cert-fecha-emision') && $('cert-fecha-emision').value ? $('cert-fecha-emision').value : hoyChile()).replace(/-/g,'');
+  return `CI-ANT-${rutNum.slice(-5)}-${f}`;
+}
+
+function renderCertificados(){
+  if (!miFicha) return;
+  const hoy = hoyChile();
+  if (!$('cert-fecha-emision').value) $('cert-fecha-emision').value = hoy;
+
+  if ($('cert-tipo-contrato')) {
+    $('cert-tipo-contrato').value = miFicha.tipoContrato || 'Indefinido';
+  }
+
+  const tieneIngreso = !!miFicha.fechaIngreso;
+  $('cert-aviso-ingreso').style.display = tieneIngreso ? 'none' : 'block';
+  $('cert-btn-imprimir').disabled = !tieneIngreso;
+  if (!tieneIngreso) {
+    $('cert-btn-imprimir').title = 'Falta registrar la fecha de ingreso en RRHH';
+  } else {
+    $('cert-btn-imprimir').removeAttribute('title');
+  }
+
+  // Ajustar etiqueta de sueldo
+  const tieneSueldo = miFicha.sueldo && Number(miFicha.sueldo) > 0;
+  const optSi = $('cert-mostrar-renta').querySelector('option[value="si"]');
+  if (optSi) {
+    optSi.textContent = tieneSueldo ? `Sí, incluir Sueldo Base (${fmt(miFicha.sueldo)})` : 'Sí, incluir Sueldo Base (No registrado)';
+  }
+
+  actualizarVistaCertificado();
+}
+
+function datosCertificadoActual(){
+  const t = miFicha;
+  if (!t) return null;
+  const fEmision = $('cert-fecha-emision').value || hoyChile();
+  const fEmisionTexto = fechaLargaChile(fEmision);
+  const fIngreso = t.fechaIngreso ? fechaLargaChile(t.fechaIngreso) : '(Fecha de ingreso pendiente en RRHH)';
+  const fIngresoCorta = t.fechaIngreso ? fDate(t.fechaIngreso) : '-';
+  const antiguedad = t.fechaIngreso ? antiguedadTexto(t.fechaIngreso) : '—';
+  const destinatario = obtenerDestinatarioCert();
+  const tipoContrato = $('cert-tipo-contrato').value || t.tipoContrato || 'Indefinido';
+  const jornada = $('cert-jornada').value;
+  const mostrarRenta = $('cert-mostrar-renta').value === 'si' && t.sueldo && Number(t.sueldo) > 0;
+  const folio = obtenerFolioCert();
+  const nombre = nombreCompleto(t) || 'Trabajador';
+  const rut = t.rut || '—';
+  const cargo = t.cargo || 'Trabajador';
+  const area = t.area || 'Operaciones';
+  const sueldoFmt = t.sueldo ? fmt(t.sueldo) : '$0';
+
+  return {
+    t, fEmision, fEmisionTexto, fIngreso, fIngresoCorta, antiguedad,
+    destinatario, tipoContrato, jornada, mostrarRenta, folio,
+    nombre, rut, cargo, area, sueldoFmt
+  };
+}
+
+function actualizarVistaCertificado(){
+  const box = $('cert-papel');
+  if (!box || !miFicha) return;
+  const d = datosCertificadoActual();
+  if (!d) return;
+
+  let rentaHtml = '';
+  if (d.mostrarRenta) {
+    rentaHtml = `<p>Asimismo, se deja expresa constancia de que don(ña) <b>${esc(d.nombre)}</b> percibe una remuneración mensual correspondiente a un <b>Sueldo Base</b> pactado de <b>${esc(d.sueldoFmt)}</b> pesos chilenos, encontrándose la empresa al día en el pago íntegro y oportuno de sus remuneraciones, como también en el cumplimiento de la totalidad de sus cotizaciones previsionales y de salud legalmente obligatorias.</p>`;
+  } else {
+    rentaHtml = `<p>Asimismo, se deja constancia de que la relación contractual se encuentra plenamente vigente a la fecha, manteniéndose el dependiente y la empresa en pleno y oportuno cumplimiento de las obligaciones contractuales, laborales y previsionales.</p>`;
+  }
+
+  box.innerHTML = `
+    <div class="cert-header">
+      <div>
+        <div class="emp-tit">CREAMOS IMAGEN LTDA.</div>
+        <div class="emp-sub">R.U.T.: 76.460.575-6 · Publicidad y Servicios Integrales</div>
+        <div class="emp-sub">Rio de Janeiro 319, Recoleta, Santiago de Chile</div>
+      </div>
+      <div class="cert-folio">
+        <div><b>FOLIO:</b> ${esc(d.folio)}</div>
+        <div>Santiago, ${esc(d.fEmisionTexto)}</div>
+      </div>
+    </div>
+
+    <div class="cert-titulo">Certificado de Antigüedad y Vigencia Laboral</div>
+
+    <div class="cert-dest">
+      SEÑORES:<br>
+      <span style="font-size:14px;color:var(--dark)">${esc(d.destinatario.toUpperCase())}</span><br>
+      <span style="font-weight:normal;color:var(--muted);font-size:11px">PRESENTE</span>
+    </div>
+
+    <div class="cert-cuerpo">
+      <p>
+        Por medio del presente instrumento, <b>CREAMOS IMAGEN LTDA.</b>, Rol Único Tributario N° <b>76.460.575-6</b>, representada para estos efectos por su Departamento de Recursos Humanos, conforme a las disposiciones generales del Código del Trabajo de la República de Chile, viene en certificar que:
+      </p>
+      <p>
+        Don(ña) <b>${esc(d.nombre)}</b>, Cédula Nacional de Identidad N° <b>${esc(d.rut)}</b>, presta servicios bajo vínculo de subordinación y dependencia en nuestra empresa a contar del día <b>${esc(d.fIngreso)}</b>, desempeñándose a la fecha en el cargo de <b>${esc(d.cargo)}</b>, en el área de <b>${esc(d.area)}</b>.
+      </p>
+      <p>
+        Se certifica que el dependiente mantiene un contrato de trabajo de carácter <b>${esc(d.tipoContrato.toUpperCase())}</b>, sujeto a <b>${esc(d.jornada)}</b>, registrando a la fecha de emisión del presente documento una antigüedad laboral ininterrumpida de <b>${esc(d.antiguedad)}</b>.
+      </p>
+      ${rentaHtml}
+      <p>
+        Se extiende el presente certificado a solicitud del interesado(a) para ser presentado ante <b>${esc(d.destinatario)}</b>, para los fines legales, administrativos o comerciales que estime convenientes, con una validez de treinta (30) días corridos a contar de su fecha de expedición.
+      </p>
+    </div>
+
+    <div class="cert-datos-box">
+      <table>
+        <tr><td>Trabajador(a):</td><td><b>${esc(d.nombre)}</b></td></tr>
+        <tr><td>RUT:</td><td>${esc(d.rut)}</td></tr>
+        <tr><td>Cargo y Área:</td><td>${esc(d.cargo)} · ${esc(d.area)}</td></tr>
+        <tr><td>Fecha de Ingreso:</td><td>${esc(d.fIngresoCorta)} (${esc(d.antiguedad)})</td></tr>
+        <tr><td>Tipo de Contrato:</td><td>${esc(d.tipoContrato)} · ${esc(d.jornada)}</td></tr>
+        ${d.mostrarRenta ? `<tr><td>Sueldo Base Mensual:</td><td><b>${esc(d.sueldoFmt)}</b></td></tr>` : ''}
+        <tr><td>Estado Contractual:</td><td><b style="color:var(--teal)">Vigente y Activo</b></td></tr>
+      </table>
+    </div>
+
+    <div style="font-size:12px;margin-top:15px;color:#555">
+      Santiago de Chile, a ${esc(d.fEmisionTexto)}.
+    </div>
+
+    <div class="cert-firma-wrap">
+      <div class="cert-sello">
+        <div>🛡️ <b>DOCUMENTO OFICIAL</b></div>
+        <div>Creamos Imagen Ltda.</div>
+        <div style="font-family:var(--mono);font-size:9px;margin-top:3px">${esc(d.folio)}</div>
+        <div style="font-size:9px;color:var(--muted)">Validez: 30 días corridos</div>
+      </div>
+      <div class="cert-firma">
+        <div>DEPARTAMENTO DE RECURSOS HUMANOS</div>
+        <div style="font-size:10px;font-weight:normal;color:#666">CREAMOS IMAGEN LTDA.</div>
+        <div style="font-size:10px;font-weight:normal;color:#666">R.U.T. 76.460.575-6</div>
+      </div>
+    </div>
+  `;
+}
+
+function imprimirCertificado(){
+  if (!miFicha) return;
+  if (!miFicha.fechaIngreso) {
+    alert('Tu ficha no tiene fecha de ingreso registrada en Recursos Humanos. Debe registrarse en RRHH antes de generar este certificado.');
+    return;
+  }
+  const d = datosCertificadoActual();
+  if (!d) return;
+
+  const v = window.open('', '_blank');
+  if (!v) {
+    alert('El navegador bloqueó la ventana emergente. Por favor permítela para ver e imprimir el certificado.');
+    return;
+  }
+
+  let rentaPrintHtml = '';
+  if (d.mostrarRenta) {
+    rentaPrintHtml = `<p class="parrafo">Asimismo, se deja expresa constancia de que don(ña) <b>${esc(d.nombre)}</b> percibe una remuneración mensual correspondiente a un <b>Sueldo Base</b> pactado de <b>${esc(d.sueldoFmt)}</b> pesos chilenos, encontrándose la empresa al día en el pago íntegro y oportuno de sus remuneraciones, como también en el cumplimiento de la totalidad de sus cotizaciones previsionales y de salud legalmente obligatorias.</p>`;
+  } else {
+    rentaPrintHtml = `<p class="parrafo">Asimismo, se certifica que la relación contractual se encuentra plenamente vigente a la fecha, manteniéndose el dependiente y la empresa en pleno y oportuno cumplimiento de sus obligaciones contractuales, laborales y previsionales.</p>`;
+  }
+
+  v.document.write(`<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Certificado de Antigüedad - ${esc(d.nombre)}</title>
+  <style>
+    @page { size: letter portrait; margin: 25mm 20mm; }
+    *{box-sizing:border-box}
+    body {
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-size: 13px;
+      line-height: 1.8;
+      color: #111;
+      padding: 40px;
+      max-width: 820px;
+      margin: 0 auto;
+      background: #fff;
+    }
+    .header {
+      border-bottom: 2px solid #111;
+      padding-bottom: 12px;
+      margin-bottom: 25px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .emp-title { font-size: 16px; font-weight: 800; color: #111; text-transform: uppercase; letter-spacing: 0.5px; }
+    .emp-sub { font-size: 11px; color: #555; line-height: 1.4; }
+    .folio { font-family: monospace; font-size: 11px; color: #555; text-align: right; }
+    .titulo {
+      text-align: center;
+      font-size: 16px;
+      font-weight: 800;
+      text-transform: uppercase;
+      margin: 32px 0 26px 0;
+      letter-spacing: 1px;
+      color: #111;
+      text-decoration: underline;
+    }
+    .dest { margin-bottom: 22px; font-size: 13px; line-height: 1.5; }
+    .parrafo { text-align: justify; margin-bottom: 16px; text-indent: 28px; }
+    .resumen-tabla {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 22px 0;
+      font-size: 12px;
+      border: 1px solid #ddd;
+    }
+    .resumen-tabla td {
+      padding: 7px 12px;
+      border: 1px solid #e0e0e0;
+      vertical-align: top;
+    }
+    .resumen-tabla td.lbl {
+      font-weight: 700;
+      width: 36%;
+      background: #fcfcfc;
+      color: #333;
+    }
+    .fecha-emision {
+      font-size: 12px;
+      margin-top: 18px;
+      color: #222;
+    }
+    .firma-wrap {
+      margin-top: 60px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      page-break-inside: avoid;
+    }
+    .sello-box {
+      border: 1.5px dashed #0d7a6b;
+      color: #0d7a6b;
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 10px;
+      text-align: center;
+      width: 210px;
+      background: #f8fafc;
+    }
+    .firma-box {
+      border-top: 1px solid #111;
+      width: 240px;
+      text-align: center;
+      padding-top: 6px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    @media print {
+      body { padding: 0; max-width: 100%; }
+      .no-print { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="emp-title">CREAMOS IMAGEN LTDA.</div>
+      <div class="emp-sub">R.U.T.: 76.460.575-6 · Publicidad y Servicios Integrales</div>
+      <div class="emp-sub">Rio de Janeiro 319, Recoleta, Santiago de Chile</div>
+    </div>
+    <div class="folio">
+      <div><b>FOLIO:</b> ${esc(d.folio)}</div>
+      <div>Santiago, ${esc(d.fEmisionTexto)}</div>
+    </div>
+  </div>
+
+  <div class="titulo">CERTIFICADO DE ANTIGÜEDAD Y VIGENCIA LABORAL</div>
+
+  <div class="dest">
+    <b>SEÑORES:</b><br>
+    <span style="font-size:14px;font-weight:800">${esc(d.destinatario.toUpperCase())}</span><br>
+    <span style="font-size:11px;color:#555">PRESENTE</span>
+  </div>
+
+  <div>
+    <p class="parrafo">
+      Por medio del presente instrumento, <b>CREAMOS IMAGEN LTDA.</b>, Rol Único Tributario N° <b>76.460.575-6</b>, con domicilio en Rio de Janeiro N° 319, comuna de Recoleta, Santiago, representada en este acto por su Departamento de Recursos Humanos, conforme a la legislación laboral vigente y las disposiciones del Código del Trabajo de la República de Chile, certifica:
+    </p>
+    <p class="parrafo">
+      Que, don(ña) <b>${esc(d.nombre)}</b>, Cédula Nacional de Identidad N° <b>${esc(d.rut)}</b>, presta servicios bajo vínculo de subordinación y dependencia en nuestra empresa desde el día <b>${esc(d.fIngreso)}</b>, desempeñándose a la fecha de manera ininterrumpida en el cargo de <b>${esc(d.cargo)}</b>, en el área de <b>${esc(d.area)}</b>.
+    </p>
+    <p class="parrafo">
+      Asimismo, se acredita que el dependiente mantiene un contrato de trabajo vigente de carácter <b>${esc(d.tipoContrato.toUpperCase())}</b>, sujeto a <b>${esc(d.jornada)}</b>, contando a la fecha de emisión del presente certificado con una antigüedad laboral continua de <b>${esc(d.antiguedad)}</b>.
+    </p>
+    ${rentaPrintHtml}
+    <p class="parrafo">
+      Se otorga el presente certificado a solicitud expresa del trabajador(a) interesado(a) para ser presentado ante <b>${esc(d.destinatario)}</b>, para los fines legales, administrativos o comerciales que estime convenientes, con una vigencia de treinta (30) días corridos a contar de su fecha de emisión.
+    </p>
+  </div>
+
+  <table class="resumen-tabla">
+    <tr><td class="lbl">Individualización del Trabajador:</td><td><b>${esc(d.nombre)}</b></td></tr>
+    <tr><td class="lbl">Cédula de Identidad (RUT):</td><td>${esc(d.rut)}</td></tr>
+    <tr><td class="lbl">Cargo y Área de Desempeño:</td><td>${esc(d.cargo)} · ${esc(d.area)}</td></tr>
+    <tr><td class="lbl">Fecha de Ingreso a la Empresa:</td><td>${esc(d.fIngresoCorta)} (${esc(d.antiguedad)})</td></tr>
+    <tr><td class="lbl">Tipo de Contrato y Jornada:</td><td>${esc(d.tipoContrato)} · ${esc(d.jornada)}</td></tr>
+    ${d.mostrarRenta ? `<tr><td class="lbl">Sueldo Base Mensual:</td><td><b>${esc(d.sueldoFmt)}</b></td></tr>` : ''}
+    <tr><td class="lbl">Vigencia Relación Laboral:</td><td><b>Vigente y Activa</b></td></tr>
+  </table>
+
+  <div class="fecha-emision">
+    Santiago de Chile, a ${esc(d.fEmisionTexto)}.
+  </div>
+
+  <div class="firma-wrap">
+    <div class="sello-box">
+      <div>🛡️ <b>CERTIFICACIÓN OFICIAL</b></div>
+      <div style="font-weight:700">Creamos Imagen Ltda.</div>
+      <div style="font-family:monospace;font-size:9px;margin:2px 0">${esc(d.folio)}</div>
+      <div style="font-size:9px;color:#666">Válido por 30 días corridos</div>
+    </div>
+    <div class="firma-box">
+      <div>DEPARTAMENTO DE RECURSOS HUMANOS</div>
+      <div style="font-size:10px;font-weight:normal;color:#444">CREAMOS IMAGEN LTDA.</div>
+      <div style="font-size:10px;font-weight:normal;color:#444">R.U.T. 76.460.575-6</div>
+    </div>
+  </div>
+</body>
+</html>`);
+
   v.document.close();
   setTimeout(() => v.print(), 350);
 }
