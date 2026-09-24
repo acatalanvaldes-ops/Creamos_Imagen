@@ -69,6 +69,13 @@ td input[type="number"]{text-align:right}
 .ef-inp input{color:var(--green);font-weight:600}
 .btn-del{background:rgba(183, 28, 28, 0.1);border:1px solid rgba(183, 28, 28, 0.2);color:var(--red);cursor:pointer;padding:6px 10px;font-size:14px;border-radius:6px;transition:all 0.15s;}
 .btn-del:hover{background:var(--red);color:#fff;}
+/* Filas traídas desde Ventas Local / Ventas Empresa (solo lectura) */
+tr.row-auto td{background:#f3f8ff}
+tr.row-auto input{background:transparent;color:var(--ink);cursor:default}
+.auto-badge{display:inline-block;font-size:11px;font-weight:600;color:var(--blue);background:rgba(13,71,161,0.08);border:1px solid rgba(13,71,161,0.25);border-radius:6px;padding:4px 7px;text-decoration:none;white-space:nowrap}
+.auto-badge:hover{background:var(--blue);color:#fff}
+.ventas-auto-aviso{margin:0 0 12px;padding:9px 14px;border-radius:8px;font-size:12px;background:rgba(13,71,161,0.07);border:1px solid rgba(13,71,161,0.2);color:var(--blue)}
+.ventas-auto-aviso.warn{background:rgba(230,81,0,0.08);border-color:rgba(230,81,0,0.3);color:var(--amber)}
 tfoot .tot-row td{background:var(--accent-l);font-family:var(--mono);font-size:12px;font-weight:600;padding:9px 12px;border-top:2px solid var(--border2)}
 .tot-ef{color:var(--green);font-size:14px}
 .tot-lc{color:var(--blue);font-size:14px}
@@ -162,6 +169,7 @@ tfoot .tot-row td{background:var(--accent-l);font-family:var(--mono);font-size:1
       <div class="card"><div class="card-lbl">Transferencia</div><div class="card-val b" id="cc-tr">$0</div></div>
       <div class="card"><div class="card-lbl">Webpay</div><div class="card-val a"    id="cc-wp">$0</div></div>
     </div>
+    <div id="ventas-auto-aviso" class="ventas-auto-aviso" style="display:none"></div>
     <div class="tbl-wrap">
       <div class="tbl-bar">
         <h3>Detalle del día</h3><span class="cur-date-lbl" id="cur-date-lbl">—</span>
@@ -1290,9 +1298,98 @@ var _saveDebounceTimer = null;
 var _cloudSaveInFlight = false;
 var _cloudSaveQueued = false;
 
+// ------------------------------------------------------------------
+// VENTAS AUTOMÁTICAS: desde FECHA_INICIO_VENTAS, la rendición se alimenta
+// de los módulos Ventas Local (sublipro_v2, en bloques) y Ventas Empresa
+// (creamos_imagen_v1). Esas filas se agregan a "data" marcadas con auto:true
+// solo para mostrarlas y sumarlas; NUNCA se guardan en la nube de rendición
+// (datosParaGuardar las quita). Se editan o borran en su módulo de origen.
+// ------------------------------------------------------------------
+const FECHA_INICIO_VENTAS = '2026-09-23';
+const FUENTES_VENTAS = [
+  { key: 'sublipro_v2', origen: 'Local', nombre: 'Ventas Local', bloques: true },
+  { key: 'creamos_imagen_v1', origen: 'Empresa', nombre: 'Ventas Empresa', bloques: false }
+];
+// Producto de Ventas -> Tipo de venta de la rendición (lo que no calza queda en "Otros")
+const PRODUCTO_A_TIPO = { 'Banderas':'Banderas', 'Banner':'Banner', 'Camisetas':'Camiseta', 'Conjuntos':'Conjuntos', 'Lienzo':'Lienzo', 'Mantas':'Mantas', 'Pañuelos':'Pañuelos', 'Sublimación':'Sublimación' };
+const COM_WEBPAY_PCT = 2; // igual que en Ventas: con Webpay el cliente paga la base + 2%
+let ventasAutoAviso = '';
+let ventasAutoUltimaCarga = 0;
+
+function datosParaGuardar(){
+  const limpio = {};
+  Object.keys(data).forEach(k => {
+    const manuales = (data[k] || []).filter(r => !r.auto);
+    if (manuales.length || !(data[k] || []).length) limpio[k] = manuales;
+  });
+  return limpio;
+}
+
+async function leerVentasFuente(f){
+  const principal = await loadFromCloudStrict(f.key);
+  if (!principal) return [];
+  let ventas = (principal.ventas || []).slice();
+  if (f.bloques) {
+    const n = principal.shardCount || 1, pedidos = [];
+    for (let i = 1; i < n; i++) pedidos.push(loadFromCloudStrict(f.key + '_sh' + i));
+    (await Promise.all(pedidos)).forEach(b => { if (b && b.ventas) ventas = ventas.concat(b.ventas); });
+  }
+  return ventas;
+}
+
+function ventaAFila(v, f){
+  const base = +v.montoBase || 0;
+  const pago = v.formaPago || 'Efectivo';
+  const monto = pago === 'Webpay' ? base + Math.round(base * COM_WEBPAY_PCT / 100) : base;
+  const tipo = PRODUCTO_A_TIPO[v.producto] || 'Otros';
+  const obs = [];
+  if (tipo === 'Otros' && v.producto) obs.push(v.producto);
+  if (v.factura) obs.push('Con factura');
+  return {
+    auto: true, fuente: f.nombre, ventaId: v.id,
+    cliente: (v.cliente || '').trim(), tipo, origen: f.origen, pago,
+    ef: pago === 'Efectivo' ? String(monto) : '',
+    tr: pago === 'Transferencia' ? String(monto) : '',
+    wp: pago === 'Webpay' ? String(monto) : '',
+    obs: obs.join(' · ')
+  };
+}
+
+// Relee ambos módulos de ventas y reemplaza las filas automáticas.
+async function cargarVentasAuto(){
+  const resultados = await Promise.allSettled(FUENTES_VENTAS.map(leerVentasFuente));
+  const fallidas = [];
+  const filas = [];
+  resultados.forEach((res, i) => {
+    const f = FUENTES_VENTAS[i];
+    if (res.status !== 'fulfilled') { fallidas.push(f.nombre); return; }
+    res.value
+      .filter(v => v && v.fecha && v.fecha >= FECHA_INICIO_VENTAS)
+      .forEach(v => filas.push({ fecha: v.fecha, fila: ventaAFila(v, f), fuente: f.nombre }));
+  });
+  // Si una fuente no respondió, se conservan sus filas anteriores en vez de hacerlas desaparecer.
+  Object.keys(data).forEach(k => {
+    data[k] = (data[k] || []).filter(r => !r.auto || fallidas.includes(r.fuente));
+  });
+  filas.sort((a, b) => (a.fila.ventaId || 0) - (b.fila.ventaId || 0));
+  filas.forEach(x => { rowsForDate(x.fecha).push(x.fila); });
+  ventasAutoAviso = fallidas.length ? 'No se pudieron leer: ' + fallidas.join(' y ') + '. Recarga la página para reintentar.' : '';
+  ventasAutoUltimaCarga = Date.now();
+}
+
+// Al volver a esta pestaña (por ej. después de registrar una venta) se actualizan las ventas.
+document.addEventListener('visibilitychange', async function () {
+  if (document.visibilityState !== 'visible' || !ventasAutoUltimaCarga) return;
+  if (Date.now() - ventasAutoUltimaCarga < 30000) return;
+  ventasAutoUltimaCarga = Date.now();
+  try { await cargarVentasAuto(); } catch (e) { return; }
+  refreshAccordion(); if (curDate) renderContent(); renderSumm();
+  if (document.getElementById('p-prev').classList.contains('on')) buildPreview();
+});
+
 function saveData(){
   try{
-    localStorage.setItem('rendicion2026_v2', JSON.stringify(data));
+    localStorage.setItem('rendicion2026_v2', JSON.stringify(datosParaGuardar()));
   } catch(e){}
   if (!rendicionCargaOk) {
     console.warn("No se pudo confirmar la conexión con la nube al abrir esta página; no se sube nada hasta recargar (F5).");
@@ -1306,7 +1403,7 @@ async function dispararGuardadoNube(){
   if (_cloudSaveInFlight) { _cloudSaveQueued = true; return; }
   _cloudSaveInFlight = true;
   try {
-    await saveToCloud('rendicion2026_v2', data);
+    await saveToCloud('rendicion2026_v2', datosParaGuardar());
   } finally {
     _cloudSaveInFlight = false;
     if (_cloudSaveQueued) {
@@ -1388,8 +1485,11 @@ async function loadData() {
       if (seInyectoAlgo) saveData();
   } else if (rendicionCargaOk) {
       // Guardar en local para asegurar que estemos en sintonía con la nube
-      localStorage.setItem('rendicion2026_v2', JSON.stringify(data));
+      localStorage.setItem('rendicion2026_v2', JSON.stringify(datosParaGuardar()));
   }
+
+  // 3. VENTAS AUTOMÁTICAS (Ventas Local + Ventas Empresa, desde FECHA_INICIO_VENTAS)
+  try { await cargarVentasAuto(); } catch (e) { console.error('No se pudieron cargar las ventas', e); }
 
   applyPrevRangeBounds();
   buildAccordion();
@@ -1421,8 +1521,9 @@ function changeYear(y) {
 
 function clearAll(){ 
   if(!confirm('¿Borrar TODOS los registros del sistema? Esta acción también borrará tu historial pre-cargado.')) return; 
-  Object.keys(data).forEach(k=>{ data[k]=[]; }); 
-  localStorage.removeItem('rendicion2026_v2'); 
+  // Solo se borran los registros manuales; las ventas automáticas viven en sus módulos.
+  Object.keys(data).forEach(k=>{ data[k]=(data[k]||[]).filter(r=>r.auto); });
+  localStorage.removeItem('rendicion2026_v2');
   saveData(); // Limpia la nube también
   buildAccordion(); 
   if(curDate) renderContent(); 
@@ -1473,8 +1574,20 @@ function renderContent(){
   const [,m,d]=curDate.split('-'); 
   document.getElementById('c-title').textContent=`${MESES[+m-1]} — ${+d}`; 
   document.getElementById('cur-date-lbl').textContent = curDate;
-  renderTable(); updateCards(); 
+  renderTable(); updateCards(); renderAvisoVentas();
 }
+
+function renderAvisoVentas(){
+  const el = document.getElementById('ventas-auto-aviso');
+  if (!el) return;
+  let txt = '';
+  if (ventasAutoAviso) txt = '⚠️ ' + ventasAutoAviso;
+  else if (curDate && curDate >= FECHA_INICIO_VENTAS) txt = '🔗 Desde el ' + fechaCorta(FECHA_INICIO_VENTAS) + ' las ventas de Ventas Local y Ventas Empresa se agregan solas (filas "Auto"). Para corregirlas, edítalas en su módulo. Usa "＋ Nuevo Registro" solo para ingresos que no pasen por esos módulos.';
+  el.textContent = txt;
+  el.style.display = txt ? 'block' : 'none';
+  el.classList.toggle('warn', !!ventasAutoAviso);
+}
+function escAttr(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 function getFiltered(){ const rows=rowsForDate(curDate); if(typeFilter==='todos') return rows; return rows.filter(r=>r.origen===typeFilter.split(':')[1]); }
 
 function renderTable(){
@@ -1483,6 +1596,24 @@ function renderTable(){
     const all=rowsForDate(curDate);
     rows.forEach(row=>{
       const ri=all.indexOf(row); const tr=document.createElement('tr');
+      if (row.auto) {
+        // Fila traída desde Ventas Local / Ventas Empresa: solo lectura
+        const icono = row.origen === 'Empresa' ? '🏢' : '🏪';
+        const archivo = row.origen === 'Empresa' ? 'ventasci.html' : 'ventas.html';
+        tr.className = 'row-auto';
+        tr.innerHTML=`<td><input type="date" value="${curDate}" readonly style="color:var(--muted)"></td>
+          <td><input type="text" value="${escAttr(row.cliente)}" readonly></td>
+          <td><input type="text" value="${escAttr(row.tipo)}" readonly></td>
+          <td><input type="text" value="${escAttr(row.origen)}" readonly></td>
+          <td><input type="text" value="${escAttr(row.pago)}" readonly></td>
+          <td class="ef-inp"><input type="text" value="${row.ef?fmt(row.ef):''}" readonly style="text-align:right"></td>
+          <td><input type="text" value="${row.tr?fmt(row.tr):''}" readonly style="text-align:right"></td>
+          <td><input type="text" value="${row.wp?fmt(row.wp):''}" readonly style="text-align:right"></td>
+          <td><input type="text" value="${escAttr(row.obs)}" readonly></td>
+          <td style="text-align:center"><a class="auto-badge" href="${archivo}" title="Registrada en ${row.fuente}. Para corregirla, edítala en ese módulo.">${icono} Auto</a></td>`;
+        tbody.appendChild(tr);
+        return;
+      }
       tr.innerHTML=`<td><input type="date" value="${curDate}" readonly style="color:var(--muted)"></td>
         <td><input type="text" placeholder="Nombre del cliente..." value="${row.cliente||''}" oninput="upd('${curDate}',${ri},'cliente',this.value)"></td>
         <td><select onchange="upd('${curDate}',${ri},'tipo',this.value)">${TIPOS.map(t=>`<option value="${t}" ${row.tipo===t?'selected':''}>${t}</option>`).join('')}</select></td>
@@ -1547,7 +1678,11 @@ function renderSumm(){
 function getAllRowsSorted(){
   const rows=[];
   Object.keys(data).filter(k=>k.startsWith(currentYear.toString())).forEach(k=>{
-    (data[k]||[]).forEach(r=>{ rows.push(Object.assign({fecha:k}, r)); });
+    (data[k]||[]).forEach(r=>{
+      const fila = Object.assign({fecha:k}, r);
+      if (r.auto) fila.obs = ['Auto (' + r.fuente + ')', r.obs].filter(Boolean).join(' · ');
+      rows.push(fila);
+    });
   });
   // FILTRO DE RANGO DE FECHAS (Desde / Hasta): afecta la vista previa y el .xlsx exportado
   const desdeEl = document.getElementById('prevDesde');
