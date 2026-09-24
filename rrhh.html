@@ -466,6 +466,7 @@ async function fetchClaveNube(key) {
       const res = await fetchConTimeout(url);
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const json = await res.json();
+      if (json.estado === 'error') throw new Error(json.detalle || 'Error del servidor');
       return json.valor ? JSON.parse(json.valor) : null;
     } catch (e) {
       ultimoError = e;
@@ -558,9 +559,15 @@ async function init() {
   resultados.forEach(function (r, idx) {
     const k = nombresClaves[idx];
     if (r.status === 'fulfilled') {
-      DB[k] = r.value.cloud || [];
+      const nube = Array.isArray(r.value.cloud) ? r.value.cloud : [];
+      let local = [];
+      try { const raw = JSON.parse(localStorage.getItem(KEYS[k]) || 'null'); if (Array.isArray(raw)) local = raw; } catch (e) {}
+      const idsNube = new Set(nube.map(function (v) { return v && v.id != null ? String(v.id) : null; }).filter(Boolean));
+      const soloLocales = local.filter(function (v) { return v && v.id != null && !idsNube.has(String(v.id)); });
+      DB[k] = nube.concat(soloLocales);
       localStorage.setItem(KEYS[k], JSON.stringify(DB[k]));
       cargaOk[k] = true;
+      if (soloLocales.length) saveCloudSharded(KEYS[k], DB[k]);
     } else {
       console.error('Error cargando', KEYS[k], r.reason);
       cargaOk[k] = false;

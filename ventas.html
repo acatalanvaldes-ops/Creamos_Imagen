@@ -158,6 +158,7 @@ async function loadFromCloud(key) {
       const res = await fetchConTimeout(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const json = await res.json();
+      if (json.estado === 'error') throw new Error(json.detalle || 'Error del servidor');
       return json.valor ? JSON.parse(json.valor) : null;
     } catch (e) {
       ultimoError = e;

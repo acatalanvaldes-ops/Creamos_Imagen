@@ -253,6 +253,8 @@ async function saveToCloud(key, dataObj) {
     try {
       const res = await fetchConTimeout(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj), token: CLOUD_TOKEN }) });
       if (!res.ok) throw new Error('HTTP ' + res.status);
+      const json = await res.json();
+      if (json.estado === 'error') throw new Error(json.detalle || 'Error del servidor');
       return true;
     } catch (e) {
       ultimoError = e;
@@ -270,6 +272,7 @@ async function loadFromCloud(key) {
       const res = await fetchConTimeout(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const json = await res.json();
+      if (json.estado === 'error') throw new Error(json.detalle || 'Error del servidor');
       return json.valor ? JSON.parse(json.valor) : null;
     } catch (e) {
       ultimoError = e;
@@ -1347,6 +1350,15 @@ async function loadData() {
     const cloudData = await loadFromCloudStrict('rendicion2026_v2');
     rendicionCargaOk = true;
     if (cloudData && Object.keys(cloudData).length > 0) {
+      // La nube manda en conflictos; recupera del respaldo local las fechas
+      // ausentes para preservar jornadas que no alcanzaron a sincronizarse.
+      const rawLocal = localStorage.getItem('rendicion2026_v2');
+      if (rawLocal) {
+        const localData = JSON.parse(rawLocal);
+        Object.keys(localData).forEach(k => {
+          if (!Object.prototype.hasOwnProperty.call(cloudData, k)) cloudData[k] = localData[k];
+        });
+      }
       Object.keys(cloudData).forEach(k => { data[k] = cloudData[k]; });
     } else {
       // La nube respondió que está vacía: se usa el respaldo local si existe.
@@ -1384,7 +1396,6 @@ async function loadData() {
           // Si la fecha ya tiene registros (venidos de la nube), no se toca:
           // evita duplicar filas que ya están guardadas.
       });
-      localStorage.setItem('historial_cargado_final', '1');
       if (seInyectoAlgo) saveData();
   } else if (rendicionCargaOk) {
       // Guardar en local para asegurar que estemos en sintonía con la nube
