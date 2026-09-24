@@ -106,7 +106,6 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
         <div class="fld"><label>RUT</label><input id="tr-rut" oninput="fmtRut(this)" onblur="chkRut(this,'tr-rut-msg')"><span id="tr-rut-msg" style="font-size:10px;font-weight:bold"></span></div>
         <div class="fld"><label>Nombres</label><input id="tr-nom"></div>
         <div class="fld"><label>Apellidos</label><input id="tr-ape"></div>
-        <div class="fld"><label>Tipo Contrato</label><select id="tr-con"><option value="Indefinido">Indefinido</option><option value="Plazo Fijo">Plazo Fijo</option></select></div>
         <div class="fld"><label>Cargo</label><input id="tr-car"></div>
         <div class="fld"><label>Área</label><input id="tr-are"></div>
         <div class="fld"><label>Jefatura</label><input id="tr-jef"></div>
@@ -122,7 +121,7 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
     <div class="card">
       <div class="card-title">Directorio</div>
       <div class="search-bar">🔍<input id="tr-bus" placeholder="Buscar..." oninput="trRender()"></div>
-      <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>RUT</th><th>Nombre</th><th>Cargo</th><th>Área</th><th>Contrato</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="tr-tbl"></tbody></table></div>
+      <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>RUT</th><th>Nombre</th><th>Cargo</th><th>Área</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="tr-tbl"></tbody></table></div>
     </div>
   </div>
 
@@ -228,41 +227,32 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
       <div class="card" style="margin-bottom:0">
-        <div class="card-title">Generar / Editar Liquidación</div>
-        <div id="liq-editing-badge" style="display:none;font-size:11px;color:var(--blue);font-weight:700;margin-bottom:10px;background:#EFF6FF;padding:6px 10px;border-radius:6px;border:1px solid #BFDBFE">✏️ Editando liquidación guardada...</div>
-        
+        <div class="card-title">Generar Liquidación</div>
         <div class="grid-form" style="grid-template-columns:1fr">
           <div style="display:flex;gap:10px">
             <div class="fld" style="flex:2"><label>Trabajador</label><select class="sel-trab" id="lq-tra" onchange="lqOnTrabajador()"></select></div>
             <div class="fld" style="flex:1"><label>Período</label><input type="month" id="lq-per" onchange="lqClear()"></div>
           </div>
-          
-          <div style="display:flex;gap:8px;margin:8px 0;align-items:center;">
-            <input type="checkbox" id="lq-plazo" style="width:auto;cursor:pointer" onchange="lqClear()">
-            <label for="lq-plazo" style="font-size:11px;text-transform:none;color:var(--dark);cursor:pointer">Trabajador a Plazo Fijo (Anula descuento de Seguro de Cesantía)</label>
-          </div>
-
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-            <div class="fld"><label>Sueldo Base ($)</label><input type="number" id="lq-sue" placeholder="0" oninput="lqClear()"></div>
-            <div class="fld"><label>Gratificación ($) — Auto/Manual</label><input type="number" id="lq-gra" placeholder="Calculada automáticamente" oninput="lqClear()"></div>
-            <div class="fld"><label>Bonos ($)</label><input type="number" id="lq-bon" placeholder="0" oninput="lqClear()"></div>
-            <div class="fld"><label>Comisiones ($)</label><input type="number" id="lq-com" placeholder="0" oninput="lqClear()"></div>
-            <div class="fld"><label>Colación ($)</label><input type="number" id="lq-col" placeholder="0" oninput="lqClear()"></div>
-            <div class="fld"><label>Movilización ($)</label><input type="number" id="lq-mov" placeholder="0" oninput="lqClear()"></div>
-            <div class="fld"><label>Asignación de Caja ($)</label><input type="number" id="lq-caj" placeholder="0" oninput="lqClear()"></div>
-            <div class="fld"><label>Asignación de Viático ($)</label><input type="number" id="lq-via" placeholder="0" oninput="lqClear()"></div>
+            <div class="fld"><label>Sueldo Base ($)</label><input type="number" id="lq-sue" oninput="lqClear()"></div>
+            <div class="fld"><label>Gratificación ($) — automática</label><input type="number" id="lq-gra" readonly style="background:#f1f5f9;cursor:not-allowed" title="Se calcula al presionar Calcular Totales"></div>
+            <div class="fld"><label>Bonos ($)</label><input type="number" id="lq-bon" oninput="lqClear()"></div>
+            <div class="fld"><label>Comisiones ($)</label><input type="number" id="lq-com" oninput="lqClear()"></div>
+            <div class="fld"><label>Colación ($)</label><input type="number" id="lq-col" oninput="lqClear()"></div>
+            <div class="fld"><label>Movilización ($)</label><input type="number" id="lq-mov" oninput="lqClear()"></div>
+            <div class="fld"><label>Asignación de Caja ($)</label><input type="number" id="lq-caj" oninput="lqClear()"></div>
+            <div class="fld"><label>Asignación de Viático ($)</label><input type="number" id="lq-via" oninput="lqClear()"></div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px;align-items:end;margin-top:8px">
-            <div class="fld"><label>Ingreso Mínimo Mensual ($)</label><input type="number" id="lq-imm" value="500000" oninput="lqGuardarIMM(); lqClear()"></div>
-            <div id="lq-gra-nota" style="font-size:10px;color:var(--muted);padding-bottom:10px"></div>
+          <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px;align-items:end">
+            <div class="fld"><label>Ingreso Mínimo Mensual ($)</label><input type="number" id="lq-imm" oninput="lqGuardarIMM(); lqClear()"></div>
+            <div id="lq-gra-nota" style="font-size:11px;color:var(--muted);padding-bottom:10px"></div>
           </div>
         </div>
         <button class="act-btn" style="width:100%;margin-top:16px;background:var(--dark);color:#fff" onclick="lqCalc()">Calcular Totales</button>
       </div>
-      
-      <div class="card" style="margin-bottom:0;display:flex;flex-direction:column">
+      <div class="card" style="margin-bottom:0">
         <div class="card-title">Resumen</div>
-        <div class="resumen-card" style="flex:1">
+        <div class="resumen-card">
           <div class="resumen-row"><span>Sueldo Base</span><strong id="rl-sue">$0</strong></div>
           <div class="resumen-row"><span>Gratif. + Bonos + Comis.</span><strong id="rl-gbc">$0</strong></div>
           <div class="resumen-row"><span>Horas Extras</span><strong id="rl-hex">$0</strong></div>
@@ -272,18 +262,17 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
           <div class="resumen-row"><span>Asig. Caja + Viático</span><strong id="rl-asi">$0</strong></div>
           <div style="border-top:1px dashed #ccc;margin:8px 0"></div>
           <div class="resumen-row"><span>AFP + Comisión</span><strong id="rl-afp">$0</strong></div>
-          <div class="resumen-row"><span>Salud (7%) + AFC (<span id="rl-afc-pct">0.6</span>%)</span><strong id="rl-saf">$0</strong></div>
+          <div class="resumen-row"><span>Salud (7%) + AFC (0.6%)</span><strong id="rl-saf">$0</strong></div>
           <div class="total" style="font-size:14px;color:var(--red)"><span>DESCUENTOS:</span><span id="rl-des">$0</span></div>
-          <div class="total total-liquido" style="margin-top:16px;font-size:24px"><span>A PAGAR:</span><span id="rl-liq">$0</span></div>
+          <div class="total total-liquido" style="margin-top:16px"><span>A PAGAR:</span><span id="rl-liq">$0</span></div>
         </div>
         <button class="act-btn primary" style="width:100%;margin-top:16px" id="lq-btn-save" disabled onclick="lqSave()">Guardar Liquidación</button>
       </div>
     </div>
-    
     <div class="card" style="margin-top:20px">
       <div class="card-title">Historial</div>
-      <div class="search-bar">🔍<input id="lq-bus" placeholder="Buscar trabajador..." oninput="lqRender()"><input type="month" id="lq-bus-per" onchange="lqRender()"></div>
-      <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Período</th><th>Trabajador</th><th style="text-align:right">Imponible</th><th style="text-align:right">Descuentos</th><th style="text-align:right">Líquido</th><th style="text-align:right">Acciones</th></tr></thead><tbody id="lq-tbl"></tbody></table></div>
+      <div class="search-bar">🔍<input id="lq-bus" placeholder="Buscar..." oninput="lqRender()"><input type="month" id="lq-bus-per" onchange="lqRender()"></div>
+      <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Período</th><th>Trabajador</th><th>Imponible</th><th>Descuentos</th><th>Líquido</th><th>Acciones</th></tr></thead><tbody id="lq-tbl"></tbody></table></div>
     </div>
   </div>
 
@@ -347,7 +336,7 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
       <div class="card" style="margin-bottom:0">
         <div class="card-title">Cálculo Finiquito</div>
         <div class="grid-form">
-          <div class="fld" style="grid-column:1/-1"><label>Trabajador (Debe tener liquidación previa)</label><select class="sel-trab" id="fq-tra" onchange="fqClear()"></select></div>
+          <div class="fld" style="grid-column:1/-1"><label>Trabajador</label><select class="sel-trab" id="fq-tra" onchange="fqClear()"></select></div>
           <div class="fld"><label>Fecha Término</label><input type="date" id="fq-ter" onchange="fqClear()"></div>
           <div class="fld"><label>Causal</label><select id="fq-cau" onchange="fqClear()"><option value="159">Art. 159 (Renuncia/Plazo)</option><option value="160">Art. 160 (Sin Indemnización)</option><option value="161">Art. 161 (Necesidades Empresa)</option></select></div>
           <div class="fld"><label>Aviso Previo (30d)</label><select id="fq-avi" onchange="fqClear()"><option value="SI">SI (Avisado)</option><option value="NO">NO (Pagar mes)</option></select></div>
@@ -381,7 +370,7 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
       <div class="card-title">Subir Documento</div>
       <div class="grid-form">
         <div class="fld"><label>Trabajador</label><select class="sel-trab" id="do-tra"></select></div>
-        <div class="fld"><label>Categoría</label><select id="do-cat"><option>Contrato</option><option>Anexo</option><option>Curriculum</option><option>Carnet</option><option>Certificados</option><option>Otros</option></select></div>
+        <div class="fld"><label>Categoría</label><select id="do-cat"><option>Anexo</option><option>Carnet</option><option>Certificados</option><option>Contrato</option><option>Curriculum</option><option>Otros</option></select></div>
         <div class="fld"><label>Archivo (Max 1MB)</label><input type="file" id="do-arc" accept=".pdf,.png,.jpg,.jpeg"></div>
         <div class="fld"><button class="act-btn primary" style="height:35px;width:100%" onclick="doSave()" id="do-btn">Subir Archivo</button></div>
       </div>
@@ -432,17 +421,26 @@ const API_URL = "https://script.google.com/macros/s/AKfycbxP5-vB59e80qpXdx4AcCyS
 const CLOUD_TOKEN = "b5bd161b4ef581c6114b7bb4";
 const $ = id => document.getElementById(id);
 const money = v => "$" + Math.round(Number(v||0)).toLocaleString("es-CL");
-const fmt = money; 
+const fmt = money; // alias: algunas plantillas (liquidación/finiquito) usan fmt()
 const fDate = iso => { if(!iso)return'-'; const [y,m,d]=iso.split('-'); return `${d}/${m}/${y}`; };
 
 let DB = { trab:[], asis:[], vac:[], lic:[], liq:[], lib:[], prev:[], fini:[], doc:[] };
 const KEYS = { trab:"rrhh_trabajadores_v1", asis:"rrhh_asistencia_v1", vac:"rrhh_vacaciones_v1", lic:"rrhh_licencias_v1", liq:"rrhh_liquidaciones_v1", lib:"rrhh_libro_rem_v1", prev:"rrhh_previred_v1", fini:"rrhh_finiquitos_v1", doc:"rrhh_documentos_v1" };
 const CFG = { AFP:10, SAL:7, AFC:0.6, C_AFP:{UNO:0.46, MODELO:0.58, PLANVITAL:1.16, HABITAT:1.27, CAPITAL:1.44, CUPRUM:1.44, PROVIDA:1.45} };
 
-let editId = { trab:null, vacRej:null, liq:null };
+let editId = { trab:null, vacRej:null };
 let calcObj = { liq:null, lib:null, prev:null, fini:null };
+// Gráficos de la pestaña Reportes (rpRender). Antes no estaba declarada: el
+// primer renderAll() fallaba con "charts is not defined" y la página nunca
+// llegaba a cargar los datos de la nube (por eso las liquidaciones no
+// encontraban al trabajador).
 let charts = {};
 
+// El backend (Google Apps Script) a veces devuelve una falla transitoria
+// -una página de error en vez de JSON, un HTTP no-OK, o una respuesta muy
+// lenta que se queda colgada- que se resuelve sola al reintentar. Sin
+// reintentos ni un tope de tiempo por intento, una falla pasajera se veía
+// como "no hay datos" y la página podía quedarse esperando varios minutos.
 function esperar(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 const CLOUD_INTENTOS = 3;
 const CLOUD_TIMEOUT_MS = 12000;
@@ -450,10 +448,17 @@ const CLOUD_TIMEOUT_MS = 12000;
 async function fetchConTimeout(url, opts) {
   const controller = new AbortController();
   const timer = setTimeout(function () { controller.abort(); }, CLOUD_TIMEOUT_MS);
-  try { return await fetch(url, Object.assign({}, opts, { signal: controller.signal })); } 
-  finally { clearTimeout(timer); }
+  try {
+    return await fetch(url, Object.assign({}, opts, { signal: controller.signal }));
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
+// Lee una llave cruda de la nube (sin desarmar particiones), con reintentos.
+// Lanza una excepción si los 3 intentos fallan, en vez de devolver un valor
+// vacío silenciosamente -eso es justo lo que causó pérdida real de datos en
+// el módulo de Clientes: una carga fallida se confundía con "no hay nada".
 async function fetchClaveNube(key) {
   const url = API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN;
   let ultimoError;
@@ -487,7 +492,18 @@ async function saveCloudRaw(key, dataObj) {
   return false;
 }
 
+// Una sola celda de Google Sheets no admite más de 50.000 caracteres. Los
+// documentos del módulo (contratos, carnet, certificados) se guardan como
+// texto base64, y un solo archivo normal (una foto de carnet, un PDF
+// escaneado) puede tener cientos de miles de caracteres -muy por sobre ese
+// límite. MAX_SHARD_CHARS reparte el JSON completo de cada módulo en
+// bloques de ese tamaño, cada uno en su propia celda ("<llave>_sh1",
+// "<llave>_sh2", etc.), y los vuelve a unir al leer. A diferencia del
+// particionado por registro completo que usan otros módulos (Calendario,
+// Ventas), acá se parte el texto en cualquier punto, porque un solo
+// documento adjunto ya puede superar el límite por sí solo.
 const MAX_SHARD_CHARS = 40000;
+
 function partirTexto(texto, maxChars) {
   const partes = [];
   for (let i = 0; i < texto.length; i += maxChars) partes.push(texto.slice(i, i + maxChars));
@@ -504,23 +520,26 @@ async function saveCloudSharded(key, dataArray) {
   return ok;
 }
 
+// Lanza si los datos son inconsistentes o si falta algún fragmento -para no
+// confundir "no pudimos leer una partición" con "no hay datos guardados".
 async function loadCloudSharded(key) {
   const primero = await fetchClaveNube(key);
   if (primero === null || primero === undefined) return [];
-  if (Array.isArray(primero)) return primero; 
+  if (Array.isArray(primero)) return primero; // formato antiguo sin particionar
   if (typeof primero === 'object' && typeof primero.shardCount === 'number') {
     let texto = primero.parte || '';
+    // Las particiones se piden en paralelo y se unen en orden.
     const pedidos = [];
     for (let i = 1; i < primero.shardCount; i++) pedidos.push(fetchClaveNube(key + '_sh' + i));
     const bloques = await Promise.all(pedidos);
     bloques.forEach(function (bloque, idx) {
-      if (!bloque || typeof bloque.parte !== 'string') throw new Error('Falta particion');
+      if (!bloque || typeof bloque.parte !== 'string') throw new Error('Falta la partición ' + (idx + 1) + ' de ' + key);
       texto += bloque.parte;
     });
     if (!texto) return [];
     return JSON.parse(texto);
   }
-  throw new Error('Formato no reconocido');
+  throw new Error('Formato de datos no reconocido para ' + key);
 }
 
 const cargaOk = { trab:false, asis:false, vac:false, lic:false, liq:false, lib:false, prev:false, fini:false, doc:false };
@@ -529,7 +548,7 @@ function sync(keyId) {
   const k = KEYS[keyId];
   localStorage.setItem(k, JSON.stringify(DB[keyId]));
   if (!cargaOk[keyId]) {
-    alert('No se pudo confirmar la conexión con la nube. Para no perder información ya guardada, recarga la página.');
+    alert('No se pudo confirmar la conexión con la nube al abrir esta página para esta sección de Recursos Humanos. Para no perder información ya guardada, recarga la página (F5) antes de seguir agregando o editando datos aquí.');
     return;
   }
   saveCloudSharded(k, DB[keyId]);
@@ -540,8 +559,8 @@ function getTName(id) { const t=getT(id); return t ? `${t.nombres} ${t.apellidos
 function decHr(v) { if(!v)return 0; const p=v.split(":"); return Number(p[0])+(Number(p[1])/60); }
 
 async function init() {
-  let immGuardado = null; try { immGuardado = Number(localStorage.getItem('rrhh_imm_v1')) || null; } catch(e) {}
-  if($('lq-imm')) { $('lq-imm').value = immGuardado || 500000; lqNotaTope(); }
+  let immGuardado = null; try { immGuardado = Number(localStorage.getItem('rrhh_imm')) || null; } catch(e) {}
+  $('lq-imm').value = immGuardado || IMM_DEFECTO; lqNotaTope();
   Object.keys(KEYS).forEach(k => { try{ const l=localStorage.getItem(KEYS[k]); if(l)DB[k]=JSON.parse(l); }catch(e){} });
   popSel(); renderAll();
 
@@ -557,15 +576,16 @@ async function init() {
       localStorage.setItem(KEYS[k], JSON.stringify(DB[k]));
       cargaOk[k] = true;
     } else {
+      console.error('Error cargando', KEYS[k], r.reason);
       cargaOk[k] = false;
       huboFallas = true;
     }
   });
   if (huboFallas) {
-    alert('Falla parcial conectando a la nube. Se muestran los últimos datos locales.');
+    alert('No se pudo confirmar la conexión con la nube para algunos datos de Recursos Humanos. Se muestran los últimos datos guardados en este equipo; si acabas de editar algo desde otro computador, recarga la página (F5) antes de seguir para no sobreescribir información.');
   }
   popSel(); renderAll();
-  if(typeof vaCargarSolicitudes === 'function') await vaCargarSolicitudes();
+  await vaCargarSolicitudes();
 }
 
 function showTab(id, btn) {
@@ -573,20 +593,20 @@ function showTab(id, btn) {
   document.querySelectorAll('.ttab').forEach(b=>b.classList.remove('on'));
   $(id).classList.add('on'); btn.classList.add('on');
   if(id==='p-rep') rpRender();
-  if(id==='p-vac' && typeof vaCargarSolicitudes === 'function') vaCargarSolicitudes();
+  if(id==='p-vac') vaCargarSolicitudes();
 }
 
 function popSel() {
   const h = `<option value="">— Seleccione Trabajador —</option>` + DB.trab.slice().sort((a,b)=>(a.nombres||'').localeCompare(b.nombres||'')).map(t=>`<option value="${t.id}">${t.nombres} ${t.apellidos} (${t.rut})</option>`).join('');
   document.querySelectorAll('.sel-trab').forEach(s => {const val=s.value; s.innerHTML = h; if(val)s.value=val;});
   
-  const ar = new Set(); DB.trab.forEach(t=>{if(t.area && t.estado==='Activo')ar.add(t.area.trim())});
+  const ar = new Set(); DB.trab.forEach(t=>{if(t.area)ar.add(t.area)});
   const ah = '<option value="">Todas</option>' + [...ar].sort((a,b)=>a.localeCompare(b,'es')).map(a=>`<option value="${a}">${a}</option>`).join('');
   if($('rp-are'))$('rp-are').innerHTML = ah;
-  if($('rp-per') && !$('rp-per').value && typeof mesChile === 'function') $('rp-per').value = mesChile();
+  if(!$('rp-per').value)$('rp-per').value = mesChile();
 }
 
-function renderAll() { trRender(); asRender(); vaRender(); lmRender(); lqRender(); lrRender(); prRender(); fqRender(); doRender(); if($('p-rep').classList.contains('on'))rpRender(); }
+function renderAll() { trRender(); asRender(); vaRender(); lmRender(); lqRender(); lrRender(); prRender(); fqRender(); doRender(); rpRender(); }
 
 // ================= TRABAJADORES =================
 function fmtRut(el) { let v=el.value.replace(/\./g,"").replace(/-/g,"").toUpperCase(); if(v.length>1) el.value = v.slice(0,-1).replace(/\B(?=(\d{3})+(?!\d))/g,".")+"-"+v.slice(-1); }
@@ -599,19 +619,19 @@ function chkRut(el, mId) {
 function trSave() {
   const r=$('tr-rut').value; if(!r){alert("RUT requerido");return;}
   const em=$('tr-ema').value.trim().toLowerCase();
-  if(em && DB.trab.some(x=>x.id!==editId.trab && (x.email||'').trim().toLowerCase()===em)){ alert("Ese email ya está registrado en otro trabajador."); return; }
-  const d={id:editId.trab||Date.now(),rut:r,nombres:$('tr-nom').value,apellidos:$('tr-ape').value,contrato:$('tr-con').value,cargo:$('tr-car').value,area:$('tr-are').value,jefatura:$('tr-jef').value,telefono:$('tr-tel').value,email:$('tr-ema').value.trim().toLowerCase(),fechaIngreso:$('tr-ing').value,sueldo:Number($('tr-sue').value)||0,afp:$('tr-afp').value,estado:$('tr-est').value};
+  if(em && DB.trab.some(x=>x.id!==editId.trab && (x.email||'').trim().toLowerCase()===em)){ alert("Ese email ya está registrado en otro trabajador. Cada trabajador necesita su propio correo para entrar a Mi Portal."); return; }
+  const d={id:editId.trab||Date.now(),rut:r,nombres:$('tr-nom').value,apellidos:$('tr-ape').value,cargo:$('tr-car').value,area:$('tr-are').value,jefatura:$('tr-jef').value,telefono:$('tr-tel').value,email:$('tr-ema').value.trim().toLowerCase(),fechaIngreso:$('tr-ing').value,sueldo:Number($('tr-sue').value)||0,afp:$('tr-afp').value,estado:$('tr-est').value};
   if(editId.trab){ const i=DB.trab.findIndex(x=>x.id===editId.trab); if(i>-1)DB.trab[i]=d; } else { DB.trab.push(d); }
   sync('trab'); trCancel(); popSel(); renderAll();
 }
 function trEdit(id) {
   const t=getT(id); if(!t)return; editId.trab=id;
-  ['rut','nom','ape','con','car','are','jef','tel','ema','ing','sue','afp','est'].forEach(k=>{$(`tr-${k}`).value=t[{rut:'rut',nom:'nombres',ape:'apellidos',con:'contrato',car:'cargo',are:'area',jef:'jefatura',tel:'telefono',ema:'email',ing:'fechaIngreso',sue:'sueldo',afp:'afp',est:'estado'}[k]]||'';});
+  ['rut','nom','ape','car','are','jef','tel','ema','ing','sue','afp','est'].forEach(k=>{$(`tr-${k}`).value=t[{rut:'rut',nom:'nombres',ape:'apellidos',car:'cargo',are:'area',jef:'jefatura',tel:'telefono',ema:'email',ing:'fechaIngreso',sue:'sueldo',afp:'afp',est:'estado'}[k]]||'';});
   $('tr-rut').readOnly=true; $('tr-title').textContent="Editar Trabajador"; $('tr-btn').textContent="Actualizar"; $('tr-btn-c').style.display="inline-block";
 }
 function trCancel() {
   editId.trab=null; ['rut','nom','ape','car','are','jef','tel','ema','ing','sue'].forEach(k=>$(`tr-${k}`).value='');
-  $('tr-rut').readOnly=false; $('tr-est').value="Activo"; $('tr-con').value="Indefinido"; $('tr-title').textContent="Nuevo Trabajador"; $('tr-btn').textContent="Guardar"; $('tr-btn-c').style.display="none"; $('tr-rut-msg').innerHTML="";
+  $('tr-rut').readOnly=false; $('tr-est').value="Activo"; $('tr-title').textContent="Nuevo Trabajador"; $('tr-btn').textContent="Guardar"; $('tr-btn-c').style.display="none"; $('tr-rut-msg').innerHTML="";
 }
 function trDel(id) { if(!confirm("¿Eliminar?"))return; DB.trab=DB.trab.filter(x=>x.id!==id); sync('trab'); popSel(); renderAll(); }
 function trRender() {
@@ -620,8 +640,8 @@ function trRender() {
   const h=DB.trab.filter(t=>{
     if(t.estado==="Activo")act++; else ina++; if(t.area)ar.add(t.area);
     return !q||(t.rut+" "+t.nombres+" "+t.apellidos).toLowerCase().includes(q);
-  }).map(t=>`<tr><td>${t.rut}</td><td><b>${t.nombres} ${t.apellidos}</b></td><td>${t.cargo||'-'}</td><td>${t.area||'-'}</td><td><span class="badge ${t.contrato==='Plazo Fijo'?'bdg-pen':'bdg-neutral'}">${t.contrato||'Indefinido'}</span></td><td><span class="badge bdg-${t.estado==='Activo'?'act':'inact'}">${t.estado}</span></td><td><button class="act-btn small" onclick="trEdit(${t.id})">✏</button><button class="act-btn small" style="color:var(--red)" onclick="trDel(${t.id})">🗑</button></td></tr>`).join('');
-  tb.innerHTML = h||`<tr><td colspan="7" align="center">Sin datos</td></tr>`;
+  }).map(t=>`<tr><td>${t.rut}</td><td><b>${t.nombres} ${t.apellidos}</b></td><td>${t.cargo||'-'}</td><td>${t.area||'-'}</td><td><span class="badge bdg-${t.estado==='Activo'?'act':'inact'}">${t.estado}</span></td><td><button class="act-btn small" onclick="trEdit(${t.id})">✏</button><button class="act-btn small" style="color:var(--red)" onclick="trDel(${t.id})">🗑</button></td></tr>`).join('');
+  tb.innerHTML = h||`<tr><td colspan="6" align="center">Sin datos</td></tr>`;
   $('k-tr-act').textContent=act; $('k-tr-ina').textContent=ina; $('k-tr-are').textContent=ar.size;
 }
 
@@ -645,18 +665,19 @@ function asRender() {
 }
 
 // ================= VACACIONES =================
-const KEY_SOL_VAC = 'rrhh_solicitudes_vac_v1';
-let SOL_VAC = [];
-let solVacOk = false;
-const escH = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-
+// Los feriados (FER) vienen de feriados-chile.js, compartido con Mi Portal.
 function vaHabiles(fi,ff){
+  // Se recorren los días del calendario en UTC puro: así el conteo no depende
+  // de la zona horaria del equipo ni de los cambios de horario de verano.
   const aUTC = s => Date.UTC(+s.slice(0,4), +s.slice(5,7)-1, +s.slice(8,10));
   let i=aUTC(fi), f=aUTC(ff), h=0;
-  while(i<=f){ const dia=new Date(i); const d=dia.getUTCDay(); if(d!==0&&d!==6&&!(typeof FER!=='undefined'&&FER.includes(dia.toISOString().slice(0,10))))h++; i+=86400000; } return h;
+  while(i<=f){ const dia=new Date(i); const d=dia.getUTCDay(); if(d!==0&&d!==6&&!FER.includes(dia.toISOString().slice(0,10)))h++; i+=86400000; } return h;
 }
+// Saldo de vacaciones a hoy, con el mismo cálculo del finiquito (1,25 días
+// hábiles por mes trabajado, menos las vacaciones Aprobadas). Mi Portal usa
+// la misma regla, así el trabajador y RRHH ven el mismo saldo.
 function vaSaldo(t){
-  const v = fqVacaciones(t, typeof hoyChile==='function'?hoyChile():new Date().toISOString().slice(0,10));
+  const v = fqVacaciones(t, hoyChile());
   if(!v) return null;
   return { ganados:v.ganados, usados:v.usados, disponibles:Math.round((v.ganados-v.usados)*100)/100 };
 }
@@ -664,25 +685,39 @@ function vaPrev() {
   const tid=$('va-tra').value; if(!tid){['gan','usa','dis','sol','fin'].forEach(k=>$(`vp-${k}`).textContent='0'); return;}
   const s=vaSaldo(getT(tid));
   const gan=s?s.ganados:0, usa=s?s.usados:DB.vac.filter(v=>String(v.trabajadorId)===String(tid)&&v.estado==="Aprobada").reduce((a,b)=>a+(b.dias||0),0), dis=s?s.disponibles:0;
-  let sol=0; const fi=$('va-ini').value, ff=$('va-fin').value; if(fi&&ff&&new Date(ff)>=new Date(fi)) sol=vaHabiles(fi,ff);
-  $('vp-gan').textContent=gan; $('vp-usa').textContent=usa; $('vp-dis').textContent=dis; $('vp-sol').textContent=sol; $('vp-fin').textContent=dis-sol;
+  let sol=0; const fi=$('va-ini').value, ff=$('va-fin').value; if(fi&&ff&&new Date(ff)>=new Date(fi)) sol=vaHabiles(fi,ff);$('vp-gan').textContent=fmtDias(gan)+(s?'':' (falta fecha de ingreso)'); $('vp-usa').textContent=fmtDias(usa); $('vp-dis').textContent=fmtDias(dis); $('vp-sol').textContent=sol; $('vp-fin').textContent=fmtDias(dis-sol);
 }
 
+// ---------- Solicitudes enviadas por los trabajadores desde Mi Portal ----------
+// Viven en una llave aparte (KEY_SOL_VAC) para que el portal nunca escriba
+// sobre rrhh_vacaciones_v1, que este módulo guarda completa en cada cambio.
+// Al aprobar o rechazar, la solicitud pasa a DB.vac y se quita de esa llave.
+const KEY_SOL_VAC = 'rrhh_solicitudes_vac_v1';
+let SOL_VAC = [];
+let solVacOk = false;
+const escH = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 async function vaCargarSolicitudes(avisar){
   try { const v = await fetchClaveNube(KEY_SOL_VAC); SOL_VAC = Array.isArray(v) ? v : []; solVacOk = true; }
-  catch(e){ solVacOk = false; if(avisar) alert('No se pudieron leer las solicitudes de Mi Portal.'); }
+  catch(e){ solVacOk = false; console.error('No se pudieron leer las solicitudes del portal', e); if(avisar) alert('No se pudieron leer las solicitudes de Mi Portal. Intenta de nuevo en un momento.'); }
   vaRender();
 }
 async function vaResolverPortal(id, estado, motivoRechazo){
-  if(!cargaOk.vac){ alert('Recarga la página (F5) antes de resolver solicitudes.'); return; }
-  let lista; try { const v = await fetchClaveNube(KEY_SOL_VAC); lista = Array.isArray(v) ? v : []; } catch(e){ return; }
-  const s = lista.find(x => x.id === id); if(!s){ SOL_VAC=lista; vaRender(); return; }
-  const reg = { id:s.id, trabajadorId:String(s.trabajadorId), fechaInicio:s.fechaInicio, fechaFin:s.fechaFin, dias:s.dias, motivo:s.motivo||'', estado, origen:'Portal', fechaSolicitud:s.fechaSolicitud||'', fechaResolucion:new Date().toISOString() };
+  if(!cargaOk.vac){ alert('No se pudo confirmar la carga de Vacaciones desde la nube. Recarga la página (F5) antes de resolver solicitudes.'); return; }
+  let lista;
+  try { const v = await fetchClaveNube(KEY_SOL_VAC); lista = Array.isArray(v) ? v : []; }
+  catch(e){ alert('No se pudo conectar con la nube. Intenta de nuevo.'); return; }
+  const s = lista.find(x => x.id === id);
+  if(!s){ alert('Esta solicitud ya no está pendiente (el trabajador la canceló o ya fue resuelta).'); SOL_VAC = lista; vaRender(); return; }
+  if(estado === 'Aprobada' && DB.vac.some(v=>String(v.trabajadorId)===String(s.trabajadorId)&&v.estado==='Aprobada'&&s.fechaInicio<=v.fechaFin&&s.fechaFin>=v.fechaInicio)){
+    if(!confirm('Este trabajador ya tiene vacaciones aprobadas que se cruzan con estas fechas. ¿Aprobar de todas formas?')) return;
+  }
+  const reg = { id:s.id, trabajadorId:String(s.trabajadorId), fechaInicio:s.fechaInicio, fechaFin:s.fechaFin, dias:s.dias, motivo:s.motivo||'', estado, origen:'Portal', fechaSolicitud:s.fechaSolicitud||'', fechaResolucion:hoyChile() };
   if(estado === 'Rechazada') reg.motivoRechazo = motivoRechazo || '';
   DB.vac.push(reg); sync('vac');
   const resto = lista.filter(x => x.id !== id);
   const ok = await saveCloudRaw(KEY_SOL_VAC, resto);
   SOL_VAC = ok ? resto : lista.filter(x => x.id !== id);
+  if(!ok) alert('La solicitud quedó registrada en Vacaciones, pero no se pudo quitar de la lista del portal. Si vuelve a aparecer, recárgala con 🔄.');
   renderAll();
 }
 function vaPortalRender(){
@@ -690,7 +725,9 @@ function vaPortalRender(){
   $('va-portal-n').textContent = SOL_VAC.length;
   if(!solVacOk){ tb.innerHTML = `<tr><td colspan="7" align="center" style="color:var(--muted)">No se pudieron leer las solicitudes. Usa 🔄 Actualizar.</td></tr>`; return; }
   tb.innerHTML = SOL_VAC.slice().sort((a,b)=>a.id-b.id).map(s=>{
-    return `<tr><td><b>${escH(getTName(s.trabajadorId))}</b></td><td>${fDate(s.fechaInicio)}</td><td>${fDate(s.fechaFin)}</td><td>${s.dias}</td><td>${escH(s.motivo||'-')}</td><td>${s.fechaSolicitud?fDate(s.fechaSolicitud):'-'}</td><td><button class="act-btn small bdg-act" onclick="vaResolverPortal(${s.id},'Aprobada')">✓</button> <button class="act-btn small bdg-err" onclick="vaOpenRej(${s.id},true)">✗</button></td></tr>`;
+    const t=getT(s.trabajadorId); const sal=t?vaSaldo(t):null;
+    const aviso = sal && s.dias>sal.disponibles ? `<div style="font-size:10px;color:var(--red)">Saldo disponible: ${fmtDias(sal.disponibles)}</div>` : '';
+    return `<tr><td><b>${escH(getTName(s.trabajadorId))}</b></td><td>${fDate(s.fechaInicio)}</td><td>${fDate(s.fechaFin)}</td><td>${s.dias}${aviso}</td><td>${escH(s.motivo||'-')}</td><td>${s.fechaSolicitud?fDate(s.fechaSolicitud):'-'}</td><td><button class="act-btn small bdg-act" onclick="vaResolverPortal(${s.id},'Aprobada')" title="Aprobar">✓</button> <button class="act-btn small bdg-err" onclick="vaOpenRej(${s.id},true)" title="Rechazar">✗</button></td></tr>`;
   }).join('') || `<tr><td colspan="7" align="center" style="color:var(--muted)">No hay solicitudes pendientes desde Mi Portal.</td></tr>`;
 }
 function vaSave() {
@@ -704,20 +741,20 @@ function vaSt(id, st){ const v=DB.vac.find(x=>x.id===id); if(v){v.estado=st; syn
 function vaOpenRej(id, portal){ editId.vacRej=id; editId.vacRejPortal=!!portal; $('mod-vac-mot').value='';$('mod-vac').style.display='flex'; }
 function vaConfirmReject(){
   if(editId.vacRejPortal){ const id=editId.vacRej; editId.vacRejPortal=false; $('mod-vac').style.display='none'; vaResolverPortal(id,'Rechazada',$('mod-vac-mot').value); return; }
-  const v=DB.vac.find(x=>x.id===editId.vacRej); if(v){v.estado="Rechazada";v.motivoRechazo=$('mod-vac-mot').value; sync('vac');$('mod-vac').style.display='none'; renderAll();} 
-}
+  const v=DB.vac.find(x=>x.id===editId.vacRej); if(v){v.estado="Rechazada";v.motivoRechazo=$('mod-vac-mot').value; sync('vac');$('mod-vac').style.display='none'; renderAll();} }
 function vaDel(id){ if(confirm("¿Eliminar?")){ DB.vac=DB.vac.filter(x=>x.id!==id); sync('vac'); renderAll(); } }
 function vaRender() {
-  $('k-va-pen').textContent=DB.vac.filter(x=>x.estado==='Pendiente').length+SOL_VAC.length; 
-  $('k-va-apr').textContent=DB.vac.filter(x=>x.estado==='Aprobada').length;
-  const q=$('va-bus').value.toLowerCase(), e=$('va-est').value; const tb=$('va-tbl');
-  tb.innerHTML = DB.vac.filter(v=>{
+  const q=$('va-bus').value.toLowerCase(), e=$('va-est').value; const tb=$('va-tbl'); let p=0, a=0;
+  const h=DB.vac.filter(v=>{
+    if(v.estado==="Pendiente")p++; if(v.estado==="Aprobada")a++;
     return (!q||getTName(v.trabajadorId).toLowerCase().includes(q)) && (!e||v.estado===e);
   }).sort((a,b)=>b.id-a.id).map(v=>{
     let btn = v.estado==="Pendiente"?`<button class="act-btn small bdg-act" onclick="vaSt(${v.id},'Aprobada')">✓</button> <button class="act-btn small bdg-err" onclick="vaOpenRej(${v.id})">✗</button>`:`<button class="act-btn small" style="color:red" onclick="vaDel(${v.id})">🗑</button>`;
     let bdg = v.estado==="Aprobada"?"bdg-act":v.estado==="Rechazada"?"bdg-err":"bdg-pen";
     return `<tr><td><b>${getTName(v.trabajadorId)}</b></td><td>${fDate(v.fechaInicio)}</td><td>${fDate(v.fechaFin)}</td><td>${v.dias}</td><td><span class="badge ${bdg}">${v.estado}</span></td><td>${btn}</td></tr>`;
-  }).join('')||`<tr><td colspan="6" align="center">Sin datos</td></tr>`;
+  }).join('');
+  tb.innerHTML = h||`<tr><td colspan="6" align="center">Sin datos</td></tr>`;
+  $('k-va-pen').textContent=p+SOL_VAC.length; $('k-va-apr').textContent=a;
   vaPortalRender();
 }
 
@@ -731,114 +768,75 @@ function lmSave() {
 function lmSt(id, st){ const l=DB.lic.find(x=>x.id===id); if(l){l.estado=st; sync('lic'); renderAll();} }
 function lmDel(id){ if(confirm("¿Eliminar?")){ DB.lic=DB.lic.filter(x=>x.id!==id); sync('lic'); renderAll(); } }
 function lmRender() {
-  const q=$('lm-bus').value.toLowerCase(); const tb=$('lm-tbl'); const hoy=new Date().toISOString().slice(0,10); let act=0, dia=0;
-  tb.innerHTML = DB.lic.filter(l=>{
+  const q=$('lm-bus').value.toLowerCase(); const tb=$('lm-tbl'); const hoy=hoyChile(); let act=0, dia=0;
+  const h=DB.lic.filter(l=>{
     if(l.estado!=="Rechazada") { dia+=l.dias; if(l.fechaInicio<=hoy&&l.fechaFin>=hoy)act++; }
     return !q||getTName(l.trabajadorId).toLowerCase().includes(q)||l.folio.toLowerCase().includes(q);
   }).sort((a,b)=>b.id-a.id).map(l=>{
     const sel = `<select class="badge ${l.estado==='Aprobada'?'bdg-act':l.estado==='Rechazada'?'bdg-err':l.estado==='Pagada'?'bdg-ok':'bdg-pen'}" style="border:none" onchange="lmSt(${l.id},this.value)"><option ${l.estado==='Pendiente'?'selected':''}>Pendiente</option><option ${l.estado==='Aprobada'?'selected':''}>Aprobada</option><option ${l.estado==='Pagada'?'selected':''}>Pagada</option><option ${l.estado==='Rechazada'?'selected':''}>Rechazada</option></select>`;
     return `<tr><td>${l.folio}</td><td><b>${getTName(l.trabajadorId)}</b></td><td>${l.tipo}</td><td>${fDate(l.fechaInicio)}</td><td>${fDate(l.fechaFin)}</td><td>${l.dias}</td><td>${sel}</td><td><button class="act-btn small" style="color:red" onclick="lmDel(${l.id})">🗑</button></td></tr>`;
-  }).join('')||`<tr><td colspan="8" align="center">Sin datos</td></tr>`;
+  }).join('');
+  tb.innerHTML = h||`<tr><td colspan="8" align="center">Sin datos</td></tr>`;
   $('k-lm-act').textContent=act; $('k-lm-dia').textContent=dia;
 }
 
 // ================= LIQUIDACIONES =================
+function lqClear() { calcObj.liq=null; $('lq-btn-save').disabled=true; $('lq-gra').value=''; ['sue','gbc','hex','imp','cmo','asi','afp','saf','des','liq'].forEach(k=>$(`rl-${k}`).textContent='$0'); lqNotaTope(); }
+
+// Gratificación legal (art. 50 del Código del Trabajo): 25% de lo devengado
+// en el mes, con tope anual de 4,75 ingresos mínimos mensuales (IMM), es decir
+// 4,75 × IMM / 12 al mes. El IMM cambia por ley: queda editable y se recuerda
+// en este equipo. Por defecto, $539.000 (vigente desde el 1 de enero de 2026).
 const IMM_DEFECTO = 539000;
 function lqIMM() { return Number($('lq-imm').value) || IMM_DEFECTO; }
 function lqTopeGratif() { return Math.round(4.75 * lqIMM() / 12); }
-function lqGuardarIMM() { try { localStorage.setItem('rrhh_imm_v1', String(Number($('lq-imm').value) || '')); } catch(e) {} }
+function lqGuardarIMM() { try { localStorage.setItem('rrhh_imm', String(Number($('lq-imm').value) || '')); } catch(e) {} }
 function lqNotaTope() {
   const n = $('lq-gra-nota'); if (!n) return;
-  n.textContent = 'Gratificación: 25% con tope de 4,75 IMM al año = ' + money(lqTopeGratif()) + ' mensual.';
+  n.textContent = 'Gratificación: 25% de sueldo + bonos + comisiones + horas extras, con tope legal de 4,75 IMM al año = ' + money(lqTopeGratif()) + ' al mes.';
 }
 
+// Al elegir al trabajador se carga su sueldo base (queda editable) y, si no
+// hay período, se propone el mes actual. Antes el selector solo limpiaba el
+// resumen y el sueldo había que escribirlo a mano.
 function lqOnTrabajador() {
-  const tid = $('lq-tra').value; if(!tid) return;
-  const t = getT(tid); if(t) $('lq-plazo').checked = (t.contrato === 'Plazo Fijo');
-  if (!$('lq-per').value) { const d=new Date();$('lq-per').value = d.toISOString().slice(0,7); }
   lqClear();
-}
-
-function lqClear() { 
-  calcObj.liq = null; 
-  $('lq-btn-save').disabled = true; 
-  $('liq-editing-badge').style.display = 'none';
-  ['sue','gbc','hex','imp','cmo','asi','afp','saf','des','liq'].forEach(k=>{const el=$('rl-'+k); if(el) el.textContent='$0';}); 
-  lqNotaTope(); 
+  const t = getT($('lq-tra').value); if (!t) return;
+  if (t.sueldo) $('lq-sue').value = t.sueldo;
+  if (!$('lq-per').value) $('lq-per').value = mesChile();
 }
 
 function lqCalc() {
   const tid=$('lq-tra').value, per=$('lq-per').value;
   if(!tid){ alert('Selecciona el trabajador.'); return; }
   if(!per){ alert('Selecciona el período.'); return; }
-  const t=getT(tid); if(!t){ alert('Trabajador no encontrado.'); return; }
-  
-  const sb = Number($('lq-sue').value)||0, bo = Number($('lq-bon').value)\vert{}\vert{}0, co = Number($('lq-com').value)||0;
-  const col = Number($('lq-col').value)\vert{}\vert{}0, mov = Number($('lq-mov').value)||0, caj = Number($('lq-caj').value)\vert{}\vert{}0, via = Number($('lq-via').value)||0;
-  
-  const hexHrs = DB.asis.filter(a=>String(a.trabajadorId)===tid&&(a.fecha||"").startsWith(per)).reduce((s,a)=>s+Number(a.horasExtras||0),0);
-  const mEx = hexHrs*(sb/180)*1.5;
-
+  const t=getT(tid); if(!t){ alert('No se encontró el trabajador seleccionado. Recarga la página (F5).'); return; }
+  const sb=Number($('lq-sue').value)||0, bo=Number($('lq-bon').value)||0, co=Number($('lq-com').value)||0, col=Number($('lq-col').value)||0, mov=Number($('lq-mov').value)||0;
+  const caj=Number($('lq-caj').value)||0, via=Number($('lq-via').value)||0;
+  if(!sb){ alert('Ingresa el sueldo base.'); return; }
+  const hexHrs = DB.asis.filter(a=>String(a.trabajadorId)===String(tid)&&(a.fecha||"").startsWith(per)).reduce((s,a)=>s+Number(a.horasExtras||0),0);
+  const mHex = hexHrs*(sb/180)*1.5;
   const tope = lqTopeGratif();
-  let gr = Number($('lq-gra').value);
-  if (!gr && gr !== 0) { gr = Math.round(Math.min((sb+bo+co+mEx)*0.25, tope)); $('lq-gra').value = gr; }
-
-  const imp = sb + gr + bo + co + mEx;
-  const nImp = col + mov + caj + via;
-  const afpN = (t.afp||'MODELO').toUpperCase();
-  const cPct = CFG.C_AFP[afpN]||0.58;
-  const afp = imp*(CFG.AFP/100);
-  const cAfp = imp*(cPct/100);
-  const sal = imp*(CFG.SAL/100);
-  
-  let afc = 0; let afcPct = 0.6;
-  if($('lq-plazo').checked) { afc = 0; afcPct = 0; } else { afc = imp*(CFG.AFC/100); }$('rl-afc-pct').textContent = afcPct;
-
-  const desc = afp + cAfp + sal + afc; 
-  const liq = (imp + nImp) - desc;
-  
-  calcObj.liq = { 
-    trabajadorId:tid, periodo:per, sueldoBase:sb, gratificacion:gr, bonos:bo, comisiones:co, 
-    colacion:col, movilizacion:mov, caja:caj, viatico:via, horasExtrasHoras:hexHrs, montoHorasExtras:mEx, 
-    imponible:imp, totalHaberesNoImp:nImp, afpName:afpN, porcentajeComision:cPct, afp:afp, comisionAFP:cAfp, 
-    salud:sal, afc:afc, totalDescuentos:desc, liquido:liq, estado:"GENERADA", fechaGeneracion:new Date().toISOString() 
-  };
-  
-  $('rl-sue').textContent=money(sb); $('rl-gbc').textContent=money(gr+bo+co);$('rl-hex').textContent=money(mEx); 
-  $('rl-imp').textContent=money(imp);$('rl-cmo').textContent=money(col+mov); $('rl-asi').textContent=money(caj+via);$('rl-afp').textContent=money(afp+cAfp); $('rl-saf').textContent=money(sal+afc);$('rl-des').textContent=money(desc); 
-  $('rl-liq').textContent=money(liq);$('lq-btn-save').disabled=false;
+  const gr = Math.round(Math.min((sb+bo+co+mHex)*0.25, tope));
+  $('lq-gra').value = gr;
+  const imp=sb+gr+bo+co+mHex;
+  const afp=imp*(CFG.AFP/100); const pCom=CFG.C_AFP[(t.afp||"MODELO").toUpperCase()]||0.58; const cAfp=imp*(pCom/100);
+  const sal=imp*(CFG.SAL/100); const afc=imp*(CFG.AFC/100); const desc=afp+cAfp+sal+afc; const nImp=col+mov+caj+via; const liq=imp+nImp-desc;
+  calcObj.liq = { trabajadorId:tid, periodo:per, sueldoBase:sb, gratificacion:gr, topeGratificacion:tope, imm:lqIMM(), bonos:bo, comisiones:co, colacion:col, movilizacion:mov, asignacionCaja:caj, asignacionViatico:via, horasExtrasHoras:hexHrs, montoHorasExtras:mHex, imponible:imp, afp, comisionAFP:cAfp, porcentajeComision:pCom, nombreAFP:(t.afp||"MODELO").toUpperCase(), salud:sal, afc, totalDescuentos:desc, totalHaberesNoImp:nImp, liquido:liq, estado:"GENERADA", fechaGeneracion:new Date().toISOString() };
+  $('rl-sue').textContent=money(sb);$('rl-gbc').textContent=money(gr+bo+co); $('rl-hex').textContent=money(mHex);$('rl-imp').textContent=money(imp); $('rl-cmo').textContent=money(col+mov); $('rl-asi').textContent=money(caj+via);$('rl-afp').textContent=money(afp+cAfp); $('rl-saf').textContent=money(sal+afc);$('rl-des').textContent=money(desc); $('rl-liq').textContent=money(liq);$('lq-btn-save').disabled=false;
 }
-
 function lqSave() {
-  if(!calcObj.liq)return; 
-  const ix = DB.liqs.findIndex(x=>x.id===editId.liq);
-  if(ix>-1){ 
-    DB.liqs[ix] = {...DB.liqs[ix], ...calcObj.liq}; 
-    editId.liq = null; 
-  } else {
-    const ex = DB.liqs.findIndex(x=>String(x.trabajadorId)===String(calcObj.liq.trabajadorId)&&x.periodo===calcObj.liq.periodo);
-    if(ex>-1){ if(!confirm("Ya existe liquidación en este período. ¿Sobreescribir?")) return; DB.liqs[ex]={id:DB.liqs[ex].id,...calcObj.liq}; } 
-    else { DB.liqs.push({id:Date.now(),...calcObj.liq}); }
-  }
-  sync('liqs'); lqClear(); ['sue','gra','bon','com','col','mov','caj','via'].forEach(x=>$('lq-'+x).value=''); renderAll();
+  if(!calcObj.liq)return; const ex=DB.liq.findIndex(l=>l.trabajadorId===calcObj.liq.trabajadorId&&l.periodo===calcObj.liq.periodo);
+  if(ex>-1){if(!confirm("¿Sobreescribir?"))return; DB.liq[ex]={id:DB.liq[ex].id,...calcObj.liq};} else { DB.liq.push({id:Date.now(),...calcObj.liq}); }
+  sync('liq'); ['tra','per','sue','gra','bon','com','col','mov','caj','via'].forEach(k=>$(`lq-${k}`).value=''); lqClear(); renderAll(); alert("Guardada");
 }
-
-function lqEdit(id) {
-  const l = DB.liqs.find(x=>x.id===id); if(!l) return;
-  editId.liq = id;
-  $('lq-tra').value = l.trabajadorId; $('lq-per').value = l.periodo;
-  $('lq-sue').value = l.sueldoBase\vert{}\vert{}'';$('lq-gra').value = l.gratificacion||''; $('lq-bon').value = l.bonos\vert{}\vert{}'';$('lq-com').value = l.comisiones||'';
-  $('lq-col').value = l.colacion\vert{}\vert{}'';$('lq-mov').value = l.movilizacion||''; $('lq-caj').value = l.caja\vert{}\vert{}'';$('lq-via').value = l.viatico||'';
-  
-  lqOnTrabajador(); 
-  $('liq-editing-badge').style.display='block'; window.scrollTo(0,0);
-}
-
-function lqDel(id){ if(confirm("¿Eliminar?")){ DB.liqs=DB.liqs.filter(x=>x.id!==id); sync('liqs'); renderAll(); } }
+function lqDel(id){ if(confirm("¿Eliminar?")){ DB.liq=DB.liq.filter(x=>x.id!==id); sync('liq'); renderAll(); } }
 
 function printLiq(id){
-  const l = DB.liqs.find(x=>x.id===id); if(!l) return;
+  const l = DB.liq.find(x=>x.id===id); if(!l) return;
   const t = DB.trab.find(x=>String(x.id)===String(l.trabajadorId));
+  // La liquidación guarda la AFP en "nombreAFP" (ver lqCalc); si falta, se usa la del trabajador.
+  const afpNom = l.nombreAFP || l.afpName || (t && t.afp ? t.afp.toUpperCase() : '-');
   const v = window.open("","_blank");
   v.document.write(`
   <html>
@@ -876,9 +874,8 @@ function printLiq(id){
           <div style="font-weight:bold; font-size:12px; margin-bottom:8px; text-transform:uppercase;">${t?t.nombres+' '+t.apellidos:'-'}</div>
           <div class="info-line"><strong>Rut:</strong> ${t?t.rut:'-'}</div>
           <div class="info-line"><strong>Fecha de Ingreso:</strong> ${t&&t.fechaIngreso?fDate(t.fechaIngreso):'-'}</div>
-          <div class="info-line"><strong>Tipo de Contrato:</strong> ${t&&t.contrato?t.contrato:'Indefinido'}</div>
           <div class="info-line"><strong>Cargo:</strong> ${t?t.cargo:'-'}</div>
-          <div class="info-line"><strong>AFP:</strong> ${l.afpName}</div>
+          <div class="info-line"><strong>AFP:</strong> ${afpNom}</div>
         </td>
         <td class="col-empresa">
           <div style="font-weight:bold; font-size:12px; margin-bottom:8px; text-transform:uppercase;">INFORMACIÓN EMPRESA</div>
@@ -896,41 +893,41 @@ function printLiq(id){
       </tr>
       <tr>
         <td>
-          <div class="row-flex"><span>Sueldo Base</span><span>${money(l.sueldoBase)}</span></div>
-          <div class="row-flex"><span>Gratificación Mensual</span><span>${money(l.gratificacion)}</span></div>
-          <div class="row-flex"><span>Bonos</span><span>${money(l.bonos)}</span></div>
-          <div class="row-flex"><span>Comisiones</span><span>${money(l.comisiones)}</span></div>
-          <div class="row-flex"><span>Horas Extras</span><span>${money(l.montoHorasExtras)}</span></div>
-          <div class="total-row"><span>TOTAL IMPONIBLE</span><span>${money(l.imponible)}</span></div>
+          <div class="row-flex"><span>Sueldo Base</span><span>${fmt(l.sueldoBase)}</span></div>
+          <div class="row-flex"><span>Gratificación Mensual</span><span>${fmt(l.gratificacion)}</span></div>
+          <div class="row-flex"><span>Bonos</span><span>${fmt(l.bonos)}</span></div>
+          <div class="row-flex"><span>Comisiones</span><span>${fmt(l.comisiones)}</span></div>
+          <div class="row-flex"><span>Horas Extras</span><span>${fmt(l.montoHorasExtras)}</span></div>
+          <div class="total-row"><span>TOTAL IMPONIBLE</span><span>${fmt(l.imponible)}</span></div>
           <br>
-          <div class="row-flex"><span>Colación</span><span>${money(l.colacion)}</span></div>
-          <div class="row-flex"><span>Movilización</span><span>${money(l.movilizacion)}</span></div>
-          ${l.caja ? `<div class="row-flex"><span>Asig. Caja</span><span>${money(l.caja)}</span></div>` : ''}
-          ${l.viatico ? `<div class="row-flex"><span>Viático</span><span>${money(l.viatico)}</span></div>` : ''}
-          <div class="total-row"><span>TOTAL NO IMPONIBLE</span><span>${money(l.totalHaberesNoImp)}</span></div>
+          <div class="row-flex"><span>Colación</span><span>${fmt(l.colacion)}</span></div>
+          <div class="row-flex"><span>Movilización</span><span>${fmt(l.movilizacion)}</span></div>
+          <div class="row-flex"><span>Asignación de Caja</span><span>${fmt(l.asignacionCaja||0)}</span></div>
+          <div class="row-flex"><span>Asignación de Viático</span><span>${fmt(l.asignacionViatico||0)}</span></div>
+          <div class="total-row"><span>TOTAL NO IMPONIBLE</span><span>${fmt(l.totalHaberesNoImp)}</span></div>
           <br>
-          <div class="total-row" style="background:transparent; border-top:1px solid #cbd5e1"><span>TOTAL HABERES</span><span>${money(l.imponible + (l.totalHaberesNoImp||0))}</span></div>
+          <div class="total-row" style="background:transparent; border-top:1px solid #cbd5e1"><span>TOTAL HABERES</span><span>${fmt(l.imponible + (l.totalHaberesNoImp||0))}</span></div>
         </td>
         <td>
-          <div class="row-flex"><span>AFP (${l.afpName} ${CFG.AFP}%)</span><span>${money(l.afp)}</span></div>
-          <div class="row-flex"><span>Comisión AFP (${l.porcentajeComision||0}%)</span><span>${money(l.comisionAFP)}</span></div>
-          <div class="row-flex"><span>Salud (7%)</span><span>${money(l.salud)}</span></div>
-          <div class="row-flex"><span>Seguro Cesantía Trabajador</span><span>${money(l.afc)}</span></div>
-          <div class="total-row"><span>TOTAL DESC. LEGALES</span><span>${money(l.totalDescuentos)}</span></div>
+          <div class="row-flex"><span>AFP (${afpNom} ${CFG.AFP}%)</span><span>${fmt(l.afp)}</span></div>
+          <div class="row-flex"><span>Comisión AFP (${l.porcentajeComision}%)</span><span>${fmt(l.comisionAFP)}</span></div>
+          <div class="row-flex"><span>Salud (7%)</span><span>${fmt(l.salud)}</span></div>
+          <div class="row-flex"><span>Seguro Cesantía Trabajador</span><span>${fmt(l.afc)}</span></div>
+          <div class="total-row"><span>TOTAL DESC. LEGALES</span><span>${fmt(l.totalDescuentos)}</span></div>
           <br>
-          <div class="total-row" style="background:transparent; border-top:1px solid #cbd5e1"><span>TOTAL DESCUENTOS</span><span>${money(l.totalDescuentos)}</span></div>
+          <div class="total-row" style="background:transparent; border-top:1px solid #cbd5e1"><span>TOTAL DESCUENTOS</span><span>${fmt(l.totalDescuentos)}</span></div>
         </td>
       </tr>
     </table>
 
     <div class="alcance-liquido">
       <span>ALCANCE LÍQUIDO:</span>
-      <span>${money(l.liquido)}</span>
+      <span>${fmt(l.liquido)}</span>
     </div>
 
     <div class="footer">
       <div class="certificado">
-        Certifico que he recibido a mi entera satisfacción la suma de <strong>${money(l.liquido)}</strong> indicada en la presente liquidación, y no tengo cargo ni cobro posterior que hacer por los conceptos de esta liquidación.
+        Certifico que he recibido a mi entera satisfacción la suma de <strong>${fmt(l.liquido)}</strong> indicada en la presente liquidación, y no tengo cargo ni cobro posterior que hacer por los conceptos de esta liquidación.
       </div>
       <div class="firma-box">
         <div class="firma-line">Firma del Trabajador</div>
@@ -944,16 +941,16 @@ function printLiq(id){
 }
 
 function lqRender() {
-  $('kpi-liq-mes').textContent = DB.liqs.filter(x=>x.periodo===$('lq-per').value).length;
-  $('kpi-liq-costo').textContent = fmt(DB.liqs.reduce((a,b)=>a+(b.imponible*1.048)+(b.totalHaberesNoImp\vert{}\vert{}0),0));$('kpi-liq-pago').textContent = fmt(DB.liqs.reduce((a,b)=>a+(b.liquido||0),0));
-  const q=$('lq-bus').value.toLowerCase(), p=$('lq-bus-per').value; const tb=$('lq-tbl');
-  tb.innerHTML = DB.liqs.filter(l=>(!q||getTName(l.trabajadorId).toLowerCase().includes(q))&&(!p||l.periodo===p)).sort((a,b)=>b.periodo.localeCompare(a.periodo)).map(l=>`<tr><td style="font-family:var(--mono);font-weight:700;color:var(--muted)">${l.periodo}</td><td><b>${getTName(l.trabajadorId)}</b></td><td style="text-align:right">${fmt(l.imponible)}</td><td style="text-align:right;color:var(--red)">${fmt(l.totalDescuentos)}</td><td style="text-align:right;font-weight:800;color:var(--teal)">${fmt(l.liquido)}</td><td style="text-align:right;white-space:nowrap"><button class="act-btn small" onclick="printLiq(${l.id})">🖨️</button> <button class="act-btn small" onclick="lqEdit(${l.id})">✏️</button> <button class="act-btn small" style="color:red;border-color:#FECACA;margin-left:4px" onclick="lqDel(${l.id})">🗑️</button></td></tr>`).join('')||`<tr><td colspan="6" align="center" style="padding:40px;color:var(--muted)">Sin resultados</td></tr>`;
+  const q=$('lq-bus').value.toLowerCase(), p=$('lq-bus-per').value; const tb=$('lq-tbl'); let liqT=0;
+  const h=DB.liq.filter(l=>{ liqT+=l.liquido; return (!q||getTName(l.trabajadorId).toLowerCase().includes(q)) && (!p||l.periodo===p); }).sort((a,b)=>b.id-a.id).map(l=>`<tr><td>${l.periodo}</td><td><b>${getTName(l.trabajadorId)}</b></td><td>${money(l.imponible)}</td><td style="color:var(--red)">${money(l.totalDescuentos)}</td><td><b style="color:var(--teal)">${money(l.liquido)}</b></td><td><button class="act-btn small" onclick="printLiq(${l.id})">🖨</button> <button class="act-btn small" style="color:red" onclick="lqDel(${l.id})">🗑</button></td></tr>`).join('');
+  tb.innerHTML = h||`<tr><td colspan="6" align="center">Sin datos</td></tr>`;
+  $('k-lq-tot').textContent=DB.liq.length; $('k-lq-liq').textContent=money(liqT);
 }
 
 // ================= LIBRO REMUNERACIONES =================
 function lrClear(){ calcObj.lib=null; $('lr-res').style.display="none"; $('lr-err').style.display="none"; }
 function lrGen() {
-  const p=$('lr-per').value; if(!p)return; const d=DB.liqs.filter(l=>l.periodo===p); if(d.length===0){alert("Sin liquidaciones");lrClear();return;}
+  const p=$('lr-per').value; if(!p)return; const d=DB.liq.filter(l=>l.periodo===p); if(d.length===0){alert("Sin liquidaciones");lrClear();return;}
   const err=[]; const ts=new Set(); d.forEach(r=>{ if(ts.has(r.trabajadorId))err.push(`Duplicado: ${getTName(r.trabajadorId)}`); ts.add(r.trabajadorId); });
   if(err.length>0){ $('lr-err').style.display="block"; $('lr-err').innerHTML="Errores:<br>"+err.join("<br>"); return; } $('lr-err').style.display="none";
   const i=d.reduce((s,x)=>s+x.imponible,0), a=d.reduce((s,x)=>s+x.afp+x.comisionAFP,0), sa=d.reduce((s,x)=>s+x.salud+x.afc,0), lq=d.reduce((s,x)=>s+x.liquido,0);
@@ -961,26 +958,87 @@ function lrGen() {
   $('lrr-tra').textContent=d.length; $('lrr-imp').textContent=money(i); $('lrr-afp').textContent=money(a);$('lrr-saf').textContent=money(sa); $('lrr-liq').textContent=money(lq);$('lr-res').style.display="block";
 }
 function lrSave() {
-  if(!calcObj.lib)return; const ex=DB.libros.findIndex(x=>x.periodo===calcObj.lib.periodo);
-  if(ex>-1){if(!confirm("¿Sobreescribir?"))return; DB.libros[ex]={id:DB.libros[ex].id,...calcObj.lib};} else { DB.libros.push({id:Date.now(),...calcObj.lib}); }
-  sync('libros'); lrClear(); renderAll(); alert("Guardado");
+  if(!calcObj.lib)return; const ex=DB.lib.findIndex(x=>x.periodo===calcObj.lib.periodo);
+  if(ex>-1){if(!confirm("¿Sobreescribir?"))return; DB.lib[ex]={id:DB.lib[ex].id,...calcObj.lib};} else { DB.lib.push({id:Date.now(),...calcObj.lib}); }
+  sync('lib'); lrClear(); renderAll(); alert("Guardado");
 }
-function elimLib(id){ if(confirm("¿Eliminar?")){ DB.libros=DB.libros.filter(x=>x.id!==id); sync('libros'); renderAll(); } }
+function lrDel(id){ if(confirm("¿Eliminar?")){ DB.lib=DB.lib.filter(x=>x.id!==id); sync('lib'); renderAll(); } }
+// Columnas del Libro de Remuneraciones (Excel y PDF usan las mismas). Las
+// liquidaciones antiguas no tienen asignación de caja/viático: cuentan como 0.
+const LR_COLS = [
+  { k:'rut', h:'RUT', txt:true }, { k:'nom', h:'Trabajador', txt:true },
+  { k:'sb', h:'Sueldo Base' }, { k:'gr', h:'Gratificación' }, { k:'bo', h:'Bonos' }, { k:'co', h:'Comisiones' }, { k:'hex', h:'Horas Extras' },
+  { k:'imp', h:'Total Imponible' },
+  { k:'col', h:'Colación' }, { k:'mov', h:'Movilización' }, { k:'caj', h:'Asig. Caja' }, { k:'via', h:'Asig. Viático' }, { k:'nimp', h:'Total No Imponible' },
+  { k:'afp', h:'AFP + Comisión' }, { k:'sal', h:'Salud' }, { k:'afc', h:'AFC' }, { k:'desc', h:'Total Descuentos' },
+  { k:'liq', h:'Líquido a Pagar' }
+];
+function lrFilas(l){
+  return (l.registros||[]).map(r=>{
+    const t=getT(r.trabajadorId);
+    return { rut:t?t.rut:'-', nom:getTName(r.trabajadorId), sb:r.sueldoBase||0, gr:r.gratificacion||0, bo:r.bonos||0, co:r.comisiones||0, hex:r.montoHorasExtras||0,
+      imp:r.imponible||0, col:r.colacion||0, mov:r.movilizacion||0, caj:r.asignacionCaja||0, via:r.asignacionViatico||0, nimp:r.totalHaberesNoImp||0,
+      afp:(r.afp||0)+(r.comisionAFP||0), sal:r.salud||0, afc:r.afc||0, desc:r.totalDescuentos||0, liq:r.liquido||0 };
+  }).sort((a,b)=>a.nom.localeCompare(b.nom,'es'));
+}
+function lrTotales(filas){
+  const tot={ rut:'', nom:'TOTALES' };
+  LR_COLS.filter(c=>!c.txt).forEach(c=>{ tot[c.k]=filas.reduce((s,f)=>s+f[c.k],0); });
+  return tot;
+}
+function lrLibro(id){ return id ? DB.lib.find(x=>x.id===id) : calcObj.lib; }
+function lrPeriodoTexto(p){ const [y,m]=(p||'').split('-'); const MES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']; return m ? MES[+m-1]+' '+y : p; }
+
 async function lrXL(id){
-  const l=DB.libros.find(x=>x.id===id); if(!l||typeof ExcelJS==='undefined')return;
-  const wb=new ExcelJS.Workbook(); const ws=wb.addWorksheet(l.periodo);
-  ws.columns=[{key:'n',header:'Nombre',width:25},{key:'i',header:'Imponible',width:15},{key:'d',header:'Descuentos',width:15},{key:'l',header:'Líquido',width:15}];
-  l.registros.forEach(r=>{ const row=ws.addRow({n:getTName(r.trabajadorId),i:r.imponible,d:r.totalDescuentos,l:r.liquido}); [2,3,4].forEach(c=>row.getCell(c).numFmt="\"$\"#,##0"); });
-  const b=await wb.xlsx.writeBuffer(); const u=URL.createObjectURL(new Blob([b])); const a=document.createElement('a'); a.href=u; a.download=`Libro_${l.periodo}.xlsx`; a.click();
+  const l=lrLibro(id); if(!l) return;
+  if(typeof ExcelJS==='undefined'){ alert('No se pudo cargar el generador de Excel. Revisa tu conexión y recarga la página.'); return; }
+  const filas=lrFilas(l), tot=lrTotales(filas);
+  const wb=new ExcelJS.Workbook(); wb.creator='Creamos Imagen'; wb.created=new Date();
+  const ws=wb.addWorksheet('Libro '+l.periodo, { views:[{ state:'frozen', ySplit:4, xSplit:2 }] });
+  ws.columns=LR_COLS.map(c=>({ key:c.k, width:c.k==='nom'?28:(c.k==='rut'?13:14) }));
+  ws.mergeCells(1,1,1,LR_COLS.length);
+  const t1=ws.getCell(1,1); t1.value='CREAMOS IMAGEN LTDA. — LIBRO DE REMUNERACIONES '+lrPeriodoTexto(l.periodo).toUpperCase();
+  t1.font={ bold:true, size:14, color:{argb:'FFFFFFFF'} }; t1.fill={ type:'pattern', pattern:'solid', fgColor:{argb:'FF1E3A8A'} };
+  ws.mergeCells(2,1,2,LR_COLS.length);
+  ws.getCell(2,1).value='RUT 76.460.575-6 · Estado: '+(l.estado||'-')+' · Trabajadores: '+filas.length;
+  ws.getCell(2,1).font={ italic:true, color:{argb:'FF475569'} };
+  const hr=ws.getRow(4); LR_COLS.forEach((c,i)=>{ const cell=hr.getCell(i+1); cell.value=c.h; cell.font={ bold:true, color:{argb:'FFFFFFFF'} }; cell.fill={ type:'pattern', pattern:'solid', fgColor:{argb:'FF1E40AF'} }; cell.alignment={ wrapText:true, vertical:'middle' }; });
+  hr.height=32;
+  const monFmt='"$"#,##0';
+  filas.forEach(f=>{ const row=ws.addRow(f); LR_COLS.forEach((c,i)=>{ if(!c.txt) row.getCell(i+1).numFmt=monFmt; }); });
+  const tr=ws.addRow(tot); tr.eachCell({ includeEmpty:true }, cell=>{ cell.font={ bold:true }; cell.fill={ type:'pattern', pattern:'solid', fgColor:{argb:'FFDBEAFE'} }; cell.border={ top:{ style:'double', color:{argb:'FF1E3A8A'} } }; });
+  LR_COLS.forEach((c,i)=>{ if(!c.txt) tr.getCell(i+1).numFmt=monFmt; });
+  const b=await wb.xlsx.writeBuffer(); const u=URL.createObjectURL(new Blob([b],{ type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+  const a=document.createElement('a'); a.href=u; a.download=`Libro_Remuneraciones_${l.periodo}.xlsx`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),2000);
+}
+
+function lrPDF(id){
+  const l=lrLibro(id); if(!l) return;
+  if(!window.jspdf||!window.jspdf.jsPDF){ alert('No se pudo cargar el generador de PDF. Revisa tu conexión y recarga la página.'); return; }
+  const filas=lrFilas(l), tot=lrTotales(filas);
+  const { jsPDF }=window.jspdf; const doc=new jsPDF({ orientation:'landscape', unit:'pt', format:'legal' });
+  doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.setTextColor(30,58,138);
+  doc.text('Libro de Remuneraciones — '+lrPeriodoTexto(l.periodo), 30, 36);
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(80);
+  doc.text('Creamos Imagen Ltda. · RUT 76.460.575-6 · Estado: '+(l.estado||'-')+' · Trabajadores: '+filas.length+' · Generado el '+fechaChileTexto(null,{ day:'2-digit', month:'long', year:'numeric' },'es-CL'), 30, 52);
+  const m=v=>'$'+Math.round(v||0).toLocaleString('es-CL');
+  const aFila=f=>LR_COLS.map(c=>c.txt ? f[c.k] : m(f[c.k]));
+  doc.autoTable({
+    startY:64, head:[LR_COLS.map(c=>c.h)], body:filas.map(aFila), foot:[aFila(tot)],
+    styles:{ fontSize:7, cellPadding:3, halign:'right' }, columnStyles:{ 0:{ halign:'left' }, 1:{ halign:'left', cellWidth:110 } },
+    headStyles:{ fillColor:[30,64,175], textColor:255, halign:'center', valign:'middle' },
+    footStyles:{ fillColor:[219,234,254], textColor:[30,58,138], fontStyle:'bold' },
+    alternateRowStyles:{ fillColor:[245,247,250] }, margin:{ left:30, right:30 }
+  });
+  doc.save(`Libro_Remuneraciones_${l.periodo}.pdf`);
 }
 function lrRender() {
-  $('kpi-lib-tot').textContent=DB.libros.length;
-  $('tablaLibros').innerHTML = DB.libros.sort((a,b)=>b.periodo.localeCompare(a.periodo)).map(l=>`<tr><td style="font-family:var(--mono);font-weight:700">${l.periodo}</td><td align="center">${l.numTrabajadores}</td><td align="right">${money(l.imponible)}</td><td align="right" class="text-teal"><b>${money(l.liquidos)}</b></td><td align="center"><span class="badge ${l.estado==='Cerrado'?'bdg-act':l.estado==='Validado'?'bdg-ok':'bdg-pen'}">${l.estado}</span></td><td align="right" style="white-space:nowrap"><button class="act-btn small" onclick="lrXL(${l.id})">⬇ Excel</button> <button class="act-btn small" style="color:red;border-color:#FECACA;margin-left:4px" onclick="elimLib(${l.id})">🗑️</button></td></tr>`).join('') || `<tr><td colspan="6" align="center">Sin datos</td></tr>`;
+  const tb=$('lr-tbl'); tb.innerHTML = DB.lib.sort((a,b)=>b.id-a.id).map(l=>`<tr><td><b>${l.periodo}</b></td><td align="center">${l.numTrabajadores}</td><td align="right">${money(l.imponible)}</td><td align="right" class="text-teal"><b>${money(l.liquidos)}</b></td><td align="center"><span class="badge ${l.estado==='Cerrado'?'bdg-act':l.estado==='Validado'?'bdg-ok':'bdg-pen'}">${l.estado}</span></td><td align="right" style="white-space:nowrap"><button class="act-btn small" onclick="lrXL(${l.id})">⬇ Excel</button> <button class="act-btn small" onclick="lrPDF(${l.id})">⬇ PDF</button> <button class="act-btn small" style="color:red" onclick="lrDel(${l.id})">🗑</button></td></tr>`).join('') || `<tr><td colspan="6" align="center">Sin datos</td></tr>`;
 }
 
 // ================= PREVIRED =================
 function prGen(){
-  const p=$('pr-per').value; if(!p)return; const d=DB.liqs.filter(l=>l.periodo===p); if(d.length===0){alert("Sin liquidaciones");return;}
+  const p=$('pr-per').value; if(!p)return; const d=DB.liq.filter(l=>l.periodo===p); if(d.length===0){alert("Sin liquidaciones");return;}
   const reg=d.map(l=>{
     const t=getT(l.trabajadorId); const af=(t?t.afp:"MODELO").toUpperCase(); const c=CFG.C_AFP[af]||0.58; const i=l.imponible;
     return { trId:l.trabajadorId, rut:t?t.rut:"-", nom:t?`${t.nombres} ${t.apellidos}`:"-", afpNom:af, imp:i, afp:i*(CFG.AFP/100), com:i*(c/100), sal:i*(CFG.SAL/100), afc:i*(CFG.AFC/100) };
@@ -1002,18 +1060,75 @@ function prCSV(){
   const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([c],{type:'text/csv'})); a.download=`Previred_${calcObj.prev.periodo}.csv`; a.click();
 }
 function prRender(){
-  $('kpi-prev-nom').textContent=DB.prev.length; $('kpi-prev-tot').textContent=fmt(DB.prev.reduce((a,b)=>a+(b.totGen\vert{}\vert{}0),0));$('pr-tbl').innerHTML = DB.prev.sort((a,b)=>b.periodo.localeCompare(a.periodo)).map(n=>`<tr><td style="font-family:var(--mono);font-weight:700">${n.periodo}</td><td align="center">${n.registros.length}</td><td align="right" class="text-teal"><b>${money(n.totGen)}</b></td><td align="right"><button class="act-btn small" onclick="prCSVId(${n.id})">⬇ CSV</button> <button class="act-btn small" style="color:red;border-color:#FECACA" onclick="prDel(${n.id})">🗑️</button></td></tr>`).join('') || `<tr><td colspan="4" align="center">Sin datos</td></tr>`;
+  const tb=$('pr-tbl'); tb.innerHTML = DB.prev.sort((a,b)=>b.id-a.id).map(n=>`<tr><td><b>${n.periodo}</b></td><td align="center">${n.registros.length}</td><td align="right" class="text-teal"><b>${money(n.totGen)}</b></td><td align="right"><button class="act-btn small" onclick="prCSVId(${n.id})">⬇ CSV</button> <button class="act-btn small" style="color:red" onclick="prDel(${n.id})">🗑</button></td></tr>`).join('') || `<tr><td colspan="4" align="center">Sin datos</td></tr>`;
 }
 
 // ================= FINIQUITOS =================
-function fqClear(){ calcObj.fini=null; $('fq-btn-save').disabled=true; ['ias','avi','vac','tot'].forEach(k=>$(`rf-${k}`).textContent='$0'); }
+function fqClear(){ calcObj.fini=null; $('fq-btn-save').disabled=true; ['ias','avi','vac','tot'].forEach(k=>$(`rf-${k}`).textContent='$0'); fqAutoVac(); }
+
+function fmtDias(n){ return (Math.round((n||0)*100)/100).toLocaleString('es-CL'); }
+
+// Vacaciones del finiquito, calculadas automáticamente (art. 67 y 73 del
+// Código del Trabajo):
+//  - Se ganan 15 días hábiles por año (1,25 por mes trabajado).
+//  - Pendientes: los ganados por años completos, menos los días de
+//    vacaciones Aprobadas registradas en la sección Vacaciones.
+//  - Proporcionales: 1,25 días hábiles por mes desde el último aniversario
+//    (los días sueltos cuentan como fracción de mes).
+//  - Para pagarlas, los días hábiles se convierten a corridos contando desde
+//    el día siguiente al término, sumando sábados, domingos y feriados.
+// No considera el feriado progresivo (días extra por más de 10 años).
+function aUTCdia(s){ return Date.UTC(+s.slice(0,4), +s.slice(5,7)-1, +s.slice(8,10)); }
+function mesesEntre(ini, fin){
+  const a=[+ini.slice(0,4), +ini.slice(5,7), +ini.slice(8,10)], b=[+fin.slice(0,4), +fin.slice(5,7), +fin.slice(8,10)];
+  let meses=(b[0]-a[0])*12+(b[1]-a[1]); let dias=b[2]-a[2];
+  if(dias<0){ meses--; dias+=30; }
+  return Math.max(0, meses + dias/30);
+}
+function habilesACorridos(desdeISO, habiles){
+  if(habiles<=0) return 0;
+  let dia=aUTCdia(desdeISO)+86400000, corridos=0, restantes=habiles;
+  while(restantes>=1){
+    const d=new Date(dia); const dow=d.getUTCDay();
+    corridos++;
+    if(dow!==0 && dow!==6 && !FER.includes(d.toISOString().slice(0,10))) restantes--;
+    dia+=86400000;
+  }
+  return corridos + restantes; // la fracción final de día se suma tal cual
+}
+function fqVacaciones(t, ter){
+  if(!t || !t.fechaIngreso || !ter || ter<t.fechaIngreso) return null;
+  const meses=mesesEntre(t.fechaIngreso, ter);
+  const anios=Math.floor(meses/12);
+  const ganadosAnios=15*anios;
+  const usados=DB.vac.filter(v=>String(v.trabajadorId)===String(t.id)&&v.estado==="Aprobada").reduce((s,v)=>s+(Number(v.dias)||0),0);
+  let pend=ganadosAnios-usados, prop=1.25*(meses-anios*12);
+  if(pend<0){ prop=Math.max(0, prop+pend); pend=0; } // si usó más de lo ganado por años, se descuenta del proporcional
+  pend=Math.round(pend*100)/100; prop=Math.round(prop*100)/100;
+  return { meses, anios, ganados:Math.round((ganadosAnios+1.25*(meses-anios*12))*100)/100, usados, pend, prop, corridos:Math.round(habilesACorridos(ter, pend+prop)*100)/100 };
+}
+function fqAutoVac(){
+  const t=getT($('fq-tra').value), ter=$('fq-ter').value, nota=$('fq-vac-nota');
+  const v=fqVacaciones(t, ter);
+  $('fq-vpe').value = v ? v.pend : ''; $('fq-vpr').value = v ? v.prop : '';
+  if(!nota) return;
+  if(!t || !ter) nota.textContent='Selecciona el trabajador y la fecha de término para calcular las vacaciones.';
+  else if(!t.fechaIngreso) nota.textContent='El trabajador no tiene fecha de ingreso registrada: complétala en Trabajadores para calcular las vacaciones.';
+  else if(!v) nota.textContent='La fecha de término es anterior a la fecha de ingreso.';
+  else nota.textContent=`Ganados: ${fmtDias(v.ganados)} días hábiles (${fmtDias(v.meses)} meses trabajados) · Usados (vacaciones aprobadas): ${fmtDias(v.usados)} · A pagar: ${fmtDias(v.pend+v.prop)} días hábiles = ${fmtDias(v.corridos)} días corridos.`;
+}
+
 function fqCalc(){
-  const tid=$('fq-tra').value, ter=$('fq-ter').value; if(!tid||!ter)return; const t=getT(tid); if(!t)return;
-  const l=DB.liqs.filter(x=>String(x.trabajadorId)===tid).sort((a,b)=>new Date(b.fechaGeneracion)-new Date(a.fechaGeneracion))[0]; if(!l){alert("Requiere liquidación previa");return;}
+  const tid=$('fq-tra').value, ter=$('fq-ter').value;
+  if(!tid){ alert('Selecciona el trabajador.'); return; }
+  if(!ter){ alert('Ingresa la fecha de término.'); return; }
+  const t=getT(tid); if(!t)return;
+  const l=DB.liq.filter(x=>String(x.trabajadorId)===tid).sort((a,b)=>new Date(b.fechaGeneracion)-new Date(a.fechaGeneracion))[0]; if(!l){alert("Requiere liquidación previa");return;}
   const imp=Number(l.imponible)||0; let a=0; if(t.fechaIngreso){ const diff=new Date(ter)-new Date(t.fechaIngreso); a=Math.max(0,Math.min(11,Math.floor(diff/31536000000)+(diff%31536000000>15768000000?1:0))); }
   const cau=$('fq-cau').value; let ias=0, avi=0; if(cau==="161"){ias=imp*a; if($('fq-avi').value==="NO")avi=imp;}
-  const vp=(Number($('fq-vpe').value)\vert{}\vert{}0)+(Number($('fq-vpr').value)||0); const vVac=(imp/30)*vp; const tot=ias+avi+vVac;
-  calcObj.fini={trabajadorId:tid,fechaTermino:ter,causal:cau,sueldoBaseImponible:imp,aniosReconocidos:a,ias,aviso:avi,vacaciones:vVac,total:tot};
+  const vac=fqVacaciones(t, ter) || { pend:0, prop:0, corridos:0 };
+  const vVac=(imp/30)*vac.corridos; const tot=ias+avi+vVac;
+  calcObj.fini={trabajadorId:tid,fechaTermino:ter,causal:cau,sueldoBaseImponible:imp,aniosReconocidos:a,ias,aviso:avi,vacPendientes:vac.pend,vacProporcionales:vac.prop,vacCorridos:vac.corridos,vacaciones:vVac,valorVacaciones:vVac,total:tot};
   $('rf-ias').textContent=money(ias); $('rf-avi').textContent=money(avi);$('rf-vac').textContent=money(vVac); $('rf-tot').textContent=money(tot);$('fq-btn-save').disabled=false;
 }
 function fqSave(){
@@ -1024,6 +1139,7 @@ function fqDel(id){ if(confirm("¿Eliminar?")){ DB.fini=DB.fini.filter(x=>x.id!=
 function printFin(id){
   const f = DB.fini.find(x=>x.id===id); if(!f) return;
   const t = DB.trab.find(x=>String(x.id)===String(f.trabajadorId));
+  
   let descCausal = "";
   if(f.causal === "159") descCausal = "Renuncia / Mutuo Acuerdo / Plazo";
   if(f.causal === "160") descCausal = "Despido sin derecho a indemnización";
@@ -1074,8 +1190,8 @@ function printFin(id){
         <td>${fmt(f.aviso)}</td>
       </tr>
       <tr>
-        <td>Indemnización Vacaciones (Pendientes y Proporcionales)</td>
-        <td>${fmt(f.valorVacaciones || f.vacaciones)}</td>
+        <td>Indemnización Vacaciones (Pendientes y Proporcionales)${f.vacCorridos!=null ? `<div style="font-size:10px;color:#64748b;margin-top:3px">${fmtDias(f.vacPendientes)} días hábiles pendientes + ${fmtDias(f.vacProporcionales)} proporcionales = ${fmtDias(f.vacCorridos)} días corridos</div>` : ''}</td>
+        <td>${fmt(f.valorVacaciones!=null ? f.valorVacaciones : f.vacaciones)}</td>
       </tr>
       <tr class="total-row">
         <td style="padding-top:20px;">TOTAL A PAGAR</td>
@@ -1104,8 +1220,8 @@ function printFin(id){
 }
 
 function fqRender(){
-  $('kpi-fin-tot').textContent=DB.fins.length; $('kpi-fin-pago').textContent=fmt(DB.fins.reduce((a,b)=>a+(b.total||0),0));
-  const q=$('fq-bus').value.toLowerCase();$('fq-tbl').innerHTML = DB.fins.filter(f=>!q||getTName(f.trabajadorId).toLowerCase().includes(q)).sort((a,b)=>new Date(b.fechaTermino)-new Date(a.fechaTermino)).map(f=>`<tr><td style="font-family:var(--mono)">${fDate(f.fechaTermino)}</td><td><b>${getTName(f.trabajadorId)}</b></td><td>Art. ${f.causal}</td><td style="text-align:right;font-weight:800;color:var(--teal)">${fmt(f.total)}</td><td style="text-align:right"><button class="act-btn small" onclick="printFin(${f.id})">🖨️</button> <button class="act-btn small" style="color:red;border-color:#FECACA;margin-left:4px" onclick="elimFin(${f.id})">🗑️</button></td></tr>`).join('') || `<tr><td colspan="5" align="center" style="padding:40px;color:var(--muted)">Sin resultados</td></tr>`;
+  const tb=$('fq-tbl'); const q=$('fq-bus').value.toLowerCase();
+  tb.innerHTML = DB.fini.filter(f=>!q||getTName(f.trabajadorId).toLowerCase().includes(q)).sort((a,b)=>b.id-a.id).map(f=>`<tr><td>${fDate(f.fechaTermino)}</td><td><b>${getTName(f.trabajadorId)}</b></td><td>Art. ${f.causal}</td><td class="text-teal"><b>${money(f.total)}</b></td><td><button class="act-btn small" onclick="printFin(${f.id})">🖨</button> <button class="act-btn small" style="color:red" onclick="fqDel(${f.id})">🗑</button></td></tr>`).join('') || `<tr><td colspan="5" align="center">Sin datos</td></tr>`;
 }
 
 // ================= DOCUMENTOS =================
@@ -1117,16 +1233,17 @@ function doSave(){
 function doDel(id){ if(confirm("¿Eliminar?")){ DB.doc=DB.doc.filter(x=>x.id!==id); sync('doc'); renderAll(); } }
 function doDL(id){ const d=DB.doc.find(x=>x.id===id); if(!d)return; const a=document.createElement('a'); a.href=d.base64; a.download=d.nombre; a.click(); }
 function doRender(){
-  $('k-dc-tra').textContent=new Set(DB.doc.map(x=>x.trabajadorId)).size; $('k-dc-tot').textContent=DB.doc.length; const q=$('do-bus').value.toLowerCase();$('do-tbl').innerHTML = DB.doc.filter(d=>!q||getTName(d.trabajadorId).toLowerCase().includes(q)||d.nombre.toLowerCase().includes(q)).sort((a,b)=>b.id-a.id).map(d=>`<tr><td><b>${getTName(d.trabajadorId)}</b></td><td><span class="badge bdg-inact">${d.categoria}</span></td><td>${d.nombre}</td><td style="font-family:var(--mono)">${fDate(new Date(d.id).toISOString().slice(0,10))}</td><td style="text-align:right"><button class="act-btn small" onclick="doDL(${d.id})">⬇</button> <button class="act-btn small" style="color:red;border-color:#FECACA" onclick="doDel(${d.id})">🗑️</button></td></tr>`).join('') || `<tr><td colspan="5" align="center" style="padding:40px;color:var(--muted)">Sin datos</td></tr>`;
+  const tb=$('do-tbl'); const q=$('do-bus').value.toLowerCase();
+  tb.innerHTML = DB.doc.filter(d=>!q||getTName(d.trabajadorId).toLowerCase().includes(q)||d.nombre.toLowerCase().includes(q)).sort((a,b)=>b.id-a.id).map(d=>`<tr><td><b>${getTName(d.trabajadorId)}</b></td><td><span class="badge bdg-inact">${d.categoria}</span></td><td>${d.nombre}</td><td>${fDate(hoyChile(new Date(d.id)))}</td><td><button class="act-btn small" onclick="doDL(${d.id})">⬇</button> <button class="act-btn small" style="color:red" onclick="doDel(${d.id})">🗑</button></td></tr>`).join('') || `<tr><td colspan="5" align="center">Sin datos</td></tr>`;
 }
 
 // ================= REPORTES =================
 function rpRender(){
-  if(activeTab!=='p-rep')return; const p=$('rp-per').value, a=$('rp-are').value; const tf=DB.trab.filter(t=>t.estado==="Activo"&&(!a||t.area===a)); const tid=new Set(tf.map(t=>String(t.id)));
+  const p=$('rp-per').value, a=$('rp-are').value; const tf=DB.trab.filter(t=>t.estado==="Activo"&&(!a||t.area===a)); const setT=new Set(tf.map(t=>String(t.id)));
   $('kr-tra').textContent=tf.length;
-  const cst=DB.liqs.filter(l=>l.periodo===p&&tid.has(String(l.trabajadorId))).reduce((s,l)=>s+(l.imponible*1.048)+(l.totalHaberesNoImp||0),0); $('kr-cos').textContent=money(cst);
-  const hx=DB.asis.filter(x=>(x.fecha||"").startsWith(p)&&tid.has(String(x.trabajadorId))).reduce((s,x)=>s+(x.horasExtras||0),0); $('kr-hex').textContent=hx.toFixed(1);
-  const dl=DB.lic.filter(l=>((l.fechaInicio||"").startsWith(p)||(l.fechaFin||"").startsWith(p))&&tid.has(String(l.trabajadorId))).reduce((s,l)=>s+(l.dias||0),0);
+  const cst=DB.liq.filter(l=>l.periodo===p&&setT.has(String(l.trabajadorId))).reduce((s,l)=>s+(l.imponible*1.048)+(l.totalHaberesNoImp||0),0); $('kr-cos').textContent=money(cst);
+  const hx=DB.asis.filter(x=>(x.fecha||"").startsWith(p)&&setT.has(String(x.trabajadorId))).reduce((s,x)=>s+(x.horasExtras||0),0); $('kr-hex').textContent=hx.toFixed(1);
+  const dl=DB.lic.filter(l=>((l.fechaInicio||"").startsWith(p)||(l.fechaFin||"").startsWith(p))&&setT.has(String(l.trabajadorId))).reduce((s,l)=>s+(l.dias||0),0);
   $('kr-aus').textContent = (tf.length*30>0 ? ((dl/(tf.length*30))*100).toFixed(1) : 0) + "%";
 
   if(!window.Chart)return;
@@ -1135,17 +1252,18 @@ function rpRender(){
   const cDot={}; tf.forEach(t=>{const ar=t.area||"Sin Área";cDot[ar]=(cDot[ar]||0)+1;});
   charts.dotacion=new Chart($('ch-dot').getContext('2d'),{type:'doughnut',data:{labels:Object.keys(cDot),datasets:[{data:Object.values(cDot),backgroundColor:['#0D7A6B','#C8973A','#1E40AF','#C0392B','#6D28D9']}]},options:{responsive:true,maintainAspectRatio:false}});
 
-  const liq=DB.liqs.filter(l=>l.periodo===p&&tid.has(String(l.trabajadorId)));
+  const liq=DB.liq.filter(l=>l.periodo===p&&setT.has(String(l.trabajadorId)));
   const cImp=liq.reduce((s,l)=>s+l.imponible,0), cDes=liq.reduce((s,l)=>s+l.totalDescuentos,0), cLiq=liq.reduce((s,l)=>s+l.liquido,0);
-  charts.costo=new Chart($('ch-cos').getContext('2d'),{type:'bar',data:{labels:['Imponible','Descuentos','Líquido'],datasets:[{label:'Monto ($)',data:[cImp,cDes,cLiq],backgroundColor:['#1E40AF','#C0392B','#0D7A6B']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+  charts.costo=new Chart($('ch-cos').getContext('2d'),{type:'bar',data:{labels:['Imponible','Descuentos','Líquido'],datasets:[{data:[cImp,cDes,cLiq],backgroundColor:['#1E40AF','#C0392B','#0D7A6B']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
 
-  const cHx={}; DB.asis.filter(x=>(x.fecha||"").startsWith(p)&&tid.has(String(x.trabajadorId))).forEach(x=>{const t=getT(x.trabajadorId);if(t&&x.horasExtras>0){const ar=t.area||"N/A";cHrs[ar]=(cHrs[ar]||0)+x.horasExtras;}});
-  charts.horas=new Chart($('ch-hex').getContext('2d'),{type:'bar',data:{labels:Object.keys(cHrs),datasets:[{label:'Horas Extras',data:Object.values(cHrs),backgroundColor:'#C8973A'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+  const cHx={}; DB.asis.filter(x=>(x.fecha||"").startsWith(p)&&setT.has(String(x.trabajadorId))).forEach(x=>{const t=getT(x.trabajadorId);if(t&&x.horasExtras>0){const ar=t.area||"N/A";cHx[ar]=(cHx[ar]||0)+x.horasExtras;}});
+  charts.horas=new Chart($('ch-hex').getContext('2d'),{type:'bar',data:{labels:Object.keys(cHx),datasets:[{data:Object.values(cHx),backgroundColor:'#C8973A'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
 
-  const cLic={}; DB.lic.filter(l=>((l.fechaInicio||"").startsWith(p)||(l.fechaFin||"").startsWith(p))&&tid.has(String(l.trabajadorId))).forEach(l=>{cLic[l.tipo]=(cLic[l.tipo]||0)+l.dias;});
+  const cLic={}; DB.lic.filter(l=>((l.fechaInicio||"").startsWith(p)||(l.fechaFin||"").startsWith(p))&&setT.has(String(l.trabajadorId))).forEach(l=>{cLic[l.tipo]=(cLic[l.tipo]||0)+l.dias;});
   charts.licencias=new Chart($('ch-lic').getContext('2d'),{type:'pie',data:{labels:Object.keys(cLic),datasets:[{data:Object.values(cLic),backgroundColor:['#C0392B','#B45309','#6D28D9']}]},options:{responsive:true,maintainAspectRatio:false}});
 }
 
+window.onload=function(){ init().finally(ocultarCargando); };
 </script>
 </body>
 </html>
