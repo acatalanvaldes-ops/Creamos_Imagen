@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mi Portal - Creamos Imagen</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F7F5F0;--surface:#FFFFFF;--dark:#1C1917;--gold:#C8973A;--teal:#0D7A6B;--red:#C0392B;--muted:#78716C;--border:#E7E2D9;--blue:#1E40AF;--amber:#B45309;--mono:'DM Mono',monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--dark);min-height:100vh}
+input,select,button,textarea{font-family:inherit;outline:none}
+
+/* TOPBAR */
+.topbar{background:var(--dark);padding:10px 24px;display:flex;align-items:center;flex-wrap:wrap;gap:10px;position:sticky;top:0;z-index:100;min-height:65px;box-shadow:0 4px 12px rgba(0,0,0,0.1);justify-content:space-between}
+.brand{display:flex;align-items:center;gap:12px;}
+.menu-link{color:#fff;text-decoration:none;font-size:12px;font-weight:700;background:rgba(255,255,255,0.15);padding:6px 12px;border-radius:6px}
+.menu-link:hover{background:rgba(255,255,255,0.25)}
+.brand-name{font-family:'DM Serif Display',serif;font-size:20px;color:#fff;line-height:1.1}
+.brand-name span{color:var(--gold)}
+.user-profile{display:flex;align-items:center;gap:12px;}
+.user-avatar{width:36px;height:36px;border-radius:50%;background:var(--gold);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0}
+.user-info{display:flex;flex-direction:column;color:#fff;text-align:right}
+.user-name{font-size:13px;font-weight:700;}
+.user-role{font-size:10px;color:var(--gold);text-transform:uppercase;letter-spacing:1px}
+.logout-btn{background:none;border:1px solid rgba(255,255,255,0.2);color:#fff;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;transition:0.2s}
+.logout-btn:hover{background:var(--red);border-color:var(--red)}
+
+/* BARRA "VER COMO" (solo administradores) */
+.admin-bar{background:#FEF3E2;border-bottom:1px solid #FDE68A;color:var(--amber);font-size:12px;padding:8px 24px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.admin-bar select{border:1px solid #FDE68A;border-radius:6px;padding:5px 8px;font-size:12px;background:#fff;color:var(--dark);max-width:100%}
+
+/* NAVIGATION */
+.nav-tabs{background:#fff;border-bottom:1px solid var(--border);padding:0 24px;display:flex;gap:24px;overflow-x:auto}
+.ntab{background:none;border:none;color:var(--muted);font-size:13px;font-weight:600;padding:16px 0;cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;white-space:nowrap;}
+.ntab:hover{color:var(--dark)}
+.ntab.on{color:var(--gold);border-bottom-color:var(--gold)}
+
+/* CONTENT & PANELS */
+.content{padding:24px;max-width:1000px;margin:0 auto;}
+.panel{display:none;animation:fadeIn 0.3s ease;}
+.panel.on{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+
+/* UI COMPONENTS */
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px;box-shadow:0 4px 12px rgba(0,0,0,0.02)}
+.card-title{font-size:14px;font-weight:700;color:var(--dark);text-transform:uppercase;letter-spacing:1px;margin-bottom:20px;border-bottom:2px solid var(--bg);padding-bottom:10px;}
+.act-btn{background:#fff;border:1.5px solid var(--border);color:var(--dark);padding:9px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:6px;}
+.act-btn:hover{border-color:var(--gold);color:var(--gold)}
+.act-btn.primary{background:var(--gold);border-color:var(--gold);color:#fff}
+.act-btn.primary:hover{background:#B8872A;color:#fff}
+.act-btn.small{padding:6px 10px;font-size:12px}
+.act-btn:disabled{opacity:.6;cursor:not-allowed}
+.act-btn.danger{color:var(--red)}
+.act-btn.danger:hover{border-color:var(--red);color:var(--red)}
+.aviso{border-radius:8px;padding:10px 14px;font-size:12px;margin-bottom:16px;line-height:1.5}
+.aviso.warn{background:#FEF3E2;border:1px solid #FDE68A;color:var(--amber)}
+.aviso.info{background:#EFF6FF;border:1px solid #BFDBFE;color:var(--blue)}
+.nota{font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5}
+
+/* KPIS */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-bottom:24px;}
+.kpi{background:var(--surface);border:1px solid var(--border);padding:20px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.02)}
+.kpi-label{font-size:10px;text-transform:uppercase;font-weight:700;color:var(--muted);margin-bottom:8px;letter-spacing:0.5px}
+.kpi-value{font-size:30px;font-weight:800;color:var(--dark);line-height:1}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:6px}
+.text-teal{color:var(--teal)} .text-amber{color:var(--amber)} .text-blue{color:var(--blue)}
+
+/* FORMS */
+.fld{margin-bottom:4px;}
+.fld label{display:block;font-size:10px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px}
+.fld input,.fld select,.fld textarea{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;font-size:14px;color:var(--dark);font-weight:600;}
+.fld input:focus,.fld select:focus{border-color:var(--gold);background:#fff;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.resumen{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:10px}
+.resumen div{display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px}
+.resumen div:last-child{margin-bottom:0}
+
+/* TABLES */
+.table-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--border);background:#fff}
+table.tbl{width:100%;border-collapse:collapse;min-width:520px;font-size:13px}
+table.tbl th{background:var(--bg);color:var(--muted);font-size:10px;text-transform:uppercase;padding:12px 14px;text-align:left;letter-spacing:0.5px;border-bottom:1px solid var(--border)}
+table.tbl td{padding:11px 14px;border-bottom:1px solid var(--border);vertical-align:middle;color:var(--dark);font-weight:500}
+table.tbl tr:last-child td{border-bottom:none}
+table.tbl td.vacio{text-align:center;padding:28px;color:var(--muted)}
+.num{text-align:right;font-family:var(--mono)}
+.badge{padding:4px 10px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;display:inline-block}
+.bdg-act{background:#DCFCE7;color:#166534;border:1px solid #BBF7D0}
+.bdg-pen{background:#FEF3E2;color:#B45309;border:1px solid #FDE68A}
+.bdg-err{background:#FEF2F2;color:#991B1B;border:1px solid #FECACA}
+.bdg-inf{background:#EFF6FF;color:#1E40AF;border:1px solid #BFDBFE}
+
+/* PROFILE BOX */
+.profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.p-box{background:var(--bg);padding:16px;border-radius:8px;border:1px solid var(--border);min-width:0}
+.p-box span{display:block;font-size:10px;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:4px}
+.p-box strong{font-size:15px;color:var(--dark);overflow-wrap:anywhere}
+
+/* ESTADOS DE PANTALLA COMPLETA (sin acceso / error) */
+.estado-box{max-width:460px;margin:60px auto;background:#fff;border:1px solid var(--border);border-radius:16px;padding:36px;text-align:center}
+.estado-box h2{font-family:'DM Serif Display',serif;font-size:22px;margin-bottom:10px}
+.estado-box p{color:var(--muted);font-size:14px;line-height:1.6;margin-bottom:20px}
+
+@media (max-width:720px){
+  .topbar{padding:10px 16px}
+  .nav-tabs,.admin-bar{padding-left:16px;padding-right:16px}
+  .content{padding:16px}
+  .two-col,.profile-grid{grid-template-columns:1fr}
+  .user-info{display:none}
+  .kpi-value{font-size:26px}
+}
+</style>
+</head>
+<body>
+<script src="cargando.js"></script>
+<script src="hora-chile.js"></script>
+<script src="feriados-chile.js"></script>
+<script>
+// Mi Portal usa la misma sesión de Google del menú principal (index.html).
+// Sin sesión válida se vuelve al menú para iniciar sesión.
+(function(){
+  var sess = null;
+  try { sess = JSON.parse(localStorage.getItem('cimagen_session')); } catch(e){}
+  var valid = sess && sess.email && sess.ts && (Date.now() - sess.ts < 24 * 60 * 60 * 1000);
+  if (!valid) window.location.replace('index.html');
+})();
+</script>
+
+<div class="topbar">
+  <div class="brand">
+    <a href="index.html" class="menu-link" id="menu-link">← Menú</a>
+    <div class="brand-name">Mi <span>Portal</span></div>
+  </div>
+  <div class="user-profile">
+    <div class="user-info">
+      <div class="user-name" id="ui-name">—</div>
+      <div class="user-role" id="ui-role"></div>
+    </div>
+    <div class="user-avatar" id="ui-avatar"></div>
+    <button class="logout-btn" onclick="cerrarSesion()">Salir</button>
+  </div>
+</div>
+
+<div class="admin-bar" id="admin-bar" style="display:none">
+  <span>👁️ <b>Vista de administrador:</b> ver el portal como</span>
+  <select id="admin-sel" onchange="verComo(this.value)"></select>
+  <span id="admin-nota"></span>
+</div>
+
+<div id="sin-acceso" style="display:none"></div>
+
+<div id="app-container" style="display:none">
+  <div class="nav-tabs">
+    <button class="ntab on" onclick="showTab('inicio', this)">👤 Mi Ficha</button>
+    <button class="ntab" onclick="showTab('liquidaciones', this)">💰 Liquidaciones</button>
+    <button class="ntab" onclick="showTab('vacaciones', this)">🏖️ Vacaciones</button>
+    <button class="ntab" onclick="showTab('asistencia', this)">🕒 Asistencia y Licencias</button>
+    <button class="ntab" onclick="showTab('documentos', this)">📁 Documentos</button>
+  </div>
+
+  <div class="content">
+    <div id="aviso-carga" class="aviso warn" style="display:none"></div>
+
+    <!-- INICIO / FICHA -->
+    <div class="panel on" id="p-inicio">
+      <div class="kpis">
+        <div class="kpi"><div class="kpi-label">Vacaciones disponibles</div><div class="kpi-value text-teal" id="kp-vac">—</div><div class="kpi-sub" id="kp-vac-sub"></div></div>
+        <div class="kpi"><div class="kpi-label">Atrasos (este mes)</div><div class="kpi-value text-amber" id="kp-atr">0</div><div class="kpi-sub" id="kp-atr-sub"></div></div>
+        <div class="kpi"><div class="kpi-label">Días de licencia (este año)</div><div class="kpi-value text-blue" id="kp-lic">0</div></div>
+        <div class="kpi"><div class="kpi-label">Última liquidación</div><div class="kpi-value" id="kp-liq" style="font-size:24px">—</div><div class="kpi-sub" id="kp-liq-sub"></div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Información personal</div>
+        <div class="profile-grid">
+          <div class="p-box"><span>Nombre</span><strong id="pf-nombre"></strong></div>
+          <div class="p-box"><span>RUT</span><strong id="pf-rut"></strong></div>
+          <div class="p-box"><span>Cargo</span><strong id="pf-cargo"></strong></div>
+          <div class="p-box"><span>Área / Departamento</span><strong id="pf-area"></strong></div>
+          <div class="p-box"><span>Jefatura</span><strong id="pf-jefatura"></strong></div>
+          <div class="p-box"><span>Fecha de ingreso</span><strong id="pf-ingreso"></strong></div>
+          <div class="p-box"><span>Teléfono</span><strong id="pf-tel"></strong></div>
+          <div class="p-box"><span>Correo electrónico</span><strong id="pf-email"></strong></div>
+          <div class="p-box"><span>AFP</span><strong id="pf-afp"></strong></div>
+          <div class="p-box"><span>Sueldo base</span><strong id="pf-sueldo"></strong></div>
+        </div>
+        <div class="nota">Si algún dato está incorrecto, avisa a Recursos Humanos para que lo actualice en tu ficha.</div>
+      </div>
+    </div>
+
+    <!-- LIQUIDACIONES -->
+    <div class="panel" id="p-liquidaciones">
+      <div class="card">
+        <div class="card-title">Mis liquidaciones de sueldo</div>
+        <div class="table-wrap">
+          <table class="tbl">
+            <thead><tr><th>Período</th><th class="num">Total haberes</th><th class="num">Descuentos</th><th class="num">Líquido</th><th style="text-align:right">Documento</th></tr></thead>
+            <tbody id="tb-liq"></tbody>
+          </table>
+        </div>
+        <div class="nota">"Ver PDF" abre la liquidación lista para imprimir o guardar como PDF (en la ventana de impresión elige "Guardar como PDF").</div>
+      </div>
+    </div>
+
+    <!-- VACACIONES -->
+    <div class="panel" id="p-vacaciones">
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title">Solicitar vacaciones</div>
+          <div id="vac-solo-lectura" class="aviso info" style="display:none">Estás viendo el portal de otro trabajador: solo él o ella puede enviar solicitudes.</div>
+          <div class="pair">
+            <div class="fld"><label>Desde</label><input type="date" id="vac-ini" onchange="previewVac()"></div>
+            <div class="fld"><label>Hasta</label><input type="date" id="vac-fin" onchange="previewVac()"></div>
+          </div>
+          <div class="fld" style="margin-top:10px"><label>Motivo / observaciones</label><input id="vac-mot" maxlength="200" placeholder="Opcional…"></div>
+          <div class="resumen">
+            <div><span>Saldo disponible hoy:</span><strong id="vac-r-saldo">—</strong></div>
+            <div><span>Días en solicitudes pendientes:</span><strong id="vac-r-pend">0</strong></div>
+            <div><span>Días hábiles de esta solicitud:</span><strong id="vac-dias" style="color:var(--amber)">0</strong></div>
+            <div><span>Fines de semana / feriados en el rango:</span><strong id="vac-r-nohab">0 / 0</strong></div>
+            <div><span>Saldo estimado después:</span><strong id="vac-saldo" style="color:var(--teal)">—</strong></div>
+          </div>
+          <button class="act-btn primary" id="vac-btn" style="width:100%;margin-top:14px" onclick="enviarSolicitudVac()">Enviar solicitud</button>
+          <div class="nota" id="vac-nota"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Mis solicitudes</div>
+          <div class="table-wrap">
+            <table class="tbl" style="min-width:420px">
+              <thead><tr><th>Período</th><th>Días</th><th style="text-align:right">Estado</th></tr></thead>
+              <tbody id="tb-vac"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ASISTENCIA Y LICENCIAS -->
+    <div class="panel" id="p-asistencia">
+      <div class="card">
+        <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+          <span>Mi asistencia</span>
+          <input type="month" id="as-mes" onchange="renderAsistencia()" style="border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-size:13px">
+        </div>
+        <div class="kpis" style="margin-bottom:16px">
+          <div class="kpi"><div class="kpi-label">Días registrados</div><div class="kpi-value" id="as-k-dias" style="font-size:24px">0</div></div>
+          <div class="kpi"><div class="kpi-label">Horas trabajadas</div><div class="kpi-value" id="as-k-hrs" style="font-size:24px">0</div></div>
+          <div class="kpi"><div class="kpi-label">Horas extras</div><div class="kpi-value text-teal" id="as-k-hex" style="font-size:24px">0</div></div>
+          <div class="kpi"><div class="kpi-label">Atrasos</div><div class="kpi-value text-amber" id="as-k-atr" style="font-size:24px">0</div><div class="kpi-sub" id="as-k-atr-min"></div></div>
+        </div>
+        <div class="table-wrap">
+          <table class="tbl">
+            <thead><tr><th>Fecha</th><th>Entrada</th><th>Salida</th><th class="num">Horas</th><th class="num">H. extras</th><th class="num">Atraso (min)</th></tr></thead>
+            <tbody id="tb-asis"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Mis licencias médicas</div>
+        <div class="table-wrap">
+          <table class="tbl">
+            <thead><tr><th>Folio</th><th>Tipo</th><th>Desde</th><th>Hasta</th><th class="num">Días</th><th style="text-align:right">Estado</th></tr></thead>
+            <tbody id="tb-lic"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- DOCUMENTOS -->
+    <div class="panel" id="p-documentos">
+      <div class="card">
+        <div class="card-title">Mis documentos (contratos, certificados, etc.)</div>
+        <div class="table-wrap">
+          <table class="tbl">
+            <thead><tr><th>Categoría</th><th>Nombre del archivo</th><th>Fecha de carga</th><th style="text-align:right">Descargar</th></tr></thead>
+            <tbody id="tb-doc"><tr><td colspan="4" class="vacio">Abre esta pestaña para cargar tus documentos…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// =========================================================================
+// 1. CONFIGURACIÓN Y ACCESO A LA NUBE (mismo backend y formato que rrhh.html)
+// =========================================================================
+const API_URL = "https://script.google.com/macros/s/AKfycbxP5-vB59e80qpXdx4AcCyS28C4H58thdh0XXtLcDWZD8Q_47fDbBvLn1ahqx7RoJor/exec";
+const CLOUD_TOKEN = "b5bd161b4ef581c6114b7bb4";
+const KEYS = {
+  trab: "rrhh_trabajadores_v1", liq: "rrhh_liquidaciones_v1", vac: "rrhh_vacaciones_v1",
+  asis: "rrhh_asistencia_v1", lic: "rrhh_licencias_v1", doc: "rrhh_documentos_v1"
+};
+// Solicitudes enviadas desde este portal. Van en una llave aparte porque
+// rrhh.html guarda rrhh_vacaciones_v1 completa en cada cambio: si el portal
+// escribiera ahí, la próxima edición en RRHH podría borrar la solicitud.
+// RRHH las lee desde "Vacaciones › Solicitudes desde Mi Portal".
+const KEY_SOL_VAC = "rrhh_solicitudes_vac_v1";
+// Igual que en RRHH (liquidación)
+const CFG = { AFP:10, SAL:7, AFC:0.6 };
+
+const $ = id => document.getElementById(id);
+const fmt = v => "$" + Math.round(Number(v||0)).toLocaleString("es-CL");
+const fDate = iso => { if(!iso) return '-'; const [y,m,d] = String(iso).slice(0,10).split('-'); return `${d}/${m}/${y}`; };
+const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const fmtDias = n => (Math.round((n||0)*100)/100).toLocaleString('es-CL');
+const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const periodoTexto = p => { const [y,m] = String(p||'').split('-'); return m ? MESES[+m-1] + ' ' + y : (p||'-'); };
+
+const CLOUD_INTENTOS = 3, CLOUD_TIMEOUT_MS = 12000;
+function esperar(ms){ return new Promise(r => setTimeout(r, ms)); }
+async function fetchConTimeout(url, opts){
+  const c = new AbortController(); const t = setTimeout(() => c.abort(), CLOUD_TIMEOUT_MS);
+  try { return await fetch(url, Object.assign({}, opts, { signal: c.signal })); } finally { clearTimeout(t); }
+}
+// Lee una llave; lanza si no se pudo confirmar (para no confundir "falló" con "vacío").
+async function leerClave(key){
+  let ultimo;
+  for (let i = 0; i < CLOUD_INTENTOS; i++) {
+    try {
+      const res = await fetchConTimeout(API_URL + "?key=" + encodeURIComponent(key) + "&token=" + CLOUD_TOKEN);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const json = await res.json();
+      if (json.estado === 'error') throw new Error(json.detalle || 'Error del servidor');
+      return json.valor ? JSON.parse(json.valor) : null;
+    } catch(e) { ultimo = e; if (i < CLOUD_INTENTOS - 1) await esperar(500 * (i + 1)); }
+  }
+  throw ultimo;
+}
+async function guardarClave(key, valor){
+  let ultimo;
+  for (let i = 0; i < CLOUD_INTENTOS; i++) {
+    try {
+      const res = await fetchConTimeout(API_URL, { method:'POST', body: JSON.stringify({ key, value: JSON.stringify(valor), token: CLOUD_TOKEN }) });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      let json = null; try { json = await res.json(); } catch(e) {}
+      if (json && json.estado === 'error') throw new Error(json.detalle || 'Error del servidor');
+      return true;
+    } catch(e) { ultimo = e; if (i < CLOUD_INTENTOS - 1) await esperar(500 * (i + 1)); }
+  }
+  console.error('No se pudo guardar', key, ultimo);
+  return false;
+}
+// Las llaves de RRHH se guardan como texto partido en bloques {shardCount, parte}.
+async function leerRRHH(key){
+  const primero = await leerClave(key);
+  if (primero === null || primero === undefined) return [];
+  if (Array.isArray(primero)) return primero;
+  if (typeof primero === 'object' && typeof primero.shardCount === 'number') {
+    const pedidos = [];
+    for (let i = 1; i < primero.shardCount; i++) pedidos.push(leerClave(key + '_sh' + i));
+    const bloques = await Promise.all(pedidos);
+    let texto = primero.parte || '';
+    bloques.forEach((b, idx) => { if (!b || typeof b.parte !== 'string') throw new Error('Falta la partición ' + (idx+1) + ' de ' + key); texto += b.parte; });
+    return texto ? JSON.parse(texto) : [];
+  }
+  throw new Error('Formato no reconocido en ' + key);
+}
+async function leerSolicitudes(){ const v = await leerClave(KEY_SOL_VAC); return Array.isArray(v) ? v : []; }
+
+// =========================================================================
+// 2. ESTADO
+// =========================================================================
+let SESION = null;
+let TRABS = [];
+let miFicha = null;          // trabajador que se está mostrando
+let esPropio = false;        // true si la ficha corresponde al correo de la sesión
+const TODO = { liq:[], vac:[], asis:[], lic:[], sol:[], doc:null };
+const cargaOk = { liq:false, vac:false, asis:false, lic:false, sol:false };
+let misDatos = { liq:[], vac:[], asis:[], lic:[], sol:[], doc:[] };
+const mismoId = (a, b) => String(a) === String(b);
+
+function leerSesion(){ try { return JSON.parse(localStorage.getItem('cimagen_session')); } catch(e) { return null; } }
+function cerrarSesion(){
+  try { localStorage.removeItem('cimagen_session'); } catch(e) {}
+  window.location.href = 'index.html';
+}
+
+// =========================================================================
+// 3. INICIO
+// =========================================================================
+window.onload = function(){ init().finally(ocultarCargando); };
+
+async function init(){
+  SESION = leerSesion();
+  if (!SESION) return;
+  const email = (SESION.email || '').trim().toLowerCase();
+  $('as-mes').value = mesChile();
+
+  // Un trabajador sin otros módulos no tiene menú al que volver.
+  const tieneOtros = SESION.isAdmin || (SESION.modules && SESION.modules.length > 0);
+  if (!tieneOtros) $('menu-link').style.display = 'none';
+
+  try {
+    TRABS = await leerRRHH(KEYS.trab);
+  } catch(e) {
+    mostrarEstado('⚠️', 'No se pudo conectar', 'No fue posible leer los datos de Recursos Humanos. Revisa tu conexión y vuelve a intentarlo.', '<button class="act-btn primary" onclick="location.reload()">Reintentar</button>');
+    return;
+  }
+
+  const propio = TRABS.find(t => (t.email || '').trim().toLowerCase() === email);
+  if (propio && propio.estado === 'Inactivo' && !SESION.isAdmin) {
+    mostrarEstado('🔒', 'Acceso deshabilitado', 'Tu ficha figura como inactiva en Recursos Humanos. Si crees que es un error, contacta a administración.', botonSalir());
+    return;
+  }
+  if (!propio && !SESION.isAdmin) {
+    mostrarEstado('🔎', 'Correo no registrado', 'El correo <b>' + esc(email) + '</b> no está registrado en la ficha de ningún trabajador. Pide a Recursos Humanos que agregue este mismo correo en tu ficha y vuelve a entrar.', botonSalir());
+    return;
+  }
+
+  // Datos de todas las secciones en paralelo; cada una puede fallar por separado.
+  const secciones = ['liq','vac','asis','lic'];
+  const res = await Promise.allSettled([...secciones.map(k => leerRRHH(KEYS[k])), leerSolicitudes()]);
+  const fallidas = [];
+  secciones.forEach((k, i) => {
+    if (res[i].status === 'fulfilled') { TODO[k] = res[i].value || []; cargaOk[k] = true; }
+    else fallidas.push({liq:'liquidaciones', vac:'vacaciones', asis:'asistencia', lic:'licencias'}[k]);
+  });
+  if (res[4].status === 'fulfilled') { TODO.sol = res[4].value; cargaOk.sol = true; } else fallidas.push('solicitudes pendientes');
+  if (fallidas.length) {
+    $('aviso-carga').textContent = '⚠️ No se pudieron cargar: ' + fallidas.join(', ') + '. Recarga la página (F5) para reintentar.';
+    $('aviso-carga').style.display = 'block';
+  }
+
+  if (SESION.isAdmin) prepararVistaAdmin(propio);
+  seleccionarTrabajador(propio || TRABS.slice().sort(ordenNombre)[0]);
+}
+
+function ordenNombre(a, b){ return nombreCompleto(a).localeCompare(nombreCompleto(b), 'es'); }
+function nombreCompleto(t){ return ((t.nombres||'') + ' ' + (t.apellidos||'')).trim(); }
+function botonSalir(){ return '<button class="act-btn" onclick="cerrarSesion()">Entrar con otra cuenta</button>'; }
+function mostrarEstado(icono, titulo, texto, acciones){
+  $('app-container').style.display = 'none';
+  const box = $('sin-acceso');
+  box.innerHTML = `<div class="estado-box"><div style="font-size:40px;margin-bottom:10px">${icono}</div><h2>${titulo}</h2><p>${texto}</p>${acciones||''}</div>`;
+  box.style.display = 'block';
+  $('ui-name').textContent = SESION ? (SESION.name || SESION.email) : '';
+  $('ui-avatar').textContent = SESION ? (SESION.name || SESION.email || '?').charAt(0).toUpperCase() : '';
+}
+
+// Administradores: pueden ver el portal de cualquier trabajador (solo lectura).
+function prepararVistaAdmin(propio){
+  if (!TRABS.length) {
+    mostrarEstado('📋', 'Sin trabajadores', 'Todavía no hay trabajadores registrados en Recursos Humanos.', '');
+    return;
+  }
+  const sel = $('admin-sel');
+  sel.innerHTML = TRABS.slice().sort(ordenNombre).map(t => `<option value="${esc(t.id)}">${esc(nombreCompleto(t))}${t.estado==='Inactivo'?' (inactivo)':''}${t.email?'':' — sin correo'}</option>`).join('');
+  $('admin-bar').style.display = 'flex';
+}
+function verComo(id){
+  const t = TRABS.find(x => mismoId(x.id, id));
+  if (t) seleccionarTrabajador(t);
+}
+
+function seleccionarTrabajador(t){
+  if (!t) return;
+  miFicha = t;
+  esPropio = (t.email || '').trim().toLowerCase() === (SESION.email || '').trim().toLowerCase();
+  if (SESION.isAdmin) {
+    $('admin-sel').value = String(t.id);
+    $('admin-nota').textContent = esPropio ? '(es tu propia ficha)' : (t.email ? 'Este trabajador entra con ' + t.email : '⚠️ Sin correo: no puede entrar a su portal hasta que se registre en su ficha.');
+  }
+  const id = t.id;
+  misDatos.liq  = TODO.liq.filter(x => mismoId(x.trabajadorId, id));
+  misDatos.vac  = TODO.vac.filter(x => mismoId(x.trabajadorId, id));
+  misDatos.asis = TODO.asis.filter(x => mismoId(x.trabajadorId, id));
+  misDatos.lic  = TODO.lic.filter(x => mismoId(x.trabajadorId, id));
+  misDatos.sol  = TODO.sol.filter(x => mismoId(x.trabajadorId, id));
+  misDatos.doc  = TODO.doc ? TODO.doc.filter(x => mismoId(x.trabajadorId, id)) : [];
+
+  $('sin-acceso').style.display = 'none';
+  $('app-container').style.display = 'block';
+  const nom = (t.nombres || '').split(' ')[0], ape = (t.apellidos || '').split(' ')[0];
+  $('ui-name').textContent = (nom + ' ' + ape).trim() || '—';
+  $('ui-role').textContent = t.cargo || 'Trabajador';
+  $('ui-avatar').textContent = ((nom.charAt(0) || '') + (ape.charAt(0) || '')).toUpperCase() || '?';
+
+  $('vac-solo-lectura').style.display = esPropio ? 'none' : 'block';
+  $('vac-btn').disabled = !esPropio;
+
+  renderInicio(); renderLiquidaciones(); renderVacaciones(); renderAsistencia();
+  if (TODO.doc) renderDocumentos();
+  previewVac();
+}
+
+function showTab(name, btn){
+  document.querySelectorAll('.ntab').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
+  $('p-' + name).classList.add('on');
+  if (name === 'documentos') cargarDocumentos();
+}
+
+// =========================================================================
+// 4. VACACIONES: saldo (mismo cálculo que RRHH y el finiquito)
+// =========================================================================
+// 15 días hábiles por año = 1,25 por mes trabajado desde la fecha de ingreso,
+// menos las vacaciones Aprobadas. No incluye el feriado progresivo.
+function mesesEntre(ini, fin){
+  const a = [+ini.slice(0,4), +ini.slice(5,7), +ini.slice(8,10)], b = [+fin.slice(0,4), +fin.slice(5,7), +fin.slice(8,10)];
+  let meses = (b[0]-a[0])*12 + (b[1]-a[1]); let dias = b[2]-a[2];
+  if (dias < 0) { meses--; dias += 30; }
+  return Math.max(0, meses + dias/30);
+}
+function saldoVacaciones(){
+  const usados = misDatos.vac.filter(v => v.estado === 'Aprobada').reduce((s, v) => s + (Number(v.dias)||0), 0);
+  const pendientes = misDatos.sol.reduce((s, v) => s + (Number(v.dias)||0), 0);
+  if (!miFicha.fechaIngreso) return { ganados:null, usados, pendientes, disponibles:null };
+  const ganados = Math.round(1.25 * mesesEntre(miFicha.fechaIngreso, hoyChile()) * 100) / 100;
+  return { ganados, usados, pendientes, disponibles: Math.round((ganados - usados) * 100) / 100 };
+}
+const aUTC = s => Date.UTC(+s.slice(0,4), +s.slice(5,7)-1, +s.slice(8,10));
+function diasHab(ini, fin){
+  let i = aUTC(ini), f = aUTC(fin), habs = 0, fer = 0, finde = 0;
+  while (i <= f) {
+    const d = new Date(i); const dow = d.getUTCDay();
+    if (dow === 0 || dow === 6) finde++; else if (FER.includes(d.toISOString().slice(0,10))) fer++; else habs++;
+    i += 86400000;
+  }
+  return { habs, fer, finde };
+}
+
+// =========================================================================
+// 5. VISTAS
+// =========================================================================
+function antiguedadTexto(ing){
+  if (!ing) return '';
+  const m = Math.floor(mesesEntre(ing, hoyChile())); const a = Math.floor(m/12), r = m % 12;
+  const partes = []; if (a) partes.push(a + (a === 1 ? ' año' : ' años')); if (r || !a) partes.push(r + (r === 1 ? ' mes' : ' meses'));
+  return partes.join(' y ');
+}
+function renderInicio(){
+  const t = miFicha;
+  $('pf-nombre').textContent = nombreCompleto(t) || '-';
+  $('pf-rut').textContent = t.rut || '-';
+  $('pf-cargo').textContent = t.cargo || '-';
+  $('pf-area').textContent = t.area || '-';
+  $('pf-jefatura').textContent = t.jefatura || '-';
+  $('pf-ingreso').textContent = t.fechaIngreso ? fDate(t.fechaIngreso) + ' (' + antiguedadTexto(t.fechaIngreso) + ')' : '-';
+  $('pf-tel').textContent = t.telefono || '-';
+  $('pf-email').textContent = t.email || '-';
+  $('pf-afp').textContent = t.afp ? String(t.afp).toUpperCase() : '-';
+  $('pf-sueldo').textContent = t.sueldo ? fmt(t.sueldo) : '-';
+
+  const s = saldoVacaciones();
+  $('kp-vac').textContent = s.disponibles === null ? '—' : fmtDias(s.disponibles);
+  $('kp-vac-sub').textContent = s.disponibles === null ? 'Falta tu fecha de ingreso en RRHH' : `días hábiles · ganados ${fmtDias(s.ganados)}, usados ${fmtDias(s.usados)}` + (s.pendientes ? ` · ${fmtDias(s.pendientes)} en revisión` : '');
+
+  const mes = mesChile(), anio = mes.slice(0,4);
+  const atrasos = misDatos.asis.filter(a => (a.fecha||'').startsWith(mes) && Number(a.atraso) > 0);
+  $('kp-atr').textContent = atrasos.length;
+  $('kp-atr-sub').textContent = atrasos.length ? atrasos.reduce((s,a) => s + Number(a.atraso||0), 0) + ' minutos en total' : '';
+  $('kp-lic').textContent = misDatos.lic.filter(l => l.estado !== 'Rechazada' && (l.fechaInicio||'').startsWith(anio)).reduce((s,l) => s + (Number(l.dias)||0), 0);
+
+  const ult = misDatos.liq.slice().sort((a,b) => String(b.periodo).localeCompare(String(a.periodo)))[0];
+  $('kp-liq').textContent = ult ? fmt(ult.liquido) : '—';
+  $('kp-liq-sub').textContent = ult ? 'Líquido de ' + periodoTexto(ult.periodo) : 'Aún no tienes liquidaciones';
+}
+
+function renderLiquidaciones(){
+  const tb = $('tb-liq');
+  if (!cargaOk.liq) { tb.innerHTML = `<tr><td colspan="5" class="vacio">No se pudieron cargar las liquidaciones. Recarga la página.</td></tr>`; return; }
+  const arr = misDatos.liq.slice().sort((a,b) => String(b.periodo).localeCompare(String(a.periodo)));
+  if (!arr.length) { tb.innerHTML = `<tr><td colspan="5" class="vacio">No tienes liquidaciones registradas.</td></tr>`; return; }
+  tb.innerHTML = arr.map(l => `
+    <tr>
+      <td style="font-weight:700">${esc(periodoTexto(l.periodo))}</td>
+      <td class="num">${fmt((Number(l.imponible)||0) + (Number(l.totalHaberesNoImp)||0))}</td>
+      <td class="num" style="color:var(--red)">${fmt(l.totalDescuentos)}</td>
+      <td class="num" style="font-weight:800;color:var(--teal)">${fmt(l.liquido)}</td>
+      <td style="text-align:right"><button class="act-btn small primary" onclick="descargarLiquidacion(${JSON.stringify(String(l.id)).replace(/"/g,'&quot;')})">📄 Ver PDF</button></td>
+    </tr>`).join('');
+}
+
+function badgeEstado(estado){
+  const cls = estado === 'Aprobada' || estado === 'Pagada' ? 'bdg-act' : estado === 'Rechazada' ? 'bdg-err' : estado === 'En revisión' ? 'bdg-inf' : 'bdg-pen';
+  return `<span class="badge ${cls}">${esc(estado)}</span>`;
+}
+function renderVacaciones(){
+  const tb = $('tb-vac');
+  if (!cargaOk.vac && !cargaOk.sol) { tb.innerHTML = `<tr><td colspan="3" class="vacio">No se pudieron cargar tus vacaciones. Recarga la página.</td></tr>`; return; }
+  const filas = [
+    ...misDatos.sol.map(s => ({ ...s, estado:'En revisión', portal:true })),
+    ...misDatos.vac
+  ].sort((a,b) => String(b.fechaInicio).localeCompare(String(a.fechaInicio)));
+  if (!filas.length) { tb.innerHTML = `<tr><td colspan="3" class="vacio">No tienes vacaciones registradas.</td></tr>`; return; }
+  tb.innerHTML = filas.map(v => `
+    <tr>
+      <td style="font-family:var(--mono);font-size:12px">${fDate(v.fechaInicio)} al ${fDate(v.fechaFin)}${v.motivo ? `<div style="font-family:'DM Sans';font-size:11px;color:var(--muted)">${esc(v.motivo)}</div>` : ''}</td>
+      <td style="font-weight:700">${esc(v.dias)}</td>
+      <td style="text-align:right">
+        ${badgeEstado(v.estado)}
+        ${v.motivoRechazo ? `<div style="font-size:10px;color:var(--red);margin-top:4px">${esc(v.motivoRechazo)}</div>` : ''}
+        ${v.portal && esPropio ? `<div style="margin-top:6px"><button class="act-btn small danger" onclick="cancelarSolicitud(${Number(v.id)})">Cancelar</button></div>` : ''}
+      </td>
+    </tr>`).join('');
+}
+
+function renderAsistencia(){
+  if (!miFicha) return;
+  const mes = $('as-mes').value || mesChile();
+  const tb = $('tb-asis');
+  const arr = misDatos.asis.filter(a => (a.fecha||'').startsWith(mes)).sort((a,b) => String(a.fecha).localeCompare(String(b.fecha)));
+  const hrs = arr.reduce((s,a) => s + (Number(a.horas)||0), 0), hex = arr.reduce((s,a) => s + (Number(a.horasExtras)||0), 0);
+  const atr = arr.filter(a => Number(a.atraso) > 0);
+  $('as-k-dias').textContent = arr.length;
+  $('as-k-hrs').textContent = fmtDias(hrs);
+  $('as-k-hex').textContent = fmtDias(hex);
+  $('as-k-atr').textContent = atr.length;
+  $('as-k-atr-min').textContent = atr.length ? atr.reduce((s,a) => s + Number(a.atraso||0), 0) + ' minutos' : '';
+  if (!cargaOk.asis) tb.innerHTML = `<tr><td colspan="6" class="vacio">No se pudo cargar la asistencia. Recarga la página.</td></tr>`;
+  else tb.innerHTML = arr.map(a => `
+    <tr><td>${fDate(a.fecha)}</td><td>${esc(a.entrada||'-')}</td><td>${esc(a.salida||'-')}</td>
+    <td class="num">${fmtDias(a.horas)}</td><td class="num">${Number(a.horasExtras)>0 ? '<b style="color:var(--teal)">'+fmtDias(a.horasExtras)+'</b>' : '0'}</td>
+    <td class="num">${Number(a.atraso)>0 ? '<b style="color:var(--amber)">'+esc(a.atraso)+'</b>' : '0'}</td></tr>`).join('')
+    || `<tr><td colspan="6" class="vacio">No hay registros de asistencia en ${esc(periodoTexto(mes))}.</td></tr>`;
+
+  const tl = $('tb-lic');
+  if (!cargaOk.lic) { tl.innerHTML = `<tr><td colspan="6" class="vacio">No se pudieron cargar las licencias. Recarga la página.</td></tr>`; return; }
+  tl.innerHTML = misDatos.lic.slice().sort((a,b) => String(b.fechaInicio).localeCompare(String(a.fechaInicio))).map(l => `
+    <tr><td>${esc(l.folio||'-')}</td><td>${esc(l.tipo||'-')}</td><td>${fDate(l.fechaInicio)}</td><td>${fDate(l.fechaFin)}</td>
+    <td class="num">${esc(l.dias)}</td><td style="text-align:right">${badgeEstado(l.estado||'Pendiente')}</td></tr>`).join('')
+    || `<tr><td colspan="6" class="vacio">No tienes licencias registradas.</td></tr>`;
+}
+
+// Los documentos pueden pesar mucho (archivos en base64): se cargan solo al abrir la pestaña.
+let cargandoDocs = null;
+async function cargarDocumentos(){
+  if (TODO.doc) { renderDocumentos(); return; }
+  if (cargandoDocs) return;
+  $('tb-doc').innerHTML = `<tr><td colspan="4" class="vacio">⏳ Cargando documentos…</td></tr>`;
+  cargandoDocs = leerRRHH(KEYS.doc).then(docs => {
+    TODO.doc = docs || [];
+    misDatos.doc = TODO.doc.filter(x => mismoId(x.trabajadorId, miFicha.id));
+    renderDocumentos();
+  }).catch(() => {
+    $('tb-doc').innerHTML = `<tr><td colspan="4" class="vacio">No se pudieron cargar los documentos. <button class="act-btn small" onclick="cargarDocumentos()">Reintentar</button></td></tr>`;
+  }).finally(() => { cargandoDocs = null; });
+}
+function renderDocumentos(){
+  const arr = misDatos.doc.slice().sort((a,b) => b.id - a.id);
+  $('tb-doc').innerHTML = arr.map(d => `
+    <tr>
+      <td><span class="badge bdg-inf">${esc(d.categoria||'-')}</span></td>
+      <td style="font-weight:600;overflow-wrap:anywhere">${esc(d.nombre)}</td>
+      <td style="font-family:var(--mono);font-size:12px">${typeof d.id === 'number' ? fDate(hoyChile(new Date(d.id))) : '-'}</td>
+      <td style="text-align:right"><button class="act-btn small" onclick="descargarDoc(${Number(d.id)})">⬇ Descargar</button></td>
+    </tr>`).join('') || `<tr><td colspan="4" class="vacio">No tienes documentos adjuntos en tu ficha.</td></tr>`;
+}
+function descargarDoc(id){
+  const d = misDatos.doc.find(x => x.id === id); if (!d || !d.base64) return;
+  const a = document.createElement('a'); a.href = d.base64; a.download = d.nombre || 'documento';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+// =========================================================================
+// 6. SOLICITUD DE VACACIONES
+// =========================================================================
+function previewVac(){
+  if (!miFicha) return;
+  const ini = $('vac-ini').value, fin = $('vac-fin').value;
+  const s = saldoVacaciones();
+  let r = { habs:0, fer:0, finde:0 };
+  if (ini && fin && fin >= ini) r = diasHab(ini, fin);
+  $('vac-dias').textContent = r.habs;
+  $('vac-r-nohab').textContent = r.finde + ' / ' + r.fer;
+  $('vac-r-pend').textContent = fmtDias(s.pendientes);
+  $('vac-r-saldo').textContent = s.disponibles === null ? '—' : fmtDias(s.disponibles) + ' días';
+  $('vac-saldo').textContent = s.disponibles === null ? '—' : fmtDias(s.disponibles - s.pendientes - r.habs) + ' días';
+  $('vac-saldo').style.color = s.disponibles !== null && s.disponibles - s.pendientes - r.habs < 0 ? 'var(--red)' : 'var(--teal)';
+  $('vac-nota').textContent = s.disponibles === null
+    ? 'Tu ficha no tiene fecha de ingreso, así que no se puede calcular tu saldo. Avisa a Recursos Humanos.'
+    : 'Se ganan 1,25 días hábiles por mes trabajado (15 al año). Sábados, domingos y feriados no se descuentan. RRHH revisará y aprobará o rechazará tu solicitud.';
+}
+
+async function enviarSolicitudVac(){
+  if (!esPropio) { alert('Solo el propio trabajador puede enviar solicitudes desde su portal.'); return; }
+  if (!cargaOk.vac || !cargaOk.sol) { alert('No se pudieron cargar tus vacaciones desde la nube. Recarga la página (F5) antes de enviar una solicitud.'); return; }
+  const ini = $('vac-ini').value, fin = $('vac-fin').value, mot = $('vac-mot').value.trim();
+  if (!ini || !fin) { alert('Completa las fechas Desde y Hasta.'); return; }
+  if (fin < ini) { alert('La fecha de término es anterior a la de inicio.'); return; }
+  if (ini < hoyChile()) { alert('La fecha de inicio no puede ser anterior a hoy.'); return; }
+  const cruza = x => ini <= x.fechaFin && fin >= x.fechaInicio;
+  if (misDatos.vac.some(v => (v.estado === 'Aprobada' || v.estado === 'Pendiente') && cruza(v)) || misDatos.sol.some(cruza)) {
+    alert('Ya tienes vacaciones aprobadas o una solicitud en esas fechas.'); return;
+  }
+  const dh = diasHab(ini, fin).habs;
+  if (dh <= 0) { alert('El rango elegido no tiene días hábiles.'); return; }
+  const s = saldoVacaciones();
+  if (s.disponibles !== null && dh > s.disponibles - s.pendientes) {
+    if (!confirm('Estás solicitando más días de los que tienes disponibles. ¿Enviar de todas formas? Recursos Humanos decidirá si la aprueba.')) return;
+  }
+
+  const btn = $('vac-btn'); btn.disabled = true; btn.textContent = 'Enviando…';
+  const nueva = { id: Date.now(), trabajadorId: String(miFicha.id), fechaInicio: ini, fechaFin: fin, dias: dh, motivo: mot, fechaSolicitud: hoyChile(), email: (SESION.email||'').toLowerCase() };
+  try {
+    // Se relee la lista justo antes de guardar para no borrar solicitudes de otros trabajadores.
+    const lista = await leerSolicitudes();
+    lista.push(nueva);
+    if (!await guardarClave(KEY_SOL_VAC, lista)) throw new Error('guardar');
+    TODO.sol = lista;
+    misDatos.sol = lista.filter(x => mismoId(x.trabajadorId, miFicha.id));
+    $('vac-ini').value = ''; $('vac-fin').value = ''; $('vac-mot').value = '';
+    renderVacaciones(); renderInicio(); previewVac();
+    alert('Solicitud enviada. Recursos Humanos la revisará y verás aquí cuando sea aprobada o rechazada.');
+  } catch(e) {
+    alert('No se pudo enviar la solicitud. Revisa tu conexión e inténtalo de nuevo.');
+  } finally {
+    btn.disabled = !esPropio; btn.textContent = 'Enviar solicitud';
+  }
+}
+
+async function cancelarSolicitud(id){
+  if (!esPropio) return;
+  if (!confirm('¿Cancelar esta solicitud de vacaciones?')) return;
+  try {
+    const lista = await leerSolicitudes();
+    if (!lista.some(x => x.id === id)) {
+      alert('Esta solicitud ya fue revisada por Recursos Humanos. Recarga la página para ver su estado.');
+      return;
+    }
+    const resto = lista.filter(x => !(x.id === id && mismoId(x.trabajadorId, miFicha.id)));
+    if (!await guardarClave(KEY_SOL_VAC, resto)) throw new Error('guardar');
+    TODO.sol = resto;
+    misDatos.sol = resto.filter(x => mismoId(x.trabajadorId, miFicha.id));
+    renderVacaciones(); renderInicio(); previewVac();
+  } catch(e) {
+    alert('No se pudo cancelar la solicitud. Inténtalo de nuevo.');
+  }
+}
+
+// =========================================================================
+// 7. LIQUIDACIÓN EN PDF (mismo formato que el módulo de RRHH)
+// =========================================================================
+function descargarLiquidacion(id){
+  const l = misDatos.liq.find(x => String(x.id) === String(id)); if (!l) return;
+  const t = miFicha;
+  const afpNom = esc(l.nombreAFP || l.afpName || (t.afp ? String(t.afp).toUpperCase() : '-'));
+  const v = window.open('', '_blank');
+  if (!v) { alert('El navegador bloqueó la ventana. Permite las ventanas emergentes para este sitio e inténtalo de nuevo.'); return; }
+  v.document.write(`
+  <html>
+  <head>
+    <title>Liquidación ${esc(l.periodo)} - ${esc(nombreCompleto(t))}</title>
+    <style>
+      body { font-family: Arial, sans-serif; font-size: 11px; color: #333; padding: 40px; }
+      h1 { font-size: 18px; color: #1e3a8a; margin-bottom: 5px; }
+      h2 { font-size: 13px; color: #333; margin-top: 0; margin-bottom: 20px; font-weight: normal; }
+      .header-table { width: 100%; margin-bottom: 20px; border-collapse: collapse; }
+      .header-table td { padding: 8px; vertical-align: top; }
+      .header-table .col-trabajador { border-top: 4px solid #bfdbfe; width: 50%; }
+      .header-table .col-empresa { border-top: 4px solid #bfdbfe; width: 50%; background-color: #f8fafc; }
+      .info-line { margin: 3px 0; }
+      .info-line strong { display: inline-block; width: 120px; }
+      .main-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+      .main-table th { background-color: #bfdbfe; color: #1e3a8a; padding: 8px; text-align: left; font-size: 11px; }
+      .main-table td { padding: 6px 8px; border-bottom: 1px solid #e2e8f0; vertical-align: top; width: 50%; }
+      .row-flex { display: flex; justify-content: space-between; margin-bottom: 4px; }
+      .total-row { font-weight: bold; background-color: #f1f5f9; padding: 8px; margin-top: 10px; display: flex; justify-content: space-between; }
+      .alcance-liquido { background-color: #bfdbfe; color: #1e3a8a; font-size: 14px; font-weight: bold; padding: 12px; display: flex; justify-content: space-between; margin-top: 20px; }
+      .footer { margin-top: 40px; display: flex; justify-content: space-between; align-items: flex-end; }
+      .certificado { width: 60%; font-size: 10px; text-align: justify; }
+      .firma-box { width: 35%; text-align: center; }
+      .firma-line { border-top: 1px solid #000; padding-top: 5px; font-size: 11px; }
+    </style>
+  </head>
+  <body>
+    <h1>Liquidación de Remuneraciones</h1>
+    <h2>Mes: ${esc(l.periodo)}</h2>
+    <table class="header-table">
+      <tr>
+        <td class="col-trabajador">
+          <div style="font-weight:bold; font-size:12px; margin-bottom:8px; text-transform:uppercase;">${esc(nombreCompleto(t))}</div>
+          <div class="info-line"><strong>Rut:</strong> ${esc(t.rut||'-')}</div>
+          <div class="info-line"><strong>Fecha de Ingreso:</strong> ${t.fechaIngreso ? fDate(t.fechaIngreso) : '-'}</div>
+          <div class="info-line"><strong>Cargo:</strong> ${esc(t.cargo||'-')}</div>
+          <div class="info-line"><strong>AFP:</strong> ${afpNom}</div>
+        </td>
+        <td class="col-empresa">
+          <div style="font-weight:bold; font-size:12px; margin-bottom:8px; text-transform:uppercase;">INFORMACIÓN EMPRESA</div>
+          <div class="info-line"><strong>Razón Social:</strong> Creamos Imagen Ltda.</div>
+          <div class="info-line"><strong>Rut Empresa:</strong> 76.460.575-6</div>
+          <div class="info-line"><strong>Dirección:</strong> Rio de Janeiro 319, Recoleta</div>
+        </td>
+      </tr>
+    </table>
+    <table class="main-table">
+      <tr><th>Haberes</th><th>Descuentos</th></tr>
+      <tr>
+        <td>
+          <div class="row-flex"><span>Sueldo Base</span><span>${fmt(l.sueldoBase)}</span></div>
+          <div class="row-flex"><span>Gratificación Mensual</span><span>${fmt(l.gratificacion)}</span></div>
+          <div class="row-flex"><span>Bonos</span><span>${fmt(l.bonos)}</span></div>
+          <div class="row-flex"><span>Comisiones</span><span>${fmt(l.comisiones)}</span></div>
+          <div class="row-flex"><span>Horas Extras</span><span>${fmt(l.montoHorasExtras)}</span></div>
+          <div class="total-row"><span>TOTAL IMPONIBLE</span><span>${fmt(l.imponible)}</span></div>
+          <br>
+          <div class="row-flex"><span>Colación</span><span>${fmt(l.colacion)}</span></div>
+          <div class="row-flex"><span>Movilización</span><span>${fmt(l.movilizacion)}</span></div>
+          <div class="row-flex"><span>Asignación de Caja</span><span>${fmt(l.asignacionCaja||0)}</span></div>
+          <div class="row-flex"><span>Asignación de Viático</span><span>${fmt(l.asignacionViatico||0)}</span></div>
+          <div class="total-row"><span>TOTAL NO IMPONIBLE</span><span>${fmt(l.totalHaberesNoImp)}</span></div>
+          <br>
+          <div class="total-row" style="background:transparent; border-top:1px solid #cbd5e1"><span>TOTAL HABERES</span><span>${fmt((Number(l.imponible)||0) + (Number(l.totalHaberesNoImp)||0))}</span></div>
+        </td>
+        <td>
+          <div class="row-flex"><span>AFP (${afpNom} ${CFG.AFP}%)</span><span>${fmt(l.afp)}</span></div>
+          <div class="row-flex"><span>Comisión AFP (${esc(l.porcentajeComision||0)}%)</span><span>${fmt(l.comisionAFP)}</span></div>
+          <div class="row-flex"><span>Salud (${CFG.SAL}%)</span><span>${fmt(l.salud)}</span></div>
+          <div class="row-flex"><span>Seguro Cesantía Trabajador</span><span>${fmt(l.afc)}</span></div>
+          <div class="total-row"><span>TOTAL DESC. LEGALES</span><span>${fmt(l.totalDescuentos)}</span></div>
+          <br>
+          <div class="total-row" style="background:transparent; border-top:1px solid #cbd5e1"><span>TOTAL DESCUENTOS</span><span>${fmt(l.totalDescuentos)}</span></div>
+        </td>
+      </tr>
+    </table>
+    <div class="alcance-liquido"><span>ALCANCE LÍQUIDO:</span><span>${fmt(l.liquido)}</span></div>
+    <div class="footer">
+      <div class="certificado">
+        Certifico que he recibido a mi entera satisfacción la suma de <strong>${fmt(l.liquido)}</strong> indicada en la presente liquidación, y no tengo cargo ni cobro posterior que hacer por los conceptos de esta liquidación.
+      </div>
+      <div class="firma-box"><div class="firma-line">Firma del Trabajador</div></div>
+    </div>
+  </body>
+  </html>`);
+  v.document.close();
+  setTimeout(() => v.print(), 350);
+}
+</script>
+</body>
+</html>

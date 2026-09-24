@@ -57,6 +57,7 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
 <body>
 <script src="cargando.js"></script>
 <script src="hora-chile.js"></script>
+<script src="feriados-chile.js"></script>
 <script>
 (function(){
   var MODULE_KEY = 'rrhh';
@@ -109,7 +110,7 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
         <div class="fld"><label>Área</label><input id="tr-are"></div>
         <div class="fld"><label>Jefatura</label><input id="tr-jef"></div>
         <div class="fld"><label>Teléfono</label><input id="tr-tel"></div>
-        <div class="fld"><label>Email</label><input id="tr-ema"></div>
+        <div class="fld"><label>Email (acceso a Mi Portal)</label><input id="tr-ema" type="email" placeholder="correo Gmail del trabajador" title="El trabajador entra a Mi Portal con este mismo correo de Google"></div>
         <div class="fld"><label>Fecha Ingreso</label><input type="date" id="tr-ing"></div>
         <div class="fld"><label>Sueldo Base ($)</label><input type="number" id="tr-sue"></div>
         <div class="fld"><label>AFP</label><select id="tr-afp"><option value="CAPITAL">Capital</option><option value="CUPRUM">Cuprum</option><option value="HABITAT">Habitat</option><option value="MODELO">Modelo</option><option value="PLANVITAL">Planvital</option><option value="PROVIDA">Provida</option><option value="UNO">Uno</option></select></div>
@@ -175,6 +176,14 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
         <div class="resumen-row"><span>Saldo Final:</span><span id="vp-fin" style="font-weight:bold">0</span></div>
       </div>
       <button class="act-btn primary" style="margin-top:16px" onclick="vaSave()">Registrar Solicitud</button>
+    </div>
+    <div class="card" id="va-portal-card">
+      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <span>📥 Solicitudes desde Mi Portal <span id="va-portal-n" class="badge bdg-pen" style="margin-left:6px">0</span></span>
+        <button class="act-btn small" onclick="vaCargarSolicitudes(true)" title="Volver a leer las solicitudes enviadas por los trabajadores">🔄 Actualizar</button>
+      </div>
+      <div id="va-portal-msg" style="font-size:12px;color:var(--muted);margin-bottom:10px">Las solicitudes que los trabajadores envían desde Mi Portal aparecen aquí hasta que las apruebes o rechaces.</div>
+      <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Trabajador</th><th>Desde</th><th>Hasta</th><th>Días hábiles</th><th>Motivo</th><th>Enviada</th><th>Acciones</th></tr></thead><tbody id="va-portal-tbl"></tbody></table></div>
     </div>
     <div class="card">
       <div class="card-title">Gestión</div>
@@ -576,6 +585,7 @@ async function init() {
     alert('No se pudo confirmar la conexión con la nube para algunos datos de Recursos Humanos. Se muestran los últimos datos guardados en este equipo; si acabas de editar algo desde otro computador, recarga la página (F5) antes de seguir para no sobreescribir información.');
   }
   popSel(); renderAll();
+  await vaCargarSolicitudes();
 }
 
 function showTab(id, btn) {
@@ -583,6 +593,7 @@ function showTab(id, btn) {
   document.querySelectorAll('.ttab').forEach(b=>b.classList.remove('on'));
   $(id).classList.add('on'); btn.classList.add('on');
   if(id==='p-rep') rpRender();
+  if(id==='p-vac') vaCargarSolicitudes();
 }
 
 function popSel() {
@@ -607,7 +618,9 @@ function chkRut(el, mId) {
 }
 function trSave() {
   const r=$('tr-rut').value; if(!r){alert("RUT requerido");return;}
-  const d={id:editId.trab||Date.now(),rut:r,nombres:$('tr-nom').value,apellidos:$('tr-ape').value,cargo:$('tr-car').value,area:$('tr-are').value,jefatura:$('tr-jef').value,telefono:$('tr-tel').value,email:$('tr-ema').value,fechaIngreso:$('tr-ing').value,sueldo:Number($('tr-sue').value)||0,afp:$('tr-afp').value,estado:$('tr-est').value};
+  const em=$('tr-ema').value.trim().toLowerCase();
+  if(em && DB.trab.some(x=>x.id!==editId.trab && (x.email||'').trim().toLowerCase()===em)){ alert("Ese email ya está registrado en otro trabajador. Cada trabajador necesita su propio correo para entrar a Mi Portal."); return; }
+  const d={id:editId.trab||Date.now(),rut:r,nombres:$('tr-nom').value,apellidos:$('tr-ape').value,cargo:$('tr-car').value,area:$('tr-are').value,jefatura:$('tr-jef').value,telefono:$('tr-tel').value,email:$('tr-ema').value.trim().toLowerCase(),fechaIngreso:$('tr-ing').value,sueldo:Number($('tr-sue').value)||0,afp:$('tr-afp').value,estado:$('tr-est').value};
   if(editId.trab){ const i=DB.trab.findIndex(x=>x.id===editId.trab); if(i>-1)DB.trab[i]=d; } else { DB.trab.push(d); }
   sync('trab'); trCancel(); popSel(); renderAll();
 }
@@ -652,21 +665,7 @@ function asRender() {
 }
 
 // ================= VACACIONES =================
-// Feriados legales de Chile (no cuentan como días hábiles de vacaciones).
-// Antes esta lista se usaba pero no existía, y el cálculo de días hábiles
-// fallaba. Incluye los feriados trasladables ya ajustados; hay que agregar
-// los de cada año nuevo (y feriados especiales, como elecciones) al conocerse.
-const FER = [
-  // 2025
-  '2025-01-01','2025-04-18','2025-04-19','2025-05-01','2025-05-21','2025-06-20','2025-06-29','2025-07-16','2025-08-15',
-  '2025-09-18','2025-09-19','2025-10-12','2025-10-31','2025-11-01','2025-11-16','2025-12-08','2025-12-14','2025-12-25',
-  // 2026
-  '2026-01-01','2026-04-03','2026-04-04','2026-05-01','2026-05-21','2026-06-21','2026-06-29','2026-07-16','2026-08-15',
-  '2026-09-18','2026-09-19','2026-10-12','2026-10-31','2026-11-01','2026-12-08','2026-12-25',
-  // 2027
-  '2027-01-01','2027-03-26','2027-03-27','2027-05-01','2027-05-21','2027-06-21','2027-06-28','2027-07-16','2027-08-15',
-  '2027-09-18','2027-09-19','2027-10-11','2027-10-31','2027-11-01','2027-12-08','2027-12-25'
-];
+// Los feriados (FER) vienen de feriados-chile.js, compartido con Mi Portal.
 function vaHabiles(fi,ff){
   // Se recorren los días del calendario en UTC puro: así el conteo no depende
   // de la zona horaria del equipo ni de los cambios de horario de verano.
@@ -674,10 +673,62 @@ function vaHabiles(fi,ff){
   let i=aUTC(fi), f=aUTC(ff), h=0;
   while(i<=f){ const dia=new Date(i); const d=dia.getUTCDay(); if(d!==0&&d!==6&&!FER.includes(dia.toISOString().slice(0,10)))h++; i+=86400000; } return h;
 }
+// Saldo de vacaciones a hoy, con el mismo cálculo del finiquito (1,25 días
+// hábiles por mes trabajado, menos las vacaciones Aprobadas). Mi Portal usa
+// la misma regla, así el trabajador y RRHH ven el mismo saldo.
+function vaSaldo(t){
+  const v = fqVacaciones(t, hoyChile());
+  if(!v) return null;
+  return { ganados:v.ganados, usados:v.usados, disponibles:Math.round((v.ganados-v.usados)*100)/100 };
+}
 function vaPrev() {
   const tid=$('va-tra').value; if(!tid){['gan','usa','dis','sol','fin'].forEach(k=>$(`vp-${k}`).textContent='0'); return;}
-  const gan=15; const usa=DB.vac.filter(v=>v.trabajadorId===tid&&v.estado==="Aprobada").reduce((a,b)=>a+(b.dias||0),0); const dis=gan-usa;
-  let sol=0; const fi=$('va-ini').value, ff=$('va-fin').value; if(fi&&ff&&new Date(ff)>=new Date(fi)) sol=vaHabiles(fi,ff);$('vp-gan').textContent=gan; $('vp-usa').textContent=usa; $('vp-dis').textContent=dis; $('vp-sol').textContent=sol; $('vp-fin').textContent=dis-sol;
+  const s=vaSaldo(getT(tid));
+  const gan=s?s.ganados:0, usa=s?s.usados:DB.vac.filter(v=>String(v.trabajadorId)===String(tid)&&v.estado==="Aprobada").reduce((a,b)=>a+(b.dias||0),0), dis=s?s.disponibles:0;
+  let sol=0; const fi=$('va-ini').value, ff=$('va-fin').value; if(fi&&ff&&new Date(ff)>=new Date(fi)) sol=vaHabiles(fi,ff);$('vp-gan').textContent=fmtDias(gan)+(s?'':' (falta fecha de ingreso)'); $('vp-usa').textContent=fmtDias(usa); $('vp-dis').textContent=fmtDias(dis); $('vp-sol').textContent=sol; $('vp-fin').textContent=fmtDias(dis-sol);
+}
+
+// ---------- Solicitudes enviadas por los trabajadores desde Mi Portal ----------
+// Viven en una llave aparte (KEY_SOL_VAC) para que el portal nunca escriba
+// sobre rrhh_vacaciones_v1, que este módulo guarda completa en cada cambio.
+// Al aprobar o rechazar, la solicitud pasa a DB.vac y se quita de esa llave.
+const KEY_SOL_VAC = 'rrhh_solicitudes_vac_v1';
+let SOL_VAC = [];
+let solVacOk = false;
+const escH = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+async function vaCargarSolicitudes(avisar){
+  try { const v = await fetchClaveNube(KEY_SOL_VAC); SOL_VAC = Array.isArray(v) ? v : []; solVacOk = true; }
+  catch(e){ solVacOk = false; console.error('No se pudieron leer las solicitudes del portal', e); if(avisar) alert('No se pudieron leer las solicitudes de Mi Portal. Intenta de nuevo en un momento.'); }
+  vaRender();
+}
+async function vaResolverPortal(id, estado, motivoRechazo){
+  if(!cargaOk.vac){ alert('No se pudo confirmar la carga de Vacaciones desde la nube. Recarga la página (F5) antes de resolver solicitudes.'); return; }
+  let lista;
+  try { const v = await fetchClaveNube(KEY_SOL_VAC); lista = Array.isArray(v) ? v : []; }
+  catch(e){ alert('No se pudo conectar con la nube. Intenta de nuevo.'); return; }
+  const s = lista.find(x => x.id === id);
+  if(!s){ alert('Esta solicitud ya no está pendiente (el trabajador la canceló o ya fue resuelta).'); SOL_VAC = lista; vaRender(); return; }
+  if(estado === 'Aprobada' && DB.vac.some(v=>String(v.trabajadorId)===String(s.trabajadorId)&&v.estado==='Aprobada'&&s.fechaInicio<=v.fechaFin&&s.fechaFin>=v.fechaInicio)){
+    if(!confirm('Este trabajador ya tiene vacaciones aprobadas que se cruzan con estas fechas. ¿Aprobar de todas formas?')) return;
+  }
+  const reg = { id:s.id, trabajadorId:String(s.trabajadorId), fechaInicio:s.fechaInicio, fechaFin:s.fechaFin, dias:s.dias, motivo:s.motivo||'', estado, origen:'Portal', fechaSolicitud:s.fechaSolicitud||'', fechaResolucion:hoyChile() };
+  if(estado === 'Rechazada') reg.motivoRechazo = motivoRechazo || '';
+  DB.vac.push(reg); sync('vac');
+  const resto = lista.filter(x => x.id !== id);
+  const ok = await saveCloudRaw(KEY_SOL_VAC, resto);
+  SOL_VAC = ok ? resto : lista.filter(x => x.id !== id);
+  if(!ok) alert('La solicitud quedó registrada en Vacaciones, pero no se pudo quitar de la lista del portal. Si vuelve a aparecer, recárgala con 🔄.');
+  renderAll();
+}
+function vaPortalRender(){
+  const tb=$('va-portal-tbl'); if(!tb) return;
+  $('va-portal-n').textContent = SOL_VAC.length;
+  if(!solVacOk){ tb.innerHTML = `<tr><td colspan="7" align="center" style="color:var(--muted)">No se pudieron leer las solicitudes. Usa 🔄 Actualizar.</td></tr>`; return; }
+  tb.innerHTML = SOL_VAC.slice().sort((a,b)=>a.id-b.id).map(s=>{
+    const t=getT(s.trabajadorId); const sal=t?vaSaldo(t):null;
+    const aviso = sal && s.dias>sal.disponibles ? `<div style="font-size:10px;color:var(--red)">Saldo disponible: ${fmtDias(sal.disponibles)}</div>` : '';
+    return `<tr><td><b>${escH(getTName(s.trabajadorId))}</b></td><td>${fDate(s.fechaInicio)}</td><td>${fDate(s.fechaFin)}</td><td>${s.dias}${aviso}</td><td>${escH(s.motivo||'-')}</td><td>${s.fechaSolicitud?fDate(s.fechaSolicitud):'-'}</td><td><button class="act-btn small bdg-act" onclick="vaResolverPortal(${s.id},'Aprobada')" title="Aprobar">✓</button> <button class="act-btn small bdg-err" onclick="vaOpenRej(${s.id},true)" title="Rechazar">✗</button></td></tr>`;
+  }).join('') || `<tr><td colspan="7" align="center" style="color:var(--muted)">No hay solicitudes pendientes desde Mi Portal.</td></tr>`;
 }
 function vaSave() {
   const tid=$('va-tra').value, fi=$('va-ini').value, ff=$('va-fin').value; if(!tid||!fi||!ff)return;
@@ -687,8 +738,10 @@ function vaSave() {
   sync('vac'); ['tra','ini','fin','mot'].forEach(k=>$(`va-${k}`).value=''); vaPrev(); renderAll();
 }
 function vaSt(id, st){ const v=DB.vac.find(x=>x.id===id); if(v){v.estado=st; sync('vac'); renderAll();} }
-function vaOpenRej(id){ editId.vacRej=id; $('mod-vac-mot').value='';$('mod-vac').style.display='flex'; }
-function vaConfirmReject(){ const v=DB.vac.find(x=>x.id===editId.vacRej); if(v){v.estado="Rechazada";v.motivoRechazo=$('mod-vac-mot').value; sync('vac');$('mod-vac').style.display='none'; renderAll();} }
+function vaOpenRej(id, portal){ editId.vacRej=id; editId.vacRejPortal=!!portal; $('mod-vac-mot').value='';$('mod-vac').style.display='flex'; }
+function vaConfirmReject(){
+  if(editId.vacRejPortal){ const id=editId.vacRej; editId.vacRejPortal=false; $('mod-vac').style.display='none'; vaResolverPortal(id,'Rechazada',$('mod-vac-mot').value); return; }
+  const v=DB.vac.find(x=>x.id===editId.vacRej); if(v){v.estado="Rechazada";v.motivoRechazo=$('mod-vac-mot').value; sync('vac');$('mod-vac').style.display='none'; renderAll();} }
 function vaDel(id){ if(confirm("¿Eliminar?")){ DB.vac=DB.vac.filter(x=>x.id!==id); sync('vac'); renderAll(); } }
 function vaRender() {
   const q=$('va-bus').value.toLowerCase(), e=$('va-est').value; const tb=$('va-tbl'); let p=0, a=0;
@@ -701,7 +754,8 @@ function vaRender() {
     return `<tr><td><b>${getTName(v.trabajadorId)}</b></td><td>${fDate(v.fechaInicio)}</td><td>${fDate(v.fechaFin)}</td><td>${v.dias}</td><td><span class="badge ${bdg}">${v.estado}</span></td><td>${btn}</td></tr>`;
   }).join('');
   tb.innerHTML = h||`<tr><td colspan="6" align="center">Sin datos</td></tr>`;
-  $('k-va-pen').textContent=p; $('k-va-apr').textContent=a;
+  $('k-va-pen').textContent=p+SOL_VAC.length; $('k-va-apr').textContent=a;
+  vaPortalRender();
 }
 
 // ================= LICENCIAS =================
