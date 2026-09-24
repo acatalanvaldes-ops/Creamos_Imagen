@@ -236,10 +236,14 @@ const PRENDA_LABELS = { camiseta:'Camiseta', camisetas:'Camisetas', conjunto:'Co
 
 function prendasDetalleTexto(p) {
   if (!p.cantidad) return p.prenda || p.tipo || '—';
-  const parts = Object.entries(p.cantidad).filter(([k,v]) => k !== 'otrosDesc' && v > 0).map(([k,v]) => {
-    const label = (k === 'otros' && p.cantidad.otrosDesc) ? p.cantidad.otrosDesc : (PRENDA_LABELS[k] || k);
-    return `${v} ${label.toLowerCase()}`;
-  });
+  const c = p.cantidad;
+  const parts = Object.entries(c)
+    .filter(([k,v]) => k !== 'otrosDesc' && k !== 'lienzoMetros' && (v > 0 || (k === 'lienzo' && c.lienzoMetros > 0)))
+    .map(([k,v]) => {
+      let label = (k === 'otros' && c.otrosDesc) ? c.otrosDesc : (PRENDA_LABELS[k] || k);
+      if (k === 'lienzo' && c.lienzoMetros > 0) label += ' (' + String(c.lienzoMetros).replace('.', ',') + ' m)';
+      return `${v} ${label.toLowerCase()}`;
+    });
   return parts.length ? parts.join(', ') : (p.tipo || '—');
 }
 

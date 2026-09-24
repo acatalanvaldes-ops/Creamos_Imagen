@@ -812,6 +812,11 @@ function renderCantidadFields(tipo, values) {
       const desc = values.otrosDesc || '';
       return `<div class="cantidad-item" style="grid-column:span 2"><label>Otros</label><div style="display:flex;gap:6px"><input type="number" id="cant_otros" placeholder="0" min="0" value="${val}" style="flex:0 0 70px" oninput="calcTotalPrendas()"><input type="text" id="cant_otros_desc" placeholder="Especificar…" value="${desc}" style="flex:1;text-align:left;text-transform:none;font-weight:400"></div></div>`;
     }
+    if (k === 'lienzo') {
+      // Lienzo: cantidad (suma al total de prendas) + metros (dato aparte, admite decimales)
+      const metros = values.lienzoMetros || '';
+      return `<div class="cantidad-item" style="grid-column:span 2"><label>Lienzo</label><div style="display:flex;gap:6px"><input type="number" id="cant_lienzo" placeholder="Cant." min="0" value="${val}" style="flex:1" oninput="calcTotalPrendas()" title="Cantidad de lienzos"><input type="number" id="cant_lienzo_metros" data-metros="1" placeholder="Metros" min="0" step="any" value="${metros}" style="flex:1" title="Metros de lienzo"></div></div>`;
+    }
     return `<div class="cantidad-item"><label>${label}</label><input type="number" id="cant_${k}" placeholder="0" min="0" value="${val}" oninput="calcTotalPrendas()"></div>`;
   }).join('');
   calcTotalPrendas();
@@ -829,20 +834,36 @@ function buildCantidadFromForm() {
     const descEl = document.getElementById('cant_otros_desc');
     cantidad.otrosDesc = descEl ? descEl.value.trim() : '';
   }
+  if (keys.includes('lienzo')) {
+    const mEl = document.getElementById('cant_lienzo_metros');
+    const metros = mEl ? (parseFloat(mEl.value) || 0) : 0;
+    if (metros > 0) cantidad.lienzoMetros = metros;
+  }
   return cantidad;
+}
+
+// Claves de "cantidad" que no son prendas (no suman al total ni se listan solas)
+const CANTIDAD_NO_PRENDA = ['otrosDesc', 'lienzoMetros'];
+function metrosTexto(m) { return String(m).replace('.', ',') + ' m'; }
+// Entradas [etiqueta, cantidad] para mostrar; el lienzo incluye sus metros
+function cantidadItems(c) {
+  return Object.entries(c)
+    .filter(([k,v]) => !CANTIDAD_NO_PRENDA.includes(k) && (v > 0 || (k === 'lienzo' && c.lienzoMetros > 0)))
+    .map(([k,v]) => {
+      let label = (k === 'otros' && c.otrosDesc) ? c.otrosDesc : (PRENDA_LABELS[k] || k);
+      if (k === 'lienzo' && c.lienzoMetros > 0) label += ' (' + metrosTexto(c.lienzoMetros) + ')';
+      return [label, v];
+    });
 }
 
 function prendasDetalleTexto(p) {
   if (!p.cantidad) return p.prenda || '—';
-  const parts = Object.entries(p.cantidad).filter(([k,v]) => k !== 'otrosDesc' && v > 0).map(([k,v]) => {
-    const label = (k === 'otros' && p.cantidad.otrosDesc) ? p.cantidad.otrosDesc : (PRENDA_LABELS[k] || k);
-    return `${v} ${label.toLowerCase()}`;
-  });
+  const parts = cantidadItems(p.cantidad).map(([label,v]) => `${v} ${label.toLowerCase()}`);
   return parts.length ? parts.join(', ') : '—';
 }
 
 function calcTotalPrendas() {
-  const inputs = document.querySelectorAll('#cantidadGrid input[type=number]');
+  const inputs = document.querySelectorAll('#cantidadGrid input[type=number]:not([data-metros])');
   let total = 0;
   inputs.forEach(i => { total += (parseInt(i.value) || 0); });
   document.getElementById('totalPrendasBadge').textContent = `Total: ${total} prenda${total !== 1 ? 's' : ''}`;
@@ -885,7 +906,7 @@ function addProduction() {
   const monto = parseFloat(document.getElementById('prodMonto').value) || 0;
   const abono = parseFloat(document.getElementById('prodAbono').value) || 0;
   const cantidad = buildCantidadFromForm();
-  const totalPrendas = Object.entries(cantidad).filter(([k]) => k !== 'otrosDesc').reduce((s,[,v]) => s + (v||0), 0);
+  const totalPrendas = Object.entries(cantidad).filter(([k]) => !CANTIDAD_NO_PRENDA.includes(k)).reduce((s,[,v]) => s + (v||0), 0);
   let orden = editingId ? document.getElementById('prodOrden').value.trim() : getNextOrden();
 
   const prod = {
@@ -1037,8 +1058,7 @@ function renderTimeline() {
     if (p.fechaEntrega) { const [ey,em,ed] = p.fechaEntrega.split('-'); entregaLabel = `${parseInt(ed)} ${MONTHS_SHORT[parseInt(em)-1]}`; }
     let prendasHtml = '—';
     if (p.cantidad && Object.keys(p.cantidad).length) {
-      const items = Object.entries(p.cantidad).filter(([k,v]) => k !== 'otrosDesc' && v > 0).map(([k,v]) => {
-        const label = (k === 'otros' && p.cantidad.otrosDesc) ? p.cantidad.otrosDesc : (PRENDA_LABELS[k] || k);
+      const items = cantidadItems(p.cantidad).map(([label,v]) => {
         return `<span style="display:inline-block;margin-right:4px;margin-bottom:2px;background:var(--accent)14;border:1px solid var(--accent)30;border-radius:2px;padding:1px 5px;font-size:0.7rem;color:var(--accent);white-space:nowrap"><b>${v}</b> ${label}</span>`;
       });
       if (items.length > 0) prendasHtml = `<div style="line-height:1.8">${items.join('')}</div>`;
