@@ -264,7 +264,6 @@ table.tbl td.vacio{text-align:center;padding:28px;color:var(--muted)}
             </div>
             <div><span>Tipo de Contrato:</span><strong id="cert-info-contrato">—</strong></div>
             <div><span>Jornada Laboral:</span><strong id="cert-info-jornada">—</strong></div>
-            <div><span>Sueldo Base:</span><strong id="cert-info-sueldo">—</strong></div>
             <div><span>Fecha de Ingreso:</span><strong id="cert-info-ingreso">—</strong></div>
             <div><span>Antigüedad:</span><strong id="cert-info-antiguedad" style="color:var(--teal)">—</strong></div>
           </div>
@@ -974,7 +973,6 @@ function renderCertificados(){
   // Reflejar datos oficiales de la ficha en RRHH
   if ($('cert-info-contrato')) $('cert-info-contrato').textContent = miFicha.tipoContrato || 'Indefinido';
   if ($('cert-info-jornada')) $('cert-info-jornada').textContent = miFicha.jornada || 'Jornada ordinaria completa de trabajo';
-  if ($('cert-info-sueldo')) $('cert-info-sueldo').textContent = (miFicha.sueldo && Number(miFicha.sueldo) > 0) ? fmt(miFicha.sueldo) : 'Sin sueldo base registrado';
   if ($('cert-info-ingreso')) $('cert-info-ingreso').textContent = miFicha.fechaIngreso ? fDate(miFicha.fechaIngreso) : 'Pendiente en RRHH';
   if ($('cert-info-antiguedad')) $('cert-info-antiguedad').textContent = miFicha.fechaIngreso ? antiguedadTexto(miFicha.fechaIngreso) : '—';
 
@@ -992,18 +990,16 @@ function datosCertificadoActual(){
   const destinatario = obtenerDestinatarioCert();
   const tipoContrato = t.tipoContrato || 'Indefinido';
   const jornada = t.jornada || 'Jornada ordinaria completa de trabajo';
-  const mostrarRenta = Boolean(t.sueldo && Number(t.sueldo) > 0);
   const folio = obtenerFolioCert();
   const nombre = nombreCompleto(t) || 'Trabajador';
   const rut = t.rut || '—';
   const cargo = t.cargo || 'Trabajador';
   const area = t.area || 'Operaciones';
-  const sueldoFmt = t.sueldo ? fmt(t.sueldo) : '$0';
 
   return {
     t, fEmision, fEmisionTexto, fIngreso, fIngresoCorta, antiguedad,
-    destinatario, tipoContrato, jornada, mostrarRenta, folio,
-    nombre, rut, cargo, area, sueldoFmt
+    destinatario, tipoContrato, jornada, folio,
+    nombre, rut, cargo, area
   };
 }
 
@@ -1012,13 +1008,6 @@ function actualizarVistaCertificado(){
   if (!box || !miFicha) return;
   const d = datosCertificadoActual();
   if (!d) return;
-
-  let rentaHtml = '';
-  if (d.mostrarRenta) {
-    rentaHtml = `<p>Asimismo, se deja expresa constancia de que don(ña) <b>${esc(d.nombre)}</b> percibe una remuneración mensual correspondiente a un <b>Sueldo Base</b> pactado de <b>${esc(d.sueldoFmt)}</b> pesos chilenos, encontrándose la empresa al día en el pago íntegro y oportuno de sus remuneraciones, como también en el cumplimiento de la totalidad de sus cotizaciones previsionales y de salud legalmente obligatorias.</p>`;
-  } else {
-    rentaHtml = `<p>Asimismo, se deja constancia de que la relación contractual se encuentra plenamente vigente a la fecha, manteniéndose el dependiente y la empresa en pleno y oportuno cumplimiento de las obligaciones contractuales, laborales y previsionales.</p>`;
-  }
 
   box.innerHTML = `
     <div class="cert-header">
@@ -1051,7 +1040,9 @@ function actualizarVistaCertificado(){
       <p>
         Se certifica que el dependiente mantiene un contrato de trabajo de carácter <b>${esc(d.tipoContrato.toUpperCase())}</b>, sujeto a <b>${esc(d.jornada)}</b>, registrando a la fecha de emisión del presente documento una antigüedad laboral ininterrumpida de <b>${esc(d.antiguedad)}</b>.
       </p>
-      ${rentaHtml}
+      <p>
+        Asimismo, se deja expresa constancia de que la relación contractual se encuentra plenamente vigente a la fecha, manteniéndose el dependiente y la empresa en pleno y oportuno cumplimiento de las obligaciones contractuales, laborales y previsionales.
+      </p>
       <p>
         Se extiende el presente certificado a solicitud del interesado(a) para ser presentado ante <b>${esc(d.destinatario)}</b>, para los fines legales, administrativos o comerciales que estime convenientes, con una validez de treinta (30) días corridos a contar de su fecha de expedición.
       </p>
@@ -1064,7 +1055,6 @@ function actualizarVistaCertificado(){
         <tr><td>Cargo y Área:</td><td>${esc(d.cargo)} · ${esc(d.area)}</td></tr>
         <tr><td>Fecha de Ingreso:</td><td>${esc(d.fIngresoCorta)} (${esc(d.antiguedad)})</td></tr>
         <tr><td>Tipo de Contrato:</td><td>${esc(d.tipoContrato)} · ${esc(d.jornada)}</td></tr>
-        ${d.mostrarRenta ? `<tr><td>Sueldo Base Mensual:</td><td><b>${esc(d.sueldoFmt)}</b></td></tr>` : ''}
         <tr><td>Estado Contractual:</td><td><b style="color:var(--teal)">Vigente y Activo</b></td></tr>
       </table>
     </div>
@@ -1096,13 +1086,6 @@ function imprimirCertificado(){
   if (!v) {
     alert('El navegador bloqueó la ventana emergente. Por favor permítela para ver e imprimir el certificado.');
     return;
-  }
-
-  let rentaPrintHtml = '';
-  if (d.mostrarRenta) {
-    rentaPrintHtml = `<p class="parrafo">Asimismo, se deja expresa constancia de que don(ña) <b>${esc(d.nombre)}</b> percibe una remuneración mensual correspondiente a un <b>Sueldo Base</b> pactado de <b>${esc(d.sueldoFmt)}</b> pesos chilenos, encontrándose la empresa al día en el pago íntegro y oportuno de sus remuneraciones, como también en el cumplimiento de la totalidad de sus cotizaciones previsionales y de salud legalmente obligatorias.</p>`;
-  } else {
-    rentaPrintHtml = `<p class="parrafo">Asimismo, se certifica que la relación contractual se encuentra plenamente vigente a la fecha, manteniéndose el dependiente y la empresa en pleno y oportuno cumplimiento de sus obligaciones contractuales, laborales y previsionales.</p>`;
   }
 
   v.document.write(`<!DOCTYPE html>
@@ -1220,7 +1203,9 @@ function imprimirCertificado(){
     <p class="parrafo">
       Asimismo, se acredita que el dependiente mantiene un contrato de trabajo vigente de carácter <b>${esc(d.tipoContrato.toUpperCase())}</b>, sujeto a <b>${esc(d.jornada)}</b>, contando a la fecha de emisión del presente certificado con una antigüedad laboral continua de <b>${esc(d.antiguedad)}</b>.
     </p>
-    ${rentaPrintHtml}
+    <p class="parrafo">
+      Asimismo, se deja expresa constancia de que la relación contractual se encuentra plenamente vigente a la fecha, manteniéndose el dependiente y la empresa en pleno y oportuno cumplimiento de las obligaciones contractuales, laborales y previsionales.
+    </p>
     <p class="parrafo">
       Se otorga el presente certificado a solicitud expresa del trabajador(a) interesado(a) para ser presentado ante <b>${esc(d.destinatario)}</b>, para los fines legales, administrativos o comerciales que estime convenientes, con una vigencia de treinta (30) días corridos a contar de su fecha de emisión.
     </p>
@@ -1232,7 +1217,6 @@ function imprimirCertificado(){
     <tr><td class="lbl">Cargo y Área de Desempeño:</td><td>${esc(d.cargo)} · ${esc(d.area)}</td></tr>
     <tr><td class="lbl">Fecha de Ingreso a la Empresa:</td><td>${esc(d.fIngresoCorta)} (${esc(d.antiguedad)})</td></tr>
     <tr><td class="lbl">Tipo de Contrato y Jornada:</td><td>${esc(d.tipoContrato)} · ${esc(d.jornada)}</td></tr>
-    ${d.mostrarRenta ? `<tr><td class="lbl">Sueldo Base Mensual:</td><td><b>${esc(d.sueldoFmt)}</b></td></tr>` : ''}
     <tr><td class="lbl">Vigencia Relación Laboral:</td><td><b>Vigente y Activa</b></td></tr>
   </table>
 
