@@ -116,8 +116,7 @@ table.tbl td.vacio{text-align:center;padding:28px;color:var(--muted)}
 .cert-datos-box table{width:100%;border-collapse:collapse}
 .cert-datos-box td{padding:4px 6px;vertical-align:top}
 .cert-datos-box td:first-child{font-weight:700;color:var(--muted);width:38%}
-.cert-firma-wrap{margin-top:40px;display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;}
-.cert-sello{border:1.5px dashed var(--teal);color:var(--teal);padding:8px 12px;border-radius:6px;font-size:10px;text-align:center;max-width:240px;background:#f0fdfa}
+.cert-firma-wrap{margin-top:50px;display:flex;justify-content:flex-end;}
 .cert-firma{border-top:1px solid #1c1917;width:240px;text-align:center;padding-top:6px;font-size:11px;font-weight:700;}
 
 @media (max-width:720px){
@@ -1090,12 +1089,6 @@ function actualizarVistaCertificado(){
     </div>
 
     <div class="cert-firma-wrap">
-      <div class="cert-sello">
-        <div>🛡️ <b>DOCUMENTO OFICIAL</b></div>
-        <div>Creamos Imagen Ltda.</div>
-        <div style="font-family:var(--mono);font-size:9px;margin-top:3px">${esc(d.folio)}</div>
-        <div style="font-size:9px;color:var(--muted)">Validez: 30 días corridos</div>
-      </div>
       <div class="cert-firma">
         <div>DEPARTAMENTO DE RECURSOS HUMANOS</div>
         <div style="font-size:10px;font-weight:normal;color:#666">CREAMOS IMAGEN LTDA.</div>
@@ -1194,19 +1187,8 @@ function imprimirCertificado(){
     .firma-wrap {
       margin-top: 60px;
       display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
+      justify-content: flex-end;
       page-break-inside: avoid;
-    }
-    .sello-box {
-      border: 1.5px dashed #0d7a6b;
-      color: #0d7a6b;
-      padding: 10px 14px;
-      border-radius: 6px;
-      font-size: 10px;
-      text-align: center;
-      width: 210px;
-      background: #f8fafc;
     }
     .firma-box {
       border-top: 1px solid #111;
@@ -1274,12 +1256,6 @@ function imprimirCertificado(){
   </div>
 
   <div class="firma-wrap">
-    <div class="sello-box">
-      <div>🛡️ <b>CERTIFICACIÓN OFICIAL</b></div>
-      <div style="font-weight:700">Creamos Imagen Ltda.</div>
-      <div style="font-family:monospace;font-size:9px;margin:2px 0">${esc(d.folio)}</div>
-      <div style="font-size:9px;color:#666">Válido por 30 días corridos</div>
-    </div>
     <div class="firma-box">
       <div>DEPARTAMENTO DE RECURSOS HUMANOS</div>
       <div style="font-size:10px;font-weight:normal;color:#444">CREAMOS IMAGEN LTDA.</div>
