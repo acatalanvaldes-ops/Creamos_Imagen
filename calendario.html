@@ -103,6 +103,8 @@
   
   @media print { body::before { display: none; } .controls, .add-form, .toggle-form-btn, .month-nav { display: none !important; } }
 </style>
+  <link rel="stylesheet" href="brand/brand.css">
+  <script src="brand/brand.js"></script>
 </head>
 <body>
 <script src="cargando.js"></script>
@@ -1144,7 +1146,7 @@ function renderStats() {
   });
 }
 
-function exportPDF() {
+async function exportPDF() {
   if (!window.jspdf || !window.jspdf.jsPDF) {
     alert('No se pudo cargar el generador de PDF. Verifica tu conexión a internet e inténtalo nuevamente.');
     return;
@@ -1165,6 +1167,7 @@ function exportPDF() {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
   const marginX = 40;
   let y = 40;
+  if (window.CREAMOS_BRAND && window.CREAMOS_BRAND.addLogoToPdf) await window.CREAMOS_BRAND.addLogoToPdf(doc, marginX, 8, 70, false);
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(18);
@@ -1231,7 +1234,7 @@ function exportPDF() {
     head: [['N° Orden', 'Nombre / Cliente', 'Tipo', 'Diseñador', 'F. Ingreso', 'F. Entrega', 'Detalle de Prendas']],
     body: rows,
     styles: { font: 'helvetica', fontSize: 8, cellPadding: 4 },
-    headStyles: { fillColor: [30, 26, 20], textColor: 255 },
+    headStyles: { fillColor: [20, 20, 20], textColor: [241, 175, 19] },
     alternateRowStyles: { fillColor: [245, 242, 235] },
     columnStyles: { 6: { cellWidth: 260 } }
   });

@@ -76,6 +76,8 @@ tfoot td{padding:11px 12px;font-weight:700;white-space:nowrap}
 .r{text-align:right;font-weight:600}.c{text-align:center}
 .day-hdr td{background:#1C1917;padding:9px 14px}
 </style>
+  <link rel="stylesheet" href="brand/brand.css">
+  <script src="brand/brand.js"></script>
 </head>
 <body>
 <script src="cargando.js"></script>
@@ -430,7 +432,7 @@ function buildVistaPDF(filt) {
     '</div></div></div>';
 }
 
-function exportPDF() {
+async function exportPDF() {
   var filt = getFiltradas();
   if (!filt.length) { alert('No hay ventas para exportar' + (rangoActivo() ? ' en el rango de fechas seleccionado.' : '.')); return; }
   if (!window.jspdf || !window.jspdf.jsPDF) { alert('No se pudo cargar el generador de PDF. Verifica tu conexión a internet e inténtalo nuevamente.'); return; }
@@ -441,7 +443,10 @@ function exportPDF() {
   var sorted = filt.slice().sort(function(a,b){ return a.fecha.localeCompare(b.fecha); });
   var tV = filt.reduce(function(s,v){ return s+v.montoBase; }, 0);
 
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
+  doc.setFillColor(20, 20, 20); doc.rect(0, 0, doc.internal.pageSize.getWidth(), 72, 'F');
+  doc.setFillColor(241, 175, 19); doc.rect(0, 70, doc.internal.pageSize.getWidth(), 3, 'F');
+  if (window.CREAMOS_BRAND && window.CREAMOS_BRAND.addLogoToPdf) await window.CREAMOS_BRAND.addLogoToPdf(doc, marginX, 8, 70, true);
+  doc.setTextColor(241, 175, 19); doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
   doc.text('Creamos Imagen — Reporte de Ventas Empresa', marginX, y);
   y += 20;
 
@@ -467,7 +472,7 @@ function exportPDF() {
     head: [['Fecha','Cliente','Producto','Forma Pago','Venta','Factura']],
     body: rows,
     styles: { font: 'helvetica', fontSize: 8, cellPadding: 4 },
-    headStyles: { fillColor: [28, 25, 23], textColor: 255 },
+    headStyles: { fillColor: [20, 20, 20], textColor: [241, 175, 19] },
     alternateRowStyles: { fillColor: [247, 245, 240] },
     columnStyles: { 4: { halign: 'right' }, 5: { halign: 'center' } }
   });
@@ -509,7 +514,7 @@ async function exportXLSX() {
   var titleCell = ws.getCell(1, 1);
   titleCell.value = 'CREAMOS IMAGEN — REGISTRO DE VENTAS EMPRESA' + sufijoTituloXl;
   titleCell.font = { bold:true, size:14, color:{argb:'FFFFFFFF'} };
-  titleCell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF1C1917'} };
+  titleCell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF141414'} };
   titleCell.alignment = { vertical:'middle' };
   ws.getRow(1).height = 26;
   ws.getRow(2).height = 4;
@@ -518,8 +523,8 @@ async function exportXLSX() {
   var headerRow = ws.getRow(3);
   headers.forEach(function(h,i){ headerRow.getCell(i+1).value = h; });
   headerRow.eachCell(function(cell){
-    cell.font = { bold:true, color:{argb:'FFFFFFFF'} };
-    cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFC8973A'} };
+    cell.font = { bold:true, color:{argb:'FFF1AF13'} };
+    cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF141414'} };
     cell.alignment = { vertical:'middle' };
   });
   headerRow.height = 20;
@@ -556,7 +561,7 @@ async function exportXLSX() {
   var totalRow = ws.addRow({ fecha:'', cliente:'', producto:'', formaPago:'TOTALES', venta:tV, wp:tWp, factura:'' });
   totalRow.eachCell({ includeEmpty:true }, function(cell){
     cell.font = { bold:true, color:{argb:'FFFFFFFF'} };
-    cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF1C1917'} };
+    cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF141414'} };
   });
   moneyIdx.forEach(function(ci){ totalRow.getCell(ci).numFmt = '"$"#,##0'; });
 

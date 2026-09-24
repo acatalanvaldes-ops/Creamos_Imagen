@@ -78,6 +78,8 @@ table.tbl input:focus,table.tbl select:focus{border-bottom:2px solid var(--gold)
 .clickable-row:hover{background:var(--bg)}
 .cliente-readonly{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 </style>
+  <link rel="stylesheet" href="brand/brand.css">
+  <script src="brand/brand.js"></script>
 </head>
 <body>
 <script src="cargando.js"></script>
@@ -931,7 +933,7 @@ function renderComparar() {
 
 // ===== EXPORTAR PDF DE COTIZACIÓN =====
 
-function exportCotizacionPDF(id) {
+async function exportCotizacionPDF(id) {
   const c = cotizaciones.find(x => x.id === id);
   if (!c) return;
   if (typeof window.jspdf === 'undefined') { alert('No se pudo cargar el generador de PDF. Verifica tu conexión a internet e inténtalo nuevamente.'); return; }
@@ -942,6 +944,10 @@ function exportCotizacionPDF(id) {
   const pageWidth = doc.internal.pageSize.getWidth();
   const marginX = 20;
   let y = 18;
+  if (window.CREAMOS_BRAND && window.CREAMOS_BRAND.addLogoToPdf) await window.CREAMOS_BRAND.addLogoToPdf(doc, marginX, 4, 38, false);
+
+  doc.setFillColor(20, 20, 20); doc.rect(0, 0, pageWidth, 3, 'F');
+  doc.setFillColor(241, 175, 19); doc.rect(0, 3, pageWidth, 1.4, 'F');
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
@@ -1023,7 +1029,7 @@ function exportCotizacionPDF(id) {
     body: body,
     theme: 'grid',
     styles: { fontSize: 9, cellPadding: 2.2 },
-    headStyles: { fillColor: [230, 230, 230], textColor: [20, 20, 20], fontStyle: 'bold' },
+    headStyles: { fillColor: [20, 20, 20], textColor: [241, 175, 19], fontStyle: 'bold' },
     columnStyles: { 1: { halign: 'right' }, 2: { halign: 'center' }, 3: { halign: 'right' } }
   });
 
@@ -1044,7 +1050,7 @@ function exportCotizacionPDF(id) {
   finalY += 10;
 
   // Caja de condiciones / forma de pago / firma
-  doc.setDrawColor(200, 200, 200);
+  doc.setDrawColor(241, 175, 19);
   const boxY = finalY;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);

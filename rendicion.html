@@ -101,6 +101,8 @@ tfoot .tot-row td{background:var(--accent-l);font-family:var(--mono);font-size:1
 .ex-tbl tbody td{padding:5px 14px;border:1px solid #d0d0d0;}
 .btn-dl{background:#217346;color:#fff;border:none;font-family:var(--sans);font-size:13px;font-weight:700;padding:10px 22px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:8px;}
 </style>
+  <link rel="stylesheet" href="brand/brand.css">
+  <script src="brand/brand.js"></script>
 </head>
 <body>
 <script src="cargando.js"></script>
@@ -1663,7 +1665,7 @@ async function exportXLSX(){
   const titleCell = ws.getCell(1, 1);
   titleCell.value = 'CREAMOS IMAGEN — RENDICIÓN DE CAJA ' + tituloRango + (origenFiltro() ? ' — ORIGEN: ' + origenFiltro().toUpperCase() : '');
   titleCell.font = { bold:true, size:14, color:{argb:'FFFFFFFF'} };
-  titleCell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF2C5F2E'} };
+  titleCell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF141414'} };
   titleCell.alignment = { vertical:'middle' };
   ws.getRow(1).height = 26;
   ws.getRow(2).height = 4;
@@ -1672,8 +1674,8 @@ async function exportXLSX(){
   const headerRow = ws.getRow(3);
   headers.forEach((h,i) => { headerRow.getCell(i+1).value = h; });
   headerRow.eachCell(cell => {
-    cell.font = { bold:true, color:{argb:'FFFFFFFF'} };
-    cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF217346'} };
+    cell.font = { bold:true, color:{argb:'FFF1AF13'} };
+    cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF141414'} };
     cell.alignment = { vertical:'middle' };
   });
   headerRow.height = 20;
@@ -1707,8 +1709,8 @@ async function exportXLSX(){
   const totalRow = ws.addRow({ fecha:'', cliente:'', tipo:'', origen:'', pago:'TOTALES', ef:tEf, tr:tTr, wp:tWp, obs:'' });
   totalRow.eachCell({ includeEmpty:true }, cell => {
     cell.font = { bold:true };
-    cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFE8F5E9'} };
-    cell.border = { top:{style:'double',color:{argb:'FF2C5F2E'}} };
+    cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFFFF3CC'} };
+    cell.border = { top:{style:'double',color:{argb:'FF141414'}} };
   });
   moneyIdx.forEach(ci => { totalRow.getCell(ci).numFmt = '"$"#,##0'; });
 

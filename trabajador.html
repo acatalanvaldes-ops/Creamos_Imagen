@@ -6,7 +6,7 @@
 <title>Mi Portal - Creamos Imagen</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#F7F5F0;--surface:#FFFFFF;--dark:#1C1917;--gold:#C8973A;--teal:#0D7A6B;--red:#C0392B;--muted:#78716C;--border:#E7E2D9;--blue:#1E40AF;--amber:#B45309;--mono:'DM Mono',monospace}
+:root{--bg:#F7F5F0;--surface:#FFFFFF;--dark:#1C1917;--gold:#C8973A;--teal:#0D7A6B;--red:#C0392B;--muted:#78716C;--border:#E7E2D9;--blue:#141414;--amber:#B45309;--mono:'DM Mono',monospace}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--dark);min-height:100vh}
 input,select,button,textarea{font-family:inherit;outline:none}
@@ -55,7 +55,7 @@ input,select,button,textarea{font-family:inherit;outline:none}
 .act-btn.danger:hover{border-color:var(--red);color:var(--red)}
 .aviso{border-radius:8px;padding:10px 14px;font-size:12px;margin-bottom:16px;line-height:1.5}
 .aviso.warn{background:#FEF3E2;border:1px solid #FDE68A;color:var(--amber)}
-.aviso.info{background:#EFF6FF;border:1px solid #BFDBFE;color:var(--blue)}
+.aviso.info{background:#EFF6FF;border:1px solid #F1AF13;color:var(--blue)}
 .nota{font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5}
 
 /* KPIS */
@@ -89,7 +89,7 @@ table.tbl td.vacio{text-align:center;padding:28px;color:var(--muted)}
 .bdg-act{background:#DCFCE7;color:#166534;border:1px solid #BBF7D0}
 .bdg-pen{background:#FEF3E2;color:#B45309;border:1px solid #FDE68A}
 .bdg-err{background:#FEF2F2;color:#991B1B;border:1px solid #FECACA}
-.bdg-inf{background:#EFF6FF;color:#1E40AF;border:1px solid #BFDBFE}
+.bdg-inf{background:#EFF6FF;color:#141414;border:1px solid #F1AF13}
 
 /* PROFILE BOX */
 .profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
@@ -130,6 +130,8 @@ table.tbl td.vacio{text-align:center;padding:28px;color:var(--muted)}
   .cert-firma-wrap{flex-direction:column;align-items:center;gap:25px}
 }
 </style>
+  <link rel="stylesheet" href="brand/brand.css">
+  <script src="brand/brand.js"></script>
 </head>
 <body>
 <script src="cargando.js"></script>
@@ -846,28 +848,28 @@ function descargarLiquidacion(id){
     <style>
       @page { size: auto; margin: 15mm; }
       body { font-family: Arial, sans-serif; font-size: 11px; color: #333; padding: 25px 35px; }
-      h1 { font-size: 18px; color: #1e3a8a; margin-bottom: 5px; }
+      h1 { font-size: 18px; color: #141414; border-bottom: 3px solid #F1AF13; padding-bottom: 8px; margin-bottom: 5px; }
       h2 { font-size: 13px; color: #333; margin-top: 0; margin-bottom: 20px; font-weight: normal; }
       .header-table { width: 100%; margin-bottom: 20px; border-collapse: collapse; }
       .header-table td { padding: 8px; vertical-align: top; }
-      .header-table .col-trabajador { border-top: 4px solid #bfdbfe; width: 50%; }
-      .header-table .col-empresa { border-top: 4px solid #bfdbfe; width: 50%; background-color: #f8fafc; }
+      .header-table .col-trabajador { border-top: 4px solid #F1AF13; width: 50%; }
+      .header-table .col-empresa { border-top: 4px solid #F1AF13; width: 50%; background-color: #F7F6F2; }
       .info-line { margin: 3px 0; }
       .info-line strong { display: inline-block; width: 120px; }
       .main-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-      .main-table th { background-color: #bfdbfe; color: #1e3a8a; padding: 8px; text-align: left; font-size: 11px; }
+      .main-table th { background-color: #141414; color: #F1AF13; padding: 8px; text-align: left; font-size: 11px; }
       .main-table td { padding: 6px 8px; border-bottom: 1px solid #e2e8f0; vertical-align: top; width: 50%; }
       .row-flex { display: flex; justify-content: space-between; margin-bottom: 4px; }
       .total-row { font-weight: bold; background-color: #f1f5f9; padding: 8px; margin-top: 10px; display: flex; justify-content: space-between; }
-      .alcance-liquido { background-color: #bfdbfe; color: #1e3a8a; font-size: 14px; font-weight: bold; padding: 12px; display: flex; justify-content: space-between; margin-top: 20px; }
+      .alcance-liquido { background-color: #F1AF13; color: #141414; font-size: 14px; font-weight: bold; padding: 12px; display: flex; justify-content: space-between; margin-top: 20px; }
       .footer { margin-top: 85px; display: flex; justify-content: space-between; align-items: flex-end; }
       .certificado { width: 58%; font-size: 10px; text-align: justify; line-height: 1.5; color: #444; }
       .firma-box { width: 35%; text-align: center; }
       .firma-line { border-top: 1px solid #000; padding-top: 8px; font-size: 11px; font-weight: bold; }
-    </style>
-  </head>
+    </style></head>
   <body>
-    <h1>Liquidación de Remuneraciones</h1>
+    <img src="${window.CREAMOS_BRAND.logoBlack}" alt="Creamos Imagen" style="width:155px;height:42px;object-fit:contain;object-position:left center;margin-bottom:10px">
+<h1>Liquidación de Remuneraciones</h1>
     <h2>Mes: ${esc(l.periodo)}</h2>
     <table class="header-table">
       <tr>
@@ -1028,7 +1030,7 @@ function actualizarVistaCertificado(){
       </div>
     </div>
 
-    <div class="cert-titulo">Certificado de Antigüedad y Vigencia Laboral</div>
+    <img src="${window.CREAMOS_BRAND.logoBlack}" alt="Creamos Imagen" style="display:block;width:155px;height:42px;object-fit:contain;object-position:left center;margin:0 auto 24px"><div class="cert-titulo">Certificado de Antigüedad y Vigencia Laboral</div>
 
     <div class="cert-dest">
       SEÑORES:<br>
@@ -1176,8 +1178,7 @@ function imprimirCertificado(){
       body { padding: 0; max-width: 100%; }
       .no-print { display: none; }
     }
-  </style>
-</head>
+  </style></head>
 <body>
   <div class="header">
     <div>

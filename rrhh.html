@@ -9,7 +9,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-:root{--bg:#F7F5F0;--surface:#FFFFFF;--dark:#1C1917;--gold:#C8973A;--teal:#0D7A6B;--red:#C0392B;--muted:#78716C;--border:#E7E2D9;--purple:#6D28D9;--blue:#1E40AF;--green:#166534;--amber:#B45309}
+:root{--bg:#F7F5F0;--surface:#FFFFFF;--dark:#1C1917;--gold:#C8973A;--teal:#0D7A6B;--red:#C0392B;--muted:#78716C;--border:#E7E2D9;--purple:#6D28D9;--blue:#141414;--green:#166534;--amber:#B45309}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--dark);min-height:100vh}
 input,select,button,textarea{font-family:inherit;outline:none}
@@ -43,7 +43,7 @@ table.tbl th{background:var(--dark);color:var(--gold);font-size:10px;text-transf
 table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
 .badge{padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;}
 .bdg-act{background:#DCFCE7;color:#166534} .bdg-inact{background:#F3F4F6;color:#4B5563}
-.bdg-pen{background:#FEF3E2;color:#B45309} .bdg-err{background:#FEF2F2;color:#991B1B} .bdg-ok{background:#DBEAFE;color:#1E40AF}
+.bdg-pen{background:#FEF3E2;color:#B45309} .bdg-err{background:#FEF2F2;color:#991B1B} .bdg-ok{background:#FFF3CC;color:#141414}
 .search-bar{display:flex;gap:12px;margin-bottom:16px;background:#fff;padding:8px 12px;border-radius:8px;border:1px solid var(--border);align-items:center}
 .search-bar input{flex:1;border:none;background:transparent;outline:none;}
 .resumen-card{background:#FAFAF8;padding:16px;border-radius:8px;border:1px dashed var(--border);}
@@ -53,6 +53,8 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none;align-items:center;justify-content:center;padding:16px;}
 .modal{background:#fff;border-radius:12px;padding:24px;width:100%;max-width:500px;}
 </style>
+  <link rel="stylesheet" href="brand/brand.css">
+  <script src="brand/brand.js"></script>
 </head>
 <body>
 <script src="cargando.js"></script>
@@ -1001,28 +1003,28 @@ function printLiq(id){
     <style>
       @page { size: auto; margin: 15mm; }
       body { font-family: Arial, sans-serif; font-size: 11px; color: #333; padding: 25px 35px; }
-      h1 { font-size: 18px; color: #1e3a8a; margin-bottom: 5px; }
+      h1 { font-size: 18px; color: #141414; margin-bottom: 5px; }
       h2 { font-size: 13px; color: #333; margin-top: 0; margin-bottom: 20px; font-weight: normal; }
       .header-table { width: 100%; margin-bottom: 20px; border-collapse: collapse; }
       .header-table td { padding: 8px; vertical-align: top; }
-      .header-table .col-trabajador { border-top: 4px solid #bfdbfe; width: 50%; }
-      .header-table .col-empresa { border-top: 4px solid #bfdbfe; width: 50%; background-color: #f8fafc; }
+      .header-table .col-trabajador { border-top: 4px solid #F1AF13; width: 50%; }
+      .header-table .col-empresa { border-top: 4px solid #F1AF13; width: 50%; background-color: #F7F6F2; }
       .info-line { margin: 3px 0; }
       .info-line strong { display: inline-block; width: 120px; }
       .main-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-      .main-table th { background-color: #bfdbfe; color: #1e3a8a; padding: 8px; text-align: left; font-size: 11px; }
+      .main-table th { background-color: #F1AF13; color: #141414; padding: 8px; text-align: left; font-size: 11px; }
       .main-table td { padding: 6px 8px; border-bottom: 1px solid #e2e8f0; vertical-align: top; width: 50%; }
       .row-flex { display: flex; justify-content: space-between; margin-bottom: 4px; }
       .total-row { font-weight: bold; background-color: #f1f5f9; padding: 8px; margin-top: 10px; display: flex; justify-content: space-between; }
-      .alcance-liquido { background-color: #bfdbfe; color: #1e3a8a; font-size: 14px; font-weight: bold; padding: 12px; display: flex; justify-content: space-between; margin-top: 20px; }
+      .alcance-liquido { background-color: #F1AF13; color: #141414; font-size: 14px; font-weight: bold; padding: 12px; display: flex; justify-content: space-between; margin-top: 20px; }
       .footer { margin-top: 85px; display: flex; justify-content: space-between; align-items: flex-end; }
       .certificado { width: 58%; font-size: 10px; text-align: justify; line-height: 1.5; color: #444; }
       .firma-box { width: 35%; text-align: center; }
       .firma-line { border-top: 1px solid #000; padding-top: 8px; font-size: 11px; font-weight: bold; }
-    </style>
-  </head>
+    </style></head>
   <body>
-    <h1>Liquidación de Remuneraciones</h1>
+    <img src="${window.CREAMOS_BRAND.logoBlack}" alt="Creamos Imagen" style="width:155px;height:42px;object-fit:contain;object-position:left center;margin-bottom:10px">
+<h1>Liquidación de Remuneraciones</h1>
     <h2>Mes: ${l.periodo}</h2>
 
     <table class="header-table">
@@ -1155,26 +1157,28 @@ async function lrXL(id){
   ws.columns=LR_COLS.map(c=>({ key:c.k, width:c.k==='nom'?28:(c.k==='rut'?13:14) }));
   ws.mergeCells(1,1,1,LR_COLS.length);
   const t1=ws.getCell(1,1); t1.value='CREAMOS IMAGEN LTDA. — LIBRO DE REMUNERACIONES '+lrPeriodoTexto(l.periodo).toUpperCase();
-  t1.font={ bold:true, size:14, color:{argb:'FFFFFFFF'} }; t1.fill={ type:'pattern', pattern:'solid', fgColor:{argb:'FF1E3A8A'} };
+  t1.font={ bold:true, size:14, color:{argb:'FFF1AF13'} }; t1.fill={ type:'pattern', pattern:'solid', fgColor:{argb:'FF141414'} };
   ws.mergeCells(2,1,2,LR_COLS.length);
   ws.getCell(2,1).value='RUT 76.460.575-6 · Estado: '+(l.estado||'-')+' · Trabajadores: '+filas.length;
   ws.getCell(2,1).font={ italic:true, color:{argb:'FF475569'} };
-  const hr=ws.getRow(4); LR_COLS.forEach((c,i)=>{ const cell=hr.getCell(i+1); cell.value=c.h; cell.font={ bold:true, color:{argb:'FFFFFFFF'} }; cell.fill={ type:'pattern', pattern:'solid', fgColor:{argb:'FF1E40AF'} }; cell.alignment={ wrapText:true, vertical:'middle' }; });
+  const hr=ws.getRow(4); LR_COLS.forEach((c,i)=>{ const cell=hr.getCell(i+1); cell.value=c.h; cell.font={ bold:true, color:{argb:'FFF1AF13'} }; cell.fill={ type:'pattern', pattern:'solid', fgColor:{argb:'FF141414'} }; cell.alignment={ wrapText:true, vertical:'middle' }; });
   hr.height=32;
   const monFmt='"$"#,##0';
   filas.forEach(f=>{ const row=ws.addRow(f); LR_COLS.forEach((c,i)=>{ if(!c.txt) row.getCell(i+1).numFmt=monFmt; }); });
-  const tr=ws.addRow(tot); tr.eachCell({ includeEmpty:true }, cell=>{ cell.font={ bold:true }; cell.fill={ type:'pattern', pattern:'solid', fgColor:{argb:'FFDBEAFE'} }; cell.border={ top:{ style:'double', color:{argb:'FF1E3A8A'} } }; });
+  const tr=ws.addRow(tot); tr.eachCell({ includeEmpty:true }, cell=>{ cell.font={ bold:true }; cell.fill={ type:'pattern', pattern:'solid', fgColor:{argb:'FFFFF3CC'} }; cell.border={ top:{ style:'double', color:{argb:'FF141414'} } }; });
   LR_COLS.forEach((c,i)=>{ if(!c.txt) tr.getCell(i+1).numFmt=monFmt; });
   const b=await wb.xlsx.writeBuffer(); const u=URL.createObjectURL(new Blob([b],{ type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
   const a=document.createElement('a'); a.href=u; a.download=`Libro_Remuneraciones_${l.periodo}.xlsx`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),2000);
 }
 
-function lrPDF(id){
+async function lrPDF(id){
   const l=lrLibro(id); if(!l) return;
   if(!window.jspdf||!window.jspdf.jsPDF){ alert('No se pudo cargar el generador de PDF. Revisa tu conexión y recarga la página.'); return; }
   const filas=lrFilas(l), tot=lrTotales(filas);
   const { jsPDF }=window.jspdf; const doc=new jsPDF({ orientation:'landscape', unit:'pt', format:'legal' });
-  doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.setTextColor(30,58,138);
+  doc.setFillColor(20,20,20); doc.rect(0,0,doc.internal.pageSize.getWidth(),58,'F'); doc.setFillColor(241,175,19); doc.rect(0,56,doc.internal.pageSize.getWidth(),3,'F');
+  if (window.CREAMOS_BRAND && window.CREAMOS_BRAND.addLogoToPdf) await window.CREAMOS_BRAND.addLogoToPdf(doc, 30, 6, 72, true);
+  doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.setTextColor(241,175,19);
   doc.text('Libro de Remuneraciones — '+lrPeriodoTexto(l.periodo), 30, 36);
   doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(80);
   doc.text('Creamos Imagen Ltda. · RUT 76.460.575-6 · Estado: '+(l.estado||'-')+' · Trabajadores: '+filas.length+' · Generado el '+fechaChileTexto(null,{ day:'2-digit', month:'long', year:'numeric' },'es-CL'), 30, 52);
@@ -1183,8 +1187,8 @@ function lrPDF(id){
   doc.autoTable({
     startY:64, head:[LR_COLS.map(c=>c.h)], body:filas.map(aFila), foot:[aFila(tot)],
     styles:{ fontSize:7, cellPadding:3, halign:'right' }, columnStyles:{ 0:{ halign:'left' }, 1:{ halign:'left', cellWidth:110 } },
-    headStyles:{ fillColor:[30,64,175], textColor:255, halign:'center', valign:'middle' },
-    footStyles:{ fillColor:[219,234,254], textColor:[30,58,138], fontStyle:'bold' },
+    headStyles:{ fillColor:[20,20,20], textColor:[241,175,19], halign:'center', valign:'middle' },
+    footStyles:{ fillColor:[241,175,19], textColor:[20,20,20], fontStyle:'bold' },
     alternateRowStyles:{ fillColor:[245,247,250] }, margin:{ left:30, right:30 }
   });
   doc.save(`Libro_Remuneraciones_${l.periodo}.pdf`);
@@ -1314,10 +1318,10 @@ function printFin(id){
       .firmas { display: flex; justify-content: space-between; margin-top: 50px; padding: 0 30px; }
       .firma-box { width: 40%; text-align: center; }
       .firma-line { border-top: 1px solid #000; padding-top: 8px; font-weight: bold; }
-    </style>
-  </head>
+    </style></head>
   <body>
-    <h1>Finiquito de Contrato de Trabajo</h1>
+    <img src="${window.CREAMOS_BRAND.logoBlack}" alt="Creamos Imagen" style="width:155px;height:42px;object-fit:contain;object-position:left center;margin-bottom:10px">
+<h1>Finiquito de Contrato de Trabajo</h1>
 
     <div class="grid-info">
       <div class="info-box"><span class="info-label">Nombre Completo</span><span class="info-value">${t?t.nombres+' '+t.apellidos:'-'}</span></div>
@@ -1398,11 +1402,11 @@ function rpRender(){
   if(charts.dotacion) charts.dotacion.destroy(); if(charts.costo) charts.costo.destroy(); if(charts.horas) charts.horas.destroy(); if(charts.licencias) charts.licencias.destroy();
 
   const cDot={}; tf.forEach(t=>{const ar=t.area||"Sin Área";cDot[ar]=(cDot[ar]||0)+1;});
-  charts.dotacion=new Chart($('ch-dot').getContext('2d'),{type:'doughnut',data:{labels:Object.keys(cDot),datasets:[{data:Object.values(cDot),backgroundColor:['#0D7A6B','#C8973A','#1E40AF','#C0392B','#6D28D9']}]},options:{responsive:true,maintainAspectRatio:false}});
+  charts.dotacion=new Chart($('ch-dot').getContext('2d'),{type:'doughnut',data:{labels:Object.keys(cDot),datasets:[{data:Object.values(cDot),backgroundColor:['#0D7A6B','#C8973A','#141414','#C0392B','#6D28D9']}]},options:{responsive:true,maintainAspectRatio:false}});
 
   const liq=DB.liq.filter(l=>l.periodo===p&&setT.has(String(l.trabajadorId)));
   const cImp=liq.reduce((s,l)=>s+l.imponible,0), cDes=liq.reduce((s,l)=>s+l.totalDescuentos,0), cLiq=liq.reduce((s,l)=>s+l.liquido,0);
-  charts.costo=new Chart($('ch-cos').getContext('2d'),{type:'bar',data:{labels:['Imponible','Descuentos','Líquido'],datasets:[{data:[cImp,cDes,cLiq],backgroundColor:['#1E40AF','#C0392B','#0D7A6B']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+  charts.costo=new Chart($('ch-cos').getContext('2d'),{type:'bar',data:{labels:['Imponible','Descuentos','Líquido'],datasets:[{data:[cImp,cDes,cLiq],backgroundColor:['#141414','#C0392B','#0D7A6B']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
 
   const cHx={}; DB.asis.filter(x=>(x.fecha||"").startsWith(p)&&setT.has(String(x.trabajadorId))).forEach(x=>{const t=getT(x.trabajadorId);if(t&&x.horasExtras>0){const ar=t.area||"N/A";cHx[ar]=(cHx[ar]||0)+x.horasExtras;}});
   charts.horas=new Chart($('ch-hex').getContext('2d'),{type:'bar',data:{labels:Object.keys(cHx),datasets:[{data:Object.values(cHx),backgroundColor:'#C8973A'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
