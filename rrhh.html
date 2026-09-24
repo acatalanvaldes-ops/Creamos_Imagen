@@ -220,37 +220,45 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
   </div>
 
   <!-- ================= LIQUIDACIONES ================= -->
-  <div id="p-liq" class="panel">
+ <div class="panel" id="p-liquidaciones">
     <div class="kpis">
-      <div class="kpi"><div class="kpi-label">Generadas</div><div class="kpi-value" id="k-lq-tot">0</div></div>
-      <div class="kpi"><div class="kpi-label">Total Líquido</div><div class="kpi-value text-teal" id="k-lq-liq">$0</div></div>
+      <div class="kpi"><div class="kpi-label">Generadas (Mes)</div><div class="kpi-value text-teal" id="kpi-liq-mes">0</div></div>
+      <div class="kpi"><div class="kpi-label">Costo Empresa (Hist)</div><div class="kpi-value text-gold" id="kpi-liq-costo">$0</div></div>
+      <div class="kpi"><div class="kpi-label">Líquido Pagado (Hist)</div><div class="kpi-value text-blue" id="kpi-liq-pago">$0</div></div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
       <div class="card" style="margin-bottom:0">
-        <div class="card-title">Generar Liquidación</div>
+        <div class="card-title">Generar / Editar Liquidación</div>
+        <div id="liq-editing-badge" style="display:none;font-size:11px;color:var(--blue);font-weight:700;margin-bottom:10px;background:#EFF6FF;padding:6px 10px;border-radius:6px;border:1px solid #BFDBFE">✏️ Editando liquidación guardada...</div>
         <div class="grid-form" style="grid-template-columns:1fr">
           <div style="display:flex;gap:10px">
-            <div class="fld" style="flex:2"><label>Trabajador</label><select class="sel-trab" id="lq-tra" onchange="lqOnTrabajador()"></select></div>
-            <div class="fld" style="flex:1"><label>Período</label><input type="month" id="lq-per" onchange="lqClear()"></div>
+            <div class="fld" style="flex:2"><label>Trabajador</label><select class="sel-trabajadores" id="liq-trab" onchange="lqOnTrabajador()"></select></div>
+            <div class="fld" style="flex:1"><label>Período</label><input type="month" id="liq-periodo" onchange="resetLiqCalc()"></div>
           </div>
+          
+          <div style="display:flex;gap:12px;margin:10px 0;align-items:center;">
+            <input type="checkbox" id="lq-plazo" style="width:auto;" onchange="resetLiqCalc()">
+            <label for="lq-plazo" style="font-size:11px;text-transform:none;color:var(--dark)">Trabajador a Plazo Fijo (No descuenta AFC)</label>
+          </div>
+
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-            <div class="fld"><label>Sueldo Base ($)</label><input type="number" id="lq-sue" oninput="lqClear()"></div>
-            <div class="fld"><label>Gratificación ($) — automática</label><input type="number" id="lq-gra" readonly style="background:#f1f5f9;cursor:not-allowed" title="Se calcula al presionar Calcular Totales"></div>
-            <div class="fld"><label>Bonos ($)</label><input type="number" id="lq-bon" oninput="lqClear()"></div>
-            <div class="fld"><label>Comisiones ($)</label><input type="number" id="lq-com" oninput="lqClear()"></div>
-            <div class="fld"><label>Colación ($)</label><input type="number" id="lq-col" oninput="lqClear()"></div>
-            <div class="fld"><label>Movilización ($)</label><input type="number" id="lq-mov" oninput="lqClear()"></div>
-            <div class="fld"><label>Asignación de Caja ($)</label><input type="number" id="lq-caj" oninput="lqClear()"></div>
-            <div class="fld"><label>Asignación de Viático ($)</label><input type="number" id="lq-via" oninput="lqClear()"></div>
+            <div class="fld"><label>Sueldo Base ($)</label><input type="number" id="lq-sb" placeholder="0" oninput="resetLiqCalc()"></div>
+            <div class="fld"><label>Gratificación ($) (Auto o Manual)</label><input type="number" id="lq-gra" oninput="resetLiqCalc()" placeholder="Calculada al presionar el botón"></div>
+            <div class="fld"><label>Bonos ($)</label><input type="number" id="lq-bonos" placeholder="0" oninput="resetLiqCalc()"></div>
+            <div class="fld"><label>Comisiones ($)</label><input type="number" id="lq-com" placeholder="0" oninput="resetLiqCalc()"></div>
+            <div class="fld"><label>Colación ($)</label><input type="number" id="lq-col" placeholder="0" oninput="resetLiqCalc()"></div>
+            <div class="fld"><label>Movilización ($)</label><input type="number" id="lq-mov" placeholder="0" oninput="resetLiqCalc()"></div>
+            <div class="fld"><label>Asignación de Caja ($)</label><input type="number" id="lq-caj" placeholder="0" oninput="resetLiqCalc()"></div>
+            <div class="fld"><label>Asignación de Viático ($)</label><input type="number" id="lq-via" placeholder="0" oninput="resetLiqCalc()"></div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px;align-items:end">
-            <div class="fld"><label>Ingreso Mínimo Mensual ($)</label><input type="number" id="lq-imm" oninput="lqGuardarIMM(); lqClear()"></div>
-            <div id="lq-gra-nota" style="font-size:11px;color:var(--muted);padding-bottom:10px"></div>
+          <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px;align-items:end;margin-top:10px">
+            <div class="fld"><label>Ingreso Mínimo Mensual ($)</label><input type="number" id="lq-imm" value="500000" oninput="lqGuardarIMM(); resetLiqCalc()"></div>
+            <div id="lq-gra-nota" style="font-size:10px;color:var(--muted);padding-bottom:10px">Tope legal: 4.75 IMM / 12</div>
           </div>
         </div>
-        <button class="act-btn" style="width:100%;margin-top:16px;background:var(--dark);color:#fff" onclick="lqCalc()">Calcular Totales</button>
+        <button class="act-btn" style="width:100%;margin-top:16px;background:var(--dark);color:#fff" onclick="calcularLiq()">Calcular Totales</button>
       </div>
-      <div class="card" style="margin-bottom:0">
+      <div class="card" style="margin-bottom:0;display:flex;flex-direction:column;">
         <div class="card-title">Resumen</div>
         <div class="resumen-card">
           <div class="resumen-row"><span>Sueldo Base</span><strong id="rl-sue">$0</strong></div>
@@ -262,20 +270,19 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
           <div class="resumen-row"><span>Asig. Caja + Viático</span><strong id="rl-asi">$0</strong></div>
           <div style="border-top:1px dashed #ccc;margin:8px 0"></div>
           <div class="resumen-row"><span>AFP + Comisión</span><strong id="rl-afp">$0</strong></div>
-          <div class="resumen-row"><span>Salud (7%) + AFC (0.6%)</span><strong id="rl-saf">$0</strong></div>
+          <div class="resumen-row"><span>Salud (7%) + AFC (<span id="rl-afc-pct">0.6</span>%)</span><strong id="rl-saf">$0</strong></div>
           <div class="total" style="font-size:14px;color:var(--red)"><span>DESCUENTOS:</span><span id="rl-des">$0</span></div>
           <div class="total total-liquido" style="margin-top:16px"><span>A PAGAR:</span><span id="rl-liq">$0</span></div>
         </div>
-        <button class="act-btn primary" style="width:100%;margin-top:16px" id="lq-btn-save" disabled onclick="lqSave()">Guardar Liquidación</button>
+        <button class="act-btn primary" style="width:100%;margin-top:16px" id="btnGuardaLiq" disabled onclick="guardarLiq()">Guardar Liquidación</button>
       </div>
     </div>
     <div class="card" style="margin-top:20px">
       <div class="card-title">Historial</div>
-      <div class="search-bar">🔍<input id="lq-bus" placeholder="Buscar..." oninput="lqRender()"><input type="month" id="lq-bus-per" onchange="lqRender()"></div>
-      <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Período</th><th>Trabajador</th><th>Imponible</th><th>Descuentos</th><th>Líquido</th><th>Acciones</th></tr></thead><tbody id="lq-tbl"></tbody></table></div>
+      <div class="search-bar"><span>🔍</span><input id="lq-bus" placeholder="Buscar trabajador..." oninput="lqRender()"><input type="month" id="lq-bus-per" onchange="lqRender()"></div>
+      <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Período</th><th>Trabajador</th><th style="text-align:right">Imponible</th><th style="text-align:right">Descuentos</th><th style="text-align:right">Líquido</th><th style="text-align:right">Acciones</th></tr></thead><tbody id="lq-tbl"></tbody></table></div>
     </div>
   </div>
-
   <!-- ================= LIBRO REMUNERACIONES ================= -->
   <div id="p-lib" class="panel">
     <div class="card">
