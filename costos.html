@@ -248,11 +248,11 @@ var state = {
 function fmt(n) { return "$ " + Math.round(n).toLocaleString("es-CL"); }
 
 // Cargos disponibles para clasificar a cada persona de la Nómina. Solo las
-// personas con cargo "Diseño / Producción" se cuentan como "Dotación" para
+// personas con cargo "Diseño" o "Producción" se cuentan como "Dotación" para
 // calcular prendas producidas por persona en el Dashboard, ya que las
 // producciones (Calendario) se asocian a diseñadores, no a todo el equipo
 // (ventas, administración, etc.).
-var CARGOS = ["", "Administración", "Diseño / Producción", "Otros", "Sala de venta", "Otro"];
+var CARGOS = ["", "Administración", "Diseño", "Producción", "Otros", "Sala de venta", "Otro"];
 
 function guardarDatos() {
   var datos = { fichas: state.fichas, config: state.config };
@@ -437,7 +437,7 @@ function buildAdmin() {
   var totalProvision = 0;
   var rowsRrhh = c.rrhh.map(function(p, i) {
     var com = p.comision || 0;
-    var cargoActual = p.cargo === 'Ventas Local' ? 'Sala de venta' : p.cargo === 'Ventas Empresa' ? 'Otros' : (p.cargo || "");
+    var cargoActual = p.cargo === 'Diseño / Producción' ? 'Diseño' : p.cargo === 'Ventas Local' ? 'Sala de venta' : p.cargo === 'Ventas Empresa' ? 'Otros' : (p.cargo || "");
     // Aguinaldos y asignaciones que no se pagan todos los meses (Fiestas
     // Patrias, Navidad, bonos anuales): se ingresa el total del año y se
     // provisiona 1/12 cada mes, para que el costo mensual no los omita.
