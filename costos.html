@@ -42,6 +42,9 @@ input,select,button{font-family:inherit;outline:none}
 .ficha-row:last-of-type{border-bottom:none;}
 .ficha-row.tot{border-top:2px solid var(--bg);padding-top:10px;margin-top:6px;font-weight:700;font-size:15px;}
 .ficha-row.sug{background:#F0FDF4;color:#166534;padding:10px;border-radius:6px;margin-top:10px;font-weight:700;font-size:16px;border:1px solid #BBF7D0;}
+.ficha-real-price{margin-top:12px;padding:12px;background:#FFF9E8;border:1px solid #F3D78A;border-radius:8px;}
+.ficha-real-price label{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;}
+.ficha-real-price input{width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid var(--border);border-radius:6px;font-size:15px;font-weight:700;background:#fff;color:var(--dark);}
 .ficha-actions{position:absolute;top:20px;right:20px;display:flex;gap:6px;}
 .icon-btn{background:none;border:none;cursor:pointer;font-size:14px;opacity:0.5;transition:opacity 0.2s;}
 .icon-btn:hover{opacity:1;}
@@ -363,6 +366,12 @@ function toggleTallerExterno(el) {
 // ============================================================
 function setState(p) { Object.assign(state, p); render(); }
 function setConfig(k, v) { var valor=parseFloat(v)||0; state.config[k] = k==='admin' ? Math.round(valor) : valor; actualizarGavAutomatico(); guardarDatos(); render(); }
+function setPrecioVentaReal(idx, value) {
+  var precio=Number(value);
+  state.fichas[idx].precioVentaReal=Number.isFinite(precio)&&precio>0?Math.round(precio):0;
+  guardarDatos();
+  render();
+}
 function setRrhh(idx, field, value) {
   if(field==='cargo') state.config.rrhh[idx].cargoCostos = value;
   else if(field==='nombre') state.config.rrhh[idx][field] = value;
@@ -616,6 +625,8 @@ function buildFichas() {
               (f.tallerExterno ? '<div class="ficha-row"><span>Costo Taller Externo (Diseño+Operario+Confección):</span> <span>'+fmt(f.costoTaller)+'</span></div>' : '') +
               '<div class="ficha-row tot"><span>Costo Total Unitario de Producción:</span> <span style="color:var(--red)">'+fmt(f.total)+'</span></div>'+
               '<div class="ficha-row sug"><span>Precio Sugerido Venta:</span> <span>'+fmt(f.sugerido)+'</span></div>'+
+              '<div class="ficha-real-price"><label>Precio real de venta ($)</label><input type="number" min="1" step="1" value="'+(Number(f.precioVentaReal)||'')+'" placeholder="Ingresa el precio vendido" onchange="setPrecioVentaReal('+i+',this.value)">'+
+                '<div class="ficha-row" style="border:0;padding-bottom:0"><span>Margen real</span><strong>'+(Number(f.precioVentaReal)>0?fmt((Number(f.precioVentaReal)-Number(f.total))/Number(f.precioVentaReal)*100)+'%':'Ingresa el precio real')+'</strong></div></div>'+
               '</div>';
     });
     html += '</div>';
@@ -707,9 +718,9 @@ function buildModal() {
 function abrirForm(idx) {
   if (idx !== null) {
     var f = state.fichas[idx];
-    state.form = { id: idx, nombre: f.nombre, tela: f.inputs.tela, papelSub: f.inputs.papelSub, tinta: f.inputs.tinta, papelAdh: f.inputs.papelAdh, tallerExterno: !!f.tallerExterno, costoDiseno: f.costoDiseno || "", costoOperario: f.costoOperario || "", costoConfeccion: f.costoConfeccion || "" };
+    state.form = { id: idx, nombre: f.nombre, tela: f.inputs.tela, papelSub: f.inputs.papelSub, tinta: f.inputs.tinta, papelAdh: f.inputs.papelAdh, tallerExterno: !!f.tallerExterno, costoDiseno: f.costoDiseno || "", costoOperario: f.costoOperario || "", costoConfeccion: f.costoConfeccion || "", precioVentaReal: f.precioVentaReal || 0 };
   } else {
-    state.form = { id: null, nombre: "", tela: "", papelSub: "", tinta: "", papelAdh: "", tallerExterno: false, costoDiseno: "", costoOperario: "", costoConfeccion: "" };
+    state.form = { id: null, nombre: "", tela: "", papelSub: "", tinta: "", papelAdh: "", tallerExterno: false, costoDiseno: "", costoOperario: "", costoConfeccion: "", precioVentaReal: 0 };
   }
   setState({showForm:true, showConfigInModal: false});
 }
@@ -720,6 +731,7 @@ function guardarFicha() {
   var res = calcularCostosForm();
   var ficha = {
     nombre: state.form.nombre,
+    precioVentaReal: Math.max(0,Math.round(Number(state.form.precioVentaReal)||0)),
     margen: state.config.margen,
     inputs: { tela: state.form.tela, papelSub: state.form.papelSub, tinta: state.form.tinta, papelAdh: state.form.papelAdh },
     mat: res.mat, admin: res.admin, manoObraProduccion: res.manoObraProduccion, fijos: res.fijos, fijosOperativos: res.fijosOperativos, total: res.total, sugerido: res.sugerido,
