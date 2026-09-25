@@ -192,7 +192,12 @@ async function llamarServidor(cuerpo) {
   var controller = new AbortController();
   var timeout = setTimeout(function () { controller.abort(); }, 20000);
   try {
-    var res = await fetch(API_URL, { method: "POST", body: JSON.stringify(cuerpo), signal: controller.signal });
+    var res = await fetch(API_URL, { method: "POST", body: JSON.stringify(cuerpo), signal: controller.signal, cache: "no-store" });
+    if (!res.ok) throw new Error("El servicio respondió HTTP " + res.status + ".");
+    var contentType = res.headers.get("content-type") || "";
+    if (contentType.indexOf("application/json") === -1) {
+      throw new Error("El servicio devolvió un formato inesperado (" + (contentType || "sin Content-Type") + ").");
+    }
     return await res.json();
   } finally {
     clearTimeout(timeout);
@@ -249,7 +254,7 @@ async function handleCredentialResponse(response) {
             ? "El servidor rechazó el inicio de sesión: " + detalle
             : errorRed && errorRed.name === "AbortError"
               ? "El servidor tardó demasiado en responder. Vuelve a intentarlo."
-              : "No se pudo conectar con el servidor. Revisa tu conexión y vuelve a intentarlo.";
+              : "No se pudo conectar con el servidor. " + (errorRed && errorRed.message ? "Detalle: " + errorRed.message : "Revisa tu conexión y vuelve a intentarlo.");
     if (btnWrap) btnWrap.style.display = "flex";
     return;
   }
