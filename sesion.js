@@ -14,7 +14,7 @@
 (function () {
   var SESSION_KEY = 'cimagen_session';
   var SESSION_TTL_MS = 24 * 60 * 60 * 1000;
-  var API_PREFIX = 'https://script.google.com/';
+  var API_PREFIX = '/api/portal';
 
   function leer() { try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch (e) { return null; } }
   function borrar() { try { localStorage.removeItem(SESSION_KEY); } catch (e) {} }
