@@ -230,16 +230,26 @@ async function handleCredentialResponse(response) {
   if (msg) msg.textContent = "⏳ Verificando tus accesos…";
   if (btnWrap) btnWrap.style.display = "none";
   var resultado = null;
+  var errorRed = null;
   try {
     resultado = await llamarServidor({ accion: "login", credential: response.credential });
-  } catch (e) {}
+  } catch (e) {
+    errorRed = e;
+    console.error("Falló la llamada de inicio de sesión", e);
+  }
   if (!resultado || resultado.estado !== "éxito" || !resultado.sesion) {
     var detalle = resultado && String(resultado.detalle || "");
     if (msg) msg.textContent = detalle === "CREDENCIAL_INVALIDA"
       ? "No se pudo verificar tu cuenta de Google. Inténtalo de nuevo."
       : detalle.indexOf("script.external_request") !== -1
         ? "El acceso requiere autorización del propietario del portal."
-        : "No se pudo conectar con el servidor. Revisa tu conexión y vuelve a intentarlo.";
+        : detalle.toLowerCase().indexOf("spreadsheets") !== -1 || detalle.toLowerCase().indexOf("spreadsheetapp") !== -1
+          ? "Apps Script necesita autorización para acceder a la hoja de permisos. Ejecuta autorizarServicios desde el editor."
+          : detalle
+            ? "El servidor rechazó el inicio de sesión: " + detalle
+            : errorRed && errorRed.name === "AbortError"
+              ? "El servidor tardó demasiado en responder. Vuelve a intentarlo."
+              : "No se pudo conectar con el servidor. Revisa tu conexión y vuelve a intentarlo.";
     if (btnWrap) btnWrap.style.display = "flex";
     return;
   }
