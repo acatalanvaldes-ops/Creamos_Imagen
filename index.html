@@ -192,8 +192,11 @@ async function llamarServidor(cuerpo) {
   var controller = new AbortController();
   var timeout = setTimeout(function () { controller.abort(); }, 20000);
   try {
-    var res = await fetch(API_URL, { method: "POST", body: JSON.stringify(cuerpo), signal: controller.signal });
-    return await res.json();
+    var res = await fetch(API_URL, { method: "POST", body: JSON.stringify(cuerpo), signal: controller.signal, cache: "no-store" });
+    var body = await res.text();
+    if (!res.ok) throw new Error("El servicio respondió HTTP " + res.status + (body ? ": " + body.slice(0, 180) : "."));
+    try { return JSON.parse(body); }
+    catch (parseError) { throw new Error("El servicio devolvió una respuesta no JSON (HTTP " + res.status + ")."); }
   } finally {
     clearTimeout(timeout);
   }
@@ -248,8 +251,8 @@ async function handleCredentialResponse(response) {
           : detalle
             ? "El servidor rechazó el inicio de sesión: " + detalle
             : errorRed && errorRed.name === "AbortError"
-              ? "El servidor tardó demasiado en responder. Vuelve a intentarlo."
-              : "No se pudo conectar con el servidor. Revisa tu conexión y vuelve a intentarlo.";
+            ? "El servidor tardó demasiado en responder. Vuelve a intentarlo."
+              : "No se pudo conectar con el servidor. " + (errorRed && errorRed.message ? "Detalle: " + errorRed.message : "Revisa tu conexión y vuelve a intentarlo.");
     if (btnWrap) btnWrap.style.display = "flex";
     return;
   }
