@@ -121,7 +121,7 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
         <div class="fld"><label>Email (acceso a Mi Portal)</label><input id="tr-ema" type="email" placeholder="correo Gmail del trabajador" title="El trabajador entra a Mi Portal con este mismo correo de Google"></div>
         <div class="fld"><label>Fecha Ingreso</label><input type="date" id="tr-ing"></div>
         <div class="fld"><label>Tipo de Contrato</label><select id="tr-con"><option value="Indefinido">Indefinido</option><option value="Plazo Fijo">Plazo Fijo</option></select></div>
-        <div class="fld"><label>Jornada Laboral</label><select id="tr-jor"><option value="Jornada de 44 horas semanales">44 horas semanales</option><option value="Jornada de 42 horas semanales">42 horas semanales</option><option value="Jornada bajo Art. 22 inc. 2° del Código del Trabajo">Artículo 22 inc. 2°</option><option value="Jornada parcial de trabajo">Jornada parcial (Part-Time)</option></select></div>
+        <div class="fld"><label>Jornada Laboral</label><select id="tr-jor"><option value="Jornada de 44 horas semanales">44 horas semanales</option><option value="Jornada de 42 horas semanales">42 horas semanales</option><option value="Jornada de 40 horas semanales">40 horas semanales</option><option value="Jornada bajo Art. 22 inc. 2° del Código del Trabajo">Artículo 22 inc. 2°</option><option value="Jornada parcial de trabajo">Jornada parcial (Part-Time)</option></select></div>
         <div class="fld"><label>Sueldo Base ($)</label><input type="number" id="tr-sue"></div>
         <div class="fld"><label>AFP</label><select id="tr-afp"><option value="CAPITAL">Capital</option><option value="CUPRUM">Cuprum</option><option value="HABITAT">Habitat</option><option value="MODELO">Modelo</option><option value="PLANVITAL">Planvital</option><option value="PROVIDA">Provida</option><option value="UNO">Uno</option></select></div>
         <div class="fld"><label>Estado</label><select id="tr-est"><option>Activo</option><option>Inactivo</option></select></div>
@@ -147,7 +147,7 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
       <div class="grid-form">
         <div class="fld"><label>Trabajador</label><select class="sel-trab" id="as-tra" onchange="asActualizarHorario()"></select></div>
         <div class="fld"><label>Fecha</label><input type="date" id="as-fec" onchange="asActualizarHorario()"></div>
-        <div class="fld"><label>Jornada</label><select id="as-jor"><option value="44">44 horas</option><option value="42">42 horas</option><option value="ART22">Art. 22</option><option value="PART">Part Time</option></select></div>
+        <div class="fld"><label>Jornada</label><select id="as-jor"><option value="44">44 horas</option><option value="42">42 horas</option><option value="40">40 horas</option><option value="ART22">Art. 22</option><option value="PART">Part Time</option></select></div>
         <div class="fld"><label>Turno</label><select id="as-tur"><option>ADMIN</option><option>MAÑANA</option><option>TARDE</option><option value="COMPLETO">Turno completo</option></select></div>
         <div class="fld"><label>Entrada</label><input type="time" id="as-ent"></div>
         <div class="fld"><label>Salida Colación</label><input type="time" id="as-sc"></div>
@@ -1287,12 +1287,23 @@ function prSave(){
 function prDel(id){ if(confirm("¿Eliminar?")){ DB.prev=DB.prev.filter(x=>x.id!==id); sync('prev'); renderAll(); } }
 function prCSVId(id){ const n=DB.prev.find(x=>x.id===id); if(n){ calcObj.prev=n; prCSV(); calcObj.prev=null; } }
 function prCSV(){
-  if(!calcObj.prev)return; let c="RUT;Nombre;AFP;Imponible;AFP+Comision;Salud;AFC;Total\n";
-  calcObj.prev.registros.forEach(r=>{ c+=`${r.rut.replace(/\./g,"")};${r.nom};${r.afpNom};${Math.round(r.imp)};${Math.round(r.afp+r.com)};${Math.round(r.sal)};${Math.round(r.afc)};${Math.round(r.afp+r.com+r.sal+r.afc)}\n`; });
-  const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([c],{type:'text/csv'})); a.download=`Previred_${calcObj.prev.periodo}.csv`; a.click();
+  const nomina=calcObj.prev;
+  const registros=nomina && Array.isArray(nomina.registros) ? nomina.registros : [];
+  if(!registros.length){ alert('Esta nómina no tiene registros para exportar. Genérala nuevamente desde las liquidaciones del período.'); return; }
+  const columnas=['RUT','Nombre','AFP','Imponible','AFP+Comision','Salud','AFC','Total'];
+  const celda=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+  const filas=[columnas].concat(registros.map(r=>{
+    const rut=String(r.rut||'').replace(/\./g,'').trim();
+    const afp=Number(r.afp)||0, com=Number(r.com)||0, salud=Number(r.sal)||0, afc=Number(r.afc)||0;
+    return [rut,r.nom||'',r.afpNom||'',Math.round(Number(r.imp)||0),Math.round(afp+com),Math.round(salud),Math.round(afc),Math.round(afp+com+salud+afc)];
+  }));
+  const contenido='\uFEFF'+filas.map(f=>f.map(celda).join(';')).join('\r\n')+'\r\n';
+  const url=URL.createObjectURL(new Blob([contenido],{type:'text/csv;charset=utf-8'}));
+  const a=document.createElement('a'); a.href=url; a.download=`Previred_${nomina.periodo||'nomina'}.csv`; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 function prRender(){
-  const tb=$('pr-tbl'); tb.innerHTML = DB.prev.sort((a,b)=>b.id-a.id).map(n=>`<tr><td><b>${n.periodo}</b></td><td align="center">${n.registros.length}</td><td align="right" class="text-teal"><b>${money(n.totGen)}</b></td><td align="right"><button class="act-btn small" onclick="prCSVId(${n.id})">⬇ CSV</button> <button class="act-btn small" style="color:red" onclick="prDel(${n.id})">🗑</button></td></tr>`).join('') || `<tr><td colspan="4" align="center">Sin datos</td></tr>`;
+  const tb=$('pr-tbl'); tb.innerHTML = DB.prev.sort((a,b)=>b.id-a.id).map(n=>`<tr><td><b>${n.periodo}</b></td><td align="center">${Array.isArray(n.registros)?n.registros.length:0}</td><td align="right" class="text-teal"><b>${money(n.totGen)}</b></td><td align="right"><button class="act-btn small" onclick="prCSVId(${n.id})">⬇ CSV</button> <button class="act-btn small" style="color:red" onclick="prDel(${n.id})">🗑</button></td></tr>`).join('') || `<tr><td colspan="4" align="center">Sin datos</td></tr>`;
 }
 
 // ================= FINIQUITOS =================
