@@ -257,6 +257,9 @@ var CARGOS = ["", "Administración", "Diseñador", "Producción", "Otros", "Sala
 function esCargoProduccion(cargo) {
   return ['Diseñador','Diseño','Producción','Diseño / Producción','Diseño y Producción'].includes(String(cargo||'').trim());
 }
+function cargoParaCostos(p) {
+  return p.cargoCostos !== undefined ? p.cargoCostos : (p.cargo || '');
+}
 function costoMensualTrabajador(p) {
   var com=Number(p.comision)||0, anual=Number(p.anual)||0, provision=anual/12;
   var sueldo=Number(p.sueldo)||0, afp=Number(p.afp)||0, fonasa=Number(p.fonasa)||0;
@@ -270,29 +273,37 @@ function costoMensualTrabajador(p) {
 function desgloseNomina(config) {
   return (config.rrhh||[]).reduce(function(t,p){
     var costo=costoMensualTrabajador(p);
-    if(esCargoProduccion(p.cargo)) t.produccion+=costo; else t.gav+=costo;
+    if(esCargoProduccion(cargoParaCostos(p))) t.produccion+=costo; else t.gav+=costo;
     return t;
   },{produccion:0,gav:0});
 }
 function actualizarGavAutomatico() {
   var c=state.config;
-  if(c.adminGavManual || !(Number(c.prodMensual)>0)) return;
+  if(!(Number(c.prodMensual)>0)) return;
   var nomina=desgloseNomina(c), g=c.gastos||{};
   var otros=(Number(g.arriendo)||0)+(Number(g.servicios)||0)+(Number(g.marketing)||0)+(Number(g.contador)||0)+(Number(g.software)||0)+(Number(g.otros)||0);
   c.admin=Math.round((nomina.gav+otros)/Number(c.prodMensual));
 }
 function migrarFichasSeparacionGav() {
-  if(state.config.gavSeparacionVersion) return;
+  if(Number(state.config.gavSeparacionVersion)>=2) return;
   var porPrenda=Number(state.config.prodMensual)>0?desgloseNomina(state.config).produccion/Number(state.config.prodMensual):0;
   state.fichas.forEach(function(f){
-    if(f.manoObraProduccion!==undefined) return;
+    if(f.manoObraProduccion===undefined){
+      var costosHistoricos=Math.max(0,Number(f.admin)||0);
+      var manoObra=Math.min(costosHistoricos,porPrenda);
+      if(f.fijosOperativos===undefined && f.fijos!==undefined) f.fijosOperativos=Math.round(Math.max(0,Number(f.fijos)-costosHistoricos));
+      f.manoObraProduccion=Math.round(manoObra);
+      f.admin=Math.round(Math.max(0,costosHistoricos-manoObra));
+    }
     var gavHistorico=Math.max(0,Number(f.admin)||0);
-    var manoObra=Math.min(gavHistorico,porPrenda);
-    if(f.fijosOperativos===undefined && f.fijos!==undefined) f.fijosOperativos=Math.round(Math.max(0,Number(f.fijos)-gavHistorico));
-    f.manoObraProduccion=Math.round(manoObra);
-    f.admin=Math.round(Math.max(0,gavHistorico-manoObra));
+    if(f.total!==undefined){
+      f.gavSeparadoHistorico=gavHistorico;
+      f.total=Math.max(0,Number(f.total)-gavHistorico);
+      f.sugerido=f.total*(1+(Number(f.margen)||0)/100);
+    }
+    f.admin=0;
   });
-  state.config.gavSeparacionVersion=1;
+  state.config.gavSeparacionVersion=2;
 }
 
 function guardarDatos() {
@@ -315,10 +326,9 @@ function calcularCostosForm() {
   var valPapelAdh = (parseFloat(f.papelAdh)||0) * c.papelAdh;
 
   var mat = valTela + valPapelSub + valTinta + valPapelAdh;
-  var admin = Math.round(c.admin || 0);
   var nomina=desgloseNomina(c);
   var manoObraProduccion=c.prodMensual>0?nomina.produccion/c.prodMensual:0;
-  var fijos = c.hilos + c.maquina + admin + (c.traslado || 0) + manoObraProduccion;
+  var fijos = c.hilos + c.maquina + (c.traslado || 0) + manoObraProduccion;
 
   var tallerExterno = !!f.tallerExterno;
   var costoDiseno = tallerExterno ? (parseFloat(f.costoDiseno)||0) : 0;
@@ -330,7 +340,7 @@ function calcularCostosForm() {
   var sugerido = total * (1 + (c.margen / 100));
 
   return {
-    mat: mat, admin: admin, manoObraProduccion: manoObraProduccion, fijos: fijos, fijosOperativos: c.hilos+c.maquina+(c.traslado||0), total: total, sugerido: sugerido,
+    mat: mat, admin: 0, manoObraProduccion: manoObraProduccion, fijos: fijos, fijosOperativos: c.hilos+c.maquina+(c.traslado||0), total: total, sugerido: sugerido,
     valTela: valTela, valPapelSub: valPapelSub, valTinta: valTinta, valPapelAdh: valPapelAdh,
     tallerExterno: tallerExterno, costoDiseno: costoDiseno, costoOperario: costoOperario,
     costoConfeccion: costoConfeccion, costoTaller: costoTaller
@@ -341,7 +351,6 @@ function updateLiveCalc() {
   var res = calcularCostosForm();
   var eMat = document.getElementById('live-mat'); if(eMat) eMat.textContent = fmt(res.mat);
   var eFijos = document.getElementById('live-fijos'); if(eFijos) eFijos.textContent = fmt(res.fijosOperativos);
-  var eAdmin = document.getElementById('live-admin'); if(eAdmin) eAdmin.textContent = fmt(res.admin);
   var eManoObra = document.getElementById('live-manoobra'); if(eManoObra) eManoObra.textContent = fmt(res.manoObraProduccion);
   var eTaller = document.getElementById('live-taller'); if(eTaller) eTaller.textContent = fmt(res.costoTaller);
   var eTot = document.getElementById('live-tot'); if(eTot) eTot.textContent = fmt(res.total);
@@ -357,10 +366,10 @@ function toggleTallerExterno(el) {
 // INTERFAZ (RENDER)
 // ============================================================
 function setState(p) { Object.assign(state, p); render(); }
-function setConfig(k, v) { var valor=parseFloat(v)||0; state.config[k] = k==='admin' ? Math.round(valor) : valor; if(k==='admin') state.config.adminGavManual=true; else actualizarGavAutomatico(); guardarDatos(); render(); }
-function aplicarGavPorPrenda(v) { state.config.admin=Math.round(Number(v)||0); state.config.adminGavManual=false; actualizarGavAutomatico(); guardarDatos(); render(); }
+function setConfig(k, v) { var valor=parseFloat(v)||0; state.config[k] = k==='admin' ? Math.round(valor) : valor; actualizarGavAutomatico(); guardarDatos(); render(); }
 function setRrhh(idx, field, value) {
-  if(field==='nombre' || field==='cargo') state.config.rrhh[idx][field] = value;
+  if(field==='cargo') state.config.rrhh[idx].cargoCostos = value;
+  else if(field==='nombre') state.config.rrhh[idx][field] = value;
   else state.config.rrhh[idx][field] = parseFloat(value) || 0;
   if(field==='bono') state.config.rrhh[idx].bonoManual = true;
   actualizarGavAutomatico();
@@ -486,7 +495,8 @@ function buildAdmin() {
   var totalProvision = 0;
   var rowsRrhh = c.rrhh.map(function(p, i) {
     var com = p.comision || 0;
-    var cargoActual = p.cargo === 'Diseño / Producción' || p.cargo === 'Diseño' ? 'Diseñador' : p.cargo === 'Ventas Local' ? 'Sala de venta' : p.cargo === 'Ventas Empresa' ? 'Otros' : (p.cargo || "");
+    var cargoFuente = cargoParaCostos(p);
+    var cargoActual = cargoFuente === 'Diseño / Producción' || cargoFuente === 'Diseño' ? 'Diseñador' : cargoFuente === 'Ventas Local' ? 'Sala de venta' : cargoFuente === 'Ventas Empresa' ? 'Otros' : (cargoFuente || "");
     // Aguinaldos y asignaciones que no se pagan todos los meses (Fiestas
     // Patrias, Navidad, bonos anuales): se ingresa el total del año y se
     // provisiona 1/12 cada mes, para que el costo mensual no los omita.
@@ -518,7 +528,7 @@ function buildAdmin() {
   var totalGavMensual = totalNominaGav + totalGastos;
   var costoGavPrenda = c.prodMensual > 0 ? Math.round(totalGavMensual / c.prodMensual) : 0;
   var costoManoObraPrenda = c.prodMensual > 0 ? Math.round(totalNominaProduccion / c.prodMensual) : 0;
-  if(Number(c.prodMensual)>0 && !c.adminGavManual && Math.round(Number(c.admin)||0)!==costoGavPrenda){c.admin=costoGavPrenda;guardarDatos();}
+  if(Number(c.prodMensual)>0 && Math.round(Number(c.admin)||0)!==costoGavPrenda){c.admin=costoGavPrenda;guardarDatos();}
 
   return '<div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><h2>Nómina y Gastos Fijos (Administración y Ventas)</h2><button class="act-btn primary" onclick="agregarTrabajadorNomina()">+ Agregar trabajador</button></div>'+
     '<div class="card" style="margin-bottom:20px; overflow-x:hidden; padding:16px;">'+
@@ -566,9 +576,8 @@ function buildAdmin() {
         '</div>'+
 
         '<div style="background:var(--dark);color:#fff;border-radius:8px;padding:16px;">'+
-          '<div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:4px;">GAV por Prenda</div>'+
-          '<div style="font-size:26px;font-weight:800;color:#5EEAD4;margin-bottom:12px;">'+fmt(costoGavPrenda)+'</div>'+
-          '<button class="act-btn" style="width:100%;background:var(--gold);color:#fff;border:none;" onclick="aplicarGavPorPrenda('+costoGavPrenda+')">Aplicar GAV a la Configuración</button>'+
+          '<div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:4px;">GAV separado</div>'+
+          '<div style="font-size:13px;line-height:1.5;color:#ddd;">El GAV se administra en este resumen mensual y no se carga a las fichas ni al costo unitario de producción.</div>'+
         '</div>'+
       '</div>'+
     '</div></div>';
@@ -589,7 +598,6 @@ function buildConfig() {
         '<div class="fld"><label>Costo Hilos</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+c.hilos+'" onchange="setConfig(\'hilos\',this.value)"></div></div>'+
         '<div class="fld"><label>Desgaste Máquina y Luz</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+c.maquina+'" onchange="setConfig(\'maquina\',this.value)"></div></div>'+
         '<div class="fld"><label>Traslado</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+(c.traslado||0)+'" onchange="setConfig(\'traslado\',this.value)"></div></div>'+
-        '<div class="fld"><label style="color:var(--purple)">GAV por Prenda'+(tienePermisoNomina()?' <span style="font-size:9px;font-weight:400">(Auto calculado desde nómina y otros gastos)</span>':'')+'</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" step="1" value="'+Math.round(c.admin||0)+'" onchange="setConfig(\'admin\',this.value)"></div></div>'+
         '<div style="margin-top:30px;padding-top:20px;border-top:1px dashed var(--border)">'+
           '<div class="fld"><label style="color:var(--teal)">Margen de Ganancia Deseado (%)</label><div class="fld-row"><input type="number" value="'+c.margen+'" onchange="setConfig(\'margen\',this.value)"><span class="fld-suffix">%</span></div></div>'+
         '</div>'+
@@ -614,9 +622,8 @@ function buildFichas() {
               '<div class="ficha-row"><span>Costo Materiales:</span> <span>'+fmt(f.mat)+'</span></div>'+
               '<div class="ficha-row"><span>Costos Fijos Operativos:</span> <span>'+fmt(f.fijosOperativos !== undefined ? f.fijosOperativos : Math.max(0, f.fijos - (f.admin !== undefined ? f.admin : Math.round(state.config.admin || 0))))+'</span></div>'+
               '<div class="ficha-row"><span>Mano de obra de Diseño y Producción:</span> <span>'+fmt(f.manoObraProduccion||0)+'</span></div>'+
-              '<div class="ficha-row"><span>GAV:</span> <span>'+fmt(f.admin !== undefined ? f.admin : Math.round(state.config.admin || 0))+'</span></div>'+
               (f.tallerExterno ? '<div class="ficha-row"><span>Costo Taller Externo (Diseño+Operario+Confección):</span> <span>'+fmt(f.costoTaller)+'</span></div>' : '') +
-              '<div class="ficha-row tot"><span>Costo Total Unitario (Producción + GAV):</span> <span style="color:var(--red)">'+fmt(f.total)+'</span></div>'+
+              '<div class="ficha-row tot"><span>Costo Total Unitario de Producción:</span> <span style="color:var(--red)">'+fmt(f.total)+'</span></div>'+
               '<div class="ficha-row sug"><span>Precio Sugerido Venta:</span> <span>'+fmt(f.sugerido)+'</span></div>'+
               '</div>';
     });
@@ -647,7 +654,6 @@ function buildModal() {
         '<div class="fld" style="margin-bottom:0"><label>Costo Papel Adh ($/M/H)</label><input type="number" value="'+c.papelAdh+'" onchange="setConfig(\'papelAdh\',this.value)"></div>'+
         '<div class="fld" style="margin-bottom:0"><label>Costo Hilos ($)</label><input type="number" value="'+c.hilos+'" onchange="setConfig(\'hilos\',this.value)"></div>'+
         '<div class="fld" style="margin-bottom:0"><label>Desgaste Máquina/Luz ($)</label><input type="number" value="'+c.maquina+'" onchange="setConfig(\'maquina\',this.value)"></div>'+
-        '<div class="fld" style="margin-bottom:0"><label>Gastos Admin ($)</label><input type="number" step="1" value="'+Math.round(c.admin||0)+'" onchange="setConfig(\'admin\',this.value)"></div>'+
         '<div class="fld" style="margin-bottom:0"><label>Traslado ($)</label><input type="number" value="'+(c.traslado||0)+'" onchange="setConfig(\'traslado\',this.value)"></div>'+
       '</div>'+
     '</div>' : '';
@@ -689,7 +695,6 @@ function buildModal() {
         '<div class="rp-row"><span>Materiales</span> <span class="rp-val" id="live-mat">'+fmt(res.mat)+'</span></div>'+
         '<div class="rp-row"><span>Fijos Operativos (Hilos/Maq/Traslado)</span> <span class="rp-val" id="live-fijos">'+fmt(res.fijosOperativos)+'</span></div>'+
         '<div class="rp-row"><span>Mano de obra Diseño/Producción</span> <span class="rp-val" id="live-manoobra">'+fmt(res.manoObraProduccion)+'</span></div>'+
-        '<div class="rp-row"><span>GAV</span> <span class="rp-val" id="live-admin">'+fmt(res.admin)+'</span></div>'+
         (f.tallerExterno ? '<div class="rp-row"><span>Taller Externo</span> <span class="rp-val" id="live-taller">'+fmt(res.costoTaller)+'</span></div>' : '') +
         '<div class="rp-tot"><span>COSTO TOTAL</span> <span id="live-tot">'+fmt(res.total)+'</span></div>'+
 

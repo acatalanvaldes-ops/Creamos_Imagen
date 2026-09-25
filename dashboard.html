@@ -423,7 +423,7 @@ function renderProduccion(r, producciones) {
   const totalPrendas = enPeriodo.reduce((s, p) => s + (p.totalPrendas || 0), 0);
 
   const rrhh = (costosConfig && costosConfig.rrhh) ? costosConfig.rrhh : [];
-  const disenadores = rrhh.filter(p => ['Diseñador', 'Diseño', 'Producción', 'Diseño / Producción'].includes(p.cargo));
+  const disenadores = rrhh.filter(p => ['Diseñador', 'Diseño', 'Producción', 'Diseño / Producción'].includes(p.cargoCostos !== undefined ? p.cargoCostos : p.cargo));
   // Si nadie tiene un cargo asignado todavía en Costos (dato nuevo, aún sin migrar),
   // se usa el total de la nómina como respaldo para no mostrar "0 personas" de la nada;
   // apenas se asignen cargos, este cálculo pasa a contar solo a quienes producen.
