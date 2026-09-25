@@ -246,7 +246,8 @@ function calcularCostosForm() {
   var valPapelAdh = (parseFloat(f.papelAdh)||0) * c.papelAdh;
 
   var mat = valTela + valPapelSub + valTinta + valPapelAdh;
-  var fijos = c.hilos + c.maquina + c.admin + (c.traslado || 0);
+  var admin = Math.round(c.admin || 0);
+  var fijos = c.hilos + c.maquina + admin + (c.traslado || 0);
 
   var tallerExterno = !!f.tallerExterno;
   var costoDiseno = tallerExterno ? (parseFloat(f.costoDiseno)||0) : 0;
@@ -258,7 +259,7 @@ function calcularCostosForm() {
   var sugerido = total * (1 + (c.margen / 100));
 
   return {
-    mat: mat, fijos: fijos, total: total, sugerido: sugerido,
+    mat: mat, admin: admin, fijos: fijos, fijosOperativos: fijos - admin, total: total, sugerido: sugerido,
     valTela: valTela, valPapelSub: valPapelSub, valTinta: valTinta, valPapelAdh: valPapelAdh,
     tallerExterno: tallerExterno, costoDiseno: costoDiseno, costoOperario: costoOperario,
     costoConfeccion: costoConfeccion, costoTaller: costoTaller
@@ -268,7 +269,8 @@ function calcularCostosForm() {
 function updateLiveCalc() {
   var res = calcularCostosForm();
   var eMat = document.getElementById('live-mat'); if(eMat) eMat.textContent = fmt(res.mat);
-  var eFijos = document.getElementById('live-fijos'); if(eFijos) eFijos.textContent = fmt(res.fijos);
+  var eFijos = document.getElementById('live-fijos'); if(eFijos) eFijos.textContent = fmt(res.fijosOperativos);
+  var eAdmin = document.getElementById('live-admin'); if(eAdmin) eAdmin.textContent = fmt(res.admin);
   var eTaller = document.getElementById('live-taller'); if(eTaller) eTaller.textContent = fmt(res.costoTaller);
   var eTot = document.getElementById('live-tot'); if(eTot) eTot.textContent = fmt(res.total);
   var eSug = document.getElementById('live-sug'); if(eSug) eSug.textContent = fmt(res.sugerido);
@@ -458,7 +460,8 @@ function buildFichas() {
               '<div class="ficha-title">'+f.nombre+'</div>'+
               '<div class="ficha-date">Calculado con '+f.margen+'% margen</div>'+
               '<div class="ficha-row"><span>Costo Materiales:</span> <span>'+fmt(f.mat)+'</span></div>'+
-              '<div class="ficha-row"><span>Costos Fijos Operativos:</span> <span>'+fmt(f.fijos)+'</span></div>'+
+              '<div class="ficha-row"><span>Costos Fijos Operativos:</span> <span>'+fmt(f.fijosOperativos !== undefined ? f.fijosOperativos : Math.max(0, f.fijos - (f.admin !== undefined ? f.admin : Math.round(state.config.admin || 0))))+'</span></div>'+
+              '<div class="ficha-row"><span>Gastos de Administración:</span> <span>'+fmt(f.admin !== undefined ? f.admin : Math.round(state.config.admin || 0))+'</span></div>'+
               (f.tallerExterno ? '<div class="ficha-row"><span>Costo Taller Externo (Diseño+Operario+Confección):</span> <span>'+fmt(f.costoTaller)+'</span></div>' : '') +
               '<div class="ficha-row tot"><span>Costo Producción Total:</span> <span style="color:var(--red)">'+fmt(f.total)+'</span></div>'+
               '<div class="ficha-row sug"><span>Precio Sugerido Venta:</span> <span>'+fmt(f.sugerido)+'</span></div>'+
@@ -531,7 +534,8 @@ function buildModal() {
       '<div class="resumen-panel">'+
         '<div class="rp-title">Resumen de Costos</div>'+
         '<div class="rp-row"><span>Materiales</span> <span class="rp-val" id="live-mat">'+fmt(res.mat)+'</span></div>'+
-        '<div class="rp-row"><span>Fijos (Hilos/Maq/Admin/Traslado)</span> <span class="rp-val" id="live-fijos">'+fmt(res.fijos)+'</span></div>'+
+        '<div class="rp-row"><span>Fijos (Hilos/Maq/Traslado)</span> <span class="rp-val" id="live-fijos">'+fmt(res.fijosOperativos)+'</span></div>'+
+        '<div class="rp-row"><span>Gastos de Administración</span> <span class="rp-val" id="live-admin">'+fmt(res.admin)+'</span></div>'+
         (f.tallerExterno ? '<div class="rp-row"><span>Taller Externo</span> <span class="rp-val" id="live-taller">'+fmt(res.costoTaller)+'</span></div>' : '') +
         '<div class="rp-tot"><span>COSTO TOTAL</span> <span id="live-tot">'+fmt(res.total)+'</span></div>'+
 
@@ -568,7 +572,7 @@ function guardarFicha() {
     nombre: state.form.nombre,
     margen: state.config.margen,
     inputs: { tela: state.form.tela, papelSub: state.form.papelSub, tinta: state.form.tinta, papelAdh: state.form.papelAdh },
-    mat: res.mat, fijos: res.fijos, total: res.total, sugerido: res.sugerido,
+    mat: res.mat, admin: res.admin, fijos: res.fijos, fijosOperativos: res.fijosOperativos, total: res.total, sugerido: res.sugerido,
     tallerExterno: res.tallerExterno, costoDiseno: res.costoDiseno, costoOperario: res.costoOperario,
     costoConfeccion: res.costoConfeccion, costoTaller: res.costoTaller
   };

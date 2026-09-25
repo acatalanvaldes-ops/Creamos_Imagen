@@ -147,7 +147,7 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
         <div class="fld"><label>Trabajador</label><select class="sel-trab" id="as-tra" onchange="asActualizarHorario()"></select></div>
         <div class="fld"><label>Fecha</label><input type="date" id="as-fec" onchange="asActualizarHorario()"></div>
         <div class="fld"><label>Jornada</label><select id="as-jor"><option value="44">44 horas</option><option value="42">42 horas</option><option value="ART22">Art. 22</option><option value="PART">Part Time</option></select></div>
-        <div class="fld"><label>Turno</label><select id="as-tur"><option>ADMIN</option><option>MAÑANA</option><option>TARDE</option></select></div>
+        <div class="fld"><label>Turno</label><select id="as-tur"><option>ADMIN</option><option>MAÑANA</option><option>TARDE</option><option value="COMPLETO">Turno completo</option></select></div>
         <div class="fld"><label>Entrada</label><input type="time" id="as-ent"></div>
         <div class="fld"><label>Salida Colación</label><input type="time" id="as-sc"></div>
         <div class="fld"><label>Regreso Colación</label><input type="time" id="as-rc"></div>
@@ -252,7 +252,7 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
             <div class="fld"><label>Sueldo Base ($)</label><input type="number" id="lq-sue" oninput="lqClear()"></div>
             <div class="fld"><label>Días de licencia (descuento sobre 30 días)</label><input type="number" id="lq-lic" min="0" max="30" value="0" oninput="lqClear()"></div>
-            <div class="fld"><label>Gratificación ($) — automática</label><input type="number" id="lq-gra" readonly style="background:#f1f5f9;cursor:not-allowed" title="Se calcula al presionar Calcular Totales"></div>
+            <div class="fld"><label>Gratificación ($) — automática</label><input type="number" id="lq-gra" readonly style="background:#f1f5f9;cursor:not-allowed" title="Se actualiza automáticamente según sueldo, licencias, bonos, comisiones y horas extras"></div>
             <div class="fld"><label>Bonos ($)</label><input type="number" id="lq-bon" oninput="lqClear()"></div>
             <div class="fld"><label>Comisiones ($)</label><input type="number" id="lq-com" oninput="lqClear()"></div>
             <div class="fld"><label>Colación ($)</label><input type="number" id="lq-col" oninput="lqClear()"></div>
@@ -826,13 +826,13 @@ function lmRender() {
 function lqClear() {
   calcObj.liq=null;
   $('lq-btn-save').disabled=true;
-  $('lq-gra').value='';
   ['sue','gbc','hex','imp','cmo','asi','afp','saf','des','liq'].forEach(k=>$(`rl-${k}`).textContent='$0');
   if($('lbl-rl-saf')){
     const pf = $('lq-plazo-fijo') && $('lq-plazo-fijo').checked;
     $('lbl-rl-saf').textContent = pf ? 'Salud (7%) + AFC (0% Plazo Fijo)' : 'Salud (7%) + AFC (0.6%)';
   }
   lqNotaTope();
+  lqActualizarGratificacion();
 }
 
 const IMM_DEFECTO = 539000;
@@ -844,6 +844,29 @@ function lqNotaTope() {
   n.textContent = 'Gratificación: 25% de sueldo + bonos + comisiones + horas extras, con tope legal de 4,75 IMM al año = ' + money(lqTopeGratif()) + ' al mes.';
 }
 
+function lqBaseMensualCalculada() {
+  const sueldo = Number($('lq-sue').value) || 0;
+  const licencias = Math.min(30, Math.max(0, Number($('lq-lic').value) || 0));
+  return Math.round(sueldo * (30 - licencias) / 30);
+}
+
+function lqMontoGratificacion(sb, bono, comision, horasExtraMonto) {
+  if (!sb) return 0;
+  return Math.round(Math.min((sb + bono + comision + horasExtraMonto) * 0.25, lqTopeGratif()));
+}
+
+function lqActualizarGratificacion() {
+  const sueldo = Number($('lq-sue').value) || 0;
+  if (!sueldo) { $('lq-gra').value = ''; return; }
+  const sb = lqBaseMensualCalculada();
+  const bono = Number($('lq-bon').value) || 0;
+  const comision = Number($('lq-com').value) || 0;
+  const tid = $('lq-tra').value, per = $('lq-per').value;
+  const horasExtra = tid && per ? DB.asis.filter(a => String(a.trabajadorId) === String(tid) && (a.fecha || '').startsWith(per)).reduce((s, a) => s + Number(a.horasExtras || 0), 0) : 0;
+  const montoHorasExtra = horasExtra * (sb / 180) * 1.5;
+  $('lq-gra').value = lqMontoGratificacion(sb, bono, comision, montoHorasExtra);
+}
+
 function lqOnTrabajador() {
   lqClear();
   const t = getT($('lq-tra').value); if (!t) return;
@@ -851,6 +874,7 @@ function lqOnTrabajador() {
   if (!$('lq-per').value) $('lq-per').value = mesChile();
   const esPlazoFijo = (t.tipoContrato === 'Plazo Fijo');
   $('lq-plazo-fijo').checked = esPlazoFijo;
+  lqActualizarGratificacion();
   if ($('lbl-rl-saf')) {
     $('lbl-rl-saf').textContent = esPlazoFijo ? 'Salud (7%) + AFC (0% Plazo Fijo)' : 'Salud (7%) + AFC (0.6%)';
   }
@@ -861,14 +885,14 @@ function lqCalc() {
   if(!tid){ alert('Selecciona el trabajador.'); return; }
   if(!per){ alert('Selecciona el período.'); return; }
   const t=getT(tid); if(!t){ alert('No se encontró el trabajador seleccionado. Recarga la página (F5).'); return; }
-  const sueldoIngresado=Number($('lq-sue').value)||0, diasLicencia=Math.min(30,Math.max(0,Number($('lq-lic').value)||0)), sb=Math.round(sueldoIngresado*(30-diasLicencia)/30), bo=Number($('lq-bon').value)||0, co=Number($('lq-com').value)||0, col=Number($('lq-col').value)||0, mov=Number($('lq-mov').value)||0;
+  const sueldoIngresado=Number($('lq-sue').value)||0, diasLicencia=Math.min(30,Math.max(0,Number($('lq-lic').value)||0)), sb=lqBaseMensualCalculada(), bo=Number($('lq-bon').value)||0, co=Number($('lq-com').value)||0, col=Number($('lq-col').value)||0, mov=Number($('lq-mov').value)||0;
   const caj=Number($('lq-caj').value)||0, via=Number($('lq-via').value)||0;
   if(!sb){ alert('Ingresa el sueldo base.'); return; }
   const esPlazoFijo = $('lq-plazo-fijo').checked;
   const hexHrs = DB.asis.filter(a=>String(a.trabajadorId)===String(tid)&&(a.fecha||"").startsWith(per)).reduce((s,a)=>s+Number(a.horasExtras||0),0);
   const mHex = hexHrs*(sb/180)*1.5;
   const tope = lqTopeGratif();
-  const gr = Math.round(Math.min((sb+bo+co+mHex)*0.25, tope));
+  const gr = lqMontoGratificacion(sb,bo,co,mHex);
   $('lq-gra').value = gr;
   const imp=sb+gr+bo+co+mHex;
   const afp=imp*(CFG.AFP/100); const pCom=CFG.C_AFP[(t.afp||"MODELO").toUpperCase()]||0.58; const cAfp=imp*(pCom/100);
