@@ -1,0 +1,33 @@
+{
+  "id": "./trabajador.html",
+  "name": "Mi Portal | Creamos Imagen",
+  "short_name": "Mi Portal",
+  "description": "Portal de trabajadores de Creamos Imagen",
+  "lang": "es-CL",
+  "start_url": "./trabajador.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F7F5F0",
+  "theme_color": "#141414",
+  "icons": [
+    {
+      "src": "./brand/app-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./brand/app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./brand/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

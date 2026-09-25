@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mi Portal - Creamos Imagen</title>
+<meta name="theme-color" content="#141414">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Mi Portal">
+<link rel="manifest" href="portal.webmanifest">
+<link rel="icon" href="brand/app-icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" sizes="180x180" href="brand/app-icon-180.png">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#F7F5F0;--surface:#FFFFFF;--dark:#1C1917;--gold:#C8973A;--teal:#0D7A6B;--red:#C0392B;--muted:#78716C;--border:#E7E2D9;--blue:#141414;--amber:#B45309;--mono:'DM Mono',monospace}
@@ -155,6 +162,7 @@ table.tbl td.vacio{text-align:center;padding:28px;color:var(--muted)}
   <div class="brand">
     <a href="index.html" class="menu-link" id="menu-link">← Menú</a>
     <div class="brand-name">Mi <span>Portal</span></div>
+    <button type="button" class="menu-link" id="install-app" hidden>Instalar app</button>
   </div>
   <div class="user-profile">
     <div class="user-info">
@@ -1305,6 +1313,36 @@ function imprimirCertificado(){
   v.document.close();
   setTimeout(() => v.print(), 350);
 }
+</script>
+<script>
+(function () {
+  const button = document.getElementById('install-app');
+  if (!button) return;
+  const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  if (standalone) return;
+
+  const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  let installPrompt = null;
+  if (isIos) {
+    button.hidden = false;
+    button.addEventListener('click', function () {
+      alert('Para instalar Mi Portal: toca Compartir en Safari y elige “Agregar a pantalla de inicio”.');
+    });
+  }
+  window.addEventListener('beforeinstallprompt', function (event) {
+    event.preventDefault();
+    installPrompt = event;
+    button.hidden = false;
+  });
+  button.addEventListener('click', async function () {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    await installPrompt.userChoice;
+    installPrompt = null;
+    button.hidden = true;
+  });
+  window.addEventListener('appinstalled', function () { button.hidden = true; });
+})();
 </script>
 </body>
 </html>
