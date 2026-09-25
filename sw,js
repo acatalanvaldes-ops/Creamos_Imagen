@@ -1,0 +1,51 @@
+const CACHE_NAME = 'asistencia-v1';
+const ASSETS = [
+	'/',
+	'/index.html',
+	'/manifest.json',
+	'/icono-app.png'
+];
+
+// Instalar el Service Worker y almacenar archivos básicos en caché
+self.addEventListener('install', (e) => {
+	e.waitUntil(
+		caches.open(CACHE_NAME).then((cache) => {
+			return cache.addAll(ASSETS);
+		})
+	);
+});
+
+// Activar y limpiar cachés antiguos
+self.addEventListener('activate', (e) => {
+	e.waitUntil(
+		caches.keys().then((keys) => {
+			return Promise.all(
+				keys.map((key) => {
+					if (key !== CACHE_NAME) {
+						return caches.delete(key);
+					}
+				})
+			);
+		})
+	);
+});
+
+// Responder desde la caché o ir a la red si no está disponible
+self.addEventListener('fetch', (e) => {
+	e.respondWith(
+		caches.match(e.request).then((cachedResponse) => {
+			return cachedResponse || fetch(e.request);
+		})
+	);
+});
+
+// Escuchar notificaciones push enviadas desde tu servidor
+self.addEventListener('push', (e) => {
+	const data = e.data ? e.data.text() : 'Nueva notificación de asistencia';
+	e.waitUntil(
+		self.registration.showNotification('Creamos Imagen', {
+			body: data,
+			icon: '/icono-app.png'
+		})
+	);
+});
