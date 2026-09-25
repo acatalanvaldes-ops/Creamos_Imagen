@@ -613,6 +613,8 @@ async function init() {
     alert('No se pudo confirmar la conexión con la nube para algunos datos de Recursos Humanos. Se muestran los últimos datos guardados en este equipo; si acabas de editar algo desde otro computador, recarga la página (F5) antes de seguir para no sobreescribir información.');
   }
   popSel(); renderAll();
+  aplicarCorreccionSaldosVacaciones();
+  popSel(); renderAll();
   await vaCargarSolicitudes();
 }
 
@@ -767,6 +769,34 @@ function renderMarcacionesPortalRRHH(){
 }
 
 // ================= VACACIONES =================
+const CORRECCION_SALDOS_VACACIONES = {
+  andrea:    { disponibles:7,  habilesTomados:8,  inhabilesTomados:4 },
+  sebastian: { disponibles:0,  habilesTomados:15, inhabilesTomados:6 },
+  ingrid:    { disponibles:0,  habilesTomados:15, inhabilesTomados:6 },
+  alejandro: { disponibles:14, habilesTomados:5,  inhabilesTomados:2 },
+  estrella:  { disponibles:15, habilesTomados:15, inhabilesTomados:6 },
+  marlenni:  { disponibles:15, habilesTomados:0,  inhabilesTomados:0 },
+  moises:    { disponibles:15, habilesTomados:0,  inhabilesTomados:0 }
+};
+function normalizarNombreVacaciones(nombre){
+  return String(nombre||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLocaleLowerCase('es');
+}
+function aplicarCorreccionSaldosVacaciones(){
+  if(!cargaOk.trab) return;
+  const fecha=hoyChile(); let cambio=false;
+  Object.entries(CORRECCION_SALDOS_VACACIONES).forEach(([nombre, ajuste])=>{
+    const coincidencias=DB.trab.filter(t=>normalizarNombreVacaciones(t.nombres).split(/\s+/)[0]===nombre);
+    if(coincidencias.length!==1){
+      if(coincidencias.length>1) console.warn('CorrecciÃ³n de vacaciones omitida por nombre duplicado:',nombre);
+      return;
+    }
+    const trabajador=coincidencias[0];
+    if(trabajador.correccionSaldoVacaciones?.id==='saldos-efectivos-2026-09') return;
+    trabajador.correccionSaldoVacaciones={id:'saldos-efectivos-2026-09',fecha,disponibles:ajuste.disponibles,habilesTomados:ajuste.habilesTomados,inhabilesTomados:ajuste.inhabilesTomados};
+    cambio=true;
+  });
+  if(cambio) sync('trab');
+}
 function vaHabiles(fi,ff){
   const aUTC = s => Date.UTC(+s.slice(0,4), +s.slice(5,7)-1, +s.slice(8,10));
   let i=aUTC(fi), f=aUTC(ff), h=0;
@@ -775,6 +805,14 @@ function vaHabiles(fi,ff){
 function vaSaldo(t){
   const v = fqVacaciones(t, hoyChile());
   if(!v) return null;
+  const ajuste=t.correccionSaldoVacaciones;
+  if(ajuste && ajuste.fecha){
+    const mesesNuevos=mesesEntre(ajuste.fecha,hoyChile());
+    const vacacionesPosteriores=DB.vac.filter(x=>String(x.trabajadorId)===String(t.id)&&x.estado==='Aprobada'&&String(x.fechaInicio||'')>=ajuste.fecha).reduce((s,x)=>s+(Number(x.dias)||0),0);
+    const usados=Number(ajuste.habilesTomados||0)+vacacionesPosteriores;
+    const ganados=Number(ajuste.disponibles||0)+Number(ajuste.habilesTomados||0)+mesesNuevos*1.25;
+    return {ganados:Math.round(ganados*100)/100,usados:Math.round(usados*100)/100,disponibles:Math.max(0,Math.round((Number(ajuste.disponibles||0)+mesesNuevos*1.25-vacacionesPosteriores)*100)/100)};
+  }
   return { ganados:v.ganados, usados:v.usados, disponibles:Math.round((v.ganados-v.usados)*100)/100 };
 }
 function vaPrev() {
