@@ -113,6 +113,7 @@ table.tbl td.vacio{text-align:center;padding:28px;color:var(--muted)}
 </style>
 </head>
 <body>
+<script src="sesion.js"></script>
 <script src="cargando.js"></script>
 <script src="hora-chile.js"></script>
 <script src="feriados-chile.js"></script>
@@ -285,19 +286,14 @@ table.tbl td.vacio{text-align:center;padding:28px;color:var(--muted)}
 
 <script>
 // =========================================================================
-// 1. CONFIGURACIÓN Y ACCESO A LA NUBE (mismo backend y formato que rrhh.html)
+// 1. CONFIGURACIÓN Y ACCESO AL SERVIDOR
 // =========================================================================
+// El portal no lee las llaves de RRHH: le pide al servidor (accion=portal)
+// solo los datos del trabajador cuyo email coincide con la sesión. El
+// servidor verifica la sesión, así que otra persona no puede pedir datos
+// ajenos aunque modifique la página.
 const API_URL = "https://script.google.com/macros/s/AKfycbxP5-vB59e80qpXdx4AcCyS28C4H58thdh0XXtLcDWZD8Q_47fDbBvLn1ahqx7RoJor/exec";
-const CLOUD_TOKEN = "b5bd161b4ef581c6114b7bb4";
-const KEYS = {
-  trab: "rrhh_trabajadores_v1", liq: "rrhh_liquidaciones_v1", vac: "rrhh_vacaciones_v1",
-  asis: "rrhh_asistencia_v1", lic: "rrhh_licencias_v1", doc: "rrhh_documentos_v1"
-};
-// Solicitudes enviadas desde este portal. Van en una llave aparte porque
-// rrhh.html guarda rrhh_vacaciones_v1 completa en cada cambio: si el portal
-// escribiera ahí, la próxima edición en RRHH podría borrar la solicitud.
-// RRHH las lee desde "Vacaciones › Solicitudes desde Mi Portal".
-const KEY_SOL_VAC = "rrhh_solicitudes_vac_v1";
+const CLOUD_TOKEN = tokenSesion(); // sesión firmada por el servidor (ver sesion.js)
 // Igual que en RRHH (liquidación)
 const CFG = { AFP:10, SAL:7, AFC:0.6 };
 
@@ -309,67 +305,54 @@ const fmtDias = n => (Math.round((n||0)*100)/100).toLocaleString('es-CL');
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const periodoTexto = p => { const [y,m] = String(p||'').split('-'); return m ? MESES[+m-1] + ' ' + y : (p||'-'); };
 
-const CLOUD_INTENTOS = 3, CLOUD_TIMEOUT_MS = 12000;
+const CLOUD_INTENTOS = 3, CLOUD_TIMEOUT_MS = 20000;
 function esperar(ms){ return new Promise(r => setTimeout(r, ms)); }
 async function fetchConTimeout(url, opts){
   const c = new AbortController(); const t = setTimeout(() => c.abort(), CLOUD_TIMEOUT_MS);
   try { return await fetch(url, Object.assign({}, opts, { signal: c.signal })); } finally { clearTimeout(t); }
 }
-// Lee una llave; lanza si no se pudo confirmar (para no confundir "falló" con "vacío").
-async function leerClave(key){
+// Error que respondió el servidor (no se reintenta: repetir daría lo mismo).
+class ErrorServidor extends Error {}
+// GET de una acción del portal. Reintenta fallas de red; lanza ErrorServidor
+// con el código (CORREO_NO_REGISTRADO, TRABAJADOR_INACTIVO...) si el servidor lo rechaza.
+async function pedir(accion, params){
+  const qs = Object.entries(Object.assign({ accion, token: CLOUD_TOKEN }, params || {}))
+    .filter(([, v]) => v !== undefined && v !== null && v !== '')
+    .map(([k, v]) => k + '=' + encodeURIComponent(v)).join('&');
   let ultimo;
   for (let i = 0; i < CLOUD_INTENTOS; i++) {
     try {
-      const res = await fetchConTimeout(API_URL + "?key=" + encodeURIComponent(key) + "&token=" + CLOUD_TOKEN);
+      const res = await fetchConTimeout(API_URL + '?' + qs);
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const json = await res.json();
-      if (json.estado === 'error') throw new Error(json.detalle || 'Error del servidor');
-      return json.valor ? JSON.parse(json.valor) : null;
-    } catch(e) { ultimo = e; if (i < CLOUD_INTENTOS - 1) await esperar(500 * (i + 1)); }
+      if (json.estado === 'error') throw new ErrorServidor(json.detalle || 'ERROR');
+      return json;
+    } catch(e) {
+      if (e instanceof ErrorServidor) throw e;
+      ultimo = e; if (i < CLOUD_INTENTOS - 1) await esperar(500 * (i + 1));
+    }
   }
   throw ultimo;
 }
-async function guardarClave(key, valor){
-  let ultimo;
-  for (let i = 0; i < CLOUD_INTENTOS; i++) {
-    try {
-      const res = await fetchConTimeout(API_URL, { method:'POST', body: JSON.stringify({ key, value: JSON.stringify(valor), token: CLOUD_TOKEN }) });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      let json = null; try { json = await res.json(); } catch(e) {}
-      if (json && json.estado === 'error') throw new Error(json.detalle || 'Error del servidor');
-      return true;
-    } catch(e) { ultimo = e; if (i < CLOUD_INTENTOS - 1) await esperar(500 * (i + 1)); }
-  }
-  console.error('No se pudo guardar', key, ultimo);
-  return false;
+// POST de una acción (solicitar / cancelar). Sin reintentos automáticos para
+// no enviar dos veces la misma solicitud.
+async function enviar(accion, datos){
+  const res = await fetchConTimeout(API_URL, { method:'POST', body: JSON.stringify(Object.assign({ accion, token: CLOUD_TOKEN }, datos || {})) });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const json = await res.json();
+  if (json.estado === 'error') throw new ErrorServidor(json.detalle || 'ERROR');
+  return json;
 }
-// Las llaves de RRHH se guardan como texto partido en bloques {shardCount, parte}.
-async function leerRRHH(key){
-  const primero = await leerClave(key);
-  if (primero === null || primero === undefined) return [];
-  if (Array.isArray(primero)) return primero;
-  if (typeof primero === 'object' && typeof primero.shardCount === 'number') {
-    const pedidos = [];
-    for (let i = 1; i < primero.shardCount; i++) pedidos.push(leerClave(key + '_sh' + i));
-    const bloques = await Promise.all(pedidos);
-    let texto = primero.parte || '';
-    bloques.forEach((b, idx) => { if (!b || typeof b.parte !== 'string') throw new Error('Falta la partición ' + (idx+1) + ' de ' + key); texto += b.parte; });
-    return texto ? JSON.parse(texto) : [];
-  }
-  throw new Error('Formato no reconocido en ' + key);
-}
-async function leerSolicitudes(){ const v = await leerClave(KEY_SOL_VAC); return Array.isArray(v) ? v : []; }
 
 // =========================================================================
 // 2. ESTADO
 // =========================================================================
 let SESION = null;
-let TRABS = [];
+let TRABS = [];              // solo para administradores / RRHH ("Ver como")
 let miFicha = null;          // trabajador que se está mostrando
 let esPropio = false;        // true si la ficha corresponde al correo de la sesión
-const TODO = { liq:[], vac:[], asis:[], lic:[], sol:[], doc:null };
 const cargaOk = { liq:false, vac:false, asis:false, lic:false, sol:false };
-let misDatos = { liq:[], vac:[], asis:[], lic:[], sol:[], doc:[] };
+let misDatos = { liq:[], vac:[], asis:[], lic:[], sol:[], doc:null };
 const mismoId = (a, b) => String(a) === String(b);
 
 function leerSesion(){ try { return JSON.parse(localStorage.getItem('cimagen_session')); } catch(e) { return null; } }
@@ -386,49 +369,41 @@ window.onload = function(){ init().finally(ocultarCargando); };
 async function init(){
   SESION = leerSesion();
   if (!SESION) return;
-  const email = (SESION.email || '').trim().toLowerCase();
   $('as-mes').value = mesChile();
-
   // Un trabajador sin otros módulos no tiene menú al que volver.
   const tieneOtros = SESION.isAdmin || (SESION.modules && SESION.modules.length > 0);
   if (!tieneOtros) $('menu-link').style.display = 'none';
-
-  try {
-    TRABS = await leerRRHH(KEYS.trab);
-  } catch(e) {
-    mostrarEstado('⚠️', 'No se pudo conectar', 'No fue posible leer los datos de Recursos Humanos. Revisa tu conexión y vuelve a intentarlo.', '<button class="act-btn primary" onclick="location.reload()">Reintentar</button>');
-    return;
-  }
-
-  const propio = TRABS.find(t => (t.email || '').trim().toLowerCase() === email);
-  if (propio && propio.estado === 'Inactivo' && !SESION.isAdmin) {
-    mostrarEstado('🔒', 'Acceso deshabilitado', 'Tu ficha figura como inactiva en Recursos Humanos. Si crees que es un error, contacta a administración.', botonSalir());
-    return;
-  }
-  if (!propio && !SESION.isAdmin) {
-    mostrarEstado('🔎', 'Correo no registrado', 'El correo <b>' + esc(email) + '</b> no está registrado en la ficha de ningún trabajador. Pide a Recursos Humanos que agregue este mismo correo en tu ficha y vuelve a entrar.', botonSalir());
-    return;
-  }
-
-  // Datos de todas las secciones en paralelo; cada una puede fallar por separado.
-  const secciones = ['liq','vac','asis','lic'];
-  const res = await Promise.allSettled([...secciones.map(k => leerRRHH(KEYS[k])), leerSolicitudes()]);
-  const fallidas = [];
-  secciones.forEach((k, i) => {
-    if (res[i].status === 'fulfilled') { TODO[k] = res[i].value || []; cargaOk[k] = true; }
-    else fallidas.push({liq:'liquidaciones', vac:'vacaciones', asis:'asistencia', lic:'licencias'}[k]);
-  });
-  if (res[4].status === 'fulfilled') { TODO.sol = res[4].value; cargaOk.sol = true; } else fallidas.push('solicitudes pendientes');
-  if (fallidas.length) {
-    $('aviso-carga').textContent = '⚠️ No se pudieron cargar: ' + fallidas.join(', ') + '. Recarga la página (F5) para reintentar.';
-    $('aviso-carga').style.display = 'block';
-  }
-
-  if (SESION.isAdmin) prepararVistaAdmin(propio);
-  seleccionarTrabajador(propio || TRABS.slice().sort(ordenNombre)[0]);
+  await cargarPortal();
 }
 
-function ordenNombre(a, b){ return nombreCompleto(a).localeCompare(nombreCompleto(b), 'es'); }
+// Pide al servidor los datos del portal (propios, o de trabajadorId si es
+// administrador / RRHH) y los muestra.
+async function cargarPortal(trabajadorId){
+  let r;
+  try {
+    r = await pedir('portal', { trabajadorId });
+  } catch(e) {
+    const email = esc((SESION.email || '').toLowerCase());
+    if (e.message === 'CORREO_NO_REGISTRADO') mostrarEstado('🔎', 'Correo no registrado', 'El correo <b>' + email + '</b> no está registrado en la ficha de ningún trabajador. Pide a Recursos Humanos que agregue este mismo correo en tu ficha y vuelve a entrar.', botonSalir());
+    else if (e.message === 'TRABAJADOR_INACTIVO') mostrarEstado('🔒', 'Acceso deshabilitado', 'Tu ficha figura como inactiva en Recursos Humanos. Si crees que es un error, contacta a administración.', botonSalir());
+    else if (e.message === 'SIN_TRABAJADORES') mostrarEstado('📋', 'Sin trabajadores', 'Todavía no hay trabajadores registrados en Recursos Humanos.', '');
+    else mostrarEstado('⚠️', 'No se pudo conectar', 'No fue posible cargar tu información. Revisa tu conexión y vuelve a intentarlo.', '<button class="act-btn primary" onclick="location.reload()">Reintentar</button>');
+    return;
+  }
+  const fallas = r.fallas || [];
+  ['liq','vac','asis','lic','sol'].forEach(k => { cargaOk[k] = fallas.indexOf(k) === -1; });
+  if (fallas.length) {
+    const nombres = { liq:'liquidaciones', vac:'vacaciones', asis:'asistencia', lic:'licencias', sol:'solicitudes pendientes' };
+    $('aviso-carga').textContent = '⚠️ No se pudieron cargar: ' + fallas.map(k => nombres[k] || k).join(', ') + '. Recarga la página (F5) para reintentar.';
+    $('aviso-carga').style.display = 'block';
+  } else {
+    $('aviso-carga').style.display = 'none';
+  }
+  misDatos = { liq: r.liq || [], vac: r.vac || [], asis: r.asis || [], lic: r.lic || [], sol: r.sol || [], doc: null };
+  if (r.supervisa && Array.isArray(r.trabajadores)) prepararVistaAdmin(r.trabajadores);
+  seleccionarTrabajador(r.trabajador, !!r.propio);
+}
+
 function nombreCompleto(t){ return ((t.nombres||'') + ' ' + (t.apellidos||'')).trim(); }
 function botonSalir(){ return '<button class="act-btn" onclick="cerrarSesion()">Entrar con otra cuenta</button>'; }
 function mostrarEstado(icono, titulo, texto, acciones){
@@ -440,37 +415,25 @@ function mostrarEstado(icono, titulo, texto, acciones){
   $('ui-avatar').textContent = SESION ? (SESION.name || SESION.email || '?').charAt(0).toUpperCase() : '';
 }
 
-// Administradores: pueden ver el portal de cualquier trabajador (solo lectura).
-function prepararVistaAdmin(propio){
-  if (!TRABS.length) {
-    mostrarEstado('📋', 'Sin trabajadores', 'Todavía no hay trabajadores registrados en Recursos Humanos.', '');
-    return;
-  }
-  const sel = $('admin-sel');
-  sel.innerHTML = TRABS.slice().sort(ordenNombre).map(t => `<option value="${esc(t.id)}">${esc(nombreCompleto(t))}${t.estado==='Inactivo'?' (inactivo)':''}${t.email?'':' — sin correo'}</option>`).join('');
+// Administradores y RRHH: pueden ver el portal de cualquier trabajador (solo lectura).
+function prepararVistaAdmin(lista){
+  TRABS = lista.slice().sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), 'es'));
+  $('admin-sel').innerHTML = TRABS.map(t => `<option value="${esc(t.id)}">${esc(t.nombre)}${t.estado==='Inactivo'?' (inactivo)':''}${t.email?'':' — sin correo'}</option>`).join('');
   $('admin-bar').style.display = 'flex';
 }
-function verComo(id){
-  const t = TRABS.find(x => mismoId(x.id, id));
-  if (t) seleccionarTrabajador(t);
+async function verComo(id){
+  mostrarCargando('Cargando portal…');
+  try { await cargarPortal(id); } finally { ocultarCargando(); }
 }
 
-function seleccionarTrabajador(t){
+function seleccionarTrabajador(t, propio){
   if (!t) return;
   miFicha = t;
-  esPropio = (t.email || '').trim().toLowerCase() === (SESION.email || '').trim().toLowerCase();
-  if (SESION.isAdmin) {
+  esPropio = propio;
+  if (TRABS.length) {
     $('admin-sel').value = String(t.id);
     $('admin-nota').textContent = esPropio ? '(es tu propia ficha)' : (t.email ? 'Este trabajador entra con ' + t.email : '⚠️ Sin correo: no puede entrar a su portal hasta que se registre en su ficha.');
   }
-  const id = t.id;
-  misDatos.liq  = TODO.liq.filter(x => mismoId(x.trabajadorId, id));
-  misDatos.vac  = TODO.vac.filter(x => mismoId(x.trabajadorId, id));
-  misDatos.asis = TODO.asis.filter(x => mismoId(x.trabajadorId, id));
-  misDatos.lic  = TODO.lic.filter(x => mismoId(x.trabajadorId, id));
-  misDatos.sol  = TODO.sol.filter(x => mismoId(x.trabajadorId, id));
-  misDatos.doc  = TODO.doc ? TODO.doc.filter(x => mismoId(x.trabajadorId, id)) : [];
-
   $('sin-acceso').style.display = 'none';
   $('app-container').style.display = 'block';
   const nom = (t.nombres || '').split(' ')[0], ape = (t.apellidos || '').split(' ')[0];
@@ -482,7 +445,9 @@ function seleccionarTrabajador(t){
   $('vac-btn').disabled = !esPropio;
 
   renderInicio(); renderLiquidaciones(); renderVacaciones(); renderAsistencia();
-  if (TODO.doc) renderDocumentos();
+  // Los documentos se piden de nuevo al abrir su pestaña (son de este trabajador).
+  $('tb-doc').innerHTML = `<tr><td colspan="4" class="vacio">Abre esta pestaña para cargar los documentos…</td></tr>`;
+  if ($('p-documentos').classList.contains('on')) cargarDocumentos();
   previewVac();
 }
 
@@ -629,12 +594,14 @@ function renderAsistencia(){
 // Los documentos pueden pesar mucho (archivos en base64): se cargan solo al abrir la pestaña.
 let cargandoDocs = null;
 async function cargarDocumentos(){
-  if (TODO.doc) { renderDocumentos(); return; }
+  if (!miFicha) return;
+  if (misDatos.doc) { renderDocumentos(); return; }
   if (cargandoDocs) return;
+  const idPedido = miFicha.id;
   $('tb-doc').innerHTML = `<tr><td colspan="4" class="vacio">⏳ Cargando documentos…</td></tr>`;
-  cargandoDocs = leerRRHH(KEYS.doc).then(docs => {
-    TODO.doc = docs || [];
-    misDatos.doc = TODO.doc.filter(x => mismoId(x.trabajadorId, miFicha.id));
+  cargandoDocs = pedir('portalDocs', { trabajadorId: TRABS.length ? idPedido : '' }).then(r => {
+    if (!miFicha || !mismoId(miFicha.id, idPedido)) return; // se cambió de trabajador mientras cargaba
+    misDatos.doc = r.doc || [];
     renderDocumentos();
   }).catch(() => {
     $('tb-doc').innerHTML = `<tr><td colspan="4" class="vacio">No se pudieron cargar los documentos. <button class="act-btn small" onclick="cargarDocumentos()">Reintentar</button></td></tr>`;
@@ -651,7 +618,7 @@ function renderDocumentos(){
     </tr>`).join('') || `<tr><td colspan="4" class="vacio">No tienes documentos adjuntos en tu ficha.</td></tr>`;
 }
 function descargarDoc(id){
-  const d = misDatos.doc.find(x => x.id === id); if (!d || !d.base64) return;
+  const d = (misDatos.doc || []).find(x => x.id === id); if (!d || !d.base64) return;
   const a = document.createElement('a'); a.href = d.base64; a.download = d.nombre || 'documento';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
@@ -695,19 +662,20 @@ async function enviarSolicitudVac(){
   }
 
   const btn = $('vac-btn'); btn.disabled = true; btn.textContent = 'Enviando…';
-  const nueva = { id: Date.now(), trabajadorId: String(miFicha.id), fechaInicio: ini, fechaFin: fin, dias: dh, motivo: mot, fechaSolicitud: hoyChile(), email: (SESION.email||'').toLowerCase() };
   try {
-    // Se relee la lista justo antes de guardar para no borrar solicitudes de otros trabajadores.
-    const lista = await leerSolicitudes();
-    lista.push(nueva);
-    if (!await guardarClave(KEY_SOL_VAC, lista)) throw new Error('guardar');
-    TODO.sol = lista;
-    misDatos.sol = lista.filter(x => mismoId(x.trabajadorId, miFicha.id));
+    // El servidor valida las fechas y los cruces, y guarda la solicitud con bloqueo.
+    const r = await enviar('solicitarVac', { fechaInicio: ini, fechaFin: fin, dias: dh, motivo: mot });
+    misDatos.sol = misDatos.sol.concat([r.solicitud]);
     $('vac-ini').value = ''; $('vac-fin').value = ''; $('vac-mot').value = '';
     renderVacaciones(); renderInicio(); previewVac();
     alert('Solicitud enviada. Recursos Humanos la revisará y verás aquí cuando sea aprobada o rechazada.');
   } catch(e) {
-    alert('No se pudo enviar la solicitud. Revisa tu conexión e inténtalo de nuevo.');
+    const motivos = {
+      CRUCE_FECHAS: 'Ya tienes vacaciones aprobadas o una solicitud en esas fechas.',
+      FECHA_PASADA: 'La fecha de inicio no puede ser anterior a hoy.',
+      FECHAS_INVALIDAS: 'Revisa las fechas: la de término debe ser igual o posterior a la de inicio.'
+    };
+    alert(motivos[e.message] || 'No se pudo enviar la solicitud. Revisa tu conexión e inténtalo de nuevo.');
   } finally {
     btn.disabled = !esPropio; btn.textContent = 'Enviar solicitud';
   }
@@ -717,17 +685,11 @@ async function cancelarSolicitud(id){
   if (!esPropio) return;
   if (!confirm('¿Cancelar esta solicitud de vacaciones?')) return;
   try {
-    const lista = await leerSolicitudes();
-    if (!lista.some(x => x.id === id)) {
-      alert('Esta solicitud ya fue revisada por Recursos Humanos. Recarga la página para ver su estado.');
-      return;
-    }
-    const resto = lista.filter(x => !(x.id === id && mismoId(x.trabajadorId, miFicha.id)));
-    if (!await guardarClave(KEY_SOL_VAC, resto)) throw new Error('guardar');
-    TODO.sol = resto;
-    misDatos.sol = resto.filter(x => mismoId(x.trabajadorId, miFicha.id));
+    await enviar('cancelarVac', { id });
+    misDatos.sol = misDatos.sol.filter(x => x.id !== id);
     renderVacaciones(); renderInicio(); previewVac();
   } catch(e) {
+    if (e.message === 'YA_RESUELTA') { alert('Esta solicitud ya fue revisada por Recursos Humanos. Se actualizará tu portal.'); cargarPortal(); return; }
     alert('No se pudo cancelar la solicitud. Inténtalo de nuevo.');
   }
 }

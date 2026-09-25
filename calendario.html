@@ -105,6 +105,7 @@
 </style>
 </head>
 <body>
+<script src="sesion.js"></script>
 <script src="cargando.js"></script>
 <script src="hora-chile.js"></script>
 <script>
@@ -239,7 +240,7 @@
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbxP5-vB59e80qpXdx4AcCyS28C4H58thdh0XXtLcDWZD8Q_47fDbBvLn1ahqx7RoJor/exec";
-const CLOUD_TOKEN = "b5bd161b4ef581c6114b7bb4";
+const CLOUD_TOKEN = tokenSesion(); // sesión firmada por el servidor (ver sesion.js)
 
 // El backend (Google Apps Script) a veces devuelve una falla transitoria —una
 // página de error en vez de JSON, o un HTTP no-OK— que se resuelve sola al

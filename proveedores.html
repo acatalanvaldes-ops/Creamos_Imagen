@@ -85,6 +85,7 @@ table.tbl tr:last-child td{border-bottom:none}
 </style>
 </head>
 <body>
+<script src="sesion.js"></script>
 <script src="cargando.js"></script>
 <script src="hora-chile.js"></script>
 <script>
@@ -226,7 +227,7 @@ table.tbl tr:last-child td{border-bottom:none}
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbxP5-vB59e80qpXdx4AcCyS28C4H58thdh0XXtLcDWZD8Q_47fDbBvLn1ahqx7RoJor/exec";
-const CLOUD_TOKEN = "b5bd161b4ef581c6114b7bb4";
+const CLOUD_TOKEN = tokenSesion(); // sesión firmada por el servidor (ver sesion.js)
 const KEY_PROVEEDORES = "proveedores_ci_v1";
 const KEY_COMPRAS = "compras_ci_v1";
 

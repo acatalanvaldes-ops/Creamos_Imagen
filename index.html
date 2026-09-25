@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Portal Creamos Imagen</title>
+<link rel="manifest" href="manifest.json">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     body {
@@ -155,6 +156,7 @@
   </div>
 </div>
 
+<script src="sesion.js"></script>
 <script>
 // ============================================================
 // AUTENTICACIÓN CON GOOGLE + CONTROL DE ACCESO POR MÓDULO
@@ -162,10 +164,9 @@
 var GOOGLE_CLIENT_ID = "207433225749-76s4184pif80ge7gfr0nt39qa80b82ij.apps.googleusercontent.com";
 var SESSION_KEY = "cimagen_session";
 var SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 horas
-var SUPER_ADMIN_EMAIL = "a.catalan.valdes@gmail.com";
-var ACL_KEY = "accesos_ci_v1";
 var API_URL = "https://script.google.com/macros/s/AKfycbxP5-vB59e80qpXdx4AcCyS28C4H58thdh0XXtLcDWZD8Q_47fDbBvLn1ahqx7RoJor/exec";
-var CLOUD_TOKEN = "b5bd161b4ef581c6114b7bb4";
+// Los permisos (administrador, módulos, si es trabajador) los calcula el
+// servidor al iniciar sesión, a partir de "Accesos" y de las fichas de RRHH.
 
 var MODULOS = [
   { key: "rendicion",    label: "Caja",           icon: "💵", href: "rendicion.html",   cls: "caja" },
@@ -182,75 +183,15 @@ var MODULOS = [
   // registrado en la ficha de un trabajador Activo de Recursos Humanos.
   { key: "trabajador",   label: "Mi Portal",      icon: "👤", href: "trabajador.html", cls: "portal", sub: "(Trabajador)" }
 ];
-var TRAB_KEY = "rrhh_trabajadores_v1";
-
-async function loadFromCloud(key) {
-  try {
-    const res = await fetch(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
-    const json = await res.json();
-    return json.valor ? JSON.parse(json.valor) : null;
-  } catch (e) { return null; }
+// Envía a Google Apps Script una acción (login) y devuelve el JSON.
+async function llamarServidor(cuerpo) {
+  var res = await fetch(API_URL, { method: "POST", body: JSON.stringify(cuerpo) });
+  return await res.json();
 }
 
-// Lista de trabajadores de RRHH (guardada en bloques de texto: {shardCount, parte}).
-async function loadTrabajadores() {
-  var primero = await loadFromCloud(TRAB_KEY);
-  if (!primero) return [];
-  if (Array.isArray(primero)) return primero;
-  if (typeof primero.shardCount !== "number") return [];
-  var pedidos = [];
-  for (var i = 1; i < primero.shardCount; i++) pedidos.push(loadFromCloud(TRAB_KEY + "_sh" + i));
-  var bloques = await Promise.all(pedidos);
-  var texto = primero.parte || "";
-  for (var j = 0; j < bloques.length; j++) {
-    if (!bloques[j] || typeof bloques[j].parte !== "string") return [];
-    texto += bloques[j].parte;
-  }
-  try { return texto ? JSON.parse(texto) : []; } catch (e) { return []; }
-}
-
-// ¿El correo corresponde a un trabajador Activo de RRHH?
-function esCorreoTrabajador(trabajadores, email) {
-  var e = (email || "").trim().toLowerCase();
-  return !!e && (trabajadores || []).some(function(t){
-    return (t.email || "").trim().toLowerCase() === e && t.estado !== "Inactivo";
-  });
-}
-
-function decodeJwtPayload(token) {
-  try {
-    var base64Url = token.split(".")[1];
-    var base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    var pad = base64.length % 4;
-    if (pad) base64 += "====".slice(pad);
-    var jsonStr = decodeURIComponent(
-      atob(base64).split("").map(function(c){
-        return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
-      }).join("")
-    );
-    return JSON.parse(jsonStr);
-  } catch (e) { return null; }
-}
-
-function computeSession(email, name, picture, acl, esTrabajador) {
-  var normEmail = (email || "").trim().toLowerCase();
-  var isSuper = normEmail === SUPER_ADMIN_EMAIL.toLowerCase();
-  var entry = (acl && acl[normEmail]) ? acl[normEmail] : null;
-  var isAdmin = isSuper || !!(entry && entry.admin);
-  var modules = isAdmin ? MODULOS.map(function(m){ return m.key; }) : ((entry && entry.modules) || []);
-  return {
-    email: normEmail,
-    name: name || normEmail,
-    picture: picture || "",
-    isAdmin: isAdmin,
-    modules: modules,
-    esTrabajador: !!esTrabajador,
-    ts: Date.now()
-  };
-}
-
+// Una sesión sin "token" es de antes de las sesiones firmadas: hay que volver a entrar.
 function sessionValid(sess) {
-  return !!(sess && sess.email && sess.ts && (Date.now() - sess.ts < SESSION_TTL_MS));
+  return !!(sess && sess.email && sess.token && sess.ts && (Date.now() - sess.ts < SESSION_TTL_MS));
 }
 
 function isModuleAllowed(sess, moduleKey) {
@@ -271,20 +212,24 @@ function clearSession() {
 }
 
 async function handleCredentialResponse(response) {
-  var payload = decodeJwtPayload(response.credential);
-  if (!payload || !payload.email) {
-    showDenied();
-    return;
-  }
-  // La consulta de permisos a la nube puede tardar varios segundos: se avisa
-  // en vez de dejar la pantalla de acceso sin respuesta.
+  if (!response || !response.credential) { showDenied(); return; }
+  // El servidor verifica la cuenta con Google y calcula los permisos; puede
+  // tardar unos segundos, así que se avisa en vez de dejar la pantalla quieta.
   var msg = document.getElementById("cimagen-gate-msg");
   var btnWrap = document.getElementById("cimagen-gate-btn-wrap");
   if (msg) msg.textContent = "⏳ Verificando tus accesos…";
   if (btnWrap) btnWrap.style.display = "none";
-  var datos = await Promise.all([loadFromCloud(ACL_KEY), loadTrabajadores()]);
-  var sess = computeSession(payload.email, payload.name, payload.picture, datos[0] || {}, esCorreoTrabajador(datos[1], payload.email));
-  if (!sess.isAdmin && sess.modules.length === 0 && !sess.esTrabajador) {
+  var r = null;
+  try { r = await llamarServidor({ accion: "login", credential: response.credential }); } catch (e) {}
+  if (!r || r.estado !== "éxito" || !r.sesion) {
+    if (msg) msg.textContent = (r && r.detalle === "CREDENCIAL_INVALIDA")
+      ? "No se pudo verificar tu cuenta de Google. Inténtalo de nuevo."
+      : "No se pudo conectar con el servidor. Revisa tu conexión y vuelve a intentarlo.";
+    if (btnWrap) btnWrap.style.display = "flex";
+    return;
+  }
+  var sess = r.sesion;
+  if (!sess.isAdmin && (!sess.modules || sess.modules.length === 0) && !sess.esTrabajador) {
     showDenied();
     return;
   }
@@ -298,14 +243,21 @@ function soloPortal(sess) {
   return !sess.isAdmin && sess.esTrabajador && (!sess.modules || sess.modules.length === 0);
 }
 
-// Sesiones abiertas antes de existir Mi Portal (o antes de que RRHH
-// registrara el correo) no saben si la persona es trabajador: se revisa en
-// segundo plano y, si cambió, se actualiza la sesión y el menú.
-async function revisarTrabajador(sess) {
-  var trabajadores = await loadTrabajadores();
-  var es = esCorreoTrabajador(trabajadores, sess.email);
-  if (es === !!sess.esTrabajador) return;
-  sess.esTrabajador = es;
+// Al abrir el menú con una sesión ya iniciada, se piden al servidor los
+// permisos actuales: así los cambios hechos en "Accesos" o en las fichas de
+// RRHH (por ejemplo, registrar el correo de un trabajador) se ven sin tener
+// que cerrar sesión. Si la sesión ya no es válida, sesion.js vuelve al login.
+async function refrescarSesion(sess) {
+  var r = null;
+  try {
+    var res = await fetch(API_URL + "?accion=yo&token=" + encodeURIComponent(sess.token));
+    r = await res.json();
+  } catch (e) { return; }
+  if (!r || r.estado !== "éxito") return;
+  var cambio = r.isAdmin !== sess.isAdmin || r.esTrabajador !== !!sess.esTrabajador ||
+    (r.modules || []).join() !== (sess.modules || []).join();
+  if (!cambio) return;
+  sess.isAdmin = r.isAdmin; sess.modules = r.modules || []; sess.esTrabajador = !!r.esTrabajador;
   saveSession(sess);
   renderMenu(sess);
 }
@@ -380,10 +332,11 @@ function renderMenu(sess) {
   if (sessionValid(existing)) {
     document.addEventListener("DOMContentLoaded", function(){
       enterApp(existing);
-      revisarTrabajador(existing);
+      refrescarSesion(existing);
     });
     return;
   }
+  clearSession(); // sesión vencida o de antes de las sesiones firmadas
   document.documentElement.style.overflow = "hidden";
   document.addEventListener("DOMContentLoaded", function(){
     var retryBtn = document.getElementById("cimagen-gate-retry");

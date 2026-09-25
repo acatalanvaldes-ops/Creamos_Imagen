@@ -55,6 +55,7 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
 </style>
 </head>
 <body>
+<script src="sesion.js"></script>
 <script src="cargando.js"></script>
 <script src="hora-chile.js"></script>
 <script src="feriados-chile.js"></script>
@@ -418,7 +419,7 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
 <script>
 // ================= CORE & DB =================
 const API_URL = "https://script.google.com/macros/s/AKfycbxP5-vB59e80qpXdx4AcCyS28C4H58thdh0XXtLcDWZD8Q_47fDbBvLn1ahqx7RoJor/exec";
-const CLOUD_TOKEN = "b5bd161b4ef581c6114b7bb4";
+const CLOUD_TOKEN = tokenSesion(); // sesión firmada por el servidor (ver sesion.js)
 const $ = id => document.getElementById(id);
 const money = v => "$" + Math.round(Number(v||0)).toLocaleString("es-CL");
 const fmt = money; // alias: algunas plantillas (liquidación/finiquito) usan fmt()
@@ -711,7 +712,8 @@ async function vaResolverPortal(id, estado, motivoRechazo){
   if(estado === 'Aprobada' && DB.vac.some(v=>String(v.trabajadorId)===String(s.trabajadorId)&&v.estado==='Aprobada'&&s.fechaInicio<=v.fechaFin&&s.fechaFin>=v.fechaInicio)){
     if(!confirm('Este trabajador ya tiene vacaciones aprobadas que se cruzan con estas fechas. ¿Aprobar de todas formas?')) return;
   }
-  const reg = { id:s.id, trabajadorId:String(s.trabajadorId), fechaInicio:s.fechaInicio, fechaFin:s.fechaFin, dias:s.dias, motivo:s.motivo||'', estado, origen:'Portal', fechaSolicitud:s.fechaSolicitud||'', fechaResolucion:hoyChile() };
+  // Los días hábiles se recalculan aquí con los feriados de RRHH: no se confía en el número que envía el portal.
+  const reg = { id:s.id, trabajadorId:String(s.trabajadorId), fechaInicio:s.fechaInicio, fechaFin:s.fechaFin, dias:vaHabiles(s.fechaInicio, s.fechaFin), motivo:s.motivo||'', estado, origen:'Portal', fechaSolicitud:s.fechaSolicitud||'', fechaResolucion:hoyChile() };
   if(estado === 'Rechazada') reg.motivoRechazo = motivoRechazo || '';
   DB.vac.push(reg); sync('vac');
   const resto = lista.filter(x => x.id !== id);
@@ -726,8 +728,9 @@ function vaPortalRender(){
   if(!solVacOk){ tb.innerHTML = `<tr><td colspan="7" align="center" style="color:var(--muted)">No se pudieron leer las solicitudes. Usa 🔄 Actualizar.</td></tr>`; return; }
   tb.innerHTML = SOL_VAC.slice().sort((a,b)=>a.id-b.id).map(s=>{
     const t=getT(s.trabajadorId); const sal=t?vaSaldo(t):null;
-    const aviso = sal && s.dias>sal.disponibles ? `<div style="font-size:10px;color:var(--red)">Saldo disponible: ${fmtDias(sal.disponibles)}</div>` : '';
-    return `<tr><td><b>${escH(getTName(s.trabajadorId))}</b></td><td>${fDate(s.fechaInicio)}</td><td>${fDate(s.fechaFin)}</td><td>${s.dias}${aviso}</td><td>${escH(s.motivo||'-')}</td><td>${s.fechaSolicitud?fDate(s.fechaSolicitud):'-'}</td><td><button class="act-btn small bdg-act" onclick="vaResolverPortal(${s.id},'Aprobada')" title="Aprobar">✓</button> <button class="act-btn small bdg-err" onclick="vaOpenRej(${s.id},true)" title="Rechazar">✗</button></td></tr>`;
+    const dh = vaHabiles(s.fechaInicio, s.fechaFin);
+    const aviso = sal && dh>sal.disponibles ? `<div style="font-size:10px;color:var(--red)">Saldo disponible: ${fmtDias(sal.disponibles)}</div>` : '';
+    return `<tr><td><b>${escH(getTName(s.trabajadorId))}</b></td><td>${fDate(s.fechaInicio)}</td><td>${fDate(s.fechaFin)}</td><td>${dh}${aviso}</td><td>${escH(s.motivo||'-')}</td><td>${s.fechaSolicitud?fDate(s.fechaSolicitud):'-'}</td><td><button class="act-btn small bdg-act" onclick="vaResolverPortal(${s.id},'Aprobada')" title="Aprobar">✓</button> <button class="act-btn small bdg-err" onclick="vaOpenRej(${s.id},true)" title="Rechazar">✗</button></td></tr>`;
   }).join('') || `<tr><td colspan="7" align="center" style="color:var(--muted)">No hay solicitudes pendientes desde Mi Portal.</td></tr>`;
 }
 function vaSave() {

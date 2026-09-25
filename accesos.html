@@ -40,6 +40,7 @@ input[type=checkbox]{width:16px;height:16px;cursor:pointer}
 </style>
 </head>
 <body>
+<script src="sesion.js"></script>
 <script src="cargando.js"></script>
 <script>
 (function(){
@@ -66,7 +67,7 @@ input[type=checkbox]{width:16px;height:16px;cursor:pointer}
 // CONEXIÓN A BASE DE DATOS (NUBE) - mismo backend que el resto de las apps
 // ============================================================
 const API_URL = "https://script.google.com/macros/s/AKfycbxP5-vB59e80qpXdx4AcCyS28C4H58thdh0XXtLcDWZD8Q_47fDbBvLn1ahqx7RoJor/exec";
-const CLOUD_TOKEN = "b5bd161b4ef581c6114b7bb4";
+const CLOUD_TOKEN = tokenSesion(); // sesión firmada por el servidor (ver sesion.js)
 const ACL_KEY = "accesos_ci_v1";
 const SUPER_ADMIN_EMAIL = "a.catalan.valdes@gmail.com";
 
@@ -95,7 +96,53 @@ async function loadFromCloud(key) {
   } catch (e) { return null; }
 }
 
-var state = { acl: {}, loaded: false, nuevoCorreo: "" };
+var state = { acl: {}, loaded: false, nuevoCorreo: "", estricto: null, cambiandoModo: false };
+
+// ------------------------------------------------------------
+// Seguridad del servidor: modo estricto
+// ------------------------------------------------------------
+// Mientras el modo estricto está desactivado ("transición"), el servidor
+// sigue aceptando el token antiguo que estaba publicado en las páginas, para
+// que nada se corte durante el cambio. Al activarlo, solo se aceptan las
+// sesiones iniciadas con Google, cada una con sus propios permisos.
+async function cargarModo() {
+  try {
+    var res = await fetch(API_URL + "?accion=config&token=" + encodeURIComponent(CLOUD_TOKEN));
+    var j = await res.json();
+    state.estricto = j.estado === "éxito" ? !!j.modoEstricto : null;
+  } catch (e) { state.estricto = null; }
+}
+async function cambiarModo(activar) {
+  var txt = activar
+    ? "¿Activar el modo estricto?\n\nDesde ahora solo se podrá entrar con una sesión de Google, y cada persona verá solo los módulos que tenga asignados. Quien tenga una página abierta desde antes tendrá que volver a iniciar sesión."
+    : "¿Volver al modo transición?\n\nEl token antiguo, que está publicado en el repositorio, volverá a dar acceso a TODOS los datos. Úsalo solo si algo dejó de funcionar.";
+  if (!confirm(txt)) return;
+  state.cambiandoModo = true; render();
+  try {
+    var res = await fetch(API_URL, { method: "POST", body: JSON.stringify({ accion: "config", token: CLOUD_TOKEN, modoEstricto: !!activar }) });
+    var j = await res.json();
+    if (j.estado !== "éxito") throw new Error(j.detalle || "error");
+    state.estricto = !!j.modoEstricto;
+  } catch (e) {
+    alert("No se pudo cambiar el modo de seguridad. Inténtalo de nuevo.");
+  }
+  state.cambiandoModo = false; render();
+}
+function tarjetaSeguridad() {
+  var estado, boton;
+  if (state.estricto === null) {
+    estado = '<span style="color:var(--muted)">No se pudo consultar el estado del servidor.</span>';
+    boton = '<button class="act-btn" onclick="cargarModo().then(render)">Reintentar</button>';
+  } else if (state.estricto) {
+    estado = '<b style="color:var(--teal)">🔒 Modo estricto activado.</b> Solo se aceptan sesiones iniciadas con Google, y cada persona accede únicamente a sus módulos (los trabajadores, solo a su propia información en Mi Portal).';
+    boton = '<button class="act-btn" ' + (state.cambiandoModo ? 'disabled' : '') + ' onclick="cambiarModo(false)">Volver a modo transición</button>';
+  } else {
+    estado = '<b style="color:#B45309">⚠️ Modo transición.</b> El token antiguo, que está publicado en el repositorio, todavía da acceso a todos los datos. Actívalo cuando hayas comprobado que todos pueden entrar con normalidad.';
+    boton = '<button class="act-btn primary" ' + (state.cambiandoModo ? 'disabled' : '') + ' onclick="cambiarModo(true)">🔒 Activar modo estricto</button>';
+  }
+  return '<div class="card"><div class="card-title">Seguridad del servidor</div>' +
+    '<div class="help" style="margin-bottom:12px">' + estado + '</div>' + boton + '</div>';
+}
 
 function normEmail(e) { return (e || "").trim().toLowerCase(); }
 
@@ -182,13 +229,15 @@ function render() {
           '<button class="act-btn primary" onclick="agregarPersona()">+ Agregar Persona</button>' +
         '</div>' +
       '</div>' +
+      tarjetaSeguridad() +
     '</div>';
 
   document.getElementById("app").innerHTML = html;
 }
 
 async function initApp() {
-  var acl = await loadFromCloud(ACL_KEY);
+  var resultados = await Promise.all([loadFromCloud(ACL_KEY), cargarModo()]);
+  var acl = resultados[0];
   if (acl) state.acl = acl;
   else {
     var raw = localStorage.getItem(ACL_KEY);

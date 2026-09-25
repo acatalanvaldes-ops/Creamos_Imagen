@@ -45,6 +45,7 @@ input,button{font-family:inherit;outline:none}
 </style>
 </head>
 <body>
+<script src="sesion.js"></script>
 <script src="cargando.js"></script>
 <script>
 (function(){
@@ -109,7 +110,7 @@ input,button{font-family:inherit;outline:none}
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbxP5-vB59e80qpXdx4AcCyS28C4H58thdh0XXtLcDWZD8Q_47fDbBvLn1ahqx7RoJor/exec";
-const CLOUD_TOKEN = "b5bd161b4ef581c6114b7bb4";
+const CLOUD_TOKEN = tokenSesion(); // sesión firmada por el servidor (ver sesion.js)
 const KEY_CLIENTES = "clientes_ci_v1";
 const PROD_YEARS = [2025, 2026, 2027, 2028, 2029, 2030, 2031]; // Mismos años que soporta el Calendario de Producciones
 
