@@ -301,6 +301,11 @@ async function sincronizarNominaDesdeLiquidaciones() {
     loadFromCloudStrict('rrhh_liquidaciones_v1')
   ]);
   if (!Array.isArray(trabajadores) || !Array.isArray(liquidaciones)) return;
+  let indicadoresPrevired=null;
+  try {
+    const respuesta=await fetchConTimeout('/api/previred');
+    if(respuesta.ok){const datos=await respuesta.json();if(datos.tasasAfp)indicadoresPrevired=datos;}
+  } catch(e) { console.warn('No se pudieron actualizar las tasas AFP desde Previred:',e); }
   const nombreLimpio = s => String(s || '').trim().toLocaleLowerCase('es').replace(/\s+/g, ' ');
   const ultimas = new Map();
   liquidaciones.slice().sort((a,b)=>String(a.periodo||'').localeCompare(String(b.periodo||''))).forEach(l=>{
@@ -316,10 +321,19 @@ async function sincronizarNominaDesdeLiquidaciones() {
     const l=ultimas.get(String(t.id));
     if(l){
       p.sueldo=Number(l.imponible)||0;
-      const imp=Number(l.imponible)||0;
-      if(imp>0) p.afp=Math.round(((Number(l.afp)||0)+(Number(l.comisionAFP)||0))*10000/imp)/100;
-      if(!p.bonoManual) p.bono=Number(l.bonos)||0;
-      p.bonoLiquidacion=Number(l.bonos)||0;
+      const codigoAfp=String(t.afp||l.nombreAFP||'MODELO').toUpperCase();
+      const fuenteAfp=l.indicadoresPrevired && l.indicadoresPrevired.tasasAfp ? l.indicadoresPrevired : indicadoresPrevired;
+      const tasaAfp=fuenteAfp && fuenteAfp.tasasAfp && fuenteAfp.tasasAfp[codigoAfp];
+      if(tasaAfp && Number.isFinite(Number(tasaAfp.trabajador))){
+        p.afp=Number(tasaAfp.trabajador);
+        p.afpNombre=codigoAfp;
+        p.afpPeriodo=fuenteAfp.periodoRemuneracion||'';
+      }
+      const asignaciones=(Number(l.colacion)||0)+(Number(l.movilizacion)||0)+(Number(l.asignacionCaja)||0)+(Number(l.asignacionViatico)||0);
+      const bonoTotal=(Number(l.bonos)||0)+asignaciones;
+      if(!p.bonoManual) p.bono=bonoTotal;
+      p.bonoLiquidacion=bonoTotal;
+      p.bonoAsignacionesLiquidacion=asignaciones;
       p.comision=Number(l.comisiones)||0;
       p.comisionLiquidacion=Number(l.comisiones)||0;
       p.liquidacionPeriodo=l.periodo||'';
@@ -391,8 +405,9 @@ function buildAdmin() {
     var sueldoImponibleCosto = Number(p.sueldo)||0;
     var costoEmpresa;
     if (p.liquidacionPeriodo) {
-      sueldoImponibleCosto = Math.max(0, sueldoImponibleCosto + (Number(p.bono||0)-Number(p.bonoLiquidacion||0)) + (Number(com||0)-Number(p.comisionLiquidacion||0)));
-      costoEmpresa = sueldoImponibleCosto * (1 + (Number(p.afp)||0)/100 + (Number(p.fonasa)||0)/100) + provision;
+      sueldoImponibleCosto = Math.max(0, sueldoImponibleCosto + (Number(com||0)-Number(p.comisionLiquidacion||0)));
+      var asignacionesCosto = Math.max(0, Number(p.bonoAsignacionesLiquidacion||0) + (Number(p.bono||0)-Number(p.bonoLiquidacion||0)));
+      costoEmpresa = sueldoImponibleCosto * (1 + (Number(p.afp)||0)/100 + (Number(p.fonasa)||0)/100) + asignacionesCosto + provision;
     } else {
       costoEmpresa = p.sueldo + (p.sueldo * (p.afp / 100)) + (p.sueldo * (p.fonasa / 100)) + p.bono + com + provision;
     }
@@ -404,9 +419,9 @@ function buildAdmin() {
       '<td><input type="text" value="'+p.nombre+'" onchange="setRrhh('+i+',\'nombre\',this.value)"></td>'+
       '<td><select onchange="setRrhh('+i+',\'cargo\',this.value)">'+cargoOptions+'</select></td>'+
       '<td><input type="number" value="'+p.sueldo+'" title="Se actualiza desde la última liquidación disponible" onchange="setRrhh('+i+',\'sueldo\',this.value)">'+(p.liquidacionPeriodo?'<div style="font-size:10px;color:var(--muted)">Liquidación '+p.liquidacionPeriodo+'</div>':'')+'</td>'+
-      '<td><input type="number" step="0.01" value="'+p.afp+'" onchange="setRrhh('+i+',\'afp\',this.value)"></td>'+
+      '<td><input type="number" step="0.01" value="'+p.afp+'" '+(p.afpPeriodo?'readonly':'')+' title="Porcentaje según la AFP de la ficha del trabajador y los indicadores Previred" onchange="setRrhh('+i+',\'afp\',this.value)">'+(p.afpNombre&&p.afpPeriodo?'<div style="font-size:10px;color:var(--muted)">'+p.afpNombre+' · '+p.afpPeriodo+'</div>':'')+'</td>'+
       '<td><input type="number" step="0.1" value="'+p.fonasa+'" onchange="setRrhh('+i+',\'fonasa\',this.value)"></td>'+
-      '<td><input type="number" value="'+p.bono+'" onchange="setRrhh('+i+',\'bono\',this.value)"></td>'+
+      '<td><input type="number" value="'+p.bono+'" title="Suma de bonos, colación, movilización, asignación de caja y viático de la liquidación" onchange="setRrhh('+i+',\'bono\',this.value)"></td>'+
       '<td><input type="number" value="'+com+'" onchange="setRrhh('+i+',\'comision\',this.value)"></td>'+
       '<td><input type="number" value="'+anual+'" onchange="setRrhh('+i+',\'anual\',this.value)" title="Total del año en aguinaldos y asignaciones no mensuales">'+
         '<div style="font-size:10px;color:var(--muted);padding:2px 6px">= '+fmt(provision)+' /mes</div></td>'+
@@ -425,7 +440,7 @@ function buildAdmin() {
     '<div class="card" style="margin-bottom:20px; overflow-x:auto;">'+
       '<div class="card-title">Equipo de Trabajo ('+c.rrhh.length+' personas)</div>'+
       '<table class="tbl-rrhh">'+
-        '<thead><tr><th>Nombre</th><th>Cargo</th><th>Sueldo imponible ($)</th><th>AFP (%)</th><th>Fonasa (%)</th><th>Bonos ($), editable</th><th>Comisiones ($)</th><th>Aguinaldos y Asig. no mensuales ($ al año)</th><th>Costo Real Mensual ($)</th></tr></thead>'+
+        '<thead><tr><th>Nombre</th><th>Cargo</th><th>Sueldo imponible ($)</th><th>AFP (%)</th><th>Fonasa (%)</th><th>Bonos y asignaciones ($), editable</th><th>Comisiones ($)</th><th>Aguinaldos y Asig. no mensuales ($ al año)</th><th>Costo Real Mensual ($)</th></tr></thead>'+
         '<tbody>'+rowsRrhh+'</tbody>'+
         '<tfoot><tr><td colspan="8" style="text-align:right;font-weight:700;font-size:11px;color:var(--muted);text-transform:uppercase;">Costo Total Nómina Mensual</td><td style="font-weight:800;font-size:16px;color:var(--gold);">'+fmt(totalNomina)+'</td></tr></tfoot>'+
       '</table>'+
