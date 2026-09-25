@@ -290,7 +290,41 @@ function setConfig(k, v) { var valor=parseFloat(v)||0; state.config[k] = k==='ad
 function setRrhh(idx, field, value) {
   if(field==='nombre' || field==='cargo') state.config.rrhh[idx][field] = value;
   else state.config.rrhh[idx][field] = parseFloat(value) || 0;
+  if(field==='bono') state.config.rrhh[idx].bonoManual = true;
   guardarDatos(); render();
+}
+
+async function sincronizarNominaDesdeLiquidaciones() {
+  if (!tienePermisoNomina()) return;
+  const [trabajadores, liquidaciones] = await Promise.all([
+    loadFromCloudStrict('rrhh_trabajadores_v1'),
+    loadFromCloudStrict('rrhh_liquidaciones_v1')
+  ]);
+  if (!Array.isArray(trabajadores) || !Array.isArray(liquidaciones)) return;
+  const nombreLimpio = s => String(s || '').trim().toLocaleLowerCase('es').replace(/\s+/g, ' ');
+  const ultimas = new Map();
+  liquidaciones.slice().sort((a,b)=>String(a.periodo||'').localeCompare(String(b.periodo||''))).forEach(l=>{
+    const id=String(l.trabajadorId);
+    if(id && (!ultimas.has(id) || String(l.periodo||'') >= String(ultimas.get(id).periodo||''))) ultimas.set(id,l);
+  });
+  trabajadores.filter(t=>!t.estado || t.estado==='Activo').forEach(t=>{
+    const nombre=nombreLimpio(`${t.nombres||''} ${t.apellidos||''}`);
+    let p=state.config.rrhh.find(x=>x.workerId!=null && String(x.workerId)===String(t.id)) || state.config.rrhh.find(x=>x.nombre && nombreLimpio(x.nombre)===nombre);
+    if(!p) p=state.config.rrhh.find(x=>/^persona\s+\d+$/i.test(x.nombre||''));
+    if(!p){ p={nombre:'',cargo:'',sueldo:0,afp:0,fonasa:7,bono:0,comision:0,anual:0}; state.config.rrhh.push(p); }
+    p.workerId=t.id; p.nombre=nombre || p.nombre; p.cargo=t.cargo || p.cargo || '';
+    const l=ultimas.get(String(t.id));
+    if(l){
+      p.sueldo=Number(l.imponible)||0;
+      const imp=Number(l.imponible)||0;
+      if(imp>0) p.afp=Math.round(((Number(l.afp)||0)+(Number(l.comisionAFP)||0))*10000/imp)/100;
+      if(!p.bonoManual) p.bono=Number(l.bonos)||0;
+      p.bonoLiquidacion=Number(l.bonos)||0;
+      p.comision=Number(l.comisiones)||0;
+      p.comisionLiquidacion=Number(l.comisiones)||0;
+      p.liquidacionPeriodo=l.periodo||'';
+    } else if(Number(t.sueldo)>0 && !Number(p.sueldo)) p.sueldo=Number(t.sueldo);
+  });
 }
 function agregarTrabajadorNomina() {
   state.config.rrhh.push({nombre:'',cargo:'',sueldo:0,afp:0,fonasa:7,bono:0,comision:0,anual:0});
@@ -354,7 +388,14 @@ function buildAdmin() {
     var anual = p.anual || 0;
     var provision = anual / 12;
     totalProvision += provision;
-    var costoEmpresa = p.sueldo + (p.sueldo * (p.afp / 100)) + (p.sueldo * (p.fonasa / 100)) + p.bono + com + provision;
+    var sueldoImponibleCosto = Number(p.sueldo)||0;
+    var costoEmpresa;
+    if (p.liquidacionPeriodo) {
+      sueldoImponibleCosto = Math.max(0, sueldoImponibleCosto + (Number(p.bono||0)-Number(p.bonoLiquidacion||0)) + (Number(com||0)-Number(p.comisionLiquidacion||0)));
+      costoEmpresa = sueldoImponibleCosto * (1 + (Number(p.afp)||0)/100 + (Number(p.fonasa)||0)/100) + provision;
+    } else {
+      costoEmpresa = p.sueldo + (p.sueldo * (p.afp / 100)) + (p.sueldo * (p.fonasa / 100)) + p.bono + com + provision;
+    }
     totalNomina += costoEmpresa;
     var cargoOptions = CARGOS.map(function(cg) {
       return '<option value="'+cg+'"'+(cg===cargoActual?' selected':'')+'>'+(cg===''?'(sin asignar)':cg)+'</option>';
@@ -362,7 +403,7 @@ function buildAdmin() {
     return '<tr>'+
       '<td><input type="text" value="'+p.nombre+'" onchange="setRrhh('+i+',\'nombre\',this.value)"></td>'+
       '<td><select onchange="setRrhh('+i+',\'cargo\',this.value)">'+cargoOptions+'</select></td>'+
-      '<td><input type="number" value="'+p.sueldo+'" onchange="setRrhh('+i+',\'sueldo\',this.value)"></td>'+
+      '<td><input type="number" value="'+p.sueldo+'" title="Se actualiza desde la última liquidación disponible" onchange="setRrhh('+i+',\'sueldo\',this.value)">'+(p.liquidacionPeriodo?'<div style="font-size:10px;color:var(--muted)">Liquidación '+p.liquidacionPeriodo+'</div>':'')+'</td>'+
       '<td><input type="number" step="0.01" value="'+p.afp+'" onchange="setRrhh('+i+',\'afp\',this.value)"></td>'+
       '<td><input type="number" step="0.1" value="'+p.fonasa+'" onchange="setRrhh('+i+',\'fonasa\',this.value)"></td>'+
       '<td><input type="number" value="'+p.bono+'" onchange="setRrhh('+i+',\'bono\',this.value)"></td>'+
@@ -384,7 +425,7 @@ function buildAdmin() {
     '<div class="card" style="margin-bottom:20px; overflow-x:auto;">'+
       '<div class="card-title">Equipo de Trabajo ('+c.rrhh.length+' personas)</div>'+
       '<table class="tbl-rrhh">'+
-        '<thead><tr><th>Nombre</th><th>Cargo</th><th>Sueldo Base ($)</th><th>AFP (%)</th><th>Fonasa (%)</th><th>Bonos ($)</th><th>Comisiones ($)</th><th>Aguinaldos y Asig. no mensuales ($ al año)</th><th>Costo Real Mensual ($)</th></tr></thead>'+
+        '<thead><tr><th>Nombre</th><th>Cargo</th><th>Sueldo imponible ($)</th><th>AFP (%)</th><th>Fonasa (%)</th><th>Bonos ($), editable</th><th>Comisiones ($)</th><th>Aguinaldos y Asig. no mensuales ($ al año)</th><th>Costo Real Mensual ($)</th></tr></thead>'+
         '<tbody>'+rowsRrhh+'</tbody>'+
         '<tfoot><tr><td colspan="8" style="text-align:right;font-weight:700;font-size:11px;color:var(--muted);text-transform:uppercase;">Costo Total Nómina Mensual</td><td style="font-weight:800;font-size:16px;color:var(--gold);">'+fmt(totalNomina)+'</td></tr></tfoot>'+
       '</table>'+
@@ -641,6 +682,12 @@ async function initApp() {
   }
   var adminRedondeado=Math.round(Number(state.config.admin)||0);
   if(Number(state.config.admin)!==adminRedondeado){state.config.admin=adminRedondeado;guardarDatos();}
+  try {
+    await sincronizarNominaDesdeLiquidaciones();
+    guardarDatos();
+  } catch (e) {
+    console.warn('No se pudo actualizar la nómina desde las liquidaciones:', e);
+  }
   render();
 }
 
