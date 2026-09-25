@@ -10,7 +10,7 @@ button,.btn,.act-btn,.primary{transition:filter .16s ease,transform .16s ease}
 button:hover,.btn:hover,.act-btn:hover{filter:brightness(.94)}
 :focus-visible{outline:3px solid #F1AF13!important;outline-offset:2px}
 .menu-btn{border-color:#E6E2D9!important;border-radius:12px!important}
-.menu-btn::before{background:#F1AF13!important}
+.menu-btn::before{background:#141414!important}
 .card,.kpi-card,.stat-card{border-color:#E6E2D9}
 .badge,.pill{font-family:'DM Sans',Arial,sans-serif}
 .brand-field-example{display:block;margin:5px 2px 0;color:#78716C;font-size:11px;line-height:1.35}
