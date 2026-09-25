@@ -66,7 +66,8 @@ function respuesta(obj) {
 function error(detalle) { return respuesta({ estado: "error", detalle: detalle }); }
 
 function hoja() {
-  return SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_NAME);
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  return ss.getSheetByName(SHEET_NAME) || ss.getSheets()[0];
 }
 
 // Devuelve el número de fila (1-based) de la llave, o -1 si no existe.
