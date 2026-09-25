@@ -240,11 +240,14 @@ async function handleCredentialResponse(response) {
     errorRed = e;
     console.error("Falló la llamada de inicio de sesión", e);
   }
-  if (!resultado || resultado.estado !== "éxito" || !resultado.sesion) {
+  // La respuesta del servidor incluye una sesión firmada. Validamos el token
+  // emitido por el servidor; no dependemos de cómo se decodifique el texto
+  // acentuado del campo "estado" entre Apps Script y el navegador.
+  if (!resultado || !resultado.sesion || !resultado.sesion.token || !resultado.sesion.email) {
     var detalle = resultado && String(resultado.detalle || "");
     var diagnostico = errorRed && errorRed.message
       ? errorRed.message
-      : resultado ? JSON.stringify(resultado).slice(0, 240) : "el servidor no entregó datos";
+      : resultado ? "Respuesta sin sesión válida (estado: " + String(resultado.estado || "vacío") + ")." : "el servidor no entregó datos";
     if (msg) msg.textContent = detalle === "CREDENCIAL_INVALIDA"
       ? "No se pudo verificar tu cuenta de Google. Inténtalo de nuevo."
       : detalle.indexOf("script.external_request") !== -1
@@ -255,7 +258,7 @@ async function handleCredentialResponse(response) {
             ? "El servidor rechazó el inicio de sesión: " + detalle
             : errorRed && errorRed.name === "AbortError"
             ? "El servidor tardó demasiado en responder. Vuelve a intentarlo."
-              : "No se pudo conectar con el servidor. Diagnóstico portal-diag-2: " + diagnostico;
+              : "No se pudo conectar con el servidor. Diagnóstico portal: " + diagnostico;
     if (btnWrap) btnWrap.style.display = "flex";
     return;
   }
