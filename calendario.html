@@ -9,11 +9,11 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
   :root {
-    --bg: #171512; --surface: #211e19; --card: #2a2620; --border: #51483a;
-    --accent: #e8a020; --accent2: #c45c1a; --accent3: #5a8f5a; --accent4: #3d6fa8;
+    --bg: #141414; --surface: #211e19; --card: #2a2620; --border: #51483a;
+    --accent: #F1AF13; --accent2: #c45c1a; --accent3: #5a8f5a; --accent4: #3d6fa8;
     --accent5: #a76abd; --text: #fff8eb; --text2: #e0d3ba; --text3: #c9bea9;
-    --today: #e8a020; --prod1: #2a9d8f; --prod2: #e76f51; --prod3: #a855f7;
-    --prod4: #659bd2; --prod5: #e8a020;
+    --today: #F1AF13; --prod1: #2a9d8f; --prod2: #e76f51; --prod3: #a855f7;
+    --prod4: #659bd2; --prod5: #F1AF13;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   ::placeholder { color: var(--text3); opacity: 1; }
@@ -104,6 +104,11 @@
   @media print { body::before { display: none; } .controls, .add-form, .toggle-form-btn, .month-nav { display: none !important; } }
 </style>
   <link rel="stylesheet" href="brand/brand.css">
+  <style>
+    /* El tema del calendario usa superficie oscura; evita que los tokens
+       globales del tema de marca claro oculten sus textos claros. */
+    :root { --bg: #141414; --surface: #211e19; --border: #51483a; }
+  </style>
   <script src="brand/brand.js"></script>
   <script src="brand/form-examples.js"></script>
   <script src="brand/layout.js"></script>
