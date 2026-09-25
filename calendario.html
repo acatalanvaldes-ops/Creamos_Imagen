@@ -9,11 +9,11 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
   :root {
-    --bg: #0e0c09; --surface: #181410; --card: #1f1a14; --border: #2e2619;
+    --bg: #171512; --surface: #211e19; --card: #2a2620; --border: #51483a;
     --accent: #e8a020; --accent2: #c45c1a; --accent3: #5a8f5a; --accent4: #3d6fa8;
-    --accent5: #8b3fa8; --text: #f0e8d8; --text2: #a09070; --text3: #c2b090;
+    --accent5: #a76abd; --text: #fff8eb; --text2: #e0d3ba; --text3: #c9bea9;
     --today: #e8a020; --prod1: #2a9d8f; --prod2: #e76f51; --prod3: #a855f7;
-    --prod4: #3d6fa8; --prod5: #e8a020;
+    --prod4: #659bd2; --prod5: #e8a020;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   ::placeholder { color: var(--text3); opacity: 1; }
@@ -60,7 +60,7 @@
   .large-day-cell { position: relative; min-height: 110px; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; padding: 10px; font-size: 1.2rem; border-radius: 4px; cursor: pointer; transition: background 0.2s, border-color 0.2s; color: var(--text2); border: 1px solid var(--border); background: var(--surface); }
   .large-day-cell:hover:not(.empty) { background: var(--border); color: var(--text); }
   .large-day-cell.empty { cursor: default; background: transparent; border-color: transparent; }
-  .large-day-cell.weekend { color: var(--text3); background: rgba(0,0,0,0.15); }
+  .large-day-cell.weekend { color: var(--text2); background: rgba(0,0,0,0.08); }
   .large-day-cell.today { border-color: var(--accent); color: var(--text); font-weight: 600; background: rgba(232, 160, 32, 0.05); }
   .large-day-cell.today::after { content: 'HOY'; position: absolute; top: 12px; right: 10px; font-size: 0.55rem; background: var(--accent); color: var(--bg); padding: 2px 6px; border-radius: 10px; font-weight: 700; letter-spacing: 1px; }
   .large-day-dots { display: flex; flex-direction: column; gap: 4px; margin-top: auto; padding-top: 12px; width: 100%; }
@@ -103,6 +103,10 @@
   
   @media print { body::before { display: none; } .controls, .add-form, .toggle-form-btn, .month-nav { display: none !important; } }
 </style>
+  <link rel="stylesheet" href="brand/brand.css">
+  <script src="brand/brand.js"></script>
+  <script src="brand/form-examples.js"></script>
+  <script src="brand/layout.js"></script>
 </head>
 <body>
 <script src="sesion.js"></script>
@@ -289,7 +293,7 @@ function showSaveStatus(st) {
   el.style.display = 'flex';
   el.style.opacity = '1';
   if (st === 'saving') {
-    el.style.background = '#181410'; el.style.borderColor = 'var(--border)'; el.style.color = 'var(--text2)';
+    el.style.background = 'var(--surface)'; el.style.borderColor = 'var(--border)'; el.style.color = 'var(--text2)';
     el.textContent = '⏳ Guardando…';
   } else if (st === 'saved') {
     el.style.background = '#132a18'; el.style.borderColor = '#2a9d8f'; el.style.color = '#7fd9c4';
@@ -1145,7 +1149,7 @@ function renderStats() {
   });
 }
 
-function exportPDF() {
+async function exportPDF() {
   if (!window.jspdf || !window.jspdf.jsPDF) {
     alert('No se pudo cargar el generador de PDF. Verifica tu conexión a internet e inténtalo nuevamente.');
     return;
@@ -1166,6 +1170,7 @@ function exportPDF() {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
   const marginX = 40;
   let y = 40;
+  if (window.CREAMOS_BRAND && window.CREAMOS_BRAND.addLogoToPdf) await window.CREAMOS_BRAND.addLogoToPdf(doc, marginX, 8, 70, false);
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(18);
@@ -1232,7 +1237,7 @@ function exportPDF() {
     head: [['N° Orden', 'Nombre / Cliente', 'Tipo', 'Diseñador', 'F. Ingreso', 'F. Entrega', 'Detalle de Prendas']],
     body: rows,
     styles: { font: 'helvetica', fontSize: 8, cellPadding: 4 },
-    headStyles: { fillColor: [30, 26, 20], textColor: 255 },
+    headStyles: { fillColor: [20, 20, 20], textColor: [241, 175, 19] },
     alternateRowStyles: { fillColor: [245, 242, 235] },
     columnStyles: { 6: { cellWidth: 260 } }
   });

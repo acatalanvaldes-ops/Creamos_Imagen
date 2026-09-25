@@ -65,6 +65,10 @@ input,select,button{font-family:inherit;outline:none}
 .tbl-rrhh input:focus {border-bottom:2px solid var(--gold);outline:none;background:#fff;}
 .resumen-admin {background:#F7F5F0; border:1px solid var(--gold); border-radius:12px; padding:20px; text-align:center;}
 </style>
+  <link rel="stylesheet" href="brand/brand.css">
+  <script src="brand/brand.js"></script>
+  <script src="brand/form-examples.js"></script>
+  <script src="brand/layout.js"></script>
 </head>
 <body>
 <script src="sesion.js"></script>
@@ -221,7 +225,7 @@ function fmt(n) { return "$ " + Math.round(n).toLocaleString("es-CL"); }
 // calcular prendas producidas por persona en el Dashboard, ya que las
 // producciones (Calendario) se asocian a diseñadores, no a todo el equipo
 // (ventas, administración, etc.).
-var CARGOS = ["", "Administración", "Diseño / Producción", "Ventas Empresa", "Ventas Local", "Otro"];
+var CARGOS = ["", "Administración", "Diseño / Producción", "Otros", "Sala de venta", "Otro"];
 
 function guardarDatos() {
   var datos = { fichas: state.fichas, config: state.config };
@@ -243,7 +247,8 @@ function calcularCostosForm() {
   var valPapelAdh = (parseFloat(f.papelAdh)||0) * c.papelAdh;
 
   var mat = valTela + valPapelSub + valTinta + valPapelAdh;
-  var fijos = c.hilos + c.maquina + c.admin + (c.traslado || 0);
+  var admin = Math.round(c.admin || 0);
+  var fijos = c.hilos + c.maquina + admin + (c.traslado || 0);
 
   var tallerExterno = !!f.tallerExterno;
   var costoDiseno = tallerExterno ? (parseFloat(f.costoDiseno)||0) : 0;
@@ -255,7 +260,7 @@ function calcularCostosForm() {
   var sugerido = total * (1 + (c.margen / 100));
 
   return {
-    mat: mat, fijos: fijos, total: total, sugerido: sugerido,
+    mat: mat, admin: admin, fijos: fijos, fijosOperativos: fijos - admin, total: total, sugerido: sugerido,
     valTela: valTela, valPapelSub: valPapelSub, valTinta: valTinta, valPapelAdh: valPapelAdh,
     tallerExterno: tallerExterno, costoDiseno: costoDiseno, costoOperario: costoOperario,
     costoConfeccion: costoConfeccion, costoTaller: costoTaller
@@ -265,7 +270,8 @@ function calcularCostosForm() {
 function updateLiveCalc() {
   var res = calcularCostosForm();
   var eMat = document.getElementById('live-mat'); if(eMat) eMat.textContent = fmt(res.mat);
-  var eFijos = document.getElementById('live-fijos'); if(eFijos) eFijos.textContent = fmt(res.fijos);
+  var eFijos = document.getElementById('live-fijos'); if(eFijos) eFijos.textContent = fmt(res.fijosOperativos);
+  var eAdmin = document.getElementById('live-admin'); if(eAdmin) eAdmin.textContent = fmt(res.admin);
   var eTaller = document.getElementById('live-taller'); if(eTaller) eTaller.textContent = fmt(res.costoTaller);
   var eTot = document.getElementById('live-tot'); if(eTot) eTot.textContent = fmt(res.total);
   var eSug = document.getElementById('live-sug'); if(eSug) eSug.textContent = fmt(res.sugerido);
@@ -280,21 +286,43 @@ function toggleTallerExterno(el) {
 // INTERFAZ (RENDER)
 // ============================================================
 function setState(p) { Object.assign(state, p); render(); }
-function setConfig(k, v) { state.config[k] = parseFloat(v) || 0; guardarDatos(); render(); }
+function setConfig(k, v) { var valor=parseFloat(v)||0; state.config[k] = k==='admin' ? Math.round(valor) : valor; guardarDatos(); render(); }
 function setRrhh(idx, field, value) {
   if(field==='nombre' || field==='cargo') state.config.rrhh[idx][field] = value;
   else state.config.rrhh[idx][field] = parseFloat(value) || 0;
   guardarDatos(); render();
 }
+function agregarTrabajadorNomina() {
+  state.config.rrhh.push({nombre:'',cargo:'',sueldo:0,afp:0,fonasa:7,bono:0,comision:0,anual:0});
+  guardarDatos(); render();
+}
 function setGasto(field, value) { state.config.gastos[field] = parseFloat(value) || 0; guardarDatos(); render(); }
+
+function tienePermisoNomina() {
+  try {
+    var sess = JSON.parse(localStorage.getItem('cimagen_session'));
+    var valid = sess && sess.email && sess.ts && (Date.now() - sess.ts < 24 * 60 * 60 * 1000);
+    if (!valid) return false;
+    var isSuper = sess.email && sess.email.toLowerCase() === 'a.catalan.valdes@gmail.com';
+    if (isSuper || sess.isAdmin) return true;
+    var mods = sess.modules || [];
+    // Permite acceso al equipo de RRHH o a usuarios con el sub-permiso explícito 'costos_nomina'
+    return mods.indexOf('rrhh') !== -1 || mods.indexOf('costos_nomina') !== -1 || mods.indexOf('costos_admin') !== -1;
+  } catch(e) {
+    return false;
+  }
+}
 
 function render() {
   var s = state;
+  if (s.tab === 'admin' && !tienePermisoNomina()) {
+    s.tab = 'fichas';
+  }
   var html = buildTopBar(s.tab) + '<div class="content">';
 
   if (s.tab === 'fichas') html += buildFichas();
   else if (s.tab === 'config') html += buildConfig();
-  else if (s.tab === 'admin') html += buildAdmin();
+  else if (s.tab === 'admin' && tienePermisoNomina()) html += buildAdmin();
 
   html += '</div>' + (s.showForm ? buildModal() : '');
   document.getElementById("app").innerHTML = html;
@@ -304,9 +332,10 @@ function buildTopBar(tab) {
   var t1 = tab==='fichas'?'tab on':'tab';
   var t2 = tab==='config'?'tab on':'tab';
   var t3 = tab==='admin'?'tab on':'tab';
+  var adminBtn = tienePermisoNomina() ? '<button class="'+t3+'" onclick="setState({tab:\'admin\'})">Nómina y Gastos Mensuales</button>' : '';
   return '<div class="topbar"><div class="brand"><div class="brand-tag">Gestión de Producción</div><div class="brand-name">Calculadora <span>Costos</span></div></div>'+
          '<div class="tabs"><button class="'+t1+'" onclick="setState({tab:\'fichas\'})">Mis Fichas</button>'+
-         '<button class="'+t3+'" onclick="setState({tab:\'admin\'})">Nómina y Gastos Mensuales</button>'+
+         adminBtn +
          '<button class="'+t2+'" onclick="setState({tab:\'config\'})">Configuración Fichas</button></div></div>';
 }
 
@@ -318,7 +347,7 @@ function buildAdmin() {
   var totalProvision = 0;
   var rowsRrhh = c.rrhh.map(function(p, i) {
     var com = p.comision || 0;
-    var cargoActual = p.cargo || "";
+    var cargoActual = p.cargo === 'Ventas Local' ? 'Sala de venta' : p.cargo === 'Ventas Empresa' ? 'Otros' : (p.cargo || "");
     // Aguinaldos y asignaciones que no se pagan todos los meses (Fiestas
     // Patrias, Navidad, bonos anuales): se ingresa el total del año y se
     // provisiona 1/12 cada mes, para que el costo mensual no los omita.
@@ -349,11 +378,11 @@ function buildAdmin() {
   var totalGastos = g.arriendo + g.servicios + g.marketing + g.contador + g.software + g.otros;
   var totalFijoMensual = totalNomina + totalGastos;
 
-  var costoAdministrativoPrenda = c.prodMensual > 0 ? (totalFijoMensual / c.prodMensual) : 0;
+  var costoAdministrativoPrenda = c.prodMensual > 0 ? Math.round(totalFijoMensual / c.prodMensual) : 0;
 
-  return '<div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><h2>Nómina y Gastos Fijos (Administración y Ventas)</h2></div>'+
+  return '<div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><h2>Nómina y Gastos Fijos (Administración y Ventas)</h2><button class="act-btn primary" onclick="agregarTrabajadorNomina()">+ Agregar trabajador</button></div>'+
     '<div class="card" style="margin-bottom:20px; overflow-x:auto;">'+
-      '<div class="card-title">Equipo de Trabajo (7 Personas)</div>'+
+      '<div class="card-title">Equipo de Trabajo ('+c.rrhh.length+' personas)</div>'+
       '<table class="tbl-rrhh">'+
         '<thead><tr><th>Nombre</th><th>Cargo</th><th>Sueldo Base ($)</th><th>AFP (%)</th><th>Fonasa (%)</th><th>Bonos ($)</th><th>Comisiones ($)</th><th>Aguinaldos y Asig. no mensuales ($ al año)</th><th>Costo Real Mensual ($)</th></tr></thead>'+
         '<tbody>'+rowsRrhh+'</tbody>'+
@@ -367,7 +396,7 @@ function buildAdmin() {
 
     '<div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(300px, 1fr));gap:24px;">'+
       '<div class="card"><div class="card-title">Otros Gastos Mensuales</div>'+
-        '<div class="fld"><label>Arriendo Local / Taller</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+g.arriendo+'" onchange="setGasto(\'arriendo\',this.value)"></div></div>'+
+        '<div class="fld"><label>Arriendo / Taller</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+g.arriendo+'" onchange="setGasto(\'arriendo\',this.value)"></div></div>'+
         '<div class="fld"><label>Servicios (Luz, Agua, Internet)</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+g.servicios+'" onchange="setGasto(\'servicios\',this.value)"></div></div>'+
         '<div class="fld"><label>Marketing (Meta, Google Ads)</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+g.marketing+'" onchange="setGasto(\'marketing\',this.value)"></div></div>'+
         '<div class="fld"><label>Contador / Asesorías</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+g.contador+'" onchange="setGasto(\'contador\',this.value)"></div></div>'+
@@ -409,7 +438,7 @@ function buildConfig() {
         '<div class="fld"><label>Costo Hilos</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+c.hilos+'" onchange="setConfig(\'hilos\',this.value)"></div></div>'+
         '<div class="fld"><label>Desgaste Máquina y Luz</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+c.maquina+'" onchange="setConfig(\'maquina\',this.value)"></div></div>'+
         '<div class="fld"><label>Traslado</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+(c.traslado||0)+'" onchange="setConfig(\'traslado\',this.value)"></div></div>'+
-        '<div class="fld"><label style="color:var(--purple)">Gastos de Administración <span style="font-size:9px;font-weight:400">(Viene de la pestaña Nómina)</span></label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+c.admin+'" onchange="setConfig(\'admin\',this.value)"></div></div>'+
+        '<div class="fld"><label style="color:var(--purple)">Gastos de Administración'+(tienePermisoNomina()?' <span style="font-size:9px;font-weight:400">(Viene de la pestaña Nómina)</span>':'')+'</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" step="1" value="'+Math.round(c.admin||0)+'" onchange="setConfig(\'admin\',this.value)"></div></div>'+
         '<div style="margin-top:30px;padding-top:20px;border-top:1px dashed var(--border)">'+
           '<div class="fld"><label style="color:var(--teal)">Margen de Ganancia Deseado (%)</label><div class="fld-row"><input type="number" value="'+c.margen+'" onchange="setConfig(\'margen\',this.value)"><span class="fld-suffix">%</span></div></div>'+
         '</div>'+
@@ -432,7 +461,8 @@ function buildFichas() {
               '<div class="ficha-title">'+f.nombre+'</div>'+
               '<div class="ficha-date">Calculado con '+f.margen+'% margen</div>'+
               '<div class="ficha-row"><span>Costo Materiales:</span> <span>'+fmt(f.mat)+'</span></div>'+
-              '<div class="ficha-row"><span>Costos Fijos Operativos:</span> <span>'+fmt(f.fijos)+'</span></div>'+
+              '<div class="ficha-row"><span>Costos Fijos Operativos:</span> <span>'+fmt(f.fijosOperativos !== undefined ? f.fijosOperativos : Math.max(0, f.fijos - (f.admin !== undefined ? f.admin : Math.round(state.config.admin || 0))))+'</span></div>'+
+              '<div class="ficha-row"><span>Gastos de Administración:</span> <span>'+fmt(f.admin !== undefined ? f.admin : Math.round(state.config.admin || 0))+'</span></div>'+
               (f.tallerExterno ? '<div class="ficha-row"><span>Costo Taller Externo (Diseño+Operario+Confección):</span> <span>'+fmt(f.costoTaller)+'</span></div>' : '') +
               '<div class="ficha-row tot"><span>Costo Producción Total:</span> <span style="color:var(--red)">'+fmt(f.total)+'</span></div>'+
               '<div class="ficha-row sug"><span>Precio Sugerido Venta:</span> <span>'+fmt(f.sugerido)+'</span></div>'+
@@ -465,7 +495,7 @@ function buildModal() {
         '<div class="fld" style="margin-bottom:0"><label>Costo Papel Adh ($/M/H)</label><input type="number" value="'+c.papelAdh+'" onchange="setConfig(\'papelAdh\',this.value)"></div>'+
         '<div class="fld" style="margin-bottom:0"><label>Costo Hilos ($)</label><input type="number" value="'+c.hilos+'" onchange="setConfig(\'hilos\',this.value)"></div>'+
         '<div class="fld" style="margin-bottom:0"><label>Desgaste Máquina/Luz ($)</label><input type="number" value="'+c.maquina+'" onchange="setConfig(\'maquina\',this.value)"></div>'+
-        '<div class="fld" style="margin-bottom:0"><label>Gastos Admin ($)</label><input type="number" value="'+c.admin+'" onchange="setConfig(\'admin\',this.value)"></div>'+
+        '<div class="fld" style="margin-bottom:0"><label>Gastos Admin ($)</label><input type="number" step="1" value="'+Math.round(c.admin||0)+'" onchange="setConfig(\'admin\',this.value)"></div>'+
         '<div class="fld" style="margin-bottom:0"><label>Traslado ($)</label><input type="number" value="'+(c.traslado||0)+'" onchange="setConfig(\'traslado\',this.value)"></div>'+
       '</div>'+
     '</div>' : '';
@@ -505,7 +535,8 @@ function buildModal() {
       '<div class="resumen-panel">'+
         '<div class="rp-title">Resumen de Costos</div>'+
         '<div class="rp-row"><span>Materiales</span> <span class="rp-val" id="live-mat">'+fmt(res.mat)+'</span></div>'+
-        '<div class="rp-row"><span>Fijos (Hilos/Maq/Admin/Traslado)</span> <span class="rp-val" id="live-fijos">'+fmt(res.fijos)+'</span></div>'+
+        '<div class="rp-row"><span>Fijos (Hilos/Maq/Traslado)</span> <span class="rp-val" id="live-fijos">'+fmt(res.fijosOperativos)+'</span></div>'+
+        '<div class="rp-row"><span>Gastos de Administración</span> <span class="rp-val" id="live-admin">'+fmt(res.admin)+'</span></div>'+
         (f.tallerExterno ? '<div class="rp-row"><span>Taller Externo</span> <span class="rp-val" id="live-taller">'+fmt(res.costoTaller)+'</span></div>' : '') +
         '<div class="rp-tot"><span>COSTO TOTAL</span> <span id="live-tot">'+fmt(res.total)+'</span></div>'+
 
@@ -542,7 +573,7 @@ function guardarFicha() {
     nombre: state.form.nombre,
     margen: state.config.margen,
     inputs: { tela: state.form.tela, papelSub: state.form.papelSub, tinta: state.form.tinta, papelAdh: state.form.papelAdh },
-    mat: res.mat, fijos: res.fijos, total: res.total, sugerido: res.sugerido,
+    mat: res.mat, admin: res.admin, fijos: res.fijos, fijosOperativos: res.fijosOperativos, total: res.total, sugerido: res.sugerido,
     tallerExterno: res.tallerExterno, costoDiseno: res.costoDiseno, costoOperario: res.costoOperario,
     costoConfeccion: res.costoConfeccion, costoTaller: res.costoTaller
   };
@@ -608,6 +639,8 @@ async function initApp() {
       alert('No se pudo confirmar la conexión con la nube. Se están mostrando los datos guardados en este navegador; los cambios que hagas ahora se guardarán aquí pero no se subirán hasta que la conexión se restablezca (vuelve a cargar la página más tarde).');
     }
   }
+  var adminRedondeado=Math.round(Number(state.config.admin)||0);
+  if(Number(state.config.admin)!==adminRedondeado){state.config.admin=adminRedondeado;guardarDatos();}
   render();
 }
 

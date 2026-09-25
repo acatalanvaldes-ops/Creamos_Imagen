@@ -1,0 +1,4 @@
+
+# Recuperación local: contiene respaldos de datos empresariales
+/recuperacion-cache*.json
+/informe-recuperacion.json

@@ -81,6 +81,10 @@ tfoot td{padding:11px 12px;font-weight:700;white-space:nowrap}
 .r{text-align:right;font-weight:600}.c{text-align:center}
 .day-hdr td{background:#1C1917;padding:9px 14px}
 </style>
+  <link rel="stylesheet" href="brand/brand.css">
+  <script src="brand/brand.js"></script>
+  <script src="brand/form-examples.js"></script>
+  <script src="brand/layout.js"></script>
 </head>
 <body>
 <script src="sesion.js"></script>
@@ -159,6 +163,7 @@ async function loadFromCloud(key) {
       const res = await fetchConTimeout(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const json = await res.json();
+      if (json.estado === 'error') throw new Error(json.detalle || 'Error del servidor');
       return json.valor ? JSON.parse(json.valor) : null;
     } catch (e) {
       ultimoError = e;
@@ -579,7 +584,7 @@ function buildTotalBox(tV, tC, cp, count, tFact) {
   return '<div class="total-box">'+
     '<div class="tb-col"><div class="tb-lbl">Total Ventas (neto)</div><div class="tb-val" style="color:#86EFAC">'+fmt(tV)+'</div></div>'+
     '<div class="tb-col"><div class="tb-lbl">Total Comision ('+cp+'%)</div><div class="tb-val" style="color:#FCD34D">'+fmt(tC)+'</div></div>'+
-    '<div class="tb-col"><div class="tb-lbl">Ingreso Local</div><div class="tb-val" style="color:#5EEAD4;font-size:24px">'+fmt(tV-tC)+'</div>'+
+    '<div class="tb-col"><div class="tb-lbl">Ingreso Sala de venta</div><div class="tb-val" style="color:#5EEAD4;font-size:24px">'+fmt(tV-tC)+'</div>'+
     '<div style="font-size:10px;color:#555;margin-top:2px">'+count+' ventas - '+tFact+' con factura</div></div>'+
     '</div>';
 }
@@ -1097,7 +1102,7 @@ async function exportXLSX() {
   var titleCell = ws.getCell(1, 1);
   titleCell.value = 'CREAMOS IMAGEN — REGISTRO DE VENTAS' + (state.filtroMes ? ' — ' + state.filtroMes : '') + (rangoActivo() ? ' — Rango: ' + (state.rangoDesde ? fDate(state.rangoDesde) : '...') + ' a ' + (state.rangoHasta ? fDate(state.rangoHasta) : '...') : '');
   titleCell.font = { bold:true, size:14, color:{argb:'FFFFFFFF'} };
-  titleCell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF1C1917'} };
+  titleCell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF141414'} };
   titleCell.alignment = { vertical:'middle' };
   ws.getRow(1).height = 26;
   ws.getRow(2).height = 4;
@@ -1106,8 +1111,8 @@ async function exportXLSX() {
   var headerRow = ws.getRow(3);
   headers.forEach(function(h,i){ headerRow.getCell(i+1).value = h; });
   headerRow.eachCell(function(cell){
-    cell.font = { bold:true, color:{argb:'FFFFFFFF'} };
-    cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFC8973A'} };
+    cell.font = { bold:true, color:{argb:'FFF1AF13'} };
+    cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF141414'} };
     cell.alignment = { vertical:'middle' };
   });
   headerRow.height = 20;
@@ -1149,7 +1154,7 @@ async function exportXLSX() {
   var totalRow = ws.addRow({ fecha:'', cliente:'', producto:'', formaPago:'TOTALES', venta:tV, wp:tWp, comPct:'', comMonto:tC, factura:'' });
   totalRow.eachCell({ includeEmpty:true }, function(cell){
     cell.font = { bold:true, color:{argb:'FFFFFFFF'} };
-    cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF1C1917'} };
+    cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF141414'} };
   });
   moneyIdx.forEach(function(ci){ totalRow.getCell(ci).numFmt = '"$"#,##0'; });
 
@@ -1179,13 +1184,13 @@ function exportPDF() {
   }).join("");
   var html_pdf = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>SUBLIPRO Ventas</title>"+
     "<style>body{font-family:Arial,sans-serif;padding:20px;font-size:12px}table{width:100%;border-collapse:collapse}"+
-    "th{background:#1C1917;color:#C8973A;padding:7px 8px;text-align:left;font-size:10px}"+
+    "th{background:#141414;color:#F1AF13;padding:7px 8px;text-align:left;font-size:10px}"+
     "td{padding:5px 8px;border-bottom:1px solid #eee}tr:nth-child(even) td{background:#fafafa}"+
-    ".hdr{background:#1C1917;color:#fff;padding:16px;margin-bottom:12px;display:flex;justify-content:space-between}"+
+    ".hdr{background:#141414;color:#fff;border-bottom:3px solid #F1AF13;padding:16px;margin-bottom:12px;display:flex;justify-content:space-between}"+
     ".kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}"+
     ".kpi{background:#f5f5f5;padding:10px;border-radius:4px}.kpi .l{font-size:9px;color:#888;text-transform:uppercase}.kpi .v{font-size:16px;font-weight:800}"+
     "@media print{body{padding:0}}</style></head><body>"+
-    "<div class='hdr'><div><div style='font-size:18px;font-weight:800'>SUBLIPRO - VENTAS</div>"+
+    "<div class='hdr'><div><img alt='Creamos Imagen' src='"+(window.CREAMOS_BRAND?window.CREAMOS_BRAND.logoWhite:'')+"' style='display:block;width:155px;height:42px;object-fit:contain;object-position:left center'><div style='font-size:12px;font-weight:700'>SUBLIPRO - VENTAS</div>"+
     "<div style='color:#C8973A;font-size:10px'>Comision "+state.comDefPct+"% - Webpay +"+COM_WP_PCT+"%"+(rangoActivo() ? " - Rango: "+(state.rangoDesde?fDate(state.rangoDesde):"...")+" a "+(state.rangoHasta?fDate(state.rangoHasta):"...") : "")+"</div></div>"+
     "<div style='color:#C8973A;font-size:10px'>"+fechaChileTexto(null, null, "es-CO")+"</div></div>"+
     "<div class='kpis'>"+

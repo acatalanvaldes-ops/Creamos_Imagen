@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Accesos - Creamos Imagen</title>
+<title>Cosola de Permisos</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#F7F5F0;--surface:#FFFFFF;--dark:#1C1917;--gold:#C8973A;--teal:#0D7A6B;--red:#C0392B;--muted:#78716C;--border:#E7E2D9}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--dark);min-height:100vh}
-.topbar{background:var(--dark);padding:18px 24px;display:flex;align-items:center;justify-content:space-between}
+.topbar{background:var(--dark);padding:18px 24px;display:flex;align-items:center;justify-content:flex-end}
 .brand-tag{font-size:9px;color:var(--gold);letter-spacing:.2em;font-weight:700;text-transform:uppercase;margin-bottom:2px}
 .brand-name{font-family:'DM Serif Display',serif;font-size:22px;color:#fff}
 .brand-name span{color:var(--gold)}
@@ -37,7 +37,12 @@ input[type=checkbox]{width:16px;height:16px;cursor:pointer}
 .empty-state{text-align:center;padding:40px 20px;color:var(--muted)}
 .save-badge{position:fixed;bottom:18px;right:18px;background:var(--dark);color:var(--gold);padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;display:none;box-shadow:0 6px 20px rgba(0,0,0,.3)}
 .super-note{background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:10px 14px;font-size:12px;color:#166534;margin-bottom:16px}
+.access-brand-logo{width:155px;height:48px;background:url('brand/logo-horizontal-white.svg') center/contain no-repeat}
 </style>
+  <link rel="stylesheet" href="brand/brand.css">
+  <script src="brand/brand.js"></script>
+  <script src="brand/form-examples.js"></script>
+  <script src="brand/layout.js"></script>
 </head>
 <body>
 <script src="sesion.js"></script>
@@ -79,9 +84,14 @@ const MODULOS = [
   { key: "dashboard",    label: "Indicadores" },
   { key: "calendario",   label: "Producciones" },
   { key: "proveedores",  label: "Proveedores" },
-  { key: "ventasci",     label: "Ventas Empresa" },
-  { key: "ventas",       label: "Ventas Local" },
-  { key: "rrhh",         label: "Recursos Humanos" }
+  { key: "ventasci",     label: "Otros" },
+  { key: "ventas",       label: "Sala de venta" },
+  { key: "rrhh",         label: "Recursos Humanos" },
+  { key: "trabajador",   label: "Mi Portal" }
+];
+
+const SUBPERMISOS = [
+  { key: "costos_nomina", label: "Nómina (Costos)", desc: "Ver pestaña confidencial 'Nómina y Gastos Mensuales' en Costos" }
 ];
 
 async function saveToCloud(key, dataObj) {
@@ -196,17 +206,34 @@ function setNuevoCorreo(v) { state.nuevoCorreo = v; }
 function render() {
   var emails = Object.keys(state.acl).sort();
   var headCols = MODULOS.map(function(m){ return '<th>' + m.label + '</th>'; }).join('');
+  var subHeadCols = SUBPERMISOS.map(function(s){
+    return '<th style="background:#2C2926;border-left:2px solid var(--gold);color:#5EEAD4;" title="' + s.desc + '">' + s.label + '</th>';
+  }).join('');
 
   var rows = emails.map(function(email){
     var entry = state.acl[email] || { admin: false, modules: [] };
+    var mods = entry.modules || [];
+    var hasAdmin = !!entry.admin;
+    var hasRrhh = hasAdmin || mods.indexOf('rrhh') !== -1;
+
     var modCells = MODULOS.map(function(m){
-      var checked = entry.admin || (entry.modules || []).indexOf(m.key) !== -1;
-      var disabled = entry.admin ? 'disabled title="Tiene acceso total (Admin)"' : '';
+      var checked = hasAdmin || mods.indexOf(m.key) !== -1;
+      var disabled = hasAdmin ? 'disabled title="Tiene acceso total (Admin)"' : '';
       return '<td><input type="checkbox" ' + (checked ? 'checked' : '') + ' ' + disabled + ' onchange="toggleModulo(\'' + email + '\',\'' + m.key + '\',this.checked)"></td>';
     }).join('');
+
+    var subCells = SUBPERMISOS.map(function(s){
+      var checked = hasAdmin || hasRrhh || mods.indexOf(s.key) !== -1;
+      var disabled = hasAdmin
+        ? 'disabled title="Tiene acceso total (Admin)"'
+        : (hasRrhh ? 'disabled title="Incluido automáticamente por tener acceso a Recursos Humanos"' : 'title="' + s.desc + '"');
+      return '<td style="background:#FAF8F5;border-left:2px solid #E7E2D9;"><input type="checkbox" ' + (checked ? 'checked' : '') + ' ' + disabled + ' onchange="toggleModulo(\'' + email + '\',\'' + s.key + '\',this.checked)"></td>';
+    }).join('');
+
     return '<tr>' +
       '<td class="email-col">' + email + '</td>' +
       modCells +
+      subCells +
       '<td><input type="checkbox" ' + (entry.admin ? 'checked' : '') + ' onchange="toggleAdmin(\'' + email + '\',this.checked)" title="Acceso total a todos los módulos"></td>' +
       '<td><button class="icon-btn" onclick="eliminarPersona(\'' + email + '\')" title="Quitar acceso">🗑️</button></td>' +
     '</tr>';
@@ -214,14 +241,14 @@ function render() {
 
   var tableOrEmpty = emails.length === 0
     ? '<div class="empty-state">Todavía no le has dado acceso a nadie. Agrega un correo abajo.</div>'
-    : '<div style="overflow-x:auto"><table><thead><tr><th class="email-col">Correo</th>' + headCols + '<th>Admin</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+    : '<div style="overflow-x:auto"><table><thead><tr><th class="email-col">Correo</th>' + headCols + subHeadCols + '<th>Admin</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>';
 
   var html =
-    '<div class="topbar"><div><div class="brand-tag">Gestión de Accesos</div><div class="brand-name">Creamos <span>Imagen</span></div></div></div>' +
+    '<div class="topbar"><div class="access-brand-logo" aria-label="Creamos Imagen"></div></div>' +
     '<div class="content">' +
       '<div class="card">' +
         '<div class="card-title">Quién puede entrar, y a qué</div>' +
-        '<div class="help">Marca los módulos a los que cada correo puede entrar. <b>Admin</b> da acceso a todos los módulos, incluida esta página de Accesos. Los cambios se guardan solos, al tiro.</div>' +
+        '<div class="help">Marca los módulos a los que cada correo puede entrar. <b>Admin</b> da acceso a todos los módulos. La columna especial <b>Nómina (Costos)</b> permite dar acceso a la pestaña confidencial de nóminas/gastos en Costos a usuarios específicos (el equipo de <b>RRHH</b> ya lo tiene habilitado de forma automática sin necesidad de ser Admin). Los cambios se guardan solos.</div>' +
         '<div class="super-note">🔒 <b>' + SUPER_ADMIN_EMAIL + '</b> siempre tiene acceso total a todo, aunque no aparezca en esta lista (es la cuenta administradora principal, por seguridad).</div>' +
         tableOrEmpty +
         '<div class="add-row">' +

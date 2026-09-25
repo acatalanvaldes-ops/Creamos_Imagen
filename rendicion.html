@@ -43,7 +43,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);min-height:10
 .months-col-footer{margin-top:auto;padding:12px 14px;border-top:1px solid var(--border);background:#faf9f6}
 .mf-lbl{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-family:var(--mono)}
 .mf-val{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--green);margin-top:3px}
-.content{flex:1;overflow-y:auto;padding:22px 26px;display:flex;flex-direction:column;gap:16px}
+.content{flex:1;min-width:0;overflow-y:auto;padding:22px 26px;display:flex;flex-direction:column;gap:16px}
 .content-head{display:flex;align-items:flex-end;gap:14px;justify-content:space-between;}
 .content-head h2{font-size:22px;font-weight:700;letter-spacing:-.5px}
 .content-head .sub{font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:2px}
@@ -54,14 +54,14 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);min-height:10
 .card-lbl{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-family:var(--mono);margin-bottom:5px}
 .card-val{font-family:var(--mono);font-size:18px;font-weight:600}
 .g{color:var(--green)}.b{color:var(--blue)}.a{color:var(--amber)}
-.tbl-wrap{background:var(--white);border:1px solid var(--border);border-radius:8px;overflow:hidden;flex:1}
+.tbl-wrap{background:var(--white);border:1px solid var(--border);border-radius:8px;overflow:auto;flex:1;min-width:0;overscroll-behavior-x:contain}
 .tbl-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#faf9f6;border-bottom:1px solid var(--border);flex-wrap:wrap}
 .tbl-bar h3{font-size:12px;font-weight:700}
 .cur-date-lbl{font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--border);padding:3px 9px;border-radius:4px}
 .type-pills{display:flex;gap:5px;flex-wrap:wrap}
 .pill{background:var(--white);border:1px solid var(--border);color:var(--muted);font-family:var(--sans);font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;cursor:pointer;}
 .pill.on{background:var(--accent);color:#fff;border-color:var(--accent)}
-table{width:100%;border-collapse:collapse}
+.tbl-wrap table{width:100%;min-width:1320px;border-collapse:collapse}
 thead th{background:#f5f3ee;font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-weight:600;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);}
 tbody td{border-bottom:1px solid var(--border);padding:0;font-size:12px}
 td input,td select{background:transparent;border:none;color:var(--ink);font-family:var(--mono);font-size:12px;padding:8px 12px;width:100%;outline:none;}
@@ -100,7 +100,12 @@ tfoot .tot-row td{background:var(--accent-l);font-family:var(--mono);font-size:1
 .ex-tbl thead th{background:#217346;color:#fff;font-weight:600;padding:7px 14px;border:1px solid #185c37;}
 .ex-tbl tbody td{padding:5px 14px;border:1px solid #d0d0d0;}
 .btn-dl{background:#217346;color:#fff;border:none;font-family:var(--sans);font-size:13px;font-weight:700;padding:10px 22px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:8px;}
+.brand-field-example{display:none!important}
 </style>
+  <link rel="stylesheet" href="brand/brand.css">
+  <script src="brand/brand.js"></script>
+  <script src="brand/form-examples.js"></script>
+  <script src="brand/layout.js"></script>
 </head>
 <body>
 <script src="sesion.js"></script>
@@ -161,23 +166,24 @@ tfoot .tot-row td{background:var(--accent-l);font-family:var(--mono);font-size:1
       <div class="card"><div class="card-lbl">Registros</div><div class="card-val"   id="cc-n">0</div></div>
       <div class="card"><div class="card-lbl">Efectivo</div><div class="card-val g"  id="cc-ef">$0</div></div>
       <div class="card"><div class="card-lbl">Transferencia</div><div class="card-val b" id="cc-tr">$0</div></div>
-      <div class="card"><div class="card-lbl">Webpay</div><div class="card-val a"    id="cc-wp">$0</div></div>
+      <div class="card"><div class="card-lbl">Webpay crédito</div><div class="card-val a" id="cc-wpc">$0</div></div>
+      <div class="card"><div class="card-lbl">Webpay débito</div><div class="card-val a" id="cc-wpd">$0</div></div>
     </div>
     <div class="tbl-wrap">
       <div class="tbl-bar">
         <h3>Detalle del día</h3><span class="cur-date-lbl" id="cur-date-lbl">—</span>
         <div class="type-pills" style="margin-left:auto">
           <button class="pill on" onclick="setPill('todos',this)">Todos</button>
-          <button class="pill" onclick="setPill('origen:Local',this)">🏪 Local</button>
-          <button class="pill" onclick="setPill('origen:Empresa',this)">🏢 Empresa</button>
+          <button class="pill" onclick="setPill('origen:Local',this)">🏪 Sala de venta</button>
+          <button class="pill" onclick="setPill('origen:Empresa',this)">🏢 Otros</button>
         </div>
       </div>
       <table>
-        <thead><tr><th style="width:115px">Fecha</th><th style="width:170px">Cliente</th><th style="width:140px">Tipo de Venta</th><th style="width:110px">Origen</th><th style="width:135px">Forma de Pago</th><th style="width:110px;text-align:right">Efectivo ($)</th><th style="width:115px;text-align:right">Transfer. ($)</th><th style="width:105px;text-align:right">Webpay ($)</th><th>Observaciones</th><th style="width:60px;text-align:center">Acción</th></tr></thead>
+        <thead><tr><th style="width:115px">Fecha</th><th style="width:170px">Cliente</th><th style="width:140px">Tipo de Venta</th><th style="width:110px">Origen</th><th style="width:135px">Forma de Pago</th><th style="width:110px;text-align:right">Efectivo ($)</th><th style="width:115px;text-align:right">Transfer. ($)</th><th style="width:105px;text-align:right">Crédito ($)</th><th style="width:105px;text-align:right">Débito ($)</th><th>Observaciones</th><th style="width:60px;text-align:center">Acción</th></tr></thead>
         <tbody id="tbody">
           <tr class="empty-row"><td colspan="10">Cargando registros...</td></tr>
         </tbody>
-        <tfoot><tr class="tot-row"><td colspan="5">TOTAL DÍA</td><td class="tot-ef" id="tf-ef" style="text-align:right">$0</td><td class="tot-lc" id="tf-tr" style="text-align:right">$0</td><td class="tot-ef" id="tf-wp" style="text-align:right;color:var(--amber)">$0</td><td colspan="2"></td></tr></tfoot>
+        <tfoot><tr class="tot-row"><td colspan="5">TOTAL DÍA</td><td class="tot-ef" id="tf-ef" style="text-align:right">$0</td><td class="tot-lc" id="tf-tr" style="text-align:right">$0</td><td class="tot-ef" id="tf-wpc" style="text-align:right;color:var(--amber)">$0</td><td class="tot-ef" id="tf-wpd" style="text-align:right;color:var(--amber)">$0</td><td colspan="2"></td></tr></tfoot>
       </table>
     </div>
   </div>
@@ -194,9 +200,9 @@ tfoot .tot-row td{background:var(--accent-l);font-family:var(--mono);font-size:1
   <div class="kpi-row" id="kpi-row"></div>
   <div class="summ-tbl-wrap">
     <table class="summ-table">
-      <thead><tr><th>Fecha</th><th>Día</th><th>Reg.</th><th>Efectivo</th><th>Transferencia</th><th>Webpay</th><th>Total día</th></tr></thead>
+      <thead><tr><th>Fecha</th><th>Día</th><th>Reg.</th><th>Efectivo</th><th>Transferencia</th><th>Crédito</th><th>Débito</th><th>Total día</th></tr></thead>
       <tbody id="summ-tbody"></tbody>
-      <tfoot><tr id="summ-tfoot"><td colspan="3">TOTAL</td><td class="td-ef" id="sf-ef">$0</td><td class="td-tr" id="sf-tr">$0</td><td class="td-wp" id="sf-wp">$0</td><td class="td-tot" id="sf-tot">$0</td></tr></tfoot>
+      <tfoot><tr id="summ-tfoot"><td colspan="3">TOTAL</td><td class="td-ef" id="sf-ef">$0</td><td class="td-tr" id="sf-tr">$0</td><td class="td-wp" id="sf-wpc">$0</td><td class="td-wp" id="sf-wpd">$0</td><td class="td-tot" id="sf-tot">$0</td></tr></tfoot>
     </table>
   </div>
 </div>
@@ -208,8 +214,8 @@ tfoot .tot-row td{background:var(--accent-l);font-family:var(--mono);font-size:1
       <span style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Origen:</span>
       <select id="prevOrigen" onchange="buildPreview()" style="background:var(--card,#fff);border:1px solid var(--border,#ccc);border-radius:4px;padding:6px;font-size:0.8rem;">
         <option value="">Todos</option>
-        <option value="Local">🏪 Local</option>
-        <option value="Empresa">🏢 Empresa</option>
+        <option value="Local">🏪 Sala de venta</option>
+        <option value="Empresa">🏢 Otros</option>
       </select>
       <span style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-left:6px">Desde:</span>
       <input type="date" id="prevDesde" onchange="buildPreview()" style="background:var(--card,#fff);border:1px solid var(--border,#ccc);border-radius:4px;padding:6px;font-size:0.8rem;">
@@ -254,6 +260,8 @@ async function saveToCloud(key, dataObj) {
     try {
       const res = await fetchConTimeout(API_URL, { method: 'POST', body: JSON.stringify({ key: key, value: JSON.stringify(dataObj), token: CLOUD_TOKEN }) });
       if (!res.ok) throw new Error('HTTP ' + res.status);
+      const json = await res.json();
+      if (json.estado === 'error') throw new Error(json.detalle || 'Error del servidor');
       return true;
     } catch (e) {
       ultimoError = e;
@@ -271,6 +279,7 @@ async function loadFromCloud(key) {
       const res = await fetchConTimeout(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const json = await res.json();
+      if (json.estado === 'error') throw new Error(json.detalle || 'Error del servidor');
       return json.valor ? JSON.parse(json.valor) : null;
     } catch (e) {
       ultimoError = e;
@@ -1264,7 +1273,8 @@ function daysKey(m,d){ return `${currentYear}-${pad(m+1)}-${pad(d)}`; }
 function dateLabel(key){ const [y,m,d]=key.split('-'); return `${DOW_NAMES[new Date(+y,+m-1,+d).getDay()]} ${+d}`; }
 function rowsForDate(k){ return data[k]||(data[k]=[]); }
 function rowsForMonth(mi){ let a=[]; const dias = getDiasMes(mi, currentYear); for(let d=1;d<=dias;d++) a=a.concat(rowsForDate(daysKey(mi,d))); return a; }
-function totalAll(){ return Object.keys(data).filter(k => k.startsWith(currentYear.toString())).reduce((s,k) => s + data[k].reduce((ss,r)=>ss+(+r.ef||0)+(+r.tr||0)+(+r.wp||0),0),0); }
+function wpCred(r){return +(r.wpCredito != null ? r.wpCredito : r.wp)||0} function wpDeb(r){return +r.wpDebito||0} function origenLabel(v){return v==='Local'?'Sala de venta':v==='Empresa'?'Otros':v||''}
+function totalAll(){ return Object.keys(data).filter(k => k.startsWith(currentYear.toString())).reduce((s,k) => s + data[k].reduce((ss,r)=>ss+(+r.ef||0)+(+r.tr||0)+wpCred(r)+wpDeb(r),0),0); }
 
 // Se pone en true solo si la carga inicial desde la nube pudo confirmarse
 // (éxito o "está vacía"). Mientras sea false, saveData() NO manda nada a la
@@ -1348,6 +1358,15 @@ async function loadData() {
     const cloudData = await loadFromCloudStrict('rendicion2026_v2');
     rendicionCargaOk = true;
     if (cloudData && Object.keys(cloudData).length > 0) {
+      // La nube manda en conflictos; recupera del respaldo local las fechas
+      // ausentes para preservar jornadas que no alcanzaron a sincronizarse.
+      const rawLocal = localStorage.getItem('rendicion2026_v2');
+      if (rawLocal) {
+        const localData = JSON.parse(rawLocal);
+        Object.keys(localData).forEach(k => {
+          if (!Object.prototype.hasOwnProperty.call(cloudData, k)) cloudData[k] = localData[k];
+        });
+      }
       Object.keys(cloudData).forEach(k => { data[k] = cloudData[k]; });
     } else {
       // La nube respondió que está vacía: se usa el respaldo local si existe.
@@ -1385,7 +1404,6 @@ async function loadData() {
           // Si la fecha ya tiene registros (venidos de la nube), no se toca:
           // evita duplicar filas que ya están guardadas.
       });
-      localStorage.setItem('historial_cargado_final', '1');
       if (seInyectoAlgo) saveData();
   } else if (rendicionCargaOk) {
       // Guardar en local para asegurar que estemos en sintonía con la nube
@@ -1412,10 +1430,10 @@ function changeYear(y) {
   document.getElementById('cc-n').textContent = "0";
   document.getElementById('cc-ef').textContent = "$0";
   document.getElementById('cc-tr').textContent = "$0";
-  document.getElementById('cc-wp').textContent = "$0";
+  document.getElementById('cc-wpc').textContent = "$0"; document.getElementById('cc-wpd').textContent = "$0";
   document.getElementById('tf-ef').textContent = "$0";
   document.getElementById('tf-tr').textContent = "$0";
-  document.getElementById('tf-wp').textContent = "$0";
+  document.getElementById('tf-wpc').textContent = "$0"; document.getElementById('tf-wpd').textContent = "$0";
   document.getElementById('cur-date-lbl').textContent = "—";
   renderSumm();
 }
@@ -1487,11 +1505,12 @@ function renderTable(){
       tr.innerHTML=`<td><input type="date" value="${curDate}" readonly style="color:var(--muted)"></td>
         <td><input type="text" placeholder="Nombre del cliente..." value="${row.cliente||''}" oninput="upd('${curDate}',${ri},'cliente',this.value)"></td>
         <td><select onchange="upd('${curDate}',${ri},'tipo',this.value)">${TIPOS.map(t=>`<option value="${t}" ${row.tipo===t?'selected':''}>${t}</option>`).join('')}</select></td>
-        <td><select onchange="upd('${curDate}',${ri},'origen',this.value)"><option value="Empresa" ${row.origen==='Empresa'?'selected':''}>Empresa</option><option value="Local" ${row.origen==='Local'?'selected':''}>Local</option></select></td>
+        <td><select onchange="upd('${curDate}',${ri},'origen',this.value)"><option value="Empresa" ${row.origen==='Empresa'?'selected':''}>Otros</option><option value="Local" ${row.origen==='Local'?'selected':''}>Sala de venta</option></select></td>
         <td><select onchange="upd('${curDate}',${ri},'pago',this.value)"><option value="Efectivo" ${row.pago==='Efectivo'?'selected':''}>Efectivo</option><option value="Transferencia" ${row.pago==='Transferencia'?'selected':''}>Transferencia</option><option value="Webpay" ${row.pago==='Webpay'?'selected':''}>Webpay</option></select></td>
         <td class="ef-inp"><input type="number" placeholder="0" value="${row.ef||''}" oninput="upd('${curDate}',${ri},'ef',this.value)"></td>
         <td><input type="number" placeholder="0" value="${row.tr||''}" oninput="upd('${curDate}',${ri},'tr',this.value)"></td>
-        <td><input type="number" placeholder="0" value="${row.wp||''}" oninput="upd('${curDate}',${ri},'wp',this.value)"></td>
+        <td><input type="number" value="${row.wpCredito!=null?row.wpCredito:(row.wp||'')}" oninput="upd('${curDate}',${ri},'wpCredito',this.value)"></td>
+        <td><input type="number" value="${row.wpDebito||''}" oninput="upd('${curDate}',${ri},'wpDebito',this.value)"></td>
         <td><input type="text" placeholder="Anotaciones..." value="${row.obs||''}" oninput="upd('${curDate}',${ri},'obs',this.value)"></td>
         <td style="text-align:center"><button class="btn-del" onclick="delRow('${curDate}',${ri})" title="Borrar registro">🗑️</button></td>`;
       tbody.appendChild(tr);
@@ -1499,8 +1518,8 @@ function renderTable(){
   } updateTotals();
 }
 
-function updateCards(){ const rows=rowsForDate(curDate); document.getElementById('cc-n').textContent=rows.length; document.getElementById('cc-ef').textContent=fmt(rows.reduce((s,r)=>s+(+r.ef||0),0)); document.getElementById('cc-tr').textContent=fmt(rows.reduce((s,r)=>s+(+r.tr||0),0)); document.getElementById('cc-wp').textContent=fmt(rows.reduce((s,r)=>s+(+r.wp||0),0)); }
-function updateTotals(){ const rows=rowsForDate(curDate); document.getElementById('tf-ef').textContent=fmt(rows.reduce((s,r)=>s+(+r.ef||0),0)); document.getElementById('tf-tr').textContent=fmt(rows.reduce((s,r)=>s+(+r.tr||0),0)); document.getElementById('tf-wp').textContent=fmt(rows.reduce((s,r)=>s+(+r.wp||0),0)); }
+function updateCards(){ const rows=rowsForDate(curDate); document.getElementById('cc-n').textContent=rows.length; document.getElementById('cc-ef').textContent=fmt(rows.reduce((s,r)=>s+(+r.ef||0),0)); document.getElementById('cc-tr').textContent=fmt(rows.reduce((s,r)=>s+(+r.tr||0),0)); document.getElementById('cc-wpc').textContent=fmt(rows.reduce((s,r)=>s+wpCred(r),0)); document.getElementById('cc-wpd').textContent=fmt(rows.reduce((s,r)=>s+wpDeb(r),0)); }
+function updateTotals(){ const rows=rowsForDate(curDate); document.getElementById('tf-ef').textContent=fmt(rows.reduce((s,r)=>s+(+r.ef||0),0)); document.getElementById('tf-tr').textContent=fmt(rows.reduce((s,r)=>s+(+r.tr||0),0)); document.getElementById('tf-wpc').textContent=fmt(rows.reduce((s,r)=>s+wpCred(r),0)); document.getElementById('tf-wpd').textContent=fmt(rows.reduce((s,r)=>s+wpDeb(r),0)); }
 
 function addRow() { 
   if(!curDate) {
@@ -1511,7 +1530,7 @@ function addRow() {
     }
     selectDay(daysKey(t.getMonth(), t.getDate()), t.getMonth());
   }
-  rowsForDate(curDate).push({cliente:'',tipo:'Sublimación',origen:'Local',pago:'Efectivo',ef:'',tr:'',wp:'',obs:''}); 
+  rowsForDate(curDate).push({cliente:'',tipo:'Sublimación',origen:'Local',pago:'Efectivo',ef:'',tr:'',wpCredito:'',wpDebito:'',obs:''});
   saveData(); 
   renderContent(); 
   refreshAccordion(); 
@@ -1537,12 +1556,12 @@ function renderSumm(){
     const dias = getDiasMes(mi, currentYear);
     for(let d=1;d<=dias;d++){
       const key=daysKey(mi,d), rows=rowsForDate(key); if(!rows.length) continue;
-      days.push({key,mi,d,ef:rows.reduce((s,r)=>s+(+r.ef||0),0),tr:rows.reduce((s,r)=>s+(+r.tr||0),0),wp:rows.reduce((s,r)=>s+(+r.wp||0),0),total:rows.reduce((s,r)=>s+(+r.ef||0)+(+r.tr||0)+(+r.wp||0),0),n:rows.length});
+      days.push({key,mi,d,ef:rows.reduce((s,r)=>s+(+r.ef||0),0),tr:rows.reduce((s,r)=>s+(+r.tr||0),0),wpc:rows.reduce((s,r)=>s+wpCred(r),0),wpd:rows.reduce((s,r)=>s+wpDeb(r),0),total:rows.reduce((s,r)=>s+(+r.ef||0)+(+r.tr||0)+wpCred(r)+wpDeb(r),0),n:rows.length});
     }
   });
   const tbody=document.getElementById('summ-tbody'); tbody.innerHTML='';
-  days.forEach(r=>{ const tr=tbody.insertRow(); tr.innerHTML=`<td>${pad(r.d)}/${pad(r.mi+1)}/${currentYear}</td><td>${DOW_NAMES[new Date(currentYear,r.mi,r.d).getDay()]}</td><td>${r.n}</td><td>${fmt(r.ef)}</td><td>${fmt(r.tr)}</td><td>${fmt(r.wp)}</td><td>${fmt(r.total)}</td>`; });
-  document.getElementById('sf-ef').textContent=fmt(days.reduce((s,r)=>s+r.ef,0)); document.getElementById('sf-tr').textContent=fmt(days.reduce((s,r)=>s+r.tr,0)); document.getElementById('sf-wp').textContent=fmt(days.reduce((s,r)=>s+r.wp,0)); document.getElementById('sf-tot').textContent=fmt(days.reduce((s,r)=>s+r.total,0));
+  days.forEach(r=>{ const tr=tbody.insertRow(); tr.innerHTML=`<td>${pad(r.d)}/${pad(r.mi+1)}/${currentYear}</td><td>${DOW_NAMES[new Date(currentYear,r.mi,r.d).getDay()]}</td><td>${r.n}</td><td>${fmt(r.ef)}</td><td>${fmt(r.tr)}</td><td>${fmt(r.wpc)}</td><td>${fmt(r.wpd)}</td><td>${fmt(r.total)}</td>`; });
+  document.getElementById('sf-ef').textContent=fmt(days.reduce((s,r)=>s+r.ef,0)); document.getElementById('sf-tr').textContent=fmt(days.reduce((s,r)=>s+r.tr,0)); document.getElementById('sf-wpc').textContent=fmt(days.reduce((s,r)=>s+r.wpc,0)); document.getElementById('sf-wpd').textContent=fmt(days.reduce((s,r)=>s+r.wpd,0)); document.getElementById('sf-tot').textContent=fmt(days.reduce((s,r)=>s+r.total,0));
 }
 
 function getAllRowsSorted(){
@@ -1606,17 +1625,17 @@ function buildPreview(){
   const rows = getAllRowsSorted();
   const head = document.getElementById('ex-head');
   const body = document.getElementById('ex-body');
-  head.innerHTML = '<tr><th>Fecha</th><th>Cliente</th><th>Tipo de Venta</th><th>Origen</th><th>Forma de Pago</th><th style="text-align:right">Efectivo</th><th style="text-align:right">Transferencia</th><th style="text-align:right">Webpay</th><th>Observaciones</th></tr>';
+  head.innerHTML = '<tr><th>Fecha</th><th>Cliente</th><th>Tipo de Venta</th><th>Origen</th><th>Forma de Pago</th><th style="text-align:right">Efectivo</th><th style="text-align:right">Transferencia</th><th style="text-align:right">Crédito</th><th style="text-align:right">Débito</th><th>Observaciones</th></tr>';
   if(!rows.length){
     body.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px">No hay registros ${textoFiltrosPrev()}.</td></tr>`;
     return;
   }
   let html='';
   rows.forEach(r=>{
-    html += `<tr><td>${fechaCorta(r.fecha)}</td><td>${r.cliente||''}</td><td>${r.tipo||''}</td><td>${r.origen||''}</td><td>${r.pago||''}</td><td style="text-align:right">${fmt(r.ef)}</td><td style="text-align:right">${fmt(r.tr)}</td><td style="text-align:right">${fmt(r.wp)}</td><td>${r.obs||''}</td></tr>`;
+    html += `<tr><td>${fechaCorta(r.fecha)}</td><td>${r.cliente||''}</td><td>${r.tipo||''}</td><td>${origenLabel(r.origen)}</td><td>${r.pago||''}</td><td style="text-align:right">${fmt(r.ef)}</td><td style="text-align:right">${fmt(r.tr)}</td><td style="text-align:right">${fmt(wpCred(r))}</td><td style="text-align:right">${fmt(wpDeb(r))}</td><td>${r.obs||''}</td></tr>`;
   });
-  const tEf=rows.reduce((s,r)=>s+(+r.ef||0),0), tTr=rows.reduce((s,r)=>s+(+r.tr||0),0), tWp=rows.reduce((s,r)=>s+(+r.wp||0),0);
-  html += `<tr style="font-weight:700;background:var(--accent-l)"><td colspan="5" style="text-align:right">TOTALES</td><td style="text-align:right">${fmt(tEf)}</td><td style="text-align:right">${fmt(tTr)}</td><td style="text-align:right">${fmt(tWp)}</td><td></td></tr>`;
+  const tEf=rows.reduce((s,r)=>s+(+r.ef||0),0), tTr=rows.reduce((s,r)=>s+(+r.tr||0),0), tWp=rows.reduce((s,r)=>s+wpCred(r),0), tWpd=rows.reduce((s,r)=>s+wpDeb(r),0);
+  html += `<tr style="font-weight:700;background:var(--accent-l)"><td colspan="5" style="text-align:right">TOTALES</td><td style="text-align:right">${fmt(tEf)}</td><td style="text-align:right">${fmt(tTr)}</td><td style="text-align:right">${fmt(tWp)}</td><td style="text-align:right">${fmt(tWpd)}</td><td></td></tr>`;
   body.innerHTML = html;
 }
 
@@ -1636,7 +1655,7 @@ async function exportXLSX(){
   const cols = [
     { key:'fecha', width:13 }, { key:'cliente', width:26 }, { key:'tipo', width:16 },
     { key:'origen', width:12 }, { key:'pago', width:16 }, { key:'ef', width:14 },
-    { key:'tr', width:14 }, { key:'wp', width:14 }, { key:'obs', width:34 },
+    { key:'tr', width:14 }, { key:'wpCredito', width:14 }, { key:'wpDebito', width:14 }, { key:'obs', width:34 },
   ];
   ws.columns = cols;
 
@@ -1653,29 +1672,29 @@ async function exportXLSX(){
   const titleCell = ws.getCell(1, 1);
   titleCell.value = 'CREAMOS IMAGEN — RENDICIÓN DE CAJA ' + tituloRango + (origenFiltro() ? ' — ORIGEN: ' + origenFiltro().toUpperCase() : '');
   titleCell.font = { bold:true, size:14, color:{argb:'FFFFFFFF'} };
-  titleCell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF2C5F2E'} };
+  titleCell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF141414'} };
   titleCell.alignment = { vertical:'middle' };
   ws.getRow(1).height = 26;
   ws.getRow(2).height = 4;
 
-  const headers = ['Fecha','Cliente','Tipo de Venta','Origen','Forma de Pago','Efectivo','Transferencia','Webpay','Observaciones'];
+  const headers = ['Fecha','Cliente','Tipo de Venta','Origen','Forma de Pago','Efectivo','Transferencia','Crédito','Débito','Observaciones'];
   const headerRow = ws.getRow(3);
   headers.forEach((h,i) => { headerRow.getCell(i+1).value = h; });
   headerRow.eachCell(cell => {
-    cell.font = { bold:true, color:{argb:'FFFFFFFF'} };
-    cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF217346'} };
+    cell.font = { bold:true, color:{argb:'FFF1AF13'} };
+    cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF141414'} };
     cell.alignment = { vertical:'middle' };
   });
   headerRow.height = 20;
 
-  const moneyCols = ['ef','tr','wp'];
+  const moneyCols = ['ef','tr','wpCredito','wpDebito'];
   const moneyIdx = moneyCols.map(k => cols.findIndex(c => c.key === k) + 1);
 
   rows.forEach((r, idx) => {
     const row = ws.addRow({
       fecha: fechaCorta(r.fecha), cliente: r.cliente || '', tipo: r.tipo || '',
-      origen: r.origen || '', pago: r.pago || '',
-      ef: +r.ef || 0, tr: +r.tr || 0, wp: +r.wp || 0, obs: r.obs || ''
+      origen: origenLabel(r.origen), pago: r.pago || '',
+      ef: +r.ef || 0, tr: +r.tr || 0, wpCredito: wpCred(r), wpDebito: wpDeb(r), obs: r.obs || ''
     });
     moneyIdx.forEach(ci => { row.getCell(ci).numFmt = "\"$\"#,##0"; });
     if (idx % 2 === 1) {
@@ -1693,12 +1712,12 @@ async function exportXLSX(){
 
   const tEf = rows.reduce((s,r)=>s+(+r.ef||0),0);
   const tTr = rows.reduce((s,r)=>s+(+r.tr||0),0);
-  const tWp = rows.reduce((s,r)=>s+(+r.wp||0),0);
-  const totalRow = ws.addRow({ fecha:'', cliente:'', tipo:'', origen:'', pago:'TOTALES', ef:tEf, tr:tTr, wp:tWp, obs:'' });
+  const tWp = rows.reduce((s,r)=>s+wpCred(r),0), tWpd=rows.reduce((s,r)=>s+wpDeb(r),0);
+  const totalRow = ws.addRow({ fecha:'', cliente:'', tipo:'', origen:'', pago:'TOTALES', ef:tEf, tr:tTr, wpCredito:tWp, wpDebito:tWpd, obs:'' });
   totalRow.eachCell({ includeEmpty:true }, cell => {
     cell.font = { bold:true };
-    cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFE8F5E9'} };
-    cell.border = { top:{style:'double',color:{argb:'FF2C5F2E'}} };
+    cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFFFF3CC'} };
+    cell.border = { top:{style:'double',color:{argb:'FF141414'}} };
   });
   moneyIdx.forEach(ci => { totalRow.getCell(ci).numFmt = '"$"#,##0'; });
 

@@ -141,6 +141,10 @@
     .empty-access { color: #6b7280; font-size: 14px; padding: 30px 10px; }
 
   </style>
+  <link rel="stylesheet" href="brand/brand.css">
+  <script src="brand/brand.js"></script>
+  <script src="brand/form-examples.js"></script>
+  <script src="brand/layout.js"></script>
 </head>
 <body>
 <div id="cimagen-gate" style="position:fixed;inset:0;z-index:999999;background:#111827;display:flex;align-items:center;justify-content:center;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;">
@@ -176,17 +180,46 @@ var MODULOS = [
   { key: "dashboard",    label: "Indicadores",    icon: "📈", href: "dashboard.html",   cls: "dashboard" },
   { key: "calendario",   label: "Producciones",   icon: "📅", href: "calendario.html",  cls: "producciones" },
   { key: "proveedores",  label: "Proveedores",    icon: "📦", href: "proveedores.html", cls: "proveedores" },
-  { key: "ventasci",     label: "Ventas Empresa", icon: "🏢", href: "ventasci.html",    cls: "ventasci", sub: "(Creamos Imagen)" },
-  { key: "ventas",       label: "Ventas Local",   icon: "📊", href: "ventas.html",      cls: "ventas", sub: "(Vendedores)" },
+  { key: "ventasci",     label: "Otros", icon: "🏢", href: "ventasci.html",    cls: "ventasci", sub: "(Creamos Imagen)" },
+  { key: "ventas",       label: "Sala de venta",   icon: "📊", href: "ventas.html",      cls: "ventas", sub: "(Vendedores)" },
   { key: "rrhh",         label: "Recursos Humanos", icon: "🧑‍💼", href: "rrhh.html",    cls: "rrhh" },
   // Mi Portal no se asigna en "Accesos": lo ve quien tenga su correo
   // registrado en la ficha de un trabajador Activo de Recursos Humanos.
   { key: "trabajador",   label: "Mi Portal",      icon: "👤", href: "trabajador.html", cls: "portal", sub: "(Trabajador)" }
 ];
-// Envía a Google Apps Script una acción (login) y devuelve el JSON.
-async function llamarServidor(cuerpo) {
-  var res = await fetch(API_URL, { method: "POST", body: JSON.stringify(cuerpo) });
-  return await res.json();
+var TRAB_KEY = "rrhh_trabajadores_v1";
+
+async function loadFromCloud(key) {
+  try {
+    const res = await fetch(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
+    const json = await res.json();
+    return json.valor ? JSON.parse(json.valor) : null;
+  } catch (e) { return null; }
+}
+
+// Lista de trabajadores de RRHH (guardada en bloques de texto: {shardCount, parte}).
+async function loadTrabajadores() {
+  var primero = await loadFromCloud(TRAB_KEY);
+  if (!primero) return [];
+  if (Array.isArray(primero)) return primero;
+  if (typeof primero.shardCount !== "number") return [];
+  var pedidos = [];
+  for (var i = 1; i < primero.shardCount; i++) pedidos.push(loadFromCloud(TRAB_KEY + "_sh" + i));
+  var bloques = await Promise.all(pedidos);
+  var texto = primero.parte || "";
+  for (var j = 0; j < bloques.length; j++) {
+    if (!bloques[j] || typeof bloques[j].parte !== "string") return [];
+    texto += bloques[j].parte;
+  }
+  try { return texto ? JSON.parse(texto) : []; } catch (e) { return []; }
+}
+
+// ¿El correo corresponde a un trabajador Activo de RRHH?
+function esCorreoTrabajador(trabajadores, email) {
+  var e = (email || "").trim().toLowerCase();
+  return !!e && (trabajadores || []).some(function(t){
+    return (t.email || "").trim().toLowerCase() === e && t.estado !== "Inactivo";
+  });
 }
 
 // Una sesión sin "token" es de antes de las sesiones firmadas: hay que volver a entrar.
@@ -196,8 +229,8 @@ function sessionValid(sess) {
 
 function isModuleAllowed(sess, moduleKey) {
   if (!sessionValid(sess)) return false;
-  if (moduleKey === "trabajador") return !!(sess.esTrabajador || sess.isAdmin);
   if (sess.isAdmin) return true;
+  if (moduleKey === "trabajador") return !!(sess.esTrabajador || (sess.modules && sess.modules.indexOf("trabajador") !== -1));
   return !!(sess.modules && sess.modules.indexOf(moduleKey) !== -1);
 }
 
@@ -219,45 +252,36 @@ async function handleCredentialResponse(response) {
   var btnWrap = document.getElementById("cimagen-gate-btn-wrap");
   if (msg) msg.textContent = "⏳ Verificando tus accesos…";
   if (btnWrap) btnWrap.style.display = "none";
-  var r = null;
-  try { r = await llamarServidor({ accion: "login", credential: response.credential }); } catch (e) {}
-  if (!r || r.estado !== "éxito" || !r.sesion) {
-    if (msg) msg.textContent = (r && r.detalle === "CREDENCIAL_INVALIDA")
-      ? "No se pudo verificar tu cuenta de Google. Inténtalo de nuevo."
-      : "No se pudo conectar con el servidor. Revisa tu conexión y vuelve a intentarlo.";
-    if (btnWrap) btnWrap.style.display = "flex";
-    return;
-  }
-  var sess = r.sesion;
-  if (!sess.isAdmin && (!sess.modules || sess.modules.length === 0) && !sess.esTrabajador) {
+  var datos = await Promise.all([loadFromCloud(ACL_KEY), loadTrabajadores()]);
+  var sess = computeSession(payload.email, payload.name, payload.picture, datos[0] || {}, esCorreoTrabajador(datos[1], payload.email));
+  if (!sess.isAdmin && sess.modules.length === 0 && !sess.esTrabajador) {
     showDenied();
     return;
   }
   saveSession(sess);
+  var query = new URLSearchParams(window.location.search);
+  if (query.get("return") === "trabajador") { window.location.replace("trabajador.html"); return; }
+  if (query.get("return") === "rrhh") { window.location.replace("rrhh.html"); return; }
   // Un trabajador sin otros módulos entra directo a su portal.
   if (soloPortal(sess)) { window.location.replace("trabajador.html"); return; }
   enterApp(sess);
 }
 
 function soloPortal(sess) {
-  return !sess.isAdmin && sess.esTrabajador && (!sess.modules || sess.modules.length === 0);
+  if (sess.isAdmin) return false;
+  var otrosModulos = (sess.modules || []).filter(function(m){ return m !== "trabajador" && m !== "costos_nomina"; });
+  var tienePortal = sess.esTrabajador || (sess.modules && sess.modules.indexOf("trabajador") !== -1);
+  return tienePortal && otrosModulos.length === 0;
 }
 
-// Al abrir el menú con una sesión ya iniciada, se piden al servidor los
-// permisos actuales: así los cambios hechos en "Accesos" o en las fichas de
-// RRHH (por ejemplo, registrar el correo de un trabajador) se ven sin tener
-// que cerrar sesión. Si la sesión ya no es válida, sesion.js vuelve al login.
-async function refrescarSesion(sess) {
-  var r = null;
-  try {
-    var res = await fetch(API_URL + "?accion=yo&token=" + encodeURIComponent(sess.token));
-    r = await res.json();
-  } catch (e) { return; }
-  if (!r || r.estado !== "éxito") return;
-  var cambio = r.isAdmin !== sess.isAdmin || r.esTrabajador !== !!sess.esTrabajador ||
-    (r.modules || []).join() !== (sess.modules || []).join();
-  if (!cambio) return;
-  sess.isAdmin = r.isAdmin; sess.modules = r.modules || []; sess.esTrabajador = !!r.esTrabajador;
+// Sesiones abiertas antes de existir Mi Portal (o antes de que RRHH
+// registrara el correo) no saben si la persona es trabajador: se revisa en
+// segundo plano y, si cambió, se actualiza la sesión y el menú.
+async function revisarTrabajador(sess) {
+  var trabajadores = await loadTrabajadores();
+  var es = esCorreoTrabajador(trabajadores, sess.email);
+  if (es === !!sess.esTrabajador) return;
+  sess.esTrabajador = es;
   saveSession(sess);
   renderMenu(sess);
 }
@@ -329,7 +353,10 @@ function renderMenu(sess) {
 
 (function init(){
   var existing = readSession();
-  if (sessionValid(existing)) {
+  var params = new URLSearchParams(window.location.search);
+  var forceReauth = params.get("reauth") === "1";
+  if (forceReauth) clearSession();
+  if (sessionValid(existing) && !forceReauth) {
     document.addEventListener("DOMContentLoaded", function(){
       enterApp(existing);
       refrescarSesion(existing);
