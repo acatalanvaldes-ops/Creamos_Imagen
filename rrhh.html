@@ -161,6 +161,14 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
       <div class="search-bar">🔍<input id="as-bus" placeholder="Buscar..." oninput="asRender()"></div>
       <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Trabajador</th><th>Fecha</th><th>Entrada</th><th>Salida</th><th>Hrs</th><th>Extras</th><th>Atraso</th><th>Acciones</th></tr></thead><tbody id="as-tbl"></tbody></table></div>
     </div>
+    <div class="card">
+      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <span>Marcaciones complementarias desde Mi Portal</span>
+        <div style="display:flex;gap:8px;align-items:center"><input type="month" id="as-portal-mes" onchange="renderMarcacionesPortalRRHH()"><button class="act-btn small" onclick="cargarMarcacionesPortalRRHH()">Actualizar</button></div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Registro interno complementario; separado del control oficial de asistencia.</div>
+      <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Trabajador</th><th>Fecha y hora servidor</th><th>Tipo</th><th>Ubicación</th></tr></thead><tbody id="as-portal-tbl"><tr><td colspan="4" align="center">Selecciona Actualizar para cargar las marcaciones de Mi Portal.</td></tr></tbody></table></div>
+    </div>
   </div>
 
   <!-- ================= VACACIONES ================= -->
@@ -556,6 +564,7 @@ function decHr(v) { if(!v)return 0; const p=v.split(":"); return Number(p[0])+(N
 async function init() {
   let immGuardado = null; try { immGuardado = Number(localStorage.getItem('rrhh_imm')) || null; } catch(e) {}
   $('lq-imm').value = immGuardado || IMM_DEFECTO; lqNotaTope();
+  if ($('as-portal-mes')) $('as-portal-mes').value = mesChile();
   Object.keys(KEYS).forEach(k => { try{ const l=localStorage.getItem(KEYS[k]); if(l)DB[k]=JSON.parse(l); }catch(e){} });
   popSel(); renderAll();
 
@@ -714,6 +723,29 @@ function asRender() {
   }).sort((a,b)=>b.id-a.id).map(a=>`<tr><td><b>${getTName(a.trabajadorId)}</b></td><td>${fDate(a.fecha)}</td><td>${a.entrada||'-'}</td><td>${a.salida||'-'}</td><td>${a.horas}</td><td><span class="badge ${a.horasExtras>0?'bdg-ok':''}">${a.horasExtras}</span></td><td><span class="badge ${a.atraso>0?'bdg-err':'bdg-act'}">${a.atraso}</span></td><td><button class="act-btn small" style="color:var(--red)" onclick="asDel(${a.id})">🗑</button></td></tr>`).join('');
   tb.innerHTML = h||`<tr><td colspan="8" align="center">Sin datos</td></tr>`;
   $('k-as-reg').textContent=DB.asis.length; $('k-as-hex').textContent=hex.toFixed(1);$('k-as-atr').textContent=atr;
+}
+
+async function cargarMarcacionesPortalRRHH(){
+  const tb=$('as-portal-tbl');
+  const btn=document.querySelector('#p-asis .card-title button[onclick="cargarMarcacionesPortalRRHH()"]');
+  let sess=null; try { sess=JSON.parse(localStorage.getItem('cimagen_session')||'null'); } catch(e) {}
+  if(!sess || !sess.googleCredential){ tb.innerHTML='<tr><td colspan="4" align="center">Vuelve a <a href="index.html?reauth=1&amp;return=rrhh">iniciar sesión con Google</a> para consultar las marcaciones.</td></tr>'; return; }
+  if(btn){btn.disabled=true;btn.textContent='Cargando…';}
+  tb.innerHTML='<tr><td colspan="4" align="center">Cargando marcaciones…</td></tr>';
+  try {
+    const res=await fetchConTimeout(API_URL,{method:'POST',body:JSON.stringify({action:'listarMarcaciones',verTodos:true,token:CLOUD_TOKEN,googleCredential:sess.googleCredential})});
+    const data=await res.json(); if(!res.ok || data.estado==='error') throw new Error(data.detalle||'No se pudieron cargar las marcaciones.');
+    window.marcacionesPortalRRHH=data.marcaciones||[];
+    renderMarcacionesPortalRRHH();
+  } catch(e){ tb.innerHTML=`<tr><td colspan="4" align="center">${escH(e.message)} <a href="index.html?reauth=1&amp;return=rrhh">Volver a iniciar sesión</a></td></tr>`; }
+  finally { if(btn){btn.disabled=false;btn.textContent='Actualizar';} }
+}
+
+function renderMarcacionesPortalRRHH(){
+  const tb=$('as-portal-tbl'); if(!tb)return;
+  const mes=$('as-portal-mes').value||mesChile();
+  const rows=(window.marcacionesPortalRRHH||[]).filter(m=>String(m.fechaServidor||'').startsWith(mes)).slice().reverse();
+  tb.innerHTML=rows.map(m=>`<tr><td><b>${escH(getTName(m.trabajadorId))}</b></td><td>${escH(m.fechaServidor||'-')}</td><td>${escH(m.tipo||'-')}</td><td>${Number.isFinite(Number(m.latitud))&&Number.isFinite(Number(m.longitud))?`${Number(m.latitud).toFixed(5)}, ${Number(m.longitud).toFixed(5)} (±${Math.round(Number(m.precisionMetros)||0)} m)`:'-'}</td></tr>`).join('')||'<tr><td colspan="4" align="center">No hay marcaciones complementarias en este mes.</td></tr>';
 }
 
 // ================= VACACIONES =================

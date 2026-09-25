@@ -300,12 +300,16 @@ async function handleCredentialResponse(response) {
   if (btnWrap) btnWrap.style.display = "none";
   var datos = await Promise.all([loadFromCloud(ACL_KEY), loadTrabajadores(payload.email)]);
   var sess = computeSession(payload.email, payload.name, payload.picture, datos[0] || {}, esCorreoTrabajador(datos[1], payload.email));
+  sess.googleCredential = response.credential;
   var tieneAcceso = sess.isAdmin || sess.esTrabajador || (sess.modules && sess.modules.length > 0);
   if (!tieneAcceso) {
     showDenied();
     return;
   }
   saveSession(sess);
+  var query = new URLSearchParams(window.location.search);
+  if (query.get("return") === "trabajador") { window.location.replace("trabajador.html"); return; }
+  if (query.get("return") === "rrhh") { window.location.replace("rrhh.html"); return; }
   // Un trabajador sin otros módulos entra directo a su portal.
   if (soloPortal(sess)) { window.location.replace("trabajador.html"); return; }
   enterApp(sess);
@@ -397,7 +401,10 @@ function renderMenu(sess) {
 
 (function init(){
   var existing = readSession();
-  if (sessionValid(existing)) {
+  var params = new URLSearchParams(window.location.search);
+  var forceReauth = params.get("reauth") === "1";
+  if (forceReauth) clearSession();
+  if (sessionValid(existing) && !forceReauth) {
     document.addEventListener("DOMContentLoaded", function(){
       enterApp(existing);
       revisarTrabajador(existing);

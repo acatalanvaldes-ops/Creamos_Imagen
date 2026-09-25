@@ -335,7 +335,7 @@ table.tbl td.vacio{text-align:center;padding:28px;color:var(--muted)}
       <div class="card">
         <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
           <span>Mi asistencia</span>
-          <input type="month" id="as-mes" onchange="renderAsistencia()" style="border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-size:13px">
+          <input type="month" id="as-mes" onchange="cambiarMesAsistencia()" style="border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-size:13px">
         </div>
         <div class="kpis" style="margin-bottom:16px">
           <div class="kpi"><div class="kpi-label">Días registrados</div><div class="kpi-value" id="as-k-dias" style="font-size:24px">0</div></div>
@@ -343,6 +343,20 @@ table.tbl td.vacio{text-align:center;padding:28px;color:var(--muted)}
           <div class="kpi"><div class="kpi-label">Horas extras</div><div class="kpi-value text-teal" id="as-k-hex" style="font-size:24px">0</div></div>
           <div class="kpi"><div class="kpi-label">Atrasos</div><div class="kpi-value text-amber" id="as-k-atr" style="font-size:24px">0</div><div class="kpi-sub" id="as-k-atr-min"></div></div>
         </div>
+        <div class="resumen" style="margin:0 0 18px;padding:16px;border:1px solid var(--border);background:#faf8f5">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+            <div><strong style="display:block;margin-bottom:4px">Registrar marcación</strong><span style="font-size:12px;color:var(--muted)">Control interno complementario. Solicita la ubicación reportada por el dispositivo solo al marcar; la hora la asigna el servidor.</span></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="act-btn primary" id="marcar-entrada-btn" onclick="registrarMarcacionPortal('ENTRADA')">Marcar entrada</button>
+              <button class="act-btn" id="marcar-salida-btn" onclick="registrarMarcacionPortal('SALIDA')">Marcar salida</button>
+            </div>
+          </div>
+          <div id="marcacion-estado" role="status" aria-live="polite" style="font-size:12px;margin-top:10px;color:var(--muted)">La ubicación se usará únicamente para guardar cada marcación.</div>
+          <div style="overflow-x:auto;margin-top:12px">
+            <table class="tbl" style="min-width:480px"><thead><tr><th>Fecha y hora del servidor</th><th>Tipo</th><th>Ubicación registrada</th></tr></thead><tbody id="tb-marcaciones-portal"><tr><td colspan="3" class="vacio">Cargando marcaciones complementarias…</td></tr></tbody></table>
+          </div>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin:0 0 8px">Asistencia registrada por RR. HH.</div>
         <div class="table-wrap">
           <table class="tbl">
             <thead><tr><th>Fecha</th><th>Entrada</th><th>Salida</th><th class="num">Horas</th><th class="num">H. extras</th><th class="num">Atraso (min)</th></tr></thead>
@@ -455,6 +469,17 @@ async function leerRRHH(key, correoTrabajador){
   throw new Error('Formato no reconocido en ' + key);
 }
 async function leerSolicitudes(correoTrabajador){ const v = await leerClave(KEY_SOL_VAC, correoTrabajador); return Array.isArray(v) ? v : []; }
+
+async function apiMarcacionesPortal(action, data){
+  const credential = SESION && SESION.googleCredential;
+  if (!credential) throw new Error('Debes volver a iniciar sesión con Google para registrar o consultar tus marcaciones.');
+  const res = await fetchConTimeout(API_URL, { method:'POST', body:JSON.stringify({
+    action, token:CLOUD_TOKEN, googleCredential:credential, trabajadorId:String(miFicha.id), ...(data||{})
+  }) });
+  const json = await res.json();
+  if (!res.ok || json.estado === 'error') throw new Error(json.detalle || 'No se pudo completar la solicitud.');
+  return json;
+}
 
 // =========================================================================
 // 2. ESTADO
@@ -578,9 +603,15 @@ function seleccionarTrabajador(t){
 
   $('vac-solo-lectura').style.display = esPropio ? 'none' : 'block';
   $('vac-btn').disabled = !esPropio;
+  if ($('marcar-entrada-btn')) $('marcar-entrada-btn').disabled = !esPropio;
+  if ($('marcar-salida-btn')) $('marcar-salida-btn').disabled = !esPropio;
+  if (!esPropio && $('marcacion-estado')) $('marcacion-estado').textContent = 'La vista de administrador es de solo lectura; el trabajador debe marcar desde su propia cuenta.';
 
   renderInicio(); renderLiquidaciones(); renderCertificados(); renderVacaciones(); renderAsistencia();
   if (TODO.doc) renderDocumentos();
+  cargarMarcacionesPortal().catch(error => {
+    $('tb-marcaciones-portal').innerHTML = `<tr><td colspan="3" class="vacio">${esc(error.message)}</td></tr>`;
+  });
   previewVac();
 }
 
@@ -725,6 +756,60 @@ function renderAsistencia(){
     <tr><td>${esc(l.folio||'-')}</td><td>${esc(l.tipo||'-')}</td><td>${fDate(l.fechaInicio)}</td><td>${fDate(l.fechaFin)}</td>
     <td class="num">${esc(l.dias)}</td><td style="text-align:right">${badgeEstado(l.estado||'Pendiente')}</td></tr>`).join('')
     || `<tr><td colspan="6" class="vacio">No tienes licencias registradas.</td></tr>`;
+}
+
+function cambiarMesAsistencia(){
+  renderAsistencia();
+  if (esPropio) cargarMarcacionesPortal().catch(error => {
+    $('tb-marcaciones-portal').innerHTML = `<tr><td colspan="3" class="vacio">${esc(error.message)}</td></tr>`;
+  });
+}
+
+async function cargarMarcacionesPortal(){
+  if (!miFicha) return;
+  const tb = $('tb-marcaciones-portal');
+  if (!esPropio) {
+    tb.innerHTML = '<tr><td colspan="3" class="vacio">Las marcaciones solo están disponibles para la propia cuenta del trabajador.</td></tr>';
+    return;
+  }
+  if (!SESION.googleCredential) {
+    tb.innerHTML = '<tr><td colspan="3" class="vacio">Inicia sesión nuevamente para consultar las marcaciones de forma segura.</td></tr>';
+    return;
+  }
+  const data = await apiMarcacionesPortal('listarMarcaciones');
+  const mes = $('as-mes').value || mesChile();
+  const marks = (data.marcaciones || []).filter(m => String(m.trabajadorId) === String(miFicha.id) && String(m.fechaServidor||'').startsWith(mes));
+  tb.innerHTML = marks.slice().reverse().map(m => `<tr><td>${esc(m.fechaServidor||'-')}</td><td><b>${esc(m.tipo||'-')}</b></td><td>${Number.isFinite(Number(m.latitud)) && Number.isFinite(Number(m.longitud)) ? `${Number(m.latitud).toFixed(5)}, ${Number(m.longitud).toFixed(5)} (precisión ±${Math.round(Number(m.precisionMetros)||0)} m)` : 'Sin ubicación'}</td></tr>`).join('')
+    || `<tr><td colspan="3" class="vacio">No hay marcaciones complementarias en ${esc(periodoTexto(mes))}.</td></tr>`;
+}
+
+function obtenerUbicacionMarcacion(){
+  return new Promise((resolve,reject)=>{
+    if (!window.isSecureContext || !navigator.geolocation) { reject(new Error('Este dispositivo o navegador no permite ubicación segura. Abre el portal desde una conexión HTTPS y habilita la ubicación.')); return; }
+    navigator.geolocation.getCurrentPosition(position=>resolve({
+      latitud:position.coords.latitude, longitud:position.coords.longitude, precisionMetros:position.coords.accuracy
+    }), error=>{
+      const mensajes={1:'Debes permitir el acceso a la ubicación para marcar.',2:'No se pudo determinar la ubicación. Activa el GPS e inténtalo otra vez.',3:'La ubicación tardó demasiado. Inténtalo nuevamente.'};
+      reject(new Error(mensajes[error.code]||'No se pudo obtener la ubicación.'));
+    }, {enableHighAccuracy:true, timeout:20000, maximumAge:0});
+  });
+}
+
+async function registrarMarcacionPortal(tipo){
+  if (!esPropio || !miFicha || SESION.isAdmin && !esPropio) { alert('La marcación solo puede registrarla el trabajador desde su propia cuenta.'); return; }
+  if (!cargaOk.asis) { alert('No se pudo confirmar la conexión. Recarga Mi Portal antes de marcar.'); return; }
+  const btns=[$('marcar-entrada-btn'),$('marcar-salida-btn')], estado=$('marcacion-estado');
+  btns.forEach(b=>b.disabled=true); estado.textContent='Solicitando ubicación…';
+  try {
+    const ubicacion=await obtenerUbicacionMarcacion();
+    estado.textContent='Registrando con hora del servidor…';
+    const data=await apiMarcacionesPortal('registrarMarcacion',{tipo,ubicacion});
+    estado.textContent=`${tipo==='ENTRADA'?'Entrada':'Salida'} registrada por el servidor a las ${esc(data.marcacion.fechaServidor)}.`;
+    await cargarMarcacionesPortal();
+  } catch(error) {
+    estado.textContent=error.message;
+    if (/iniciar sesión|iniciar sesi[oó]n/i.test(error.message)) estado.innerHTML=esc(error.message)+' <a href="index.html?reauth=1&amp;return=trabajador">Volver a iniciar sesión</a>';
+  } finally { btns.forEach(b=>b.disabled=!esPropio); }
 }
 
 // Los documentos pueden pesar mucho (archivos en base64): se cargan solo al abrir la pestaña.

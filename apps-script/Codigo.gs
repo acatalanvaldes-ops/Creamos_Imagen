@@ -19,6 +19,8 @@
 const SHEET_ID = "1H1I_00xY-HdqVCrDNei35FIl2EOx7tAWA3iOP3hJ8IE";
 const SHEET_NAME = "Hoja 1"; // Debe ser el nombre de la pestaña donde están los datos
 const APP_TOKEN = "b5bd161b4ef581c6114b7bb4"; // El mismo CLOUD_TOKEN que usan las páginas
+const GOOGLE_CLIENT_ID = "207433225749-76s4184pif80ge7gfr0nt39qa80b82ij.apps.googleusercontent.com";
+const SHEET_MARCACIONES = "Marcaciones Portal";
 const CACHE_TTL_S = 21600; // 6 horas (máximo permitido por CacheService)
 const CACHE_PREFIX = "v1:";
 const CACHE_NULL = "__NULL__"; // marca "la llave no existe", para no buscarla de nuevo
@@ -112,6 +114,103 @@ function datosTrabajadorPorCorreo(key, email) {
   });
 }
 
+function validarCredencialGoogle(idToken) {
+  if (!idToken || typeof idToken !== "string") throw new Error("Vuelve a iniciar sesión con Google.");
+  const respuestaGoogle = UrlFetchApp.fetch("https://oauth2.googleapis.com/tokeninfo?id_token=" + encodeURIComponent(idToken), { muteHttpExceptions:true });
+  if (respuestaGoogle.getResponseCode() !== 200) throw new Error("La sesión de Google venció. Vuelve a iniciar sesión.");
+  const claims = JSON.parse(respuestaGoogle.getContentText());
+  if (claims.aud !== GOOGLE_CLIENT_ID || String(claims.email_verified) !== "true" || !claims.email || Number(claims.exp) * 1000 <= Date.now()) {
+    throw new Error("La sesión de Google no es válida. Vuelve a iniciar sesión.");
+  }
+  return { email:normalizarCorreo(claims.email), nombre:claims.name || "" };
+}
+
+function hojaMarcaciones() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  let sh = ss.getSheetByName(SHEET_MARCACIONES);
+  if (!sh) {
+    const lock = LockService.getScriptLock();
+    lock.waitLock(20000);
+    try {
+      sh = ss.getSheetByName(SHEET_MARCACIONES);
+      if (!sh) {
+        sh = ss.insertSheet(SHEET_MARCACIONES);
+        sh.appendRow(["ID", "Trabajador ID", "Correo", "Tipo", "Fecha y hora servidor", "Latitud", "Longitud", "Precisión (m)"]);
+        sh.setFrozenRows(1);
+      }
+    } finally { lock.releaseLock(); }
+  }
+  return sh;
+}
+
+function usuarioPuedeVerMarcacionesRRHH(email) {
+  if (email === "a.catalan.valdes@gmail.com") return true;
+  let acl = leerClave("accesos_ci_v1");
+  try { if (typeof acl === "string") acl = JSON.parse(acl); } catch (e) { return false; }
+  const acceso = acl && acl[email];
+  return !!(acceso && (acceso.admin || (acceso.modules || []).indexOf("rrhh") !== -1));
+}
+
+function listarFilasMarcaciones(sh, trabajadorId) {
+  const last = sh.getLastRow();
+  if (last < 2) return [];
+  const desde = Math.max(2, last - 1999);
+  return sh.getRange(desde, 1, last - desde + 1, 8).getValues()
+    .filter(r => !trabajadorId || String(r[1]) === String(trabajadorId))
+    .map(r => ({
+      id:String(r[0]), trabajadorId:String(r[1]), tipo:String(r[3]),
+      fechaServidor:Utilities.formatDate(new Date(r[4]), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss"),
+      latitud:Number(r[5]), longitud:Number(r[6]), precisionMetros:Number(r[7])
+    }));
+}
+
+function manejarMarcaciones(payload) {
+  if (payload.token !== APP_TOKEN) throw new Error("No autorizado.");
+  const identidad = validarCredencialGoogle(payload.googleCredential);
+  if (payload.action === "listarMarcaciones" && payload.verTodos === true) {
+    if (!usuarioPuedeVerMarcacionesRRHH(identidad.email)) throw new Error("No tienes permiso para ver las marcaciones del equipo.");
+    return respuesta({ estado:"éxito", marcaciones:listarFilasMarcaciones(hojaMarcaciones(), null) });
+  }
+  const trabajadores = leerListaCompleta("rrhh_trabajadores_v1");
+  const trabajador = trabajadores.find(t => normalizarCorreo(t.email) === identidad.email && t.estado !== "Inactivo");
+  if (!trabajador || String(trabajador.id) !== String(payload.trabajadorId)) throw new Error("La cuenta no corresponde a un trabajador activo de esta ficha.");
+
+  const sh = hojaMarcaciones();
+  if (payload.action === "listarMarcaciones") {
+    return respuesta({ estado:"éxito", marcaciones:listarFilasMarcaciones(sh, trabajador.id).slice(-500) });
+  }
+  if (payload.action !== "registrarMarcacion") throw new Error("Acción de marcación desconocida.");
+  if (payload.tipo !== "ENTRADA" && payload.tipo !== "SALIDA") throw new Error("Tipo de marcación inválido.");
+  const u = payload.ubicacion || {};
+  const lat = Number(u.latitud), lon = Number(u.longitud), precision = Number(u.precisionMetros);
+  if (!Number.isFinite(lat) || lat < -90 || lat > 90 || !Number.isFinite(lon) || lon < -180 || lon > 180 || !Number.isFinite(precision) || precision <= 0) throw new Error("No se recibió una ubicación válida.");
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const last = sh.getLastRow();
+    const hoy = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd");
+    let ultima = null;
+    if (last >= 2) {
+      const rows = sh.getRange(2, 1, last - 1, 8).getValues();
+      for (let i = rows.length - 1; i >= 0; i--) {
+        if (String(rows[i][1]) !== String(trabajador.id)) continue;
+        const fecha = Utilities.formatDate(new Date(rows[i][4]), Session.getScriptTimeZone(), "yyyy-MM-dd");
+        if (fecha === hoy) { ultima = rows[i]; break; }
+        if (fecha < hoy) break;
+      }
+    }
+    if (payload.tipo === "ENTRADA" && ultima && String(ultima[3]) === "ENTRADA") throw new Error("Ya hay una entrada sin salida registrada hoy.");
+    if (payload.tipo === "SALIDA" && (!ultima || String(ultima[3]) !== "ENTRADA")) throw new Error("Primero debe existir una entrada abierta para registrar la salida.");
+
+    const ahora = new Date();
+    const registro = [Utilities.getUuid(), String(trabajador.id), identidad.email, payload.tipo, ahora, lat, lon, precision];
+    sh.appendRow(registro);
+    SpreadsheetApp.flush();
+    return respuesta({ estado:"éxito", marcacion:{ tipo:payload.tipo, fechaServidor:Utilities.formatDate(ahora, Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss") } });
+  } finally { lock.releaseLock(); }
+}
+
 function doGet(e) {
   try {
     if (!e.parameter || e.parameter.token !== APP_TOKEN) {
@@ -133,16 +232,21 @@ function doGet(e) {
 }
 
 function doPost(e) {
-  const lock = LockService.getScriptLock();
+  let payload;
+  let lock = null;
+  let lockAdquirido = false;
   try {
-    const payload = JSON.parse(e.postData.contents);
+    payload = JSON.parse(e.postData.contents);
+    if (payload.action === "listarMarcaciones" || payload.action === "registrarMarcacion") return manejarMarcaciones(payload);
     if (payload.token !== APP_TOKEN) {
       return respuesta({ estado: "error", detalle: "No autorizado" });
     }
+    lock = LockService.getScriptLock();
     const key = payload.key;
     const value = payload.value;
 
     lock.waitLock(20000);
+    lockAdquirido = true;
     const sheet = hoja();
     const fila = buscarFila(sheet, key);
     if (fila > -1) {
@@ -157,7 +261,7 @@ function doPost(e) {
   } catch (error) {
     return respuesta({ estado: "error", detalle: error.toString() });
   } finally {
-    lock.releaseLock();
+    if (lock && lockAdquirido) lock.releaseLock();
   }
 }
 
