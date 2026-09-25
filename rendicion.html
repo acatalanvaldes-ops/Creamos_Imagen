@@ -55,14 +55,14 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);min-height:10
 .card-lbl{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-family:var(--mono);margin-bottom:5px}
 .card-val{font-family:var(--mono);font-size:18px;font-weight:600}
 .g{color:var(--green)}.b{color:var(--blue)}.a{color:var(--amber)}
-.tbl-wrap{background:var(--white);border:1px solid var(--border);border-radius:8px;overflow:auto;flex:1;min-width:0;overscroll-behavior-x:contain}
+.tbl-wrap{background:var(--white);border:1px solid var(--border);border-radius:8px;overflow-x:auto;overflow-y:auto;flex:1;min-width:0;overscroll-behavior-x:contain;scrollbar-gutter:stable}
 .tbl-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#faf9f6;border-bottom:1px solid var(--border);flex-wrap:wrap}
 .tbl-bar h3{font-size:12px;font-weight:700}
 .cur-date-lbl{font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--border);padding:3px 9px;border-radius:4px}
 .type-pills{display:flex;gap:5px;flex-wrap:wrap}
 .pill{background:var(--white);border:1px solid var(--border);color:var(--muted);font-family:var(--sans);font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;cursor:pointer;}
 .pill.on{background:var(--accent);color:#fff;border-color:var(--accent)}
-.tbl-wrap table{width:100%;min-width:1590px;table-layout:fixed;border-collapse:collapse}
+.tbl-wrap table{width:max-content;min-width:1470px;table-layout:fixed;border-collapse:collapse}
 thead th{background:#f5f3ee;font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-weight:600;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);}
 tbody td{border-bottom:1px solid var(--border);padding:0;font-size:12px}
 td input,td select{background:transparent;border:none;color:var(--ink);font-family:var(--mono);font-size:12px;padding:8px 12px;width:100%;outline:none;}
@@ -184,7 +184,7 @@ tfoot .tot-row td{background:var(--accent-l);font-family:var(--mono);font-size:1
         </div>
       </div>
       <table>
-        <colgroup><col style="width:110px"><col style="width:190px"><col style="width:200px"><col style="width:190px"><col style="width:150px"><col style="width:125px"><col style="width:130px"><col style="width:125px"><col style="width:125px"><col style="width:180px"><col style="width:65px"></colgroup>
+        <colgroup><col style="width:100px"><col style="width:150px"><col style="width:170px"><col style="width:145px"><col style="width:135px"><col style="width:120px"><col style="width:130px"><col style="width:120px"><col style="width:120px"><col style="width:220px"><col style="width:60px"></colgroup>
         <thead><tr><th style="width:115px">Fecha</th><th style="width:170px">Cliente</th><th style="width:140px">Tipo de Venta</th><th style="width:190px">Origen</th><th style="width:135px">Forma de Pago</th><th style="width:110px;text-align:right">Efectivo ($)</th><th style="width:115px;text-align:right">Transfer. ($)</th><th style="width:105px;text-align:right">Crédito ($)</th><th style="width:105px;text-align:right">Débito ($)</th><th>Observaciones</th><th style="width:60px;text-align:center">Acción</th></tr></thead>
         <tbody id="tbody">
           <tr class="empty-row"><td colspan="11">Cargando registros...</td></tr>
