@@ -88,9 +88,13 @@
     }
 
     .menu-btn .icon {
-      font-size: 32px;
+      width: 72px;
+      height: 72px;
       margin-bottom: 12px;
       display: block;
+      object-fit: cover;
+      border-radius: 12px;
+      background: #f8f7f4;
       transition: transform 0.2s;
     }
 
@@ -173,19 +177,19 @@ var API_URL = "/api/portal";
 // servidor al iniciar sesión, a partir de "Accesos" y de las fichas de RRHH.
 
 var MODULOS = [
-  { key: "rendicion",    label: "Caja",           icon: "💵", href: "rendicion.html",   cls: "caja" },
-  { key: "clientes",     label: "Clientes",       icon: "👥", href: "clientes.html",    cls: "clientes" },
-  { key: "costos",       label: "Costos",         icon: "⚙️", href: "costos.html",      cls: "costos" },
-  { key: "cotizaciones", label: "Cotizaciones",   icon: "🧾", href: "cotizaciones.html",cls: "cotizaciones" },
-  { key: "dashboard",    label: "Indicadores",    icon: "📈", href: "dashboard.html",   cls: "dashboard" },
-  { key: "calendario",   label: "Producciones",   icon: "📅", href: "calendario.html",  cls: "producciones" },
-  { key: "proveedores",  label: "Proveedores",    icon: "📦", href: "proveedores.html", cls: "proveedores" },
-  { key: "ventasci",     label: "Otros", icon: "🏢", href: "ventasci.html",    cls: "ventasci", sub: "(Creamos Imagen)" },
-  { key: "ventas",       label: "Sala de venta",   icon: "📊", href: "ventas.html",      cls: "ventas", sub: "(Vendedores)" },
-  { key: "rrhh",         label: "Recursos Humanos", icon: "🧑‍💼", href: "rrhh.html",    cls: "rrhh" },
+  { key: "rendicion",    label: "Caja",           icon: "assets/module-icons/caja.jpg",          href: "rendicion.html",    cls: "caja" },
+  { key: "clientes",     label: "Clientes",       icon: "assets/module-icons/clientes.jpg",      href: "clientes.html",     cls: "clientes" },
+  { key: "costos",       label: "Costos",         icon: "assets/module-icons/costos.jpg",        href: "costos.html",       cls: "costos" },
+  { key: "cotizaciones", label: "Cotizaciones",   icon: "assets/module-icons/cotizaciones.jpg",  href: "cotizaciones.html", cls: "cotizaciones" },
+  { key: "dashboard",    label: "Indicadores",    icon: "assets/module-icons/indicadores.jpg",   href: "dashboard.html",    cls: "dashboard" },
+  { key: "calendario",   label: "Producciones",   icon: "assets/module-icons/produccion.jpg",     href: "calendario.html",   cls: "producciones" },
+  { key: "proveedores",  label: "Proveedores",    icon: "assets/module-icons/proveedores.jpg",    href: "proveedores.html",  cls: "proveedores" },
+  { key: "ventasci",     label: "Otros",          icon: "assets/module-icons/empresa.jpg",        href: "ventasci.html",     cls: "ventasci", sub: "(Creamos Imagen)" },
+  { key: "ventas",       label: "Sala de venta",  icon: "assets/module-icons/sala-ventas.jpg",   href: "ventas.html",       cls: "ventas", sub: "(Vendedores)" },
+  { key: "rrhh",         label: "Recursos Humanos",icon: "assets/module-icons/rrhh.jpg",          href: "rrhh.html",         cls: "rrhh" },
   // Mi Portal no se asigna en "Accesos": lo ve quien tenga su correo
   // registrado en la ficha de un trabajador Activo de Recursos Humanos.
-  { key: "trabajador",   label: "Mi Portal",      icon: "👤", href: "trabajador.html", cls: "portal", sub: "(Trabajador)" }
+  { key: "trabajador",   label: "Mi Portal",      icon: "assets/module-icons/mi-portal.jpg",     href: "trabajador.html",   cls: "portal", sub: "(Trabajador)" }
 ];
 // Envía el token de Google al servidor para verificarlo y obtener una sesión firmada.
 async function llamarServidor(cuerpo) {
@@ -356,7 +360,7 @@ function renderMenu(sess) {
   }
   grid.innerHTML = visibles.map(function(m){
     return '<a href="' + m.href + '" class="menu-btn ' + m.cls + '">' +
-      '<span class="icon">' + m.icon + '</span>' +
+      '<img class="icon" src="' + m.icon + '" alt="Icono de ' + m.label + '" loading="lazy">' +
       '<span style="text-align:center;">' + m.label + (m.sub ? '<br><small style="font-size:10px;color:#888;font-weight:normal;">' + m.sub + '</small>' : '') + '</span>' +
     '</a>';
   }).join('');
