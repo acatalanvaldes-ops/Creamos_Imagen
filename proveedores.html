@@ -86,6 +86,8 @@ table.tbl tr:last-child td{border-bottom:none}
   <link rel="stylesheet" href="brand/brand.css">
   <script src="brand/brand.js"></script>
   <script src="brand/form-examples.js"></script>
+  <script src="brand/layout.js"></script>
+  <script src="brand/geografia.js"></script>
 </head>
 <body>
 <script src="cargando.js"></script>
@@ -160,8 +162,9 @@ table.tbl tr:last-child td{border-bottom:none}
       <div class="fld"><label>Tipo de vía</label><select id="p-via"><option>Calle</option><option>Avenida</option><option>Pasaje</option></select></div>
       <div class="fld"><label>Nombre de calle o vía</label><input type="text" id="p-direccion"></div>
       <div class="fld"><label>Número o altura</label><input type="text" id="p-altura"></div>
-      <div class="fld"><label>Comuna</label><input type="text" id="p-comuna"></div>
-      <div class="fld"><label>Región</label><input type="text" id="p-region"></div>
+      <div class="fld"><label>Región</label><select id="p-region"></select></div>
+      <div class="fld"><label>Comuna</label><select id="p-comuna"></select></div>
+      <div class="fld" style="grid-column:1/-1"><label>Referencia de dirección</label><input type="text" id="p-referencia"></div>
       
       <div class="fld"><label>Primer nombre de contacto</label><input type="text" id="p-contacto-n1"></div><div class="fld"><label>Segundo nombre</label><input type="text" id="p-contacto-n2"></div>
       <div class="fld"><label>Primer apellido</label><input type="text" id="p-contacto-a1"></div><div class="fld"><label>Segundo apellido</label><input type="text" id="p-contacto-a2"></div>
@@ -324,6 +327,7 @@ function renderProveedores() {
         <div class="c-row"><strong>Contacto:</strong> ${p.contacto || '-'}</div>
         <div class="c-row"><strong>Teléfono:</strong> ${p.telefono || '-'}</div>
         <div class="c-row"><strong>Ubicación:</strong> ${p.comuna ? p.comuna + (p.direccion ? ', ' + p.direccion : '') : (p.direccion || '-')}</div>
+        ${p.referencia ? `<div class="c-row"><strong>Referencia:</strong> ${p.referencia}</div>` : ''}
       </div>
     </div>
   `).join('');
@@ -433,8 +437,8 @@ function abrirForm(id) {
     document.getElementById('p-rut').value = (p.rut || '').replace(/\D/g,'').slice(0,-1);
     document.getElementById('p-rut-dv').value = p.rutDv || ((p.rut||'').replace(/[.\-]/g,'').slice(-1));
     document.getElementById('p-direccion').value = p.calle || p.direccion || '';
-    document.getElementById('p-comuna').value = p.comuna || '';
-    document.getElementById('p-altura').value=p.altura||''; document.getElementById('p-region').value=p.region||''; document.getElementById('p-via').value=p.tipoVia||'Calle';
+    cambiarDireccionSelects('p-region','p-comuna',p.region||'',p.comuna||'');
+    document.getElementById('p-altura').value=p.altura||''; document.getElementById('p-referencia').value=p.referencia||''; document.getElementById('p-via').value=p.tipoVia||'Calle';
     document.getElementById('p-rubro').value = p.rubro || '';
     const partesContacto=(p.contacto||'').split(' '); ['p-contacto-n1','p-contacto-n2','p-contacto-a1','p-contacto-a2'].forEach((id,i)=>document.getElementById(id).value=partesContacto[i]||'');
     document.getElementById('p-telefono').value = (p.telefono || '').replace(/^\+?56\s*/, '');
@@ -470,8 +474,8 @@ function abrirForm(id) {
     document.getElementById('p-nombre').value = '';
     document.getElementById('p-rut').value = '';
     document.getElementById('p-direccion').value = '';
-    document.getElementById('p-comuna').value = '';
-    document.getElementById('p-altura').value=''; document.getElementById('p-region').value=''; document.getElementById('p-via').value='Calle'; document.getElementById('p-rut-dv').value='';
+    cambiarDireccionSelects('p-region','p-comuna','','');
+    document.getElementById('p-altura').value=''; document.getElementById('p-referencia').value=''; document.getElementById('p-via').value='Calle'; document.getElementById('p-rut-dv').value='';
     document.getElementById('p-rubro').value = '';
     ['p-contacto-n1','p-contacto-n2','p-contacto-a1','p-contacto-a2'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('p-telefono').value = '';
@@ -498,7 +502,7 @@ function guardarProveedor() {
     id: editId || Date.now(),
     nombre: nombre,
     rut: rutNumero ? rutNumero+'-'+rutDv : '', rutDv:rutDv,
-    tipoVia:document.getElementById('p-via').value, calle:document.getElementById('p-direccion').value.trim(), altura:document.getElementById('p-altura').value.trim(), region:document.getElementById('p-region').value.trim(),
+    tipoVia:document.getElementById('p-via').value, calle:document.getElementById('p-direccion').value.trim(), altura:document.getElementById('p-altura').value.trim(), region:document.getElementById('p-region').value.trim(), referencia:document.getElementById('p-referencia').value.trim(),
     direccion: [document.getElementById('p-via').value,document.getElementById('p-direccion').value.trim(),document.getElementById('p-altura').value.trim(),document.getElementById('p-comuna').value.trim(),document.getElementById('p-region').value.trim()].filter(Boolean).join(', '),
     comuna: document.getElementById('p-comuna').value.trim(),
     rubro: document.getElementById('p-rubro').value.trim(),

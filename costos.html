@@ -68,6 +68,7 @@ input,select,button{font-family:inherit;outline:none}
   <link rel="stylesheet" href="brand/brand.css">
   <script src="brand/brand.js"></script>
   <script src="brand/form-examples.js"></script>
+  <script src="brand/layout.js"></script>
 </head>
 <body>
 <script src="cargando.js"></script>
@@ -282,7 +283,7 @@ function toggleTallerExterno(el) {
 // INTERFAZ (RENDER)
 // ============================================================
 function setState(p) { Object.assign(state, p); render(); }
-function setConfig(k, v) { state.config[k] = parseFloat(v) || 0; guardarDatos(); render(); }
+function setConfig(k, v) { var valor=parseFloat(v)||0; state.config[k] = k==='admin' ? Math.round(valor) : valor; guardarDatos(); render(); }
 function setRrhh(idx, field, value) {
   if(field==='nombre' || field==='cargo') state.config.rrhh[idx][field] = value;
   else state.config.rrhh[idx][field] = parseFloat(value) || 0;
@@ -434,7 +435,7 @@ function buildConfig() {
         '<div class="fld"><label>Costo Hilos</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+c.hilos+'" onchange="setConfig(\'hilos\',this.value)"></div></div>'+
         '<div class="fld"><label>Desgaste Máquina y Luz</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+c.maquina+'" onchange="setConfig(\'maquina\',this.value)"></div></div>'+
         '<div class="fld"><label>Traslado</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+(c.traslado||0)+'" onchange="setConfig(\'traslado\',this.value)"></div></div>'+
-        '<div class="fld"><label style="color:var(--purple)">Gastos de Administración'+(tienePermisoNomina()?' <span style="font-size:9px;font-weight:400">(Viene de la pestaña Nómina)</span>':'')+'</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+c.admin+'" onchange="setConfig(\'admin\',this.value)"></div></div>'+
+        '<div class="fld"><label style="color:var(--purple)">Gastos de Administración'+(tienePermisoNomina()?' <span style="font-size:9px;font-weight:400">(Viene de la pestaña Nómina)</span>':'')+'</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" step="1" value="'+Math.round(c.admin||0)+'" onchange="setConfig(\'admin\',this.value)"></div></div>'+
         '<div style="margin-top:30px;padding-top:20px;border-top:1px dashed var(--border)">'+
           '<div class="fld"><label style="color:var(--teal)">Margen de Ganancia Deseado (%)</label><div class="fld-row"><input type="number" value="'+c.margen+'" onchange="setConfig(\'margen\',this.value)"><span class="fld-suffix">%</span></div></div>'+
         '</div>'+
@@ -490,7 +491,7 @@ function buildModal() {
         '<div class="fld" style="margin-bottom:0"><label>Costo Papel Adh ($/M/H)</label><input type="number" value="'+c.papelAdh+'" onchange="setConfig(\'papelAdh\',this.value)"></div>'+
         '<div class="fld" style="margin-bottom:0"><label>Costo Hilos ($)</label><input type="number" value="'+c.hilos+'" onchange="setConfig(\'hilos\',this.value)"></div>'+
         '<div class="fld" style="margin-bottom:0"><label>Desgaste Máquina/Luz ($)</label><input type="number" value="'+c.maquina+'" onchange="setConfig(\'maquina\',this.value)"></div>'+
-        '<div class="fld" style="margin-bottom:0"><label>Gastos Admin ($)</label><input type="number" value="'+c.admin+'" onchange="setConfig(\'admin\',this.value)"></div>'+
+        '<div class="fld" style="margin-bottom:0"><label>Gastos Admin ($)</label><input type="number" step="1" value="'+Math.round(c.admin||0)+'" onchange="setConfig(\'admin\',this.value)"></div>'+
         '<div class="fld" style="margin-bottom:0"><label>Traslado ($)</label><input type="number" value="'+(c.traslado||0)+'" onchange="setConfig(\'traslado\',this.value)"></div>'+
       '</div>'+
     '</div>' : '';
@@ -633,6 +634,8 @@ async function initApp() {
       alert('No se pudo confirmar la conexión con la nube. Se están mostrando los datos guardados en este navegador; los cambios que hagas ahora se guardarán aquí pero no se subirán hasta que la conexión se restablezca (vuelve a cargar la página más tarde).');
     }
   }
+  var adminRedondeado=Math.round(Number(state.config.admin)||0);
+  if(Number(state.config.admin)!==adminRedondeado){state.config.admin=adminRedondeado;guardarDatos();}
   render();
 }
 

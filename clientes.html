@@ -46,6 +46,8 @@ input,button{font-family:inherit;outline:none}
   <link rel="stylesheet" href="brand/brand.css">
   <script src="brand/brand.js"></script>
   <script src="brand/form-examples.js"></script>
+  <script src="brand/layout.js"></script>
+  <script src="brand/geografia.js"></script>
 </head>
 <body>
 <script src="cargando.js"></script>
@@ -100,8 +102,9 @@ input,button{font-family:inherit;outline:none}
       <div class="fld"><label>Tipo de vía</label><select id="c-via"><option>Calle</option><option>Avenida</option><option>Pasaje</option></select></div>
       <div class="fld"><label>Nombre de calle o vía</label><input type="text" id="c-calle"></div>
       <div class="fld"><label>Número o altura</label><input type="text" id="c-altura"></div>
-      <div class="fld"><label>Comuna</label><input type="text" id="c-comuna"></div>
-      <div class="fld"><label>Región</label><input type="text" id="c-region"></div>
+      <div class="fld"><label>Región</label><select id="c-region"></select></div>
+      <div class="fld"><label>Comuna</label><select id="c-comuna"></select></div>
+      <div class="fld" style="grid-column:1/-1"><label>Referencia de dirección</label><input type="text" id="c-referencia"></div>
     </div>
     
     <div style="margin-top:20px;display:flex;justify-content:space-between;gap:10px">
@@ -291,6 +294,7 @@ function renderClientes() {
       <div class="c-row"><strong>📞 Teléfono:</strong> ${c.telefono || '-'}</div>
       <div class="c-row"><strong>Correo:</strong> ${c.email || '-'}</div>
       <div class="c-row"><strong>📍 Dirección:</strong> ${c.direccion || '-'}</div>
+      ${c.referencia ? `<div class="c-row"><strong>Referencia:</strong> ${c.referencia}</div>` : ''}
     </div>
   `).join('');
 }
@@ -310,7 +314,7 @@ async function abrirForm(id) {
     document.getElementById('c-nom1').value=(c.contacto||'').split(' ')[0]||''; document.getElementById('c-nom2').value=(c.contacto||'').split(' ').slice(1,-2).join(' ');
     document.getElementById('c-ape1').value=(c.contacto||'').split(' ').slice(-2,-1)[0]||''; document.getElementById('c-ape2').value=(c.contacto||'').split(' ').slice(-1)[0]||'';
     document.getElementById('c-email').value=c.email||'';
-    document.getElementById('c-calle').value=c.calle||c.direccion||''; document.getElementById('c-altura').value=c.altura||''; document.getElementById('c-comuna').value=c.comuna||''; document.getElementById('c-region').value=c.region||''; document.getElementById('c-via').value=c.tipoVia||'Calle';
+    document.getElementById('c-calle').value=c.calle||c.direccion||''; document.getElementById('c-altura').value=c.altura||''; cambiarDireccionSelects('c-region','c-comuna',c.region||'',c.comuna||''); document.getElementById('c-referencia').value=c.referencia||''; document.getElementById('c-via').value=c.tipoVia||'Calle';
     btnDel.style.display = 'block';
 
     // Muestra la ficha de inmediato con los datos del cliente (ya están en
@@ -347,7 +351,7 @@ async function abrirForm(id) {
     document.getElementById('c-razon').value = '';
     document.getElementById('c-rut').value = '';
     document.getElementById('c-tel').value = '';
-    ['c-nom1','c-nom2','c-ape1','c-ape2','c-email','c-calle','c-altura','c-comuna','c-region','c-rut-dv'].forEach(x=>document.getElementById(x).value='');
+    ['c-nom1','c-nom2','c-ape1','c-ape2','c-email','c-calle','c-altura','c-rut-dv','c-referencia'].forEach(x=>document.getElementById(x).value=''); cambiarDireccionSelects('c-region','c-comuna','','');
     btnDel.style.display = 'none';
     hist.style.display = 'none';
   }
@@ -369,7 +373,7 @@ function guardarCliente() {
     telefono: document.getElementById('c-tel-cod').value+' '+document.getElementById('c-tel').value.trim(),
     contacto: ['c-nom1','c-nom2','c-ape1','c-ape2'].map(x=>document.getElementById(x).value.trim()).filter(Boolean).join(' '),
     email:document.getElementById('c-email').value.trim(), tipoVia:document.getElementById('c-via').value,
-    calle:document.getElementById('c-calle').value.trim(), altura:document.getElementById('c-altura').value.trim(), comuna:document.getElementById('c-comuna').value.trim(), region:document.getElementById('c-region').value.trim(),
+    calle:document.getElementById('c-calle').value.trim(), altura:document.getElementById('c-altura').value.trim(), comuna:document.getElementById('c-comuna').value.trim(), region:document.getElementById('c-region').value.trim(), referencia:document.getElementById('c-referencia').value.trim(),
     direccion:[document.getElementById('c-via').value,document.getElementById('c-calle').value.trim(),document.getElementById('c-altura').value.trim(),document.getElementById('c-comuna').value.trim(),document.getElementById('c-region').value.trim()].filter(Boolean).join(', ')
   };
 
