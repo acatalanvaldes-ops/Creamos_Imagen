@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -242,6 +242,9 @@ async function handleCredentialResponse(response) {
   }
   if (!resultado || resultado.estado !== "éxito" || !resultado.sesion) {
     var detalle = resultado && String(resultado.detalle || "");
+    var diagnostico = errorRed && errorRed.message
+      ? errorRed.message
+      : resultado ? JSON.stringify(resultado).slice(0, 240) : "el servidor no entregó datos";
     if (msg) msg.textContent = detalle === "CREDENCIAL_INVALIDA"
       ? "No se pudo verificar tu cuenta de Google. Inténtalo de nuevo."
       : detalle.indexOf("script.external_request") !== -1
@@ -252,7 +255,7 @@ async function handleCredentialResponse(response) {
             ? "El servidor rechazó el inicio de sesión: " + detalle
             : errorRed && errorRed.name === "AbortError"
             ? "El servidor tardó demasiado en responder. Vuelve a intentarlo."
-              : "No se pudo conectar con el servidor. " + (errorRed && errorRed.message ? "Detalle: " + errorRed.message : "Revisa tu conexión y vuelve a intentarlo.");
+              : "No se pudo conectar con el servidor. Diagnóstico portal-diag-2: " + diagnostico;
     if (btnWrap) btnWrap.style.display = "flex";
     return;
   }
@@ -408,3 +411,4 @@ function renderMenu(sess) {
   </div>
 </body>
 </html>
+
