@@ -1,7 +1,7 @@
 {
   "id": "./trabajador.html",
   "name": "Creamos Imagen Mi Portal",
-  "short_name": "Mi Portal",
+  "short_name": "Creamos Imagen Mi Portal",
   "description": "Portal de trabajadores de Creamos Imagen",
   "lang": "es-CL",
   "start_url": "./trabajador.html",
