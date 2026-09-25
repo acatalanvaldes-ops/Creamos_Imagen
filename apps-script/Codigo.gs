@@ -28,14 +28,7 @@
 
 const SHEET_ID = "1H1I_00xY-HdqVCrDNei35FIl2EOx7tAWA3iOP3hJ8IE";
 const SHEET_NAME = "Hoja 1"; // Debe ser el nombre de la pestaña donde están los datos
-const SHEET_MARCACIONES = "Marcaciones";
-const APP_TOKEN = "b5bd161b4ef581c6114b7bb4"; // token antiguo: solo vale en modo transición
-const GOOGLE_CLIENT_ID = "207433225749-76s4184pif80ge7gfr0nt39qa80b82ij.apps.googleusercontent.com";
-const SUPER_ADMIN_EMAIL = "a.catalan.valdes@gmail.com";
-const ACL_KEY = "accesos_ci_v1";
-const SESION_TTL_MS = 24 * 60 * 60 * 1000; // igual que en las páginas
-const MODULOS = ["rendicion", "clientes", "costos", "cotizaciones", "dashboard", "calendario", "proveedores", "ventasci", "ventas", "rrhh"];
-
+const APP_TOKEN = "b5bd161b4ef581c6114b7bb4"; // El mismo CLOUD_TOKEN que usan las páginas
 const CACHE_TTL_S = 21600; // 6 horas (máximo permitido por CacheService)
 const CACHE_PREFIX = "v1:";
 const CACHE_NULL = "__NULL__"; // marca "la llave no existe", para no buscarla de nuevo
@@ -91,10 +84,10 @@ function guardarEnCache(key, value) {
   }
 }
 
-// Valor crudo (texto) de una llave, o null.
-function leerValor(key) {
+function leerClave(key) {
   const enCache = CacheService.getScriptCache().get(CACHE_PREFIX + key);
   if (enCache !== null) return enCache === CACHE_NULL ? null : enCache;
+
   const sheet = hoja();
   const fila = buscarFila(sheet, key);
   const value = fila > -1 ? sheet.getRange(fila, 2).getValue() : null;
@@ -103,133 +96,50 @@ function leerValor(key) {
   return valor;
 }
 
-// Guarda una llave. Quien llama debe tener tomado el lock.
-function escribirValor(key, value) {
-  const sheet = hoja();
-  const fila = buscarFila(sheet, key);
-  if (fila > -1) sheet.getRange(fila, 2).setValue(value);
-  else sheet.appendRow([key, value]);
-  SpreadsheetApp.flush();
-  guardarEnCache(key, value);
-}
+function leerListaCompleta(key) {
+  const primero = leerClave(key);
+  if (primero === null || primero === undefined) return [];
 
-function leerJSON(key) {
-  const v = leerValor(key);
-  if (v === null) return null;
-  try { return JSON.parse(v); } catch (e) { return null; }
-}
+  let bloque;
+  try { bloque = JSON.parse(primero); } catch (error) { return []; }
+  if (Array.isArray(bloque)) return bloque;
+  if (!bloque || typeof bloque.shardCount !== "number") return [];
 
-// Llaves de RRHH: texto JSON partido en bloques {shardCount, parte}.
-function leerRRHH(key) {
-  const primero = leerJSON(key);
-  if (!primero) return [];
-  if (Array.isArray(primero)) return primero;
-  if (typeof primero.shardCount !== "number") throw new Error("Formato no reconocido en " + key);
-  let texto = primero.parte || "";
-  for (let i = 1; i < primero.shardCount; i++) {
-    const b = leerJSON(key + "_sh" + i);
-    if (!b || typeof b.parte !== "string") throw new Error("Falta la partición " + i + " de " + key);
-    texto += b.parte;
+  let texto = bloque.parte || "";
+  for (let i = 1; i < bloque.shardCount; i++) {
+    const parte = leerClave(key + "_sh" + i);
+    if (parte === null || parte === undefined) throw new Error("Falta la partición " + i + " de " + key);
+    const bloqueParte = JSON.parse(parte);
+    if (!bloqueParte || typeof bloqueParte.parte !== "string") throw new Error("Formato inválido en la partición " + i + " de " + key);
+    texto += bloqueParte.parte;
   }
   return texto ? JSON.parse(texto) : [];
 }
 
-// ------------------------------------------------------------------
-// Sesiones firmadas
-// ------------------------------------------------------------------
-function secreto() {
-  const props = PropertiesService.getScriptProperties();
-  let s = props.getProperty("SESSION_SECRET");
-  if (!s) {
-    s = Utilities.getUuid() + Utilities.getUuid();
-    props.setProperty("SESSION_SECRET", s);
-  }
-  return s;
-}
-function firmar(texto) {
-  return Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(texto, secreto())).replace(/=+$/, "");
-}
-function crearToken(email) {
-  const datos = Utilities.base64EncodeWebSafe(JSON.stringify({ e: email, x: Date.now() + SESION_TTL_MS }), Utilities.Charset.UTF_8).replace(/=+$/, "");
-  return datos + "." + firmar(datos);
-}
-// Devuelve el correo de la sesión, o null si el token no es válido o venció.
-function leerToken(token) {
-  if (!token || typeof token !== "string") return null;
-  const partes = token.split(".");
-  if (partes.length !== 2) return null;
-  if (firmar(partes[0]) !== partes[1]) return null;
-  try {
-    let b64 = partes[0]; while (b64.length % 4) b64 += "=";
-    const datos = JSON.parse(Utilities.newBlob(Utilities.base64DecodeWebSafe(b64)).getDataAsString("UTF-8"));
-    if (!datos.e || !datos.x || datos.x < Date.now()) return null;
-    return String(datos.e).toLowerCase();
-  } catch (e) { return null; }
+function normalizarCorreo(email) {
+  return String(email || "").trim().toLowerCase();
 }
 
-function modoEstricto() {
-  return PropertiesService.getScriptProperties().getProperty("MODO_ESTRICTO") === "si";
+function datosTrabajadorPorCorreo(key, email) {
+  const correo = normalizarCorreo(email);
+  if (!correo) return [];
+
+  const trabajadores = leerListaCompleta("rrhh_trabajadores_v1");
+  const trabajador = trabajadores.find(function (t) {
+    return normalizarCorreo(t.email) === correo;
+  });
+  if (!trabajador) return [];
+  if (key === "rrhh_trabajadores_v1") return [trabajador];
+
+  const id = String(trabajador.id);
+  const lista = leerListaCompleta(key);
+  return lista.filter(function (registro) {
+    if (!registro) return false;
+    const regId = registro.trabajadorId !== undefined ? registro.trabajadorId : registro.idTrabajador;
+    return regId !== undefined && regId !== null && String(regId) === id;
+  });
 }
 
-// ------------------------------------------------------------------
-// Permisos
-// ------------------------------------------------------------------
-// Usuario con el token antiguo (solo en modo transición): acceso total.
-const USUARIO_LEGADO = { email: "(token antiguo)", isAdmin: true, modules: MODULOS.slice(), esTrabajador: false, legado: true };
-
-function permisosDe(email) {
-  const e = String(email || "").trim().toLowerCase();
-  const acl = leerJSON(ACL_KEY) || {};
-  const entrada = acl[e] || null;
-  const isAdmin = e === SUPER_ADMIN_EMAIL || !!(entrada && entrada.admin);
-  const modules = isAdmin ? MODULOS.slice() : ((entrada && entrada.modules) || []).filter(function (m) { return MODULOS.indexOf(m) !== -1; });
-  return { email: e, isAdmin: isAdmin, modules: modules };
-}
-
-function trabajadorDeCorreo(email, trabajadores) {
-  const e = String(email || "").trim().toLowerCase();
-  if (!e) return null;
-  return (trabajadores || []).find(function (t) { return String(t.email || "").trim().toLowerCase() === e; }) || null;
-}
-
-function perfil(email) {
-  const p = permisosDe(email);
-  let t = null;
-  try { t = trabajadorDeCorreo(email, leerRRHH("rrhh_trabajadores_v1")); } catch (e) {}
-  p.esTrabajador = !!(t && t.estado !== "Inactivo");
-  return p;
-}
-
-// Identifica al usuario de la petición: sesión firmada o (en transición) token antiguo.
-function usuarioDe(token) {
-  const email = leerToken(token);
-  if (email) return permisosDe(email);
-  if (token === APP_TOKEN && !modoEstricto()) return USUARIO_LEGADO;
-  return null;
-}
-
-function llaveBase(key) { return String(key || "").replace(/_sh\d+$/, ""); }
-
-function puede(usuario, key, escribir) {
-  if (!usuario) return false;
-  if (usuario.isAdmin) return true;
-  const base = llaveBase(key);
-  const regla = REGLAS.find(function (r) { return r.llave.test(base); });
-  if (!regla) return false; // accesos_ci_v1 y llaves desconocidas: solo administradores
-  const mods = usuario.modules || [];
-  const tiene = function (lista) { return lista.some(function (m) { return mods.indexOf(m) !== -1; }); };
-  return escribir ? tiene(regla.escribe) : (tiene(regla.escribe) || tiene(regla.lee));
-}
-
-function motivoRechazo(token) {
-  if (!token) return "NO_AUTORIZADO";
-  if (token === APP_TOKEN) return "NO_AUTORIZADO"; // token antiguo en modo estricto
-  return String(token).indexOf(".") > -1 ? "SESION_EXPIRADA" : "NO_AUTORIZADO";
-}
-
-// ------------------------------------------------------------------
-// Entradas HTTP
-// ------------------------------------------------------------------
 function validarCredencialGoogle(idToken) {
   if (!idToken || typeof idToken !== "string") throw new Error("Vuelve a iniciar sesión con Google.");
   const respuestaGoogle = UrlFetchApp.fetch("https://oauth2.googleapis.com/tokeninfo?id_token=" + encodeURIComponent(idToken), { muteHttpExceptions:true });
@@ -261,7 +171,7 @@ function hojaMarcaciones() {
 
 function usuarioPuedeVerMarcacionesRRHH(email) {
   if (email === "a.catalan.valdes@gmail.com") return true;
-  let acl = leerJSON(ACL_KEY);
+  let acl = leerClave("accesos_ci_v1");
   try { if (typeof acl === "string") acl = JSON.parse(acl); } catch (e) { return false; }
   const acceso = acl && acl[email];
   return !!(acceso && (acceso.admin || (acceso.modules || []).indexOf("rrhh") !== -1));
@@ -281,15 +191,13 @@ function listarFilasMarcaciones(sh, trabajadorId) {
 }
 
 function manejarMarcaciones(payload) {
-  const sessionEmail = leerToken(payload.token);
-  if (!sessionEmail) throw new Error("Sesión no autorizada o vencida.");
+  if (payload.token !== APP_TOKEN) throw new Error("No autorizado.");
   const identidad = validarCredencialGoogle(payload.googleCredential);
-  if (identidad.email !== sessionEmail) throw new Error("La cuenta no corresponde a esta sesión.");
   if (payload.action === "listarMarcaciones" && payload.verTodos === true) {
     if (!usuarioPuedeVerMarcacionesRRHH(identidad.email)) throw new Error("No tienes permiso para ver las marcaciones del equipo.");
     return respuesta({ estado:"éxito", marcaciones:listarFilasMarcaciones(hojaMarcaciones(), null) });
   }
-  const trabajadores = leerRRHH("rrhh_trabajadores_v1");
+  const trabajadores = leerListaCompleta("rrhh_trabajadores_v1");
   const trabajador = trabajadores.find(t => normalizarCorreo(t.email) === identidad.email && t.estado !== "Inactivo");
   if (!trabajador || String(trabajador.id) !== String(payload.trabajadorId)) throw new Error("La cuenta no corresponde a un trabajador activo de esta ficha.");
 
@@ -331,35 +239,53 @@ function manejarMarcaciones(payload) {
 
 function doGet(e) {
   try {
-    const p = (e && e.parameter) || {};
-    if (p.accion) return accionGet(p);
-    const usuario = usuarioDe(p.token);
-    if (!usuario) return error(motivoRechazo(p.token));
-    if (!puede(usuario, p.key, false)) return error("SIN_PERMISO");
-    return respuesta({ estado: "éxito", valor: leerValor(p.key) });
-  } catch (err) {
-    return error(err.toString());
+    if (!e.parameter || e.parameter.token !== APP_TOKEN) {
+      return respuesta({ estado: "error", detalle: "No autorizado" });
+    }
+    const key = e.parameter.key;
+
+    const enCache = CacheService.getScriptCache().get(CACHE_PREFIX + key);
+    if (enCache !== null) {
+      return respuesta({ estado: "éxito", valor: enCache === CACHE_NULL ? null : enCache });
+    }
+
+    const sheet = hoja();
+    const fila = buscarFila(sheet, key);
+    const value = fila > -1 ? sheet.getRange(fila, 2).getValue() : null;
+    const valor = (value === "" || value === undefined) ? null : value;
+    guardarEnCache(key, valor);
+    return respuesta({ estado: "éxito", valor: valor });
+  } catch (error) {
+    return respuesta({ estado: "error", detalle: error.toString() });
   }
 }
 
 function doPost(e) {
-  let payload;
-  try { payload = JSON.parse(e.postData.contents); } catch (err) { return error("Petición inválida"); }
-  if (payload.accion || payload.action) {
-    try { return accionPost(payload); } catch (err) { return error(err.toString()); }
-  }
-  const usuario = usuarioDe(payload.token);
-  if (!usuario) return error(motivoRechazo(payload.token));
-  if (!puede(usuario, payload.key, true)) return error("SIN_PERMISO");
   const lock = LockService.getScriptLock();
   try {
+    const payload = JSON.parse(e.postData.contents);
+    if (payload.token !== APP_TOKEN) {
+      return respuesta({ estado: "error", detalle: "No autorizado" });
+    }
+    const key = payload.key;
+    const value = payload.value;
+
     lock.waitLock(20000);
-    escribirValor(payload.key, payload.value);
+    const sheet = hoja();
+    const fila = buscarFila(sheet, key);
+    if (fila > -1) {
+      sheet.getRange(fila, 2).setValue(value);
+    } else {
+      sheet.appendRow([key, value]);
+    }
+    SpreadsheetApp.flush();
+    guardarEnCache(key, value);
+
     return respuesta({ estado: "éxito" });
   } catch (err) {
     return error(err.toString());
   } finally {
-    lock.releaseLock();
+    if (lock && lockAdquirido) lock.releaseLock();
   }
 }
 
@@ -386,7 +312,6 @@ function accionGet(p) {
 
 function accionPost(b) {
   if (b.accion === "login") return accionLogin(b.credential);
-  if (b.action === "listarMarcaciones" || b.action === "registrarMarcacion") return manejarMarcaciones(b);
   if (b.accion === "solicitarVac") return accionSolicitarVac(b);
   if (b.accion === "cancelarVac") return accionCancelarVac(b);
   if (b.accion === "config") {
@@ -419,15 +344,8 @@ function accionLogin(credential) {
   const pf = perfil(g.email);
   return respuesta({
     estado: "éxito",
-      sesion: { token: crearToken(g.email), email: g.email, name: g.name || g.email, picture: g.picture, isAdmin: pf.isAdmin, modules: pf.modules, esTrabajador: pf.esTrabajador, googleCredential: credential, ts: Date.now() }
+    sesion: { token: crearToken(g.email), email: g.email, name: g.name || g.email, picture: g.picture, isAdmin: pf.isAdmin, modules: pf.modules, esTrabajador: pf.esTrabajador, ts: Date.now() }
   });
-}
-
-// Ejecutar una vez desde el editor de Apps Script para que el propietario
-// autorice las llamadas de validación de Google y el acceso a la hoja.
-function autorizarServicios() {
-  SpreadsheetApp.openById(SHEET_ID).getSheets()[0].getName();
-  UrlFetchApp.fetch("https://oauth2.googleapis.com/tokeninfo?id_token=invalid", { muteHttpExceptions: true });
 }
 
 // ------------------------------------------------------------------
