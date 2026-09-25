@@ -278,11 +278,7 @@ function desgloseNomina(config) {
   },{produccion:0,gav:0});
 }
 function actualizarGavAutomatico() {
-  var c=state.config;
-  if(!(Number(c.prodMensual)>0)) return;
-  var nomina=desgloseNomina(c), g=c.gastos||{};
-  var otros=(Number(g.arriendo)||0)+(Number(g.servicios)||0)+(Number(g.marketing)||0)+(Number(g.contador)||0)+(Number(g.software)||0)+(Number(g.otros)||0);
-  c.admin=Math.round((nomina.gav+otros)/Number(c.prodMensual));
+  // GAV se conserva como total mensual y no se prorratea por prenda.
 }
 function migrarFichasSeparacionGav() {
   if(Number(state.config.gavSeparacionVersion)>=2) return;
@@ -526,9 +522,7 @@ function buildAdmin() {
   var g = c.gastos;
   var totalGastos = g.arriendo + g.servicios + g.marketing + g.contador + g.software + g.otros;
   var totalGavMensual = totalNominaGav + totalGastos;
-  var costoGavPrenda = c.prodMensual > 0 ? Math.round(totalGavMensual / c.prodMensual) : 0;
   var costoManoObraPrenda = c.prodMensual > 0 ? Math.round(totalNominaProduccion / c.prodMensual) : 0;
-  if(Number(c.prodMensual)>0 && Math.round(Number(c.admin)||0)!==costoGavPrenda){c.admin=costoGavPrenda;guardarDatos();}
 
   return '<div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><h2>Nómina y Gastos Fijos (Administración y Ventas)</h2><button class="act-btn primary" onclick="agregarTrabajadorNomina()">+ Agregar trabajador</button></div>'+
     '<div class="card" style="margin-bottom:20px; overflow-x:hidden; padding:16px;">'+
@@ -562,12 +556,9 @@ function buildAdmin() {
       '<div class="resumen-admin">'+
         '<h3 style="color:var(--dark);margin-bottom:10px;font-size:18px;">Separación mensual de costos</h3>'+
         '<div style="text-align:left;background:#fff;border-radius:8px;padding:14px;border:1px solid var(--border);margin-bottom:18px;font-size:12px;line-height:1.9">'+
-          '<div style="display:flex;justify-content:space-between;gap:8px"><span>Personal de Diseño y Producción</span><b>'+fmt(totalNominaProduccion)+'</b></div>'+
           '<div style="display:flex;justify-content:space-between;gap:8px"><span>Sueldos de Administración, Ventas y otros (GAV)</span><b>'+fmt(totalNominaGav)+'</b></div>'+
           '<div style="display:flex;justify-content:space-between;gap:8px"><span>Otros Gastos Mensuales (GAV)</span><b>'+fmt(totalGastos)+'</b></div>'+
           '<div style="display:flex;justify-content:space-between;gap:8px;border-top:1px solid var(--border);padding-top:5px"><strong>Total GAV mensual</strong><strong style="color:var(--purple)">'+fmt(totalGavMensual)+'</strong></div>'+
-          '<div style="display:flex;justify-content:space-between;gap:8px"><span>Mano de obra de producción por prenda</span><b>'+fmt(costoManoObraPrenda)+'</b></div>'+
-          '<div style="display:flex;justify-content:space-between;gap:8px"><span>GAV por prenda</span><b>'+fmt(costoGavPrenda)+'</b></div>'+
         '</div>'+
 
         '<div style="background:#fff;border-radius:8px;padding:16px;text-align:left;border:1px solid var(--border);margin-bottom:20px;">'+
