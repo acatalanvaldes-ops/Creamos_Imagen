@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ventas Empresa - Creamos Imagen</title>
+<title>Ventas Otros - Creamos Imagen</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -78,6 +78,7 @@ tfoot td{padding:11px 12px;font-weight:700;white-space:nowrap}
 </style>
   <link rel="stylesheet" href="brand/brand.css">
   <script src="brand/brand.js"></script>
+  <script src="brand/form-examples.js"></script>
 </head>
 <body>
 <script src="cargando.js"></script>
@@ -271,7 +272,7 @@ function buildTopBar(tab) {
     var cls = tab===t[0] ? 'tab on' : 'tab';
     return '<button class="'+cls+'" data-tab="'+t[0]+'" onclick="goTab(this)">'+t[1]+'</button>';
   }).join('');
-  return '<div class="topbar"><div class="brand"><div class="brand-tag">Gestión Empresa</div><div class="brand-name">Ventas <span>Creamos Imagen</span></div></div><div class="tabs">'+tabHtml+'</div></div>';
+  return '<div class="topbar"><div class="brand"><div class="brand-tag">Otros</div><div class="brand-name">Ventas <span>Creamos Imagen</span></div></div><div class="tabs">'+tabHtml+'</div></div>';
 }
 
 function goTab(el){ setState({tab:el.getAttribute('data-tab')}); }
@@ -447,7 +448,7 @@ async function exportPDF() {
   doc.setFillColor(241, 175, 19); doc.rect(0, 70, doc.internal.pageSize.getWidth(), 3, 'F');
   if (window.CREAMOS_BRAND && window.CREAMOS_BRAND.addLogoToPdf) await window.CREAMOS_BRAND.addLogoToPdf(doc, marginX, 8, 70, true);
   doc.setTextColor(241, 175, 19); doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
-  doc.text('Creamos Imagen — Reporte de Ventas Empresa', marginX, y);
+  doc.text('Creamos Imagen — Reporte de Ventas Otros', marginX, y);
   y += 20;
 
   doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(90);

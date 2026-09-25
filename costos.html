@@ -67,6 +67,7 @@ input,select,button{font-family:inherit;outline:none}
 </style>
   <link rel="stylesheet" href="brand/brand.css">
   <script src="brand/brand.js"></script>
+  <script src="brand/form-examples.js"></script>
 </head>
 <body>
 <script src="cargando.js"></script>
@@ -222,7 +223,7 @@ function fmt(n) { return "$ " + Math.round(n).toLocaleString("es-CL"); }
 // calcular prendas producidas por persona en el Dashboard, ya que las
 // producciones (Calendario) se asocian a diseñadores, no a todo el equipo
 // (ventas, administración, etc.).
-var CARGOS = ["", "Administración", "Diseño / Producción", "Ventas Empresa", "Ventas Local", "Otro"];
+var CARGOS = ["", "Administración", "Diseño / Producción", "Otros", "Sala de venta", "Otro"];
 
 function guardarDatos() {
   var datos = { fichas: state.fichas, config: state.config };
@@ -287,6 +288,10 @@ function setRrhh(idx, field, value) {
   else state.config.rrhh[idx][field] = parseFloat(value) || 0;
   guardarDatos(); render();
 }
+function agregarTrabajadorNomina() {
+  state.config.rrhh.push({nombre:'',cargo:'',sueldo:0,afp:0,fonasa:7,bono:0,comision:0,anual:0});
+  guardarDatos(); render();
+}
 function setGasto(field, value) { state.config.gastos[field] = parseFloat(value) || 0; guardarDatos(); render(); }
 
 function tienePermisoNomina() {
@@ -338,7 +343,7 @@ function buildAdmin() {
   var totalProvision = 0;
   var rowsRrhh = c.rrhh.map(function(p, i) {
     var com = p.comision || 0;
-    var cargoActual = p.cargo || "";
+    var cargoActual = p.cargo === 'Ventas Local' ? 'Sala de venta' : p.cargo === 'Ventas Empresa' ? 'Otros' : (p.cargo || "");
     // Aguinaldos y asignaciones que no se pagan todos los meses (Fiestas
     // Patrias, Navidad, bonos anuales): se ingresa el total del año y se
     // provisiona 1/12 cada mes, para que el costo mensual no los omita.
@@ -369,11 +374,11 @@ function buildAdmin() {
   var totalGastos = g.arriendo + g.servicios + g.marketing + g.contador + g.software + g.otros;
   var totalFijoMensual = totalNomina + totalGastos;
 
-  var costoAdministrativoPrenda = c.prodMensual > 0 ? (totalFijoMensual / c.prodMensual) : 0;
+  var costoAdministrativoPrenda = c.prodMensual > 0 ? Math.round(totalFijoMensual / c.prodMensual) : 0;
 
-  return '<div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><h2>Nómina y Gastos Fijos (Administración y Ventas)</h2></div>'+
+  return '<div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><h2>Nómina y Gastos Fijos (Administración y Ventas)</h2><button class="act-btn primary" onclick="agregarTrabajadorNomina()">+ Agregar trabajador</button></div>'+
     '<div class="card" style="margin-bottom:20px; overflow-x:auto;">'+
-      '<div class="card-title">Equipo de Trabajo (7 Personas)</div>'+
+      '<div class="card-title">Equipo de Trabajo ('+c.rrhh.length+' personas)</div>'+
       '<table class="tbl-rrhh">'+
         '<thead><tr><th>Nombre</th><th>Cargo</th><th>Sueldo Base ($)</th><th>AFP (%)</th><th>Fonasa (%)</th><th>Bonos ($)</th><th>Comisiones ($)</th><th>Aguinaldos y Asig. no mensuales ($ al año)</th><th>Costo Real Mensual ($)</th></tr></thead>'+
         '<tbody>'+rowsRrhh+'</tbody>'+
@@ -387,7 +392,7 @@ function buildAdmin() {
 
     '<div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(300px, 1fr));gap:24px;">'+
       '<div class="card"><div class="card-title">Otros Gastos Mensuales</div>'+
-        '<div class="fld"><label>Arriendo Local / Taller</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+g.arriendo+'" onchange="setGasto(\'arriendo\',this.value)"></div></div>'+
+        '<div class="fld"><label>Arriendo / Taller</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+g.arriendo+'" onchange="setGasto(\'arriendo\',this.value)"></div></div>'+
         '<div class="fld"><label>Servicios (Luz, Agua, Internet)</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+g.servicios+'" onchange="setGasto(\'servicios\',this.value)"></div></div>'+
         '<div class="fld"><label>Marketing (Meta, Google Ads)</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+g.marketing+'" onchange="setGasto(\'marketing\',this.value)"></div></div>'+
         '<div class="fld"><label>Contador / Asesorías</label><div class="fld-row"><span class="fld-prefix">$</span><input type="number" value="'+g.contador+'" onchange="setGasto(\'contador\',this.value)"></div></div>'+

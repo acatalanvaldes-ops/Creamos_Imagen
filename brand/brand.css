@@ -13,6 +13,7 @@ button:hover,.btn:hover,.act-btn:hover{filter:brightness(.94)}
 .menu-btn::before{background:#F1AF13!important}
 .card,.kpi-card,.stat-card{border-color:#E6E2D9}
 .badge,.pill{font-family:'DM Sans',Arial,sans-serif}
+.brand-field-example{display:block;margin:5px 2px 0;color:#78716C;font-size:11px;line-height:1.35}
 @media print{.topbar,.brand-name,.topbar-brand{print-color-adjust:exact;-webkit-print-color-adjust:exact}.brand-name::before,.topbar-brand::before{background-image:url('logo-horizontal.svg')}}
 
 .container::before{content:'';display:block;width:170px;height:62px;margin:0 auto 20px;background:url('brand/logo-horizontal.svg') center/contain no-repeat}

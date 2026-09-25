@@ -83,6 +83,7 @@ tfoot td{padding:11px 12px;font-weight:700;white-space:nowrap}
 </style>
   <link rel="stylesheet" href="brand/brand.css">
   <script src="brand/brand.js"></script>
+  <script src="brand/form-examples.js"></script>
 </head>
 <body>
 <script src="cargando.js"></script>
@@ -581,7 +582,7 @@ function buildTotalBox(tV, tC, cp, count, tFact) {
   return '<div class="total-box">'+
     '<div class="tb-col"><div class="tb-lbl">Total Ventas (neto)</div><div class="tb-val" style="color:#86EFAC">'+fmt(tV)+'</div></div>'+
     '<div class="tb-col"><div class="tb-lbl">Total Comision ('+cp+'%)</div><div class="tb-val" style="color:#FCD34D">'+fmt(tC)+'</div></div>'+
-    '<div class="tb-col"><div class="tb-lbl">Ingreso Local</div><div class="tb-val" style="color:#5EEAD4;font-size:24px">'+fmt(tV-tC)+'</div>'+
+    '<div class="tb-col"><div class="tb-lbl">Ingreso Sala de venta</div><div class="tb-val" style="color:#5EEAD4;font-size:24px">'+fmt(tV-tC)+'</div>'+
     '<div style="font-size:10px;color:#555;margin-top:2px">'+count+' ventas - '+tFact+' con factura</div></div>'+
     '</div>';
 }

@@ -53,10 +53,13 @@ input,select,button{font-family:inherit;outline:none}
 .dis-row:hover .dis-tooltip,.dis-row:focus .dis-tooltip{opacity:1}
 .empty-note{font-size:13px;color:var(--muted);padding:10px 0}
 .note{font-size:12px;color:var(--muted);background:var(--bg);border:1px dashed var(--border);border-radius:8px;padding:10px 12px;margin-top:10px}
+.note button{border:0;background:transparent;color:var(--muted);font:inherit;text-decoration:underline;cursor:pointer;padding:0}
+dialog.indicator-info{max-width:520px;border:1px solid var(--border);border-radius:12px;padding:22px;color:var(--dark);box-shadow:0 20px 60px #0004}dialog.indicator-info::backdrop{background:#0008}
 .loading{text-align:center;padding:60px;color:var(--muted)}
 </style>
   <link rel="stylesheet" href="brand/brand.css">
   <script src="brand/brand.js"></script>
+  <script src="brand/form-examples.js"></script>
 </head>
 <body>
 <script src="hora-chile.js"></script>
@@ -121,7 +124,7 @@ input,select,button{font-family:inherit;outline:none}
         <div id="produccionDetalle"></div>
       </div>
       <div class="card">
-        <div class="card-title">Retorno de Sala de Ventas (Local)</div>
+        <div class="card-title">Retorno de Sala de venta</div>
         <div id="retornoDetalle"></div>
       </div>
     </div>
@@ -315,7 +318,14 @@ async function recalcularTodo() {
   renderProduccion(r, producciones);
   renderPorDisenador(r, producciones);
   renderRetorno(r);
+  activarPopupsIndicadores();
   renderConcentracion(r);
+}
+
+function activarPopupsIndicadores(){
+  let dlg=document.getElementById('indicator-info-dialog');
+  if(!dlg){dlg=document.createElement('dialog');dlg.id='indicator-info-dialog';dlg.className='indicator-info';dlg.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:16px"><strong>Información del indicador</strong><button type="button" onclick="this.closest(\'dialog\').close()">Cerrar</button></div><p id="indicator-info-text" style="margin-top:14px;line-height:1.6"></p>';document.body.appendChild(dlg);dlg.addEventListener('click',e=>{if(e.target===dlg)dlg.close()});}
+  document.querySelectorAll('.note:not([data-popup-ready])').forEach(note=>{const detail=note.textContent.trim();note.dataset.popupReady='1';note.innerHTML='';const btn=document.createElement('button');btn.type='button';btn.textContent='ⓘ Ver explicación';btn.addEventListener('click',()=>{document.getElementById('indicator-info-text').textContent=detail;dlg.showModal()});note.appendChild(btn)});
 }
 
 function escapeHtml(s) {
@@ -339,8 +349,8 @@ function renderVentas(r) {
   const topProductos = Object.entries(porProducto).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
   let html = `
-    <div class="dr-row"><span>Ventas Local (Vendedores)</span><span>${fmt(totalLocal)} · ${vLocal.length} ventas</span></div>
-    <div class="dr-row"><span>Ventas Empresa (Marcelo)</span><span>${fmt(totalEmpresa)} · ${vEmpresa.length} ventas</span></div>
+    <div class="dr-row"><span>Ventas Sala de venta (Vendedores)</span><span>${fmt(totalLocal)} · ${vLocal.length} ventas</span></div>
+    <div class="dr-row"><span>Ventas Otros (Marcelo)</span><span>${fmt(totalEmpresa)} · ${vEmpresa.length} ventas</span></div>
     <div class="dr-row tot"><span>Total Vendido</span><span>${fmt(totalGeneral)}</span></div>
   `;
   if (topProductos.length) {
@@ -355,7 +365,7 @@ function renderCostos(r) {
   let ingresos = 0;
   Object.keys(rendicionData).forEach(key => {
     if (enRango(key, r)) {
-      (rendicionData[key] || []).forEach(row => { ingresos += (+row.ef || 0) + (+row.tr || 0) + (+row.wp || 0); });
+      (rendicionData[key] || []).forEach(row => { ingresos += (+row.ef || 0) + (+row.tr || 0) + (+row.wpCredito || +row.wp || 0) + (+row.wpDebito || 0); });
     }
   });
 
@@ -480,11 +490,11 @@ function renderRetorno(r) {
   document.getElementById('kpi-retorno-sub').textContent = ventaBruta > 0 ? (retornoPct.toFixed(1) + '% de la venta bruta') : '';
 
   document.getElementById('retornoDetalle').innerHTML = `
-    <div class="dr-row"><span>Venta Bruta (Local)</span><span>${fmt(ventaBruta)}</span></div>
+    <div class="dr-row"><span>Venta Bruta (Sala de venta)</span><span>${fmt(ventaBruta)}</span></div>
     <div class="dr-row"><span>Comisión pagada a vendedores</span><span class="neg">-${fmt(comisionPagada)}</span></div>
     <div class="dr-row"><span>Recargo Webpay (${COM_WP_PCT}%)</span><span class="neg">-${fmt(recargoWebpay)}</span></div>
     <div class="dr-row tot"><span>Retorno Neto de Sala de Ventas</span><span>${fmt(retornoNeto)} (${retornoPct.toFixed(1)}%)</span></div>
-    <div class="note">Retorno neto = venta bruta menos comisión de vendedores y recargo Webpay. Es lo que efectivamente retiene el negocio de lo vendido en la sala local, antes de costos fijos.</div>
+    <div class="note">Retorno neto = venta bruta menos comisión de vendedores y recargo Webpay. Es lo que efectivamente retiene el negocio de lo vendido en la Sala de venta, antes de costos fijos.</div>
   `;
 }
 

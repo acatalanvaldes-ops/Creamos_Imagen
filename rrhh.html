@@ -55,6 +55,7 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
 </style>
   <link rel="stylesheet" href="brand/brand.css">
   <script src="brand/brand.js"></script>
+  <script src="brand/form-examples.js"></script>
 </head>
 <body>
 <script src="cargando.js"></script>
@@ -105,17 +106,20 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
     <div class="card">
       <div class="card-title" id="tr-title">Nuevo Trabajador</div>
       <div class="grid-form">
-        <div class="fld"><label>RUT</label><input id="tr-rut" oninput="fmtRut(this)" onblur="chkRut(this,'tr-rut-msg')"><span id="tr-rut-msg" style="font-size:10px;font-weight:bold"></span></div>
-        <div class="fld"><label>Nombres</label><input id="tr-nom"></div>
-        <div class="fld"><label>Apellidos</label><input id="tr-ape"></div>
+        <div class="fld"><label>RUT (sin dígito verificador)</label><input id="tr-rut" inputmode="numeric" oninput="fmtRut(this)" onblur="chkRut(this,'tr-rut-msg')"><span id="tr-rut-msg" style="font-size:10px;font-weight:bold"></span></div>
+        <div class="fld"><label>Dígito verificador</label><input id="tr-rut-dv" readonly maxlength="1"></div>
+        <div class="fld"><label>Primer nombre</label><input id="tr-nom1"></div>
+        <div class="fld"><label>Segundo nombre</label><input id="tr-nom2"></div>
+        <div class="fld"><label>Primer apellido</label><input id="tr-ape1"></div>
+        <div class="fld"><label>Segundo apellido</label><input id="tr-ape2"></div>
         <div class="fld"><label>Cargo</label><input id="tr-car"></div>
         <div class="fld"><label>Área</label><input id="tr-are"></div>
         <div class="fld"><label>Jefatura</label><input id="tr-jef"></div>
-        <div class="fld"><label>Teléfono</label><input id="tr-tel"></div>
+        <div class="fld"><label>Teléfono</label><div style="display:flex;gap:6px"><select id="tr-tel-cod" style="width:82px"><option>+56</option></select><input id="tr-tel" inputmode="tel"></div></div>
         <div class="fld"><label>Email (acceso a Mi Portal)</label><input id="tr-ema" type="email" placeholder="correo Gmail del trabajador" title="El trabajador entra a Mi Portal con este mismo correo de Google"></div>
         <div class="fld"><label>Fecha Ingreso</label><input type="date" id="tr-ing"></div>
         <div class="fld"><label>Tipo de Contrato</label><select id="tr-con"><option value="Indefinido">Indefinido</option><option value="Plazo Fijo">Plazo Fijo</option></select></div>
-        <div class="fld"><label>Jornada Laboral</label><select id="tr-jor"><option value="Jornada ordinaria completa de trabajo">Jornada ordinaria completa</option><option value="Jornada bajo Art. 22 inc. 2° del Código del Trabajo">Artículo 22 inc. 2°</option><option value="Jornada parcial de trabajo">Jornada parcial (Part-Time)</option></select></div>
+        <div class="fld"><label>Jornada Laboral</label><select id="tr-jor"><option value="Jornada de 44 horas semanales">44 horas semanales</option><option value="Jornada de 42 horas semanales">42 horas semanales</option><option value="Jornada bajo Art. 22 inc. 2° del Código del Trabajo">Artículo 22 inc. 2°</option><option value="Jornada parcial de trabajo">Jornada parcial (Part-Time)</option></select></div>
         <div class="fld"><label>Sueldo Base ($)</label><input type="number" id="tr-sue"></div>
         <div class="fld"><label>AFP</label><select id="tr-afp"><option value="CAPITAL">Capital</option><option value="CUPRUM">Cuprum</option><option value="HABITAT">Habitat</option><option value="MODELO">Modelo</option><option value="PLANVITAL">Planvital</option><option value="PROVIDA">Provida</option><option value="UNO">Uno</option></select></div>
         <div class="fld"><label>Estado</label><select id="tr-est"><option>Activo</option><option>Inactivo</option></select></div>
@@ -141,7 +145,7 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
       <div class="grid-form">
         <div class="fld"><label>Trabajador</label><select class="sel-trab" id="as-tra" onchange="asActualizarHorario()"></select></div>
         <div class="fld"><label>Fecha</label><input type="date" id="as-fec" onchange="asActualizarHorario()"></div>
-        <div class="fld"><label>Jornada</label><select id="as-jor"><option value="44">44 Horas</option><option value="ART22">Art. 22</option><option value="PART">Part Time</option></select></div>
+        <div class="fld"><label>Jornada</label><select id="as-jor"><option value="44">44 horas</option><option value="42">42 horas</option><option value="ART22">Art. 22</option><option value="PART">Part Time</option></select></div>
         <div class="fld"><label>Turno</label><select id="as-tur"><option>ADMIN</option><option>MAÑANA</option><option>TARDE</option></select></div>
         <div class="fld"><label>Entrada</label><input type="time" id="as-ent"></div>
         <div class="fld"><label>Salida Colación</label><input type="time" id="as-sc"></div>
@@ -246,6 +250,7 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
             <div class="fld"><label>Sueldo Base ($)</label><input type="number" id="lq-sue" oninput="lqClear()"></div>
+            <div class="fld"><label>Días de licencia (descuento sobre 30 días)</label><input type="number" id="lq-lic" min="0" max="30" value="0" oninput="lqClear()"></div>
             <div class="fld"><label>Gratificación ($) — automática</label><input type="number" id="lq-gra" readonly style="background:#f1f5f9;cursor:not-allowed" title="Se calcula al presionar Calcular Totales"></div>
             <div class="fld"><label>Bonos ($)</label><input type="number" id="lq-bon" oninput="lqClear()"></div>
             <div class="fld"><label>Comisiones ($)</label><input type="number" id="lq-com" oninput="lqClear()"></div>
@@ -604,30 +609,32 @@ function popSel() {
 function renderAll() { trRender(); asRender(); vaRender(); lmRender(); lqRender(); lrRender(); prRender(); fqRender(); doRender(); rpRender(); }
 
 // ================= TRABAJADORES =================
-function fmtRut(el) { let v=el.value.replace(/\./g,"").replace(/-/g,"").toUpperCase(); if(v.length>1) el.value = v.slice(0,-1).replace(/\B(?=(\d{3})+(?!\d))/g,".")+"-"+v.slice(-1); }
+function fmtRut(el) { let v=el.value.replace(/\D/g,""); el.value=v.replace(/\B(?=(\d{3})+(?!\d))/g,"."); $('tr-rut-dv').value=v?dvRut(v):''; }
+function dvRut(v){let s=0,m=2;for(let i=v.length-1;i>=0;i--){s+=Number(v[i])*m;m=m===7?2:m+1;}const d=11-s%11;return d===11?'0':d===10?'K':String(d)}
 function chkRut(el, mId) {
-  const e=$(mId); let v=el.value.replace(/\./g,"").replace(/-/g,"").toUpperCase(); if(v.length<2){e.innerHTML="";return;}
-  let s=0,m=2; for(let i=v.length-2;i>=0;i--){s+=parseInt(v[i])*m;m=m>6?2:m+1;}
-  let d=11-(s%11); d=d===11?"0":d===10?"K":d.toString();
-  if(d===v.slice(-1)){e.innerHTML="✓ Válido";e.style.color="green";}else{e.innerHTML="✗ Inválido";e.style.color="red";}
+  const e=$(mId); const v=el.value.replace(/\D/g,""); if(!v){e.innerHTML="";return;}
+  const d=dvRut(v); if(d===$('tr-rut-dv').value){e.innerHTML="✓ Válido";e.style.color="green";}else{e.innerHTML="✗ Inválido";e.style.color="red";}
 }
 function trSave() {
-  const r=$('tr-rut').value; if(!r){alert("RUT requerido");return;}
+  const rutNumero=$('tr-rut').value.replace(/\D/g,''); const r=rutNumero?rutNumero+'-'+$('tr-rut-dv').value:''; if(!r){alert("RUT requerido");return;} if(dvRut(rutNumero)!==$('tr-rut-dv').value){alert('RUT inválido.');return;}
   const em=$('tr-ema').value.trim().toLowerCase();
   if(em && DB.trab.some(x=>x.id!==editId.trab && (x.email||'').trim().toLowerCase()===em)){ alert("Ese email ya está registrado en otro trabajador. Cada trabajador necesita su propio correo para entrar a Mi Portal."); return; }
-  const d={id:editId.trab||Date.now(),rut:r,nombres:$('tr-nom').value,apellidos:$('tr-ape').value,cargo:$('tr-car').value,area:$('tr-are').value,jefatura:$('tr-jef').value,telefono:$('tr-tel').value,email:$('tr-ema').value.trim().toLowerCase(),fechaIngreso:$('tr-ing').value,tipoContrato:$('tr-con').value||'Indefinido',jornada:$('tr-jor').value||'Jornada ordinaria completa de trabajo',sueldo:Number($('tr-sue').value)||0,afp:$('tr-afp').value,estado:$('tr-est').value};
+  const d={id:editId.trab||Date.now(),rut:r,nombres:[$('tr-nom1').value,$('tr-nom2').value].filter(Boolean).join(' '),apellidos:[$('tr-ape1').value,$('tr-ape2').value].filter(Boolean).join(' '),cargo:$('tr-car').value,area:$('tr-are').value,jefatura:$('tr-jef').value,telefono:$('tr-tel-cod').value+' '+$('tr-tel').value.trim(),email:$('tr-ema').value.trim().toLowerCase(),fechaIngreso:$('tr-ing').value,tipoContrato:$('tr-con').value||'Indefinido',jornada:$('tr-jor').value||'Jornada de 44 horas semanales',sueldo:Number($('tr-sue').value)||0,afp:$('tr-afp').value,estado:$('tr-est').value};
   if(editId.trab){ const i=DB.trab.findIndex(x=>x.id===editId.trab); if(i>-1)DB.trab[i]=d; } else { DB.trab.push(d); }
   sync('trab'); trCancel(); popSel(); renderAll();
 }
 function trEdit(id) {
   const t=getT(id); if(!t)return; editId.trab=id;
-  ['rut','nom','ape','car','are','jef','tel','ema','ing','con','jor','sue','afp','est'].forEach(k=>{$(`tr-${k}`).value=t[{rut:'rut',nom:'nombres',ape:'apellidos',car:'cargo',are:'area',jef:'jefatura',tel:'telefono',ema:'email',ing:'fechaIngreso',con:'tipoContrato',jor:'jornada',sue:'sueldo',afp:'afp',est:'estado'}[k]]||(k==='con'?'Indefinido':k==='jor'?'Jornada ordinaria completa de trabajo':'');});
+  const rutEdit=(t.rut||'').replace(/[.\-]/g,''); $('tr-rut').value=rutEdit.slice(0,-1).replace(/\B(?=(\d{3})+(?!\d))/g,'.'); $('tr-rut-dv').value=rutEdit.slice(-1);
+  const n=(t.nombres||'').split(' '), a=(t.apellidos||'').split(' '); $('tr-nom1').value=n.shift()||''; $('tr-nom2').value=n.join(' '); $('tr-ape1').value=a.shift()||''; $('tr-ape2').value=a.join(' ');
+  $('tr-tel').value=(t.telefono||'').replace(/^\+?56\s*/,'');
+  ['car','are','jef','ema','ing','con','jor','sue','afp','est'].forEach(k=>{$(`tr-${k}`).value=t[{car:'cargo',are:'area',jef:'jefatura',ema:'email',ing:'fechaIngreso',con:'tipoContrato',jor:'jornada',sue:'sueldo',afp:'afp',est:'estado'}[k]]||(k==='con'?'Indefinido':k==='jor'?'Jornada de 44 horas semanales':'');});
   $('tr-rut').readOnly=true; $('tr-title').textContent="Editar Trabajador"; $('tr-btn').textContent="Actualizar"; $('tr-btn-c').style.display="inline-block";
 }
 function trCancel() {
-  editId.trab=null; ['rut','nom','ape','car','are','jef','tel','ema','ing','sue'].forEach(k=>$(`tr-${k}`).value='');
+  editId.trab=null; ['rut','rut-dv','nom1','nom2','ape1','ape2','car','are','jef','tel','ema','ing','sue'].forEach(k=>$(`tr-${k}`).value='');
   $('tr-con').value="Indefinido";
-  $('tr-jor').value="Jornada ordinaria completa de trabajo";
+  $('tr-jor').value="Jornada de 44 horas semanales";
   $('tr-rut').readOnly=false; $('tr-est').value="Activo"; $('tr-title').textContent="Nuevo Trabajador"; $('tr-btn').textContent="Guardar"; $('tr-btn-c').style.display="none"; $('tr-rut-msg').innerHTML="";
 }
 function trDel(id) { if(!confirm("¿Eliminar?"))return; DB.trab=DB.trab.filter(x=>x.id!==id); sync('trab'); popSel(); renderAll(); }
@@ -853,7 +860,7 @@ function lqCalc() {
   if(!tid){ alert('Selecciona el trabajador.'); return; }
   if(!per){ alert('Selecciona el período.'); return; }
   const t=getT(tid); if(!t){ alert('No se encontró el trabajador seleccionado. Recarga la página (F5).'); return; }
-  const sb=Number($('lq-sue').value)||0, bo=Number($('lq-bon').value)||0, co=Number($('lq-com').value)||0, col=Number($('lq-col').value)||0, mov=Number($('lq-mov').value)||0;
+  const sueldoIngresado=Number($('lq-sue').value)||0, diasLicencia=Math.min(30,Math.max(0,Number($('lq-lic').value)||0)), sb=Math.round(sueldoIngresado*(30-diasLicencia)/30), bo=Number($('lq-bon').value)||0, co=Number($('lq-com').value)||0, col=Number($('lq-col').value)||0, mov=Number($('lq-mov').value)||0;
   const caj=Number($('lq-caj').value)||0, via=Number($('lq-via').value)||0;
   if(!sb){ alert('Ingresa el sueldo base.'); return; }
   const esPlazoFijo = $('lq-plazo-fijo').checked;
@@ -874,6 +881,8 @@ function lqCalc() {
     esPlazoFijo:esPlazoFijo,
     tipoContrato:esPlazoFijo?'Plazo Fijo':'Indefinido',
     sueldoBase:sb,
+    sueldoBaseMensual:sueldoIngresado,
+    diasLicencia:diasLicencia,
     gratificacion:gr,
     topeGratificacion:tope,
     imm:lqIMM(),
@@ -910,7 +919,8 @@ function lqEdit(id) {
   editId.liq = id;
   $('lq-tra').value = l.trabajadorId;
   $('lq-per').value = l.periodo;
-  $('lq-sue').value = l.sueldoBase || 0;
+  $('lq-sue').value = l.sueldoBaseMensual || l.sueldoBase || 0;
+  $('lq-lic').value = l.diasLicencia || 0;
   $('lq-bon').value = l.bonos || 0;
   $('lq-com').value = l.comisiones || 0;
   $('lq-col').value = l.colacion || 0;
@@ -942,7 +952,7 @@ function lqEdit(id) {
 
 function lqCancelEdit() {
   editId.liq = null;
-  ['tra','per','sue','gra','bon','com','col','mov','caj','via'].forEach(k => $(`lq-${k}`).value = '');
+  ['tra','per','sue','lic','gra','bon','com','col','mov','caj','via'].forEach(k => $(`lq-${k}`).value = '');
   $('lq-plazo-fijo').checked = false;
   $('lq-form-title').textContent = "Generar Liquidación";
   $('lq-btn-save').textContent = "Guardar Liquidación";

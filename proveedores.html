@@ -85,6 +85,7 @@ table.tbl tr:last-child td{border-bottom:none}
 </style>
   <link rel="stylesheet" href="brand/brand.css">
   <script src="brand/brand.js"></script>
+  <script src="brand/form-examples.js"></script>
 </head>
 <body>
 <script src="cargando.js"></script>
@@ -152,14 +153,19 @@ table.tbl tr:last-child td{border-bottom:none}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
       <div class="fld" style="grid-column:1/-1"><label>Nombre del Proveedor *</label><input type="text" id="p-nombre"></div>
       
-      <div class="fld"><label>RUT</label><input type="text" id="p-rut" placeholder="Ej: 76.123.456-7"></div>
+      <div class="fld"><label>RUT (sin dígito verificador)</label><input type="text" id="p-rut" oninput="pRutCalc()"></div>
+      <div class="fld"><label>Dígito verificador</label><input type="text" id="p-rut-dv" readonly maxlength="1"><small id="p-rut-msg"></small></div>
       <div class="fld"><label>Rubro</label><input type="text" id="p-rubro" list="rubroList" placeholder="Ej: Textil, Transfer, Insumos..."><datalist id="rubroList"><option value="Insumos de oficina"><option value="Maquinaria"><option value="Textil"><option value="Transfer"></datalist></div>
       
-      <div class="fld"><label>Dirección</label><input type="text" id="p-direccion" placeholder="Calle, N°..."></div>
-      <div class="fld"><label>Comuna / Ciudad</label><input type="text" id="p-comuna" placeholder="Ej: Recoleta"></div>
+      <div class="fld"><label>Tipo de vía</label><select id="p-via"><option>Calle</option><option>Avenida</option><option>Pasaje</option></select></div>
+      <div class="fld"><label>Nombre de calle o vía</label><input type="text" id="p-direccion"></div>
+      <div class="fld"><label>Número o altura</label><input type="text" id="p-altura"></div>
+      <div class="fld"><label>Comuna</label><input type="text" id="p-comuna"></div>
+      <div class="fld"><label>Región</label><input type="text" id="p-region"></div>
       
-      <div class="fld"><label>Contacto (Nombre)</label><input type="text" id="p-contacto" placeholder="Nombre de quien atiende"></div>
-      <div class="fld"><label>Teléfono</label><input type="text" id="p-telefono" placeholder="+56 9 ..."></div>
+      <div class="fld"><label>Primer nombre de contacto</label><input type="text" id="p-contacto-n1"></div><div class="fld"><label>Segundo nombre</label><input type="text" id="p-contacto-n2"></div>
+      <div class="fld"><label>Primer apellido</label><input type="text" id="p-contacto-a1"></div><div class="fld"><label>Segundo apellido</label><input type="text" id="p-contacto-a2"></div>
+      <div class="fld"><label>Teléfono</label><div style="display:flex;gap:6px"><select id="p-tel-cod" style="width:82px"><option>+56</option></select><input type="text" id="p-telefono" inputmode="tel"></div></div>
 
       <div class="fld"><label>Condiciones de Pago</label><input type="text" id="p-condiciones" placeholder="Ej: 30 días, contado, 50% anticipo..."></div>
       <div class="fld"><label>Plazo de Entrega Habitual</label><input type="text" id="p-plazo" placeholder="Ej: 5 días hábiles"></div>
@@ -424,12 +430,14 @@ function abrirForm(id) {
     insumosEdit = JSON.parse(JSON.stringify(p.insumos || []));
     document.getElementById('m-title').textContent = 'Ficha de Proveedor';
     document.getElementById('p-nombre').value = p.nombre;
-    document.getElementById('p-rut').value = p.rut || '';
-    document.getElementById('p-direccion').value = p.direccion || '';
+    document.getElementById('p-rut').value = (p.rut || '').replace(/\D/g,'').slice(0,-1);
+    document.getElementById('p-rut-dv').value = p.rutDv || ((p.rut||'').replace(/[.\-]/g,'').slice(-1));
+    document.getElementById('p-direccion').value = p.calle || p.direccion || '';
     document.getElementById('p-comuna').value = p.comuna || '';
+    document.getElementById('p-altura').value=p.altura||''; document.getElementById('p-region').value=p.region||''; document.getElementById('p-via').value=p.tipoVia||'Calle';
     document.getElementById('p-rubro').value = p.rubro || '';
-    document.getElementById('p-contacto').value = p.contacto || '';
-    document.getElementById('p-telefono').value = p.telefono || '';
+    const partesContacto=(p.contacto||'').split(' '); ['p-contacto-n1','p-contacto-n2','p-contacto-a1','p-contacto-a2'].forEach((id,i)=>document.getElementById(id).value=partesContacto[i]||'');
+    document.getElementById('p-telefono').value = (p.telefono || '').replace(/^\+?56\s*/, '');
     document.getElementById('p-condiciones').value = p.condicionesPago || '';
     document.getElementById('p-plazo').value = p.plazoEntrega || '';
     btnDel.style.display = 'block';
@@ -463,8 +471,9 @@ function abrirForm(id) {
     document.getElementById('p-rut').value = '';
     document.getElementById('p-direccion').value = '';
     document.getElementById('p-comuna').value = '';
+    document.getElementById('p-altura').value=''; document.getElementById('p-region').value=''; document.getElementById('p-via').value='Calle'; document.getElementById('p-rut-dv').value='';
     document.getElementById('p-rubro').value = '';
-    document.getElementById('p-contacto').value = '';
+    ['p-contacto-n1','p-contacto-n2','p-contacto-a1','p-contacto-a2'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('p-telefono').value = '';
     document.getElementById('p-condiciones').value = '';
     document.getElementById('p-plazo').value = '';
@@ -480,18 +489,21 @@ function cerrarModal() { document.getElementById('modalForm').classList.remove('
 function guardarProveedor() {
   const nombre = document.getElementById('p-nombre').value.trim();
   if (!nombre) { alert('El nombre del proveedor es obligatorio.'); return; }
+  const rutNumero=document.getElementById('p-rut').value.replace(/\D/g,''); const rutDv=document.getElementById('p-rut-dv').value.toUpperCase();
+  if(rutNumero && (!rutDv || rutDv!==calcularDvRutProveedor(rutNumero))){alert('El RUT no es válido.');return;}
 
   const insumosLimpios = insumosEdit.filter(i => (i.insumo || '').trim() !== '');
 
   const p = {
     id: editId || Date.now(),
     nombre: nombre,
-    rut: document.getElementById('p-rut').value.trim(),
-    direccion: document.getElementById('p-direccion').value.trim(),
+    rut: rutNumero ? rutNumero+'-'+rutDv : '', rutDv:rutDv,
+    tipoVia:document.getElementById('p-via').value, calle:document.getElementById('p-direccion').value.trim(), altura:document.getElementById('p-altura').value.trim(), region:document.getElementById('p-region').value.trim(),
+    direccion: [document.getElementById('p-via').value,document.getElementById('p-direccion').value.trim(),document.getElementById('p-altura').value.trim(),document.getElementById('p-comuna').value.trim(),document.getElementById('p-region').value.trim()].filter(Boolean).join(', '),
     comuna: document.getElementById('p-comuna').value.trim(),
     rubro: document.getElementById('p-rubro').value.trim(),
-    contacto: document.getElementById('p-contacto').value.trim(),
-    telefono: document.getElementById('p-telefono').value.trim(),
+    contacto: ['p-contacto-n1','p-contacto-n2','p-contacto-a1','p-contacto-a2'].map(id=>document.getElementById(id).value.trim()).filter(Boolean).join(' '),
+    telefono: document.getElementById('p-tel-cod').value+' '+document.getElementById('p-telefono').value.trim(),
     condicionesPago: document.getElementById('p-condiciones').value.trim(),
     plazoEntrega: document.getElementById('p-plazo').value.trim(),
     insumos: insumosLimpios
@@ -502,6 +514,9 @@ function guardarProveedor() {
 
   guardarProveedoresLocal(); renderProveedores(); cerrarModal();
 }
+
+function calcularDvRutProveedor(rut){let suma=0,m=2;for(let i=rut.length-1;i>=0;i--){suma+=Number(rut[i])*m;m=m===7?2:m+1;}const x=11-suma%11;return x===11?'0':x===10?'K':String(x)}
+function pRutCalc(){const n=document.getElementById('p-rut').value.replace(/\D/g,'');const dv=n?calcularDvRutProveedor(n):'';document.getElementById('p-rut-dv').value=dv;document.getElementById('p-rut-msg').textContent=dv?'DV calculado automáticamente':''}
 
 function borrarProveedor() {
   if (confirm('¿Eliminar este proveedor de la base de datos? El historial de compras asociado no se eliminará.')) {

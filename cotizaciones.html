@@ -80,6 +80,7 @@ table.tbl input:focus,table.tbl select:focus{border-bottom:2px solid var(--gold)
 </style>
   <link rel="stylesheet" href="brand/brand.css">
   <script src="brand/brand.js"></script>
+  <script src="brand/form-examples.js"></script>
 </head>
 <body>
 <script src="cargando.js"></script>
@@ -145,10 +146,10 @@ table.tbl input:focus,table.tbl select:focus{border-bottom:2px solid var(--gold)
           <div id="fld-clienteFortuito" style="display:none">
             <div class="fld"><label>Razón Social / Nombre</label><input type="text" id="cz-razon-f" placeholder="Nombre de quien compra"></div>
             <div class="cliente-readonly">
-              <div class="fld"><label>RUT</label><input type="text" id="cz-rut-f" placeholder="Ej: 12.345.678-9"></div>
+              <div class="fld"><label>RUT (sin dígito verificador)</label><input type="text" id="cz-rut-f" inputmode="numeric" oninput="czRutCalc()"></div><div class="fld"><label>Dígito verificador</label><input type="text" id="cz-rut-dv-f" readonly maxlength="1"><small id="cz-rut-msg-f"></small></div>
               <div class="fld"><label>Dirección</label><input type="text" id="cz-direccion-f" placeholder="Comuna, Calle..."></div>
-              <div class="fld"><label>Nombre de Contacto</label><input type="text" id="cz-contacto-f" placeholder="Ej: Juan Pérez"></div>
-              <div class="fld"><label>Teléfono de Contacto</label><input type="text" id="cz-telefono-f" placeholder="+56 9 ..."></div>
+              <div class="fld"><label>Primer nombre de contacto</label><input type="text" id="cz-contacto-n1"></div><div class="fld"><label>Segundo nombre</label><input type="text" id="cz-contacto-n2"></div><div class="fld"><label>Primer apellido</label><input type="text" id="cz-contacto-a1"></div><div class="fld"><label>Segundo apellido</label><input type="text" id="cz-contacto-a2"></div>
+              <div class="fld"><label>Teléfono de Contacto</label><div style="display:flex;gap:6px"><select id="cz-tel-cod-f" style="width:82px"><option>+56</option></select><input type="text" id="cz-telefono-f" inputmode="tel"></div></div>
             </div>
           </div>
         </div>
@@ -428,15 +429,19 @@ function datosClienteActuales() {
       direccion: c ? (c.direccion || '') : ''
     };
   }
+  const rutNum=document.getElementById('cz-rut-f').value.replace(/\D/g,''); const rutDv=document.getElementById('cz-rut-dv-f').value.toUpperCase();
+  if(rutNum && calcularDvCot(rutNum)!==rutDv){alert('El RUT del cliente no es válido.');return null;}
   return {
     tipo: 'fortuito', id: null,
     razonSocial: document.getElementById('cz-razon-f').value.trim(),
-    rut: document.getElementById('cz-rut-f').value.trim(),
-    telefono: document.getElementById('cz-telefono-f').value.trim(),
-    contacto: document.getElementById('cz-contacto-f').value.trim(),
+    rut: rutNum ? rutNum+'-'+rutDv : '',
+    telefono: document.getElementById('cz-tel-cod-f').value+' '+document.getElementById('cz-telefono-f').value.trim(),
+    contacto: ['cz-contacto-n1','cz-contacto-n2','cz-contacto-a1','cz-contacto-a2'].map(id=>document.getElementById(id).value.trim()).filter(Boolean).join(' '),
     direccion: document.getElementById('cz-direccion-f').value.trim()
   };
 }
+function calcularDvCot(rut){let s=0,m=2;for(let i=rut.length-1;i>=0;i--){s+=Number(rut[i])*m;m=m===7?2:m+1;}const d=11-s%11;return d===11?'0':d===10?'K':String(d)}
+function czRutCalc(){const n=document.getElementById('cz-rut-f').value.replace(/\D/g,'');const d=n?calcularDvCot(n):'';document.getElementById('cz-rut-dv-f').value=d;document.getElementById('cz-rut-msg-f').textContent=d?'DV calculado automáticamente':''}
 
 // ===== TARIFARIO =====
 
@@ -602,7 +607,7 @@ function poblarSelectsCotizador() {
 }
 
 function guardarCotizacion() {
-  const cliente = datosClienteActuales();
+  const cliente = datosClienteActuales(); if(!cliente)return;
   if (!cliente.razonSocial) { alert('Indica el cliente (selecciónalo de la base, o completa los datos si es un cliente fortuito).'); return; }
 
   const itemsValidos = itemsCotizador.filter(item => item.producto && (parseFloat(item.cantidad) || 0) > 0);
@@ -697,9 +702,9 @@ function limpiarFormularioCotizador() {
   onClienteRegistradoChange();
 
   document.getElementById('cz-razon-f').value = '';
-  document.getElementById('cz-rut-f').value = '';
+  document.getElementById('cz-rut-f').value = ''; document.getElementById('cz-rut-dv-f').value='';
   document.getElementById('cz-telefono-f').value = '';
-  document.getElementById('cz-contacto-f').value = '';
+  ['cz-contacto-n1','cz-contacto-n2','cz-contacto-a1','cz-contacto-a2'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('cz-direccion-f').value = '';
   document.getElementById('cz-fecha').value = todayISO();
 
@@ -728,9 +733,9 @@ function editarCotizacion(id) {
     document.querySelector('input[name="cz-clienteTipo"][value="fortuito"]').checked = true;
     onClienteTipoChange();
     document.getElementById('cz-razon-f').value = c.cliente || '';
-    document.getElementById('cz-rut-f').value = c.clienteRut || '';
-    document.getElementById('cz-telefono-f').value = c.clienteTelefono || '';
-    document.getElementById('cz-contacto-f').value = c.clienteContacto || '';
+    const rutEdit=(c.clienteRut||'').replace(/[.\-]/g,''); document.getElementById('cz-rut-f').value=rutEdit.slice(0,-1); document.getElementById('cz-rut-dv-f').value=rutEdit.slice(-1);
+    document.getElementById('cz-telefono-f').value = (c.clienteTelefono || '').replace(/^\+?56\s*/,'');
+    const nombres=(c.clienteContacto||'').split(' '); ['cz-contacto-n1','cz-contacto-n2','cz-contacto-a1','cz-contacto-a2'].forEach((id,i)=>document.getElementById(id).value=nombres[i]||'');
     document.getElementById('cz-direccion-f').value = c.clienteDireccion || '';
   }
 

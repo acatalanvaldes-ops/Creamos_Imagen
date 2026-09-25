@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Accesos - Creamos Imagen</title>
+<title>Cosola de Permisos</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#F7F5F0;--surface:#FFFFFF;--dark:#1C1917;--gold:#C8973A;--teal:#0D7A6B;--red:#C0392B;--muted:#78716C;--border:#E7E2D9}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--dark);min-height:100vh}
-.topbar{background:var(--dark);padding:18px 24px;display:flex;align-items:center;justify-content:space-between}
+.topbar{background:var(--dark);padding:18px 24px;display:flex;align-items:center;justify-content:flex-end}
 .brand-tag{font-size:9px;color:var(--gold);letter-spacing:.2em;font-weight:700;text-transform:uppercase;margin-bottom:2px}
 .brand-name{font-family:'DM Serif Display',serif;font-size:22px;color:#fff}
 .brand-name span{color:var(--gold)}
@@ -37,9 +37,11 @@ input[type=checkbox]{width:16px;height:16px;cursor:pointer}
 .empty-state{text-align:center;padding:40px 20px;color:var(--muted)}
 .save-badge{position:fixed;bottom:18px;right:18px;background:var(--dark);color:var(--gold);padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;display:none;box-shadow:0 6px 20px rgba(0,0,0,.3)}
 .super-note{background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:10px 14px;font-size:12px;color:#166534;margin-bottom:16px}
+.access-brand-logo{width:155px;height:48px;background:url('brand/logo-horizontal-white.svg') center/contain no-repeat}
 </style>
   <link rel="stylesheet" href="brand/brand.css">
   <script src="brand/brand.js"></script>
+  <script src="brand/form-examples.js"></script>
 </head>
 <body>
 <script src="cargando.js"></script>
@@ -80,8 +82,8 @@ const MODULOS = [
   { key: "dashboard",    label: "Indicadores" },
   { key: "calendario",   label: "Producciones" },
   { key: "proveedores",  label: "Proveedores" },
-  { key: "ventasci",     label: "Ventas Empresa" },
-  { key: "ventas",       label: "Ventas Local" },
+  { key: "ventasci",     label: "Otros" },
+  { key: "ventas",       label: "Sala de venta" },
   { key: "rrhh",         label: "Recursos Humanos" },
   { key: "trabajador",   label: "Mi Portal" }
 ];
@@ -194,7 +196,7 @@ function render() {
     : '<div style="overflow-x:auto"><table><thead><tr><th class="email-col">Correo</th>' + headCols + subHeadCols + '<th>Admin</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>';
 
   var html =
-    '<div class="topbar"><div><div class="brand-tag">Gestión de Accesos</div><div class="brand-name">Creamos <span>Imagen</span></div></div></div>' +
+    '<div class="topbar"><div class="access-brand-logo" aria-label="Creamos Imagen"></div></div>' +
     '<div class="content">' +
       '<div class="card">' +
         '<div class="card-title">Quién puede entrar, y a qué</div>' +

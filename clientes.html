@@ -45,6 +45,7 @@ input,button{font-family:inherit;outline:none}
 </style>
   <link rel="stylesheet" href="brand/brand.css">
   <script src="brand/brand.js"></script>
+  <script src="brand/form-examples.js"></script>
 </head>
 <body>
 <script src="cargando.js"></script>
@@ -88,10 +89,19 @@ input,button{font-family:inherit;outline:none}
     
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
       <div class="fld" style="grid-column:1/-1"><label>Razón Social / Empresa *</label><input type="text" id="c-razon"></div>
-      <div class="fld"><label>RUT</label><input type="text" id="c-rut" placeholder="Ej: 12.345.678-9"></div>
-      <div class="fld"><label>Teléfono de Contacto</label><input type="text" id="c-tel" placeholder="+56 9 ..."></div>
-      <div class="fld"><label>Nombre de Contacto</label><input type="text" id="c-contacto" placeholder="Ej: Juan Pérez"></div>
-      <div class="fld"><label>Dirección</label><input type="text" id="c-dir" placeholder="Comuna, Calle..."></div>
+      <div class="fld"><label>RUT (sin dígito verificador)</label><input type="text" id="c-rut" inputmode="numeric" oninput="cRutCalc()"></div>
+      <div class="fld"><label>Dígito verificador</label><input type="text" id="c-rut-dv" maxlength="1" readonly><small id="c-rut-msg"></small></div>
+      <div class="fld"><label>Teléfono de Contacto</label><div style="display:flex;gap:6px"><select id="c-tel-cod" style="width:82px"><option>+56</option></select><input type="text" id="c-tel" inputmode="tel"></div></div>
+      <div class="fld"><label>Primer nombre de contacto</label><input type="text" id="c-nom1"></div>
+      <div class="fld"><label>Segundo nombre de contacto</label><input type="text" id="c-nom2"></div>
+      <div class="fld"><label>Primer apellido de contacto</label><input type="text" id="c-ape1"></div>
+      <div class="fld"><label>Segundo apellido de contacto</label><input type="text" id="c-ape2"></div>
+      <div class="fld"><label>Correo electrónico</label><input type="email" id="c-email"></div>
+      <div class="fld"><label>Tipo de vía</label><select id="c-via"><option>Calle</option><option>Avenida</option><option>Pasaje</option></select></div>
+      <div class="fld"><label>Nombre de calle o vía</label><input type="text" id="c-calle"></div>
+      <div class="fld"><label>Número o altura</label><input type="text" id="c-altura"></div>
+      <div class="fld"><label>Comuna</label><input type="text" id="c-comuna"></div>
+      <div class="fld"><label>Región</label><input type="text" id="c-region"></div>
     </div>
     
     <div style="margin-top:20px;display:flex;justify-content:space-between;gap:10px">
@@ -279,6 +289,7 @@ function renderClientes() {
       ${c.rut ? `<div class="c-rut">${c.rut}</div>` : ''}
       <div class="c-row"><strong>👤 Contacto:</strong> ${c.contacto || '-'}</div>
       <div class="c-row"><strong>📞 Teléfono:</strong> ${c.telefono || '-'}</div>
+      <div class="c-row"><strong>Correo:</strong> ${c.email || '-'}</div>
       <div class="c-row"><strong>📍 Dirección:</strong> ${c.direccion || '-'}</div>
     </div>
   `).join('');
@@ -294,10 +305,12 @@ async function abrirForm(id) {
     editId = id;
     document.getElementById('m-title').textContent = 'Ficha de Cliente';
     document.getElementById('c-razon').value = c.razonSocial;
-    document.getElementById('c-rut').value = c.rut || '';
-    document.getElementById('c-tel').value = c.telefono || '';
-    document.getElementById('c-contacto').value = c.contacto || '';
-    document.getElementById('c-dir').value = c.direccion || '';
+    const rc=(c.rut||'').replace(/[.\-]/g,''); document.getElementById('c-rut').value=rc.slice(0,-1); document.getElementById('c-rut-dv').value=c.rutDv||rc.slice(-1);
+    document.getElementById('c-tel').value = (c.telefono || '').replace(/^\+?56\s*/, '');
+    document.getElementById('c-nom1').value=(c.contacto||'').split(' ')[0]||''; document.getElementById('c-nom2').value=(c.contacto||'').split(' ').slice(1,-2).join(' ');
+    document.getElementById('c-ape1').value=(c.contacto||'').split(' ').slice(-2,-1)[0]||''; document.getElementById('c-ape2').value=(c.contacto||'').split(' ').slice(-1)[0]||'';
+    document.getElementById('c-email').value=c.email||'';
+    document.getElementById('c-calle').value=c.calle||c.direccion||''; document.getElementById('c-altura').value=c.altura||''; document.getElementById('c-comuna').value=c.comuna||''; document.getElementById('c-region').value=c.region||''; document.getElementById('c-via').value=c.tipoVia||'Calle';
     btnDel.style.display = 'block';
 
     // Muestra la ficha de inmediato con los datos del cliente (ya están en
@@ -334,8 +347,7 @@ async function abrirForm(id) {
     document.getElementById('c-razon').value = '';
     document.getElementById('c-rut').value = '';
     document.getElementById('c-tel').value = '';
-    document.getElementById('c-contacto').value = '';
-    document.getElementById('c-dir').value = '';
+    ['c-nom1','c-nom2','c-ape1','c-ape2','c-email','c-calle','c-altura','c-comuna','c-region','c-rut-dv'].forEach(x=>document.getElementById(x).value='');
     btnDel.style.display = 'none';
     hist.style.display = 'none';
   }
@@ -348,13 +360,17 @@ function guardarCliente() {
   const razonSocial = document.getElementById('c-razon').value.trim();
   if(!razonSocial) { alert("La Razón Social es obligatoria."); return; }
   
+  const rutNum=document.getElementById('c-rut').value.replace(/\D/g,''); const rutDv=document.getElementById('c-rut-dv').value.toUpperCase();
+  if(rutNum && (!rutDv || rutDv!==calcularDvRut(rutNum))){ alert('El RUT no es válido.'); return; }
   const c = {
     id: editId || Date.now(),
     razonSocial: razonSocial,
-    rut: document.getElementById('c-rut').value.trim(),
-    telefono: document.getElementById('c-tel').value.trim(),
-    contacto: document.getElementById('c-contacto').value.trim(),
-    direccion: document.getElementById('c-dir').value.trim()
+    rut: rutNum ? rutNum+'-'+rutDv : '', rutDv:rutDv,
+    telefono: document.getElementById('c-tel-cod').value+' '+document.getElementById('c-tel').value.trim(),
+    contacto: ['c-nom1','c-nom2','c-ape1','c-ape2'].map(x=>document.getElementById(x).value.trim()).filter(Boolean).join(' '),
+    email:document.getElementById('c-email').value.trim(), tipoVia:document.getElementById('c-via').value,
+    calle:document.getElementById('c-calle').value.trim(), altura:document.getElementById('c-altura').value.trim(), comuna:document.getElementById('c-comuna').value.trim(), region:document.getElementById('c-region').value.trim(),
+    direccion:[document.getElementById('c-via').value,document.getElementById('c-calle').value.trim(),document.getElementById('c-altura').value.trim(),document.getElementById('c-comuna').value.trim(),document.getElementById('c-region').value.trim()].filter(Boolean).join(', ')
   };
 
   if(editId) { clientes = clientes.map(x => x.id === editId ? c : x); } 
@@ -362,6 +378,9 @@ function guardarCliente() {
   
   guardarLocal(); renderClientes(); cerrarModal();
 }
+
+function calcularDvRut(rut){ let suma=0,mul=2; for(let i=rut.length-1;i>=0;i--){suma+=Number(rut[i])*mul;mul=mul===7?2:mul+1;} const r=11-(suma%11);return r===11?'0':r===10?'K':String(r); }
+function cRutCalc(){ const n=document.getElementById('c-rut').value.replace(/\D/g,''); const dv=n?calcularDvRut(n):''; document.getElementById('c-rut-dv').value=dv; document.getElementById('c-rut-msg').textContent=dv?'DV calculado automáticamente':''; }
 
 function borrarCliente() {
   if(confirm("¿Eliminar este cliente de la base de datos?")) {
