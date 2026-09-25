@@ -1,16 +1,21 @@
 {
-	"short_name": "CreamosImagen",
-	"name": "Creamos Imagen Mi Portal",
-	"icons": [
-		{
-			"src": "https://vercel.app",
-			"type": "image/x-icon",
-			"sizes": "64x64 32x32 24x24 16x16"
-		}
-	],
-	"start_url": ".",
-	"background_color": "#ffffff",
-	"display": "standalone",
-	"theme_color": "#000000",
-	"orientation": "portrait"
+	"short_name": "Creamo{
+  "short_name": "CreamosImagen",
+  "name": "Creamos Imagen Asistencia",
+  "icons": [
+    {
+      "src": "icono-app.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "start_url": ".",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "theme_color": "#000000",
+  "orientation": "portrait"
+}
+sImagen",
+	
 }
