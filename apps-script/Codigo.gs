@@ -372,6 +372,7 @@ function accionGet(p) {
   }
   if (p.accion === "portal") return accionPortal(p.token, p.trabajadorId);
   if (p.accion === "portalDocs") return accionPortalDocs(p.token, p.trabajadorId);
+  if (p.accion === "marketingConciertos") return accionMarketingConciertos(p);
   if (p.accion === "config") {
     const u = usuarioDe(p.token);
     if (!u || !u.isAdmin || u.legado) return error("SIN_PERMISO");
@@ -418,6 +419,77 @@ function accionLogin(credential) {
     estado: "éxito",
       sesion: { token: crearToken(g.email), email: g.email, name: g.name || g.email, picture: g.picture, isAdmin: pf.isAdmin, modules: pf.modules, esTrabajador: pf.esTrabajador, ts: Date.now() }
   });
+}
+
+// ------------------------------------------------------------------
+// Marketing: conciertos en Chile desde Ticketmaster (Discovery API)
+// ------------------------------------------------------------------
+// Busca eventos en Chile de cada grupo que sigue el módulo Marketing
+// (llave marketing_ci_v1) y, además, eventos "k-pop" en general para
+// descubrir grupos que aún no se siguen. La clave va en la propiedad del
+// script TM_API_KEY (nunca en las páginas). El resultado se guarda 12 horas
+// en caché para no gastar el límite de la API (5.000 consultas al día).
+const TM_CACHE = "tm:conciertos:v1";
+
+function tmEventos(key, keyword) {
+  const url = "https://app.ticketmaster.com/discovery/v2/events.json?countryCode=CL&size=50&sort=date,asc&apikey=" +
+    encodeURIComponent(key) + "&keyword=" + encodeURIComponent(keyword);
+  const res = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+  const codigo = res.getResponseCode();
+  if (codigo === 401) throw new Error("Ticketmaster rechazó la clave TM_API_KEY.");
+  if (codigo !== 200) throw new Error("Ticketmaster respondió " + codigo + " al buscar " + keyword);
+  const datos = JSON.parse(res.getContentText());
+  return ((datos._embedded && datos._embedded.events) || []).map(function (e) {
+    const lugar = (e._embedded && e._embedded.venues && e._embedded.venues[0]) || {};
+    const inicio = (e.dates && e.dates.start) || {};
+    return {
+      id: e.id, nombre: e.name, url: e.url || "",
+      fecha: inicio.localDate || "", hora: (inicio.localTime || "").slice(0, 5),
+      recinto: lugar.name || "", ciudad: (lugar.city && lugar.city.name) || "",
+      estado: (e.dates && e.dates.status && e.dates.status.code) || "",
+      artistas: ((e._embedded && e._embedded.attractions) || []).map(function (a) { return a.name; })
+    };
+  });
+}
+
+function accionMarketingConciertos(p) {
+  const u = usuarioDe(p.token);
+  if (!u) return error(motivoRechazo(p.token));
+  if (!u.isAdmin && (u.modules || []).indexOf("marketing") === -1) return error("SIN_PERMISO");
+  const key = String(PropertiesService.getScriptProperties().getProperty("TM_API_KEY") || "").trim();
+  if (!key) return error("Falta configurar TM_API_KEY en las propiedades del script.");
+  const cache = CacheService.getScriptCache();
+  if (p.forzar !== "1") { const c = cache.get(TM_CACHE); if (c) return respuesta(JSON.parse(c)); }
+
+  let grupos = [];
+  try { const mk = leerRRHH("marketing_ci_v1"); grupos = ((mk && mk.grupos) || []).filter(function (g) { return g.activo !== false; }).map(function (g) { return g.nombre; }); } catch (e) {}
+  const busquedas = grupos.map(function (n) { return { grupo: n, kw: n }; }).concat([{ grupo: "", kw: "k-pop" }, { grupo: "", kw: "kpop" }]);
+  const porId = {}, errores = [];
+  busquedas.forEach(function (b, i) {
+    if (i) Utilities.sleep(250); // la API admite ~5 consultas por segundo
+    let lista;
+    try { lista = tmEventos(key, b.kw); } catch (e) { errores.push(e.message); return; }
+    const g = b.grupo.toLowerCase();
+    lista.forEach(function (ev) {
+      // Coincidencia fuerte: el grupo figura como artista del evento.
+      // Débil: solo aparece en el nombre (puede ser un tributo o una fiesta temática).
+      const porArtista = g && ev.artistas.some(function (a) { return a.toLowerCase() === g; });
+      const porNombre = g && ev.nombre.toLowerCase().indexOf(g) !== -1;
+      const previo = porId[ev.id];
+      if (previo && previo.grupo && previo.coincidencia === "artista") return;
+      if (porArtista || porNombre) { ev.grupo = b.grupo; ev.coincidencia = porArtista ? "artista" : "nombre"; }
+      else if (previo) return;
+      else { ev.grupo = ""; ev.coincidencia = ""; }
+      porId[ev.id] = ev;
+    });
+  });
+  if (errores.length === busquedas.length) return error(errores[0]);
+  const eventos = Object.keys(porId).map(function (k) { return porId[k]; })
+    .sort(function (a, b) { return (a.fecha + a.hora).localeCompare(b.fecha + b.hora); });
+  const out = { estado: "éxito", eventos: eventos, grupos: grupos.length, consultado: new Date().toISOString(), errores: errores };
+  const texto = JSON.stringify(out);
+  if (texto.length < CACHE_MAX_CHARS) cache.put(TM_CACHE, texto, 43200);
+  return respuesta(out);
 }
 
 // ------------------------------------------------------------------

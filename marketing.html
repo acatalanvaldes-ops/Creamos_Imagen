@@ -134,6 +134,14 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);font-size:13
       <div class="nota" style="margin-bottom:14px">Se arma solo con los cumpleaños y aniversarios de debut de los grupos que sigues (pestaña Grupos), las fechas comerciales de Chile y las fechas que agregues a mano (conciertos, lanzamientos). Recuerda: diseños propios, sin logos ni fotos oficiales de los artistas y sin decir "oficial".</div>
       <div id="px-lista"></div>
     </div>
+    <div class="card">
+      <div class="card-title">
+        <span>🎟️ Conciertos en Chile (Ticketmaster)</span>
+        <button class="act-btn small" id="tm-btn" onclick="cargarConciertos(true)">↻ Buscar de nuevo</button>
+      </div>
+      <div class="nota" id="tm-nota" style="margin-bottom:10px">Se buscan solos los conciertos en Chile de los grupos que sigues y otros eventos K-pop. Solo incluye lo que vende Ticketmaster: lo de Puntoticket u otras ticketeras agrégalo como fecha manual.</div>
+      <div id="tm-lista"><div class="nota">Cargando…</div></div>
+    </div>
   </div>
 
   <!-- CALENDARIO -->
@@ -512,7 +520,7 @@ function verPanel(id, btn){
   $('p-' + id).classList.add('on'); btn.classList.add('on');
   renderTodo();
 }
-function renderTodo(){ renderProximos(); renderCalendario(); renderPublicaciones(); renderGrupos(); renderSugerencias(); }
+function renderTodo(){ renderProximos(); renderConciertos(); renderCalendario(); renderPublicaciones(); renderGrupos(); renderSugerencias(); }
 
 function tarjetaEvento(e, hoy){
   const falta = diasEntre(hoy, e.fecha);
@@ -827,6 +835,70 @@ function descartarSugerencia(id){
   s.estado = 'Descartado'; s.resuelto = hoyChile(); guardar(); renderTodo();
 }
 
+// ------------------------------------------------------------------ conciertos
+// El servidor consulta Ticketmaster (clave TM_API_KEY en Apps Script) y
+// guarda el resultado 12 horas. Aquí se muestran y se pasan al calendario
+// como fecha manual de tipo concierto (con tmId para no duplicarlos).
+let CONCIERTOS = null;
+async function cargarConciertos(forzar){
+  const btn = $('tm-btn'); btn.disabled = true;
+  if (forzar) $('tm-lista').innerHTML = '<div class="nota">Buscando en Ticketmaster… (puede tardar unos segundos)</div>';
+  try {
+    const res = await pedir(API_URL + "?accion=marketingConciertos&token=" + encodeURIComponent(CLOUD_TOKEN) + (forzar ? "&forzar=1" : ""), null, 90000);
+    const j = await res.json();
+    if (j.estado === 'error') throw new Error(j.detalle);
+    CONCIERTOS = j;
+  } catch(e) {
+    $('tm-lista').innerHTML = `<div class="aviso">No se pudieron consultar los conciertos: ${esc(e.message)}</div>`;
+    btn.disabled = false; return;
+  }
+  btn.disabled = false;
+  renderConciertos();
+}
+function renderConciertos(){
+  if (!CONCIERTOS) return;
+  const hoy = hoyChile();
+  const ev = (CONCIERTOS.eventos || []).filter(e => e.fecha && e.fecha >= hoy);
+  const cuando = CONCIERTOS.consultado ? new Date(CONCIERTOS.consultado).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' }) : '';
+  $('tm-nota').innerHTML = `Actualizado: ${esc(cuando)} · Se revisa solo cada 12 horas. Solo incluye lo que vende Ticketmaster: lo de Puntoticket u otras ticketeras agrégalo como fecha manual.` +
+    ((CONCIERTOS.errores || []).length ? `<br><span style="color:var(--red)">Algunas búsquedas fallaron: ${esc(CONCIERTOS.errores[0])}</span>` : '');
+  if (!ev.length) { $('tm-lista').innerHTML = '<div class="nota" style="padding:12px 0">No hay conciertos próximos en Chile en Ticketmaster para tus grupos ni eventos K-pop.</div>'; return; }
+  const fila = e => {
+    const ya = DB.fechas.find(f => f.tmId === e.id);
+    const g = e.grupo ? DB.grupos.find(x => x.nombre.toLowerCase() === e.grupo.toLowerCase()) : null;
+    const sugerido = !e.grupo && DB.sugerencias.some(s => s.tmId === e.id);
+    return `<div class="evento" style="border-left-color:${g ? g.color : '#1E40AF'}">
+      <div class="ev-fecha"><div class="ev-dia">${+e.fecha.slice(8)}</div><div class="ev-mes">${MESES[+e.fecha.slice(5,7)-1].slice(0,3)} ${e.fecha.slice(2,4)}</div><div class="ev-falta">en ${diasEntre(hoy, e.fecha)} días</div></div>
+      <div class="ev-cuerpo">
+        <div class="ev-titulo">🎤 ${esc(e.nombre)}</div>
+        <div class="ev-det">${esc([e.recinto, e.ciudad].filter(Boolean).join(', '))}${e.hora ? ' · ' + esc(e.hora) + ' h' : ''}${e.estado && e.estado !== 'onsale' ? ' · <b>' + esc({offsale:'sin venta', cancelled:'cancelado', postponed:'postergado', rescheduled:'reprogramado'}[e.estado] || e.estado) + '</b>' : ''}</div>
+        <div style="margin-top:5px">${e.grupo ? `<span class="badge ${e.coincidencia === 'artista' ? 'b-publicada' : 'b-warn'}">${esc(e.grupo)}${e.coincidencia === 'nombre' ? ' · revisar: puede ser tributo o fiesta' : ''}</span>` : `<span class="badge b-idea">${esc((e.artistas || []).join(', ') || 'K-pop')} · no lo sigues</span>`}
+          ${e.url ? ` <a href="${esc(e.url)}" target="_blank" rel="noopener" style="font-size:12px">Ver en Ticketmaster</a>` : ''}</div>
+      </div>
+      <div class="ev-acc">
+        ${ya ? '<span class="badge b-publicada">en el calendario</span>' : `<button class="act-btn small primary" onclick="agregarConcierto('${e.id}')">+ Al calendario</button>`}
+        ${!e.grupo && (e.artistas || []).length ? (sugerido ? '<span class="badge b-warn">sugerido</span>' : `<button class="act-btn small" onclick="sugerirDesdeConcierto('${e.id}')">Sugerir grupo</button>`) : ''}
+      </div>
+    </div>`;
+  };
+  const propios = ev.filter(e => e.grupo), otros = ev.filter(e => !e.grupo);
+  $('tm-lista').innerHTML = (propios.length ? propios.map(fila).join('') : '<div class="nota" style="padding:6px 0 12px">Ningún grupo que sigues tiene conciertos en Chile en Ticketmaster por ahora.</div>') +
+    (otros.length ? `<div class="semana" style="margin-top:14px"><h3>Otros eventos K-pop en Chile</h3>${otros.map(fila).join('')}</div>` : '');
+}
+function conciertoPorId(id){ return ((CONCIERTOS && CONCIERTOS.eventos) || []).find(e => e.id === id); }
+function agregarConcierto(id){
+  const e = conciertoPorId(id); if (!e) return;
+  const g = e.grupo ? DB.grupos.find(x => x.nombre.toLowerCase() === e.grupo.toLowerCase()) : null;
+  DB.fechas.push({ id: nuevoId(), tmId: e.id, titulo: `${e.nombre}${e.recinto ? ' — ' + e.recinto : ''}`, fecha: e.fecha, tipo: 'concierto', grupoId: g ? g.id : '', anual: false, url: e.url || '' });
+  guardar(); renderTodo();
+}
+function sugerirDesdeConcierto(id){
+  const e = conciertoPorId(id); if (!e) return;
+  const nombre = (e.artistas || [])[0] || e.nombre;
+  DB.sugerencias.push({ id: nuevoId(), tmId: e.id, nombre, motivo: `Concierto en Chile: ${e.nombre}, ${fLarga(e.fecha)}${e.recinto ? ' en ' + e.recinto : ''}`, por: SESION.name || SESION.email || '', fecha: hoyChile(), estado: 'Pendiente' });
+  guardar(); renderTodo();
+}
+
 // ------------------------------------------------------------------ inicio
 (async function init(){
   try {
@@ -843,7 +915,8 @@ function descartarSugerencia(id){
   }
   if (typeof ocultarCargando === 'function') ocultarCargando();
   renderTodo();
-  if (cargaOk) actualizarVencidos();
+  if (cargaOk) { cargarConciertos(false); actualizarVencidos(); }
+  else $('tm-lista').innerHTML = '';
 })();
 </script>
 </body>
