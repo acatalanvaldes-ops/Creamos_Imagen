@@ -624,6 +624,9 @@ async function loadYearData() {
     lastSyncedSnapshot = null; // no confirmado: evita falsos conflictos más adelante
     alert('No se pudo confirmar la conexión con la nube al cargar las producciones de ' + currentViewYear + '. Se están mostrando los datos guardados en este dispositivo; nada se subirá a la nube hasta que recargues la página (F5) con conexión.');
   }
+  // Etapas: las producciones sin etapa (o con las del esquema anterior) la
+  // reciben ahora y se guardan una sola vez.
+  if (normalizarEtapas(productions) && cargaProdsOk) necesitaSubirInicial = true;
 }
 
 function applyYearBounds() {
@@ -657,6 +660,7 @@ async function changeYear(newYearStr) {
   } finally {
     ocultarCargando();
   }
+  if (necesitaSubirInicial) save();
 }
 
 document.getElementById('todayDisplay').textContent = today.toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long' });
@@ -757,19 +761,49 @@ function getFiltered() {
 // =========================================================================
 // ETAPAS, CLIENTE VINCULADO Y COTIZACIÓN DE ORIGEN
 // =========================================================================
-// Cada producción avanza por ETAPAS. clienteId la une a la ficha del
-// cliente (antes solo se escribía el nombre) y cotizacionId a la cotización
-// desde la que se creó (Cotizaciones → "Crear producción").
-const ETAPAS = ['Diseño', 'Aprobación de diseño', 'Corte', 'Impresión / sublimación', 'Confección', 'Control de calidad', 'Listo para entrega', 'Entregado'];
-const ETAPA_COLOR = { 'Diseño':'#a855f7', 'Aprobación de diseño':'#d946ef', 'Corte':'#3b82f6', 'Impresión / sublimación':'#0ea5e9', 'Confección':'#6366f1', 'Control de calidad':'#f59e0b', 'Listo para entrega':'#22c55e', 'Entregado':'#64748b' };
+// ETAPAS simples (no se lleva un control detallado del proceso): En
+// producción → Listo para entregar → Entregado. Al marcar "Entregado" se
+// guarda la fecha real de entrega (fechaEntregaReal), que usa "Por cobrar"
+// para contar la antigüedad de la deuda. clienteId une la producción a la
+// ficha del cliente y cotizacionId a la cotización desde la que se creó.
+const ETAPAS = ['En producción', 'Listo para entregar', 'Entregado'];
+const ETAPA_COLOR = { 'En producción':'#3b82f6', 'Listo para entregar':'#f59e0b', 'Entregado':'#22c55e' };
+// Las producciones con entrega hasta esta fecha ya fueron entregadas
+// (informado por Creamos Imagen); las demás sin etapa quedan "En producción".
+const ENTREGADAS_HASTA = '2026-09-12';
+// Etapas del esquema anterior de 8 pasos → esquema de 3.
+const ETAPA_ANTERIOR = { 'Listo para entrega': 'Listo para entregar', 'Entregado': 'Entregado' };
 let cotizacionPendiente = null; // cotización que se está pasando a producción
+
+// Asigna la etapa a las producciones que no tienen una válida. Devuelve true
+// si cambió algo (para guardarlo una sola vez).
+function normalizarEtapas(lista) {
+  let cambio = false;
+  (lista || []).forEach(p => {
+    if (ETAPAS.includes(p.etapa)) return;
+    if (p.etapa) p.etapa = ETAPA_ANTERIOR[p.etapa] || 'En producción';
+    else {
+      const base = p.fechaEntrega || p.date || '';
+      p.etapa = base && base <= ENTREGADAS_HASTA ? 'Entregado' : 'En producción';
+    }
+    if (p.etapa === 'Entregado' && !p.fechaEntregaReal) p.fechaEntregaReal = p.fechaEntrega || p.date || '';
+    cambio = true;
+  });
+  return cambio;
+}
+function aplicarEtapa(p, etapa) {
+  if (p.etapa !== etapa) p.etapaFecha = hoyChile();
+  p.etapa = etapa;
+  if (etapa === 'Entregado') { if (!p.fechaEntregaReal) p.fechaEntregaReal = hoyChile(); }
+  else delete p.fechaEntregaReal;
+}
 
 function poblarEtapas() {
   const opts = ETAPAS.map(e => `<option value="${e}">${e}</option>`).join('');
   document.getElementById('prodEtapa').innerHTML = opts;
   const f = document.getElementById('filtroEtapa');
   const val = f.value;
-  f.innerHTML = '<option value="">Todas</option><option value="__abiertas">En curso (no entregadas)</option>' + opts + '<option value="__sin">Sin etapa</option>';
+  f.innerHTML = '<option value="">Todas</option><option value="__abiertas">No entregadas</option>' + opts;
   f.value = val;
 }
 function clientePorNombre(nombre) {
@@ -787,7 +821,7 @@ function mostrarVinculoCliente() {
 function cambiarEtapa(id, etapa) {
   const p = productions.find(x => x.id === id);
   if (!p) return;
-  p.etapa = etapa; p.etapaFecha = hoyChile();
+  aplicarEtapa(p, etapa);
   save(); renderAll();
 }
 
@@ -899,7 +933,7 @@ function editProduction(id) {
   document.getElementById('prodMonto').value = p.monto || '';
   document.getElementById('prodAbono').value = p.abono || '';
   document.getElementById('prodSaldo').value = p.saldo || '';
-  document.getElementById('prodEtapa').value = p.etapa || 'Diseño';
+  document.getElementById('prodEtapa').value = p.etapa || 'En producción';
   document.getElementById('prodDetalle').value = p.detalle || '';
   cotizacionPendiente = null;
   document.getElementById('prodCotBanner').style.display = 'none';
@@ -1143,7 +1177,7 @@ function toggleForm() {
     ['prodName','prodDiseñador','prodDate','prodFechaEntrega','prodMonto','prodAbono','prodSaldo','prodDetalle']
       .forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
     document.getElementById('prodTipo').value = '';
-    document.getElementById('prodEtapa').value = 'Diseño';
+    document.getElementById('prodEtapa').value = 'En producción';
     renderCantidadFields('');
     itemsEdit = [lineaVacia()];
     mostrarFormatoAnterior(false);
@@ -1180,7 +1214,7 @@ function addProduction() {
   // Al editar se conservan los campos que el formulario no muestra (pagos,
   // cotización de origen, fecha de etapa…): antes se reemplazaba el objeto entero.
   const previo = editingId ? productions.find(x => x.id === editingId) : null;
-  const etapa = document.getElementById('prodEtapa').value || 'Diseño';
+  const etapa = document.getElementById('prodEtapa').value || 'En producción';
   const cliente = clientePorNombre(name);
   const prod = Object.assign({}, previo || {}, {
     id: editingId || Date.now(), name, date, tag: tipo, orden, prenda: tipo,
@@ -1189,7 +1223,7 @@ function addProduction() {
     items, etapa, detalle: document.getElementById('prodDetalle').value.trim(),
     clienteId: cliente ? cliente.id : ((cotizacionPendiente && cotizacionPendiente.clienteId) || (previo && previo.clienteId) || '')
   });
-  if (!previo || previo.etapa !== etapa) prod.etapaFecha = hoyChile();
+  if (!previo || previo.etapa !== etapa) { prod.etapa = previo ? previo.etapa : ''; aplicarEtapa(prod, etapa); }
   if (cotizacionPendiente) { prod.cotizacionId = cotizacionPendiente.id; prod.cotizacionCorrelativo = cotizacionPendiente.correlativo; }
   if (editingId) {
     const idx = productions.findIndex(x => x.id === editingId);
@@ -1285,6 +1319,7 @@ function toggleCxc() {
 async function cargarCxc() {
   const anterior = currentViewYear - 1;
   try { prodsAnterior = (await loadFromCloudSharded('prods' + anterior)) || []; } catch (e) { prodsAnterior = []; }
+  normalizarEtapas(prodsAnterior); // solo para mostrar; se guarda al abrir ese año
   renderCxc();
 }
 function renderCxc() {
@@ -1294,9 +1329,11 @@ function renderCxc() {
     ...prodsAnterior.map(p => ({ p, anio: currentViewYear - 1 })),
     ...productions.map(p => ({ p, anio: currentViewYear }))
   ].filter(x => (Number(x.p.saldo) || 0) > 0).map(x => {
-    const base = x.p.fechaEntrega || x.p.date;
+    // La deuda corre desde la entrega real; lo no entregado queda "Por entregar".
+    const entregada = x.p.etapa === 'Entregado';
+    const base = entregada ? (x.p.fechaEntregaReal || x.p.fechaEntrega || x.p.date) : (x.p.fechaEntrega || x.p.date);
     const d = base ? dias(base) : 0;
-    const tramo = base > hoy ? 'Por entregar' : d <= 30 ? '0–30 días' : d <= 60 ? '31–60 días' : d <= 90 ? '61–90 días' : 'Más de 90 días';
+    const tramo = !entregada ? 'Por entregar' : d <= 30 ? '0–30 días' : d <= 60 ? '31–60 días' : d <= 90 ? '61–90 días' : 'Más de 90 días';
     return Object.assign({}, x, { base, d, tramo });
   });
   const TRAMOS = ['Por entregar', '0–30 días', '31–60 días', '61–90 días', 'Más de 90 días'];
@@ -1313,7 +1350,7 @@ function renderCxc() {
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:14px">
       ${TRAMOS.map(t => { const s = filas.filter(x => x.tramo === t).reduce((a, x) => a + x.p.saldo, 0); return `<div style="border:1px solid ${COLOR[t]}55;border-left:4px solid ${COLOR[t]};border-radius:3px;padding:8px 10px"><div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--text3)">${t}</div><div style="font-size:0.95rem;font-weight:700;color:var(--text)">${formatPesos(s)}</div></div>`; }).join('')}
     </div>
-    <div style="font-size:0.7rem;color:var(--text3);margin-bottom:8px">Antigüedad contada desde la fecha de entrega (o de ingreso si no tiene). Usa 💲 para registrar un pago: se descuenta del saldo y se anota en Caja.</div>
+    <div style="font-size:0.7rem;color:var(--text3);margin-bottom:8px">La antigüedad se cuenta desde que la producción se marcó como <b>Entregado</b>; las que aún no se entregan aparecen en "Por entregar". Usa 💲 para registrar un pago: se descuenta del saldo y se anota en Caja.</div>
     ${clientes.length ? clientes.map(c => `
       <div style="border-top:1px solid var(--border);padding:8px 0">
         <div style="display:flex;justify-content:space-between;gap:10px;font-size:0.85rem;color:var(--text)"><b>${c.n}</b><b style="color:${EST_COLORS.saldo}">${formatPesos(c.saldo)}</b></div>
