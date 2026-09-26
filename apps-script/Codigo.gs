@@ -54,6 +54,7 @@ const REGLAS = [
   { llave: /^creamos_imagen_v1$/,    escribe: ["ventasci"],     lee: ["dashboard"] },
   { llave: /^sublipro_v2$/,          escribe: ["ventas"],       lee: ["dashboard"] },
   { llave: /^rendicion\d{4}_v\d+$/,  escribe: ["rendicion"],    lee: ["dashboard"] },
+  { llave: /^cierres_caja_v1$/,      escribe: ["rendicion"],    lee: ["dashboard"] },
   { llave: /^prods\d{4}$/,           escribe: ["calendario"],   lee: ["clientes", "dashboard", "cotizaciones"] },
   { llave: /^rrhh_[a-z_]+_v\d+$/,    escribe: ["rrhh"],         lee: [] },
   { llave: /^marketing_ci_v1$/,      escribe: ["marketing"],    lee: [] }
@@ -451,13 +452,28 @@ function doPost(e) {
     // Si la página manda la versión que leyó y ya no es la actual, otra
     // persona guardó entremedio: se rechaza en vez de pisar sus cambios.
     // Las páginas antiguas (sin versión) se siguen aceptando.
-    if (payload.version !== undefined && payload.version !== null && String(payload.version) !== versionDe(payload.key)) {
+    let valor = payload.value, fusion = false;
+    const desactualizada = payload.version !== undefined && payload.version !== null && String(payload.version) !== versionDe(payload.key);
+    if (payload.key === KEY_CAJA) {
+      // Caja: las filas automáticas (ventas y pagos de producciones) siempre se
+      // toman de lo guardado, nunca de la página. Si la página está
+      // desactualizada solo por filas automáticas, se mezcla en vez de rechazar.
+      if (desactualizada && !soloCambiosAutomaticos(payload.version)) return respuesta({ estado: "error", detalle: "CONFLICTO", version: versionDe(payload.key) });
+      valor = combinarCaja(payload.value);
+      if (valor === null) return error("Datos de Caja inválidos.");
+      fusion = desactualizada;
+    } else if (desactualizada) {
       return respuesta({ estado: "error", detalle: "CONFLICTO", version: versionDe(payload.key) });
     }
     const antes = leerValor(payload.key);
-    const version = escribirValor(payload.key, payload.value);
-    registrarBitacora(usuario.email, "guardar", payload.key, antes, payload.value);
-    return respuesta({ estado: "éxito", version: version });
+    const version = escribirValor(payload.key, valor);
+    if (payload.key === KEY_CAJA) PropertiesService.getScriptProperties().setProperty("vermanual:" + KEY_CAJA, version);
+    registrarBitacora(usuario.email, fusion ? "guardar (mezcla)" : "guardar", payload.key, antes, valor);
+    // Ventas de Sala de venta y Otros → filas automáticas en Caja.
+    if (ORIGEN_VENTAS[payload.key]) {
+      try { espejarVentas(payload.key, usuario.email); } catch (e) { registrarBitacora(usuario.email, "error espejo ventas", String(e)); }
+    }
+    return respuesta({ estado: "éxito", version: version, fusion: fusion || undefined });
   } catch (err) {
     return error(err.toString());
   } finally {
@@ -542,6 +558,102 @@ function accionLogin(credential) {
 // en varias celdas). Caja: llave rendicion2026_v2 ({"AAAA-MM-DD": [filas]}).
 const KEY_CAJA = "rendicion2026_v2";
 const MEDIOS_PAGO = { "Efectivo": "ef", "Transferencia": "tr", "Webpay crédito": "wpCredito", "Webpay débito": "wpDebito" };
+
+// ------------------------------------------------------------------
+// Ventas → Caja (espejo automático)
+// ------------------------------------------------------------------
+// Cada vez que Sala de venta (sublipro_v2) u Otros (creamos_imagen_v1)
+// guardan, sus ventas con fecha desde ESPEJO_VENTAS_DESDE se reflejan en la
+// Caja del día como filas automáticas (ventaRef): se crean, actualizan o
+// borran junto con la venta. Las ventas anteriores a esa fecha ya estaban
+// anotadas a mano en Caja y no se tocan. En Caja, estas filas (y las de pagos
+// de producciones, pagoRef) se muestran bloqueadas: se corrigen en su módulo.
+const ESPEJO_VENTAS_DESDE = "2026-09-27";
+const ORIGEN_VENTAS = { "sublipro_v2": { id: "sala", origen: "Local", nombre: "Sala de venta" }, "creamos_imagen_v1": { id: "otros", origen: "Empresa", nombre: "Otros" } };
+const COM_WEBPAY_PCT = 2; // recargo Webpay que paga el cliente (igual que en los módulos de ventas)
+const TIPO_CAJA = { "Camisetas": "Camiseta", "Camisetas estampadas": "Camiseta", "Polerones": "Impresión Polerones", "Lienzo": "Lienzo", "Mantas": "Mantas",
+  "Pañuelos": "Pañuelos", "Banderas": "Banderas", "Banner": "Banner", "Bandanas": "Bandanas", "Conjuntos": "Conjuntos", "Estampados": "Estampados",
+  "Impresión": "Impresión", "Sublimación": "Sublimación" };
+
+function esFilaAutomatica(r) { return !!(r && (r.ventaRef || r.pagoRef)); }
+
+function leerVentas(key) {
+  const principal = leerJSON(key);
+  if (!principal) return [];
+  if (Array.isArray(principal)) return principal;
+  let ventas = (principal.ventas || []).slice();
+  for (let i = 1; i < (principal.shardCount || 1); i++) {
+    const b = leerJSON(key + "_sh" + i);
+    if (b && Array.isArray(b.ventas)) ventas = ventas.concat(b.ventas);
+  }
+  return ventas;
+}
+
+function filaDeVenta(v, o) {
+  const base = Math.round(Number(v.montoBase) || 0);
+  const esWp = v.formaPago === "Webpay";
+  const monto = esWp ? base + Math.round(base * COM_WEBPAY_PCT / 100) : base;
+  const fila = { cliente: v.cliente || "", tipo: TIPO_CAJA[v.producto] || "Otros", origen: o.origen, pago: v.formaPago || "Efectivo",
+    ef: "", tr: "", wpCredito: "", wpDebito: "", obs: "Venta " + o.nombre + (v.producto ? " · " + v.producto : ""), ventaRef: { origen: o.id, id: v.id } };
+  if (esWp) fila[v.tipoWebpay === "Débito" ? "wpDebito" : "wpCredito"] = monto;
+  else if (v.formaPago === "Transferencia") fila.tr = monto;
+  else fila.ef = monto;
+  return fila;
+}
+
+function espejarVentas(key, email) {
+  const o = ORIGEN_VENTAS[key];
+  const deseadas = {};
+  leerVentas(key).forEach(function (v) {
+    if (!v || !v.fecha || v.fecha < ESPEJO_VENTAS_DESDE || !(Number(v.montoBase) > 0)) return;
+    (deseadas[v.fecha] = deseadas[v.fecha] || []).push(filaDeVenta(v, o));
+  });
+  const antes = leerValor(KEY_CAJA);
+  let caja = {};
+  try { caja = JSON.parse(antes || "{}") || {}; } catch (e) { return; }
+  const fechas = {};
+  Object.keys(caja).forEach(function (f) { fechas[f] = true; });
+  Object.keys(deseadas).forEach(function (f) { fechas[f] = true; });
+  let cambios = 0;
+  Object.keys(fechas).forEach(function (f) {
+    const actuales = caja[f] || [];
+    const propias = actuales.filter(function (r) { return r && r.ventaRef && r.ventaRef.origen === o.id; });
+    const nuevas = deseadas[f] || [];
+    if (JSON.stringify(propias) === JSON.stringify(nuevas)) return;
+    caja[f] = actuales.filter(function (r) { return !(r && r.ventaRef && r.ventaRef.origen === o.id); }).concat(nuevas);
+    cambios++;
+  });
+  if (!cambios) return;
+  const texto = JSON.stringify(caja);
+  escribirValor(KEY_CAJA, texto);
+  registrarBitacora(email, "ventas → caja", o.nombre + " (" + cambios + " día(s) actualizados)", antes, texto);
+}
+
+// ¿Después de la versión que leyó la página solo hubo escrituras automáticas
+// (espejo de ventas o pagos de producciones)? Entonces se puede mezclar.
+function soloCambiosAutomaticos(versionPagina) {
+  const ultimaManual = PropertiesService.getScriptProperties().getProperty("vermanual:" + KEY_CAJA);
+  return !!ultimaManual && Number(versionPagina) >= Number(ultimaManual);
+}
+
+// Caja a guardar: filas manuales de la página + filas automáticas actuales.
+function combinarCaja(valorPagina) {
+  let pagina, actual;
+  try { pagina = JSON.parse(valorPagina) || {}; actual = JSON.parse(leerValor(KEY_CAJA) || "{}") || {}; } catch (e) { return null; }
+  if (typeof pagina !== "object" || Array.isArray(pagina)) return null;
+  const fechas = {};
+  Object.keys(pagina).forEach(function (f) { fechas[f] = true; });
+  Object.keys(actual).forEach(function (f) { fechas[f] = true; });
+  const out = {};
+  Object.keys(fechas).forEach(function (f) {
+    // Un día que la página no trae se deja como está en el servidor.
+    const fuente = Object.prototype.hasOwnProperty.call(pagina, f) ? pagina[f] : actual[f];
+    const manuales = (Array.isArray(fuente) ? fuente : []).filter(function (r) { return !esFilaAutomatica(r); });
+    const automaticas = (Array.isArray(actual[f]) ? actual[f] : []).filter(esFilaAutomatica);
+    out[f] = manuales.concat(automaticas);
+  });
+  return JSON.stringify(out);
+}
 
 function leerProducciones(anio) {
   const key = "prods" + anio;

@@ -874,6 +874,7 @@ function buildForm(form, editId, cp) {
     '<div style="font-size:22px">Webpay</div><div style="flex:1">'+
     '<div style="font-size:12px;font-weight:700;color:#1E40AF;margin-bottom:4px">Comision tarjeta Webpay: '+COM_WP_PCT+'%</div>'+
     '<div style="font-size:12px">Precio base: <strong>'+fmt(base)+'</strong> + Comision tarjeta: <strong style="color:#1E40AF">'+fmt(wp)+'</strong> = Cliente paga: <strong>'+fmt(base+wp)+'</strong></div>'+
+    '<div style="font-size:12px;margin-top:8px">Tarjeta: <select data-field="tipoWebpay" onchange="ufld(this)" style="padding:4px 8px;border-radius:6px;border:1px solid #BFDBFE"><option '+(form.tipoWebpay!=='Débito'?'selected':'')+'>Crédito</option><option '+(form.tipoWebpay==='Débito'?'selected':'')+'>Débito</option></select></div>'+
     '</div></div>' : '';
 
   var comBox = '<div id="form-com-box" class="span2" style="display:'+(base?'block':'none')+';background:#1C1917;border-radius:10px;padding:14px 18px">'+
@@ -899,6 +900,7 @@ function buildForm(form, editId, cp) {
     '<div><div style="font-size:13px;font-weight:600;color:var(--purple)">Requiere factura?</div>'+
     '<div style="font-size:11px;color:var(--muted);margin-top:2px">Factura electronica</div></div>'+
     '<button class="toggle '+(form.factura?'on':'')+' fac-toggle" data-field="factura" data-val="'+(form.factura?'false':'true')+'" onclick="ufldv(this)"></button></div>'+
+    '<div class="span2" style="font-size:11px;color:var(--muted);line-height:1.5">'+(form.fecha >= '2026-09-27' ? '✓ Al guardar, esta venta se anota sola en Caja (no la registres de nuevo allá).' : 'Las ventas con fecha anterior al 27-09-2026 no pasan solas a Caja.')+'</div>'+
     comBox +
     '</div>'+
     '<div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end">'+
@@ -922,13 +924,13 @@ function buildDel() {
 // ACCIONES
 // ============================================================
 function openForm() {
-  state.form = {fecha:hoyChile(),cliente:"",producto:PRODUCTOS[0],formaPago:FORMAS_PAGO[0],montoBase:"",comision:""+state.comDefPct,factura:false};
+  state.form = {fecha:hoyChile(),cliente:"",producto:PRODUCTOS[0],formaPago:FORMAS_PAGO[0],montoBase:"",comision:""+state.comDefPct,factura:false,tipoWebpay:"Crédito"};
   setState({showForm:true, editId:null});
 }
 
 function openEdit(id) {
   var v = state.ventas.find(function(x){return x.id===id;});
-  state.form = {fecha:v.fecha,cliente:v.cliente,producto:v.producto,formaPago:v.formaPago,montoBase:""+v.montoBase,comision:""+v.comision,factura:v.factura};
+  state.form = {fecha:v.fecha,cliente:v.cliente,producto:v.producto,formaPago:v.formaPago,montoBase:""+v.montoBase,comision:""+v.comision,factura:v.factura,tipoWebpay:v.tipoWebpay||"Crédito"};
   setState({showForm:true, editId:id});
 }
 
@@ -949,7 +951,8 @@ function submitForm() {
     formaPago: f.formaPago,
     montoBase: +f.montoBase,
     comision:  +f.comision || state.comDefPct,
-    factura:   f.factura
+    factura:   f.factura,
+    tipoWebpay: f.formaPago === WEBPAY ? (f.tipoWebpay || "Crédito") : undefined
   };
   if (state.editId) {
     state.ventas = state.ventas.map(function(x){ return x.id===state.editId ? entry : x; });
