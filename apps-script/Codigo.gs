@@ -49,12 +49,12 @@ const CACHE_MAX_CHARS = 90000; // CacheService admite hasta 100 KB por valor
 const REGLAS = [
   { llave: /^clientes_ci_v1$/,       escribe: ["clientes"],     lee: ["calendario", "cotizaciones"] },
   { llave: /^costos_ci_v1$/,         escribe: ["costos"],       lee: ["cotizaciones", "dashboard"] },
-  { llave: /^(cotizaciones|tarifario)_ci_v1$/, escribe: ["cotizaciones"], lee: [] },
+  { llave: /^(cotizaciones|tarifario)_ci_v1$/, escribe: ["cotizaciones"], lee: ["calendario"] },
   { llave: /^(compras|proveedores)_ci_v1$/,    escribe: ["proveedores"],  lee: ["dashboard"] },
   { llave: /^creamos_imagen_v1$/,    escribe: ["ventasci"],     lee: ["dashboard"] },
   { llave: /^sublipro_v2$/,          escribe: ["ventas"],       lee: ["dashboard"] },
   { llave: /^rendicion\d{4}_v\d+$/,  escribe: ["rendicion"],    lee: ["dashboard"] },
-  { llave: /^prods\d{4}$/,           escribe: ["calendario"],   lee: ["clientes", "dashboard"] },
+  { llave: /^prods\d{4}$/,           escribe: ["calendario"],   lee: ["clientes", "dashboard", "cotizaciones"] },
   { llave: /^rrhh_[a-z_]+_v\d+$/,    escribe: ["rrhh"],         lee: [] },
   { llave: /^marketing_ci_v1$/,      escribe: ["marketing"],    lee: [] }
 ];
@@ -94,26 +94,124 @@ function guardarEnCache(key, value) {
   }
 }
 
+// VALORES GRANDES EN VARIAS CELDAS
+// Una celda de Google Sheets admite hasta 50.000 caracteres. Si un valor es
+// más largo, se reparte en la misma fila: columna B con el comienzo y C, D…
+// con la continuación, cada una marcada con CONTINUA al inicio (así nunca se
+// interpreta como fórmula o número, y se sabe dónde termina). Las páginas no
+// notan la diferencia: siempre reciben el texto completo.
+const CELDA_MAX = 45000;
+const CONTINUA = "~";
+
+function leerFila(sheet, fila) {
+  const cols = Math.max(1, sheet.getLastColumn() - 1);
+  const celdas = sheet.getRange(fila, 2, 1, cols).getValues()[0];
+  const primera = celdas[0];
+  if (primera === "" || primera === undefined || primera === null) return null;
+  let i = 1;
+  if (!(typeof celdas[1] === "string" && celdas[1].charAt(0) === CONTINUA)) return primera;
+  let texto = String(primera);
+  while (i < celdas.length && typeof celdas[i] === "string" && celdas[i].charAt(0) === CONTINUA) texto += celdas[i++].slice(1);
+  return texto;
+}
+
+function escribirFila(sheet, fila, key, value) {
+  const texto = value === null || value === undefined ? "" : String(value);
+  const partes = [texto.slice(0, CELDA_MAX)];
+  for (let i = CELDA_MAX; i < texto.length; i += CELDA_MAX) partes.push(CONTINUA + texto.slice(i, i + CELDA_MAX));
+  if (fila === -1) {
+    fila = sheet.getLastRow() + 1;
+    sheet.getRange(fila, 1).setValue(key);
+  }
+  // Se limpian las continuaciones que sobren de un valor anterior más largo.
+  const cols = Math.max(1, sheet.getLastColumn() - 1);
+  const previas = sheet.getRange(fila, 2, 1, cols).getValues()[0];
+  let usadas = 1;
+  while (usadas < previas.length && typeof previas[usadas] === "string" && previas[usadas].charAt(0) === CONTINUA) usadas++;
+  const ancho = Math.max(partes.length, usadas);
+  while (partes.length < ancho) partes.push("");
+  if (sheet.getMaxColumns() < ancho + 1) sheet.insertColumnsAfter(sheet.getMaxColumns(), ancho + 1 - sheet.getMaxColumns());
+  if (ancho === 1) sheet.getRange(fila, 2).setValue(value);
+  else sheet.getRange(fila, 2, 1, ancho).setValues([partes]);
+}
+
 // Valor crudo (texto) de una llave, o null.
 function leerValor(key) {
   const enCache = CacheService.getScriptCache().get(CACHE_PREFIX + key);
   if (enCache !== null) return enCache === CACHE_NULL ? null : enCache;
   const sheet = hoja();
   const fila = buscarFila(sheet, key);
-  const value = fila > -1 ? sheet.getRange(fila, 2).getValue() : null;
+  const value = fila > -1 ? leerFila(sheet, fila) : null;
   const valor = (value === "" || value === undefined) ? null : value;
   guardarEnCache(key, valor);
   return valor;
 }
 
-// Guarda una llave. Quien llama debe tener tomado el lock.
+// VERSIONES (evita que un guardado pise cambios de otra persona)
+// Cada llave tiene una versión que cambia en cada guardado. Las páginas la
+// reciben al leer y la devuelven al guardar (sesion.js lo hace solo); si no
+// coincide, alguien guardó entremedio y el guardado se rechaza (CONFLICTO).
+function versionDe(key) {
+  return PropertiesService.getScriptProperties().getProperty("ver:" + key) || "0";
+}
+function nuevaVersion(key) {
+  const v = String(Date.now());
+  PropertiesService.getScriptProperties().setProperty("ver:" + key, v);
+  return v;
+}
+
+// Guarda una llave y devuelve su nueva versión. Quien llama debe tener tomado el lock.
 function escribirValor(key, value) {
   const sheet = hoja();
-  const fila = buscarFila(sheet, key);
-  if (fila > -1) sheet.getRange(fila, 2).setValue(value);
-  else sheet.appendRow([key, value]);
+  escribirFila(sheet, buscarFila(sheet, key), key, value);
   SpreadsheetApp.flush();
   guardarEnCache(key, value);
+  return nuevaVersion(key);
+}
+
+// BITÁCORA: quién guardó qué y cuándo (hoja "Bitácora").
+// Registra el tamaño y la cantidad de registros antes y después, para
+// detectar borrados masivos. Se consulta desde Accesos (accion=bitacora).
+const SHEET_BITACORA = "Bitácora";
+function hojaBitacora() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  let sh = ss.getSheetByName(SHEET_BITACORA);
+  if (!sh) {
+    sh = ss.insertSheet(SHEET_BITACORA);
+    sh.appendRow(["Fecha", "Usuario", "Acción", "Llave / detalle", "Caracteres antes", "Caracteres después", "Registros antes", "Registros después"]);
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+function contarRegistros(texto) {
+  if (texto === null || texto === undefined || texto === "") return "";
+  try {
+    const v = JSON.parse(texto);
+    if (Array.isArray(v)) return v.length;
+    if (v && Array.isArray(v.producciones)) return v.producciones.length;
+    if (v && typeof v === "object" && typeof v.shardCount !== "number") return Object.keys(v).length;
+  } catch (e) {}
+  return "";
+}
+function registrarBitacora(email, accion, detalle, antes, despues) {
+  try {
+    hojaBitacora().appendRow([new Date(), email || "", accion, detalle || "",
+      antes === undefined ? "" : String(antes || "").length, despues === undefined ? "" : String(despues || "").length,
+      antes === undefined ? "" : contarRegistros(antes), despues === undefined ? "" : contarRegistros(despues)]);
+  } catch (e) { console.error("No se pudo escribir la bitácora", e); }
+}
+
+function accionBitacora(p) {
+  const u = usuarioDe(p.token);
+  if (!u || !u.isAdmin || u.legado) return error("SIN_PERMISO");
+  const sh = hojaBitacora();
+  const ultima = sh.getLastRow();
+  if (ultima < 2) return respuesta({ estado: "éxito", filas: [] });
+  const n = Math.min(400, ultima - 1);
+  const filas = sh.getRange(ultima - n + 1, 1, n, 8).getValues().reverse().map(function (r) {
+    return { fecha: Utilities.formatDate(new Date(r[0]), "America/Santiago", "yyyy-MM-dd HH:mm:ss"), usuario: r[1], accion: r[2], detalle: r[3], antes: r[4], despues: r[5], regAntes: r[6], regDespues: r[7] };
+  });
+  return respuesta({ estado: "éxito", filas: filas });
 }
 
 function leerJSON(key) {
@@ -332,7 +430,7 @@ function doGet(e) {
     const usuario = usuarioDe(p.token);
     if (!usuario) return error(motivoRechazo(p.token));
     if (!puede(usuario, p.key, false)) return error("SIN_PERMISO");
-    return respuesta({ estado: "éxito", valor: leerValor(p.key) });
+    return respuesta({ estado: "éxito", valor: leerValor(p.key), version: versionDe(p.key) });
   } catch (err) {
     return error(err.toString());
   }
@@ -350,8 +448,16 @@ function doPost(e) {
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(20000);
-    escribirValor(payload.key, payload.value);
-    return respuesta({ estado: "éxito" });
+    // Si la página manda la versión que leyó y ya no es la actual, otra
+    // persona guardó entremedio: se rechaza en vez de pisar sus cambios.
+    // Las páginas antiguas (sin versión) se siguen aceptando.
+    if (payload.version !== undefined && payload.version !== null && String(payload.version) !== versionDe(payload.key)) {
+      return respuesta({ estado: "error", detalle: "CONFLICTO", version: versionDe(payload.key) });
+    }
+    const antes = leerValor(payload.key);
+    const version = escribirValor(payload.key, payload.value);
+    registrarBitacora(usuario.email, "guardar", payload.key, antes, payload.value);
+    return respuesta({ estado: "éxito", version: version });
   } catch (err) {
     return error(err.toString());
   } finally {
@@ -373,6 +479,7 @@ function accionGet(p) {
   if (p.accion === "portal") return accionPortal(p.token, p.trabajadorId);
   if (p.accion === "portalDocs") return accionPortalDocs(p.token, p.trabajadorId);
   if (p.accion === "marketingConciertos") return accionMarketingConciertos(p);
+  if (p.accion === "bitacora") return accionBitacora(p);
   if (p.accion === "config") {
     const u = usuarioDe(p.token);
     if (!u || !u.isAdmin || u.legado) return error("SIN_PERMISO");
@@ -384,6 +491,7 @@ function accionGet(p) {
 function accionPost(b) {
   if (b.accion === "login") return accionLogin(b.credential);
   if (b.accion === "loginMicrosoft") return accionLoginMicrosoft(b);
+  if (b.accion === "pagoProduccion" || b.accion === "anularPagoProduccion") return accionPagoProduccion(b);
   if (b.action === "listarMarcaciones" || b.action === "registrarMarcacion") return manejarMarcaciones(b);
   if (b.accion === "solicitarVac") return accionSolicitarVac(b);
   if (b.accion === "cancelarVac") return accionCancelarVac(b);
@@ -415,10 +523,93 @@ function accionLogin(credential) {
   const g = verificarCredencialGoogle(credential);
   if (!g) return error("CREDENCIAL_INVALIDA");
   const pf = perfil(g.email);
+  registrarBitacora(g.email, "inicio de sesión", "Google");
   return respuesta({
     estado: "éxito",
       sesion: { token: crearToken(g.email), email: g.email, name: g.name || g.email, picture: g.picture, isAdmin: pf.isAdmin, modules: pf.modules, esTrabajador: pf.esTrabajador, ts: Date.now() }
   });
+}
+
+// ------------------------------------------------------------------
+// Pagos de producciones → Caja (cuentas por cobrar)
+// ------------------------------------------------------------------
+// Registrar un pago de un cliente desde Producciones hace dos cosas en un
+// solo paso, con el lock tomado: suma el pago a la producción (abono y saldo)
+// y agrega la fila correspondiente en la Caja del día. Anularlo revierte
+// ambas. Así un pago no se escribe dos veces ni queda en un solo lado.
+// Producciones: llave prods<AÑO> ({producciones:[...], shardCount}); aquí se
+// reescribe completa en un solo bloque (el servidor ya reparte valores grandes
+// en varias celdas). Caja: llave rendicion2026_v2 ({"AAAA-MM-DD": [filas]}).
+const KEY_CAJA = "rendicion2026_v2";
+const MEDIOS_PAGO = { "Efectivo": "ef", "Transferencia": "tr", "Webpay crédito": "wpCredito", "Webpay débito": "wpDebito" };
+
+function leerProducciones(anio) {
+  const key = "prods" + anio;
+  const principal = leerJSON(key);
+  if (!principal) return [];
+  if (Array.isArray(principal)) return principal;
+  let lista = (principal.producciones || []).slice();
+  for (let i = 1; i < (principal.shardCount || 1); i++) {
+    const b = leerJSON(key + "_sh" + i);
+    if (!b || !Array.isArray(b.producciones)) throw new Error("Falta el bloque " + i + " de " + key);
+    lista = lista.concat(b.producciones);
+  }
+  return lista;
+}
+
+function accionPagoProduccion(b) {
+  const u = usuarioDe(b.token);
+  if (!u || u.legado) return error(u ? "SIN_PERMISO" : motivoRechazo(b.token));
+  if (!u.isAdmin && u.modules.indexOf("calendario") === -1) return error("SIN_PERMISO");
+  const anio = String(b.anio || "");
+  if (!/^\d{4}$/.test(anio)) return error("Año inválido.");
+  const anular = b.accion === "anularPagoProduccion";
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(20000);
+    const keyProd = "prods" + anio;
+    const prods = leerProducciones(anio);
+    const p = prods.find(function (x) { return String(x.id) === String(b.prodId); });
+    if (!p) return error("La producción ya no existe. Recarga la página.");
+    p.pagos = Array.isArray(p.pagos) ? p.pagos : [];
+    let caja = leerJSON(KEY_CAJA);
+    if (!caja || typeof caja !== "object" || Array.isArray(caja)) caja = {};
+    let pago;
+
+    if (anular) {
+      pago = p.pagos.find(function (x) { return x.id === b.pagoId; });
+      if (!pago) return error("Ese pago ya no existe. Recarga la página.");
+      p.pagos = p.pagos.filter(function (x) { return x.id !== b.pagoId; });
+      p.abono = Math.max(0, (Number(p.abono) || 0) - pago.monto);
+      if (caja[pago.fecha]) caja[pago.fecha] = caja[pago.fecha].filter(function (r) { return !(r.pagoRef && r.pagoRef.pagoId === pago.id); });
+    } else {
+      const monto = Math.round(Number(b.monto) || 0);
+      const fecha = String(b.fecha || "");
+      if (monto <= 0) return error("El monto debe ser mayor a cero.");
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return error("Fecha inválida.");
+      if (!MEDIOS_PAGO[b.medio]) return error("Medio de pago inválido.");
+      pago = { id: Utilities.getUuid(), fecha: fecha, monto: monto, medio: b.medio, obs: String(b.obs || "").slice(0, 150), registradoPor: u.email, registrado: hoyChileGS() };
+      p.pagos.push(pago);
+      p.abono = (Number(p.abono) || 0) + monto;
+      const fila = { cliente: p.name || "", tipo: p.tipo === "Sublimación" ? "Sublimación" : "Otros", origen: "Empresa",
+        pago: b.medio.indexOf("Webpay") === 0 ? "Webpay" : b.medio, ef: "", tr: "", wpCredito: "", wpDebito: "",
+        obs: ("Pago OP " + (p.orden || "") + (pago.obs ? " · " + pago.obs : "")).trim(),
+        pagoRef: { anio: anio, prodId: p.id, pagoId: pago.id } };
+      fila[MEDIOS_PAGO[b.medio]] = monto;
+      (caja[fecha] = caja[fecha] || []).push(fila);
+    }
+    p.saldo = Math.max(0, (Number(p.monto) || 0) - (Number(p.abono) || 0));
+
+    const antesCaja = leerValor(KEY_CAJA);
+    const textoCaja = JSON.stringify(caja);
+    const vProd = escribirValor(keyProd, JSON.stringify({ producciones: prods, shardCount: 1 }));
+    const vCaja = escribirValor(KEY_CAJA, textoCaja);
+    registrarBitacora(u.email, anular ? "anular pago" : "pago producción",
+      "OP " + (p.orden || "") + " " + (p.name || "") + " · $" + pago.monto + " " + pago.medio + " (" + pago.fecha + ")", antesCaja, textoCaja);
+    return respuesta({ estado: "éxito", produccion: p, versiones: { prods: vProd, caja: vCaja } });
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 // ------------------------------------------------------------------
@@ -546,6 +737,7 @@ function accionLoginMicrosoft(b) {
   const m = verificarCodigoMicrosoft(b.code, b.redirectUri);
   if (m.motivo) return error("Cuenta de Microsoft no verificada: " + m.motivo);
   const pf = perfil(m.email);
+  registrarBitacora(m.email, "inicio de sesión", "Microsoft");
   return respuesta({
     estado: "éxito",
     sesion: { token: crearToken(m.email), email: m.email, name: m.name || m.email, picture: "", isAdmin: pf.isAdmin, modules: pf.modules, esTrabajador: pf.esTrabajador, ts: Date.now() }

@@ -157,6 +157,7 @@
       <button class="tag-btn" id="fbtn-tag-Sublimación" onclick="setFilter('tag','Sublimación')"><span class="tag-dot" style="background:#a855f7"></span> Sublimación</button>
       <button class="tag-btn" id="fbtn-tag-Otros" onclick="setFilter('tag','Otros')"><span class="tag-dot" style="background:#64748b"></span> Otros</button>
       <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="toggle-form-btn" onclick="toggleCxc()" style="border-color:#22c55e;color:#22c55e">💰 Por cobrar</button>
         <button class="toggle-form-btn" onclick="toggleForm()"><span id="formBtnTxt">＋ Agregar producción</span></button>
       </div>
     </div>
@@ -175,7 +176,7 @@
     <div class="form-title" style="margin-bottom:16px">Nueva Producción</div>
     <div style="display:grid;grid-template-columns:80px 2fr 1fr 1fr 1fr 1fr;gap:12px;margin-bottom:12px">
       <div class="form-group"><label>N° Orden</label><input type="text" id="prodOrden" placeholder="Auto" autocomplete="off" readonly style="opacity:0.7;cursor:not-allowed;text-align:center;font-weight:600;color:var(--accent)"></div>
-      <div class="form-group"><label>Nombre / Cliente</label><input type="text" id="prodName" placeholder="Nombre de la producción…" list="listNombres" autocomplete="off"><datalist id="listNombres"></datalist></div>
+      <div class="form-group"><label>Nombre / Cliente</label><input type="text" id="prodName" placeholder="Nombre de la producción…" list="listNombres" autocomplete="off" oninput="mostrarVinculoCliente()"><datalist id="listNombres"></datalist></div>
       <div class="form-group"><label>Tipo de producción</label><select id="prodTipo" onchange="renderCantidadFields(this.value)" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.8rem;padding:10px 12px;outline:none;transition:border-color 0.2s"><option value="">— Seleccionar —</option><option value="Confección">Confección</option><option value="Sublimación">Sublimación</option><option value="Otros">Otros</option></select></div>
       
       <div class="form-group">
@@ -192,6 +193,12 @@
       <div class="form-group"><label>Fecha Entrega</label><input type="date" id="prodFechaEntrega" min="2026-01-01" max="2026-12-31"></div>
     </div>
 
+    <div id="prodCotBanner" style="display:none;background:#F1AF1318;border:1px solid var(--accent);border-radius:3px;padding:10px 14px;margin-bottom:12px;font-size:0.8rem;color:var(--text)"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 2fr;gap:12px;margin-bottom:12px">
+      <div class="form-group"><label>Etapa</label><select id="prodEtapa" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.8rem;padding:10px 12px;outline:none"></select></div>
+      <div class="form-group"><label>Cliente en la base</label><div id="prodClienteInfo" style="font-size:0.75rem;padding:10px 0;color:var(--text3)">Escribe el nombre del cliente</div></div>
+      <div class="form-group"><label>Detalle / observaciones</label><input type="text" id="prodDetalle" maxlength="300" placeholder="Ej: 20 camisetas talla M, logo en pecho…"></div>
+    </div>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:14px 16px;margin-bottom:12px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <span style="font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--text3)">Cantidad de prendas</span>
@@ -204,6 +211,29 @@
       <div class="form-group"><label>Abono ($)</label><input type="number" id="prodAbono" placeholder="0" min="0" oninput="calcSaldo()"></div>
       <div class="form-group"><label>Saldo Pendiente ($)</label><input type="number" id="prodSaldo" placeholder="0" readonly style="opacity:0.6;cursor:not-allowed"></div>
       <div class="form-group"><label>&nbsp;</label><button class="btn-add" onclick="addProduction()">Guardar</button></div>
+    </div>
+  </div>
+
+  <!-- CUENTAS POR COBRAR -->
+  <div id="cxcPanel" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:16px;margin-bottom:16px"></div>
+
+  <!-- MODAL DE PAGOS -->
+  <div id="pagoModal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);align-items:flex-start;justify-content:center;padding:40px 12px;overflow-y:auto" onclick="if(event.target===this)cerrarPagos()">
+    <div style="background:var(--surface);border:1px solid var(--accent);border-radius:4px;max-width:560px;width:100%;padding:20px;color:var(--text)">
+      <div id="pagoTitulo" style="font-size:1rem;font-weight:700;margin-bottom:4px"></div>
+      <div id="pagoResumen" style="font-size:0.8rem;color:var(--text2);margin-bottom:14px"></div>
+      <div id="pagoLista" style="margin-bottom:14px"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+        <div class="form-group"><label>Fecha</label><input type="date" id="pagoFecha"></div>
+        <div class="form-group"><label>Monto ($)</label><input type="number" id="pagoMonto" min="1"></div>
+        <div class="form-group"><label>Medio</label><select id="pagoMedio" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.8rem;padding:10px 12px"><option>Efectivo</option><option>Transferencia</option><option>Webpay crédito</option><option>Webpay débito</option></select></div>
+      </div>
+      <div class="form-group" style="margin-top:8px"><label>Observación (opcional)</label><input type="text" id="pagoObs" maxlength="150" placeholder="Ej: 2° abono, saldo final"></div>
+      <div style="font-size:0.7rem;color:var(--text3);margin:8px 0 14px">El pago se suma al abono de la producción y se registra automáticamente en la Caja de ese día (origen "Otros").</div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="toggle-form-btn" style="border-color:var(--text3);color:var(--text3)" onclick="cerrarPagos()">Cerrar</button>
+        <button class="toggle-form-btn" id="pagoBtn" onclick="registrarPago()">Registrar pago</button>
+      </div>
     </div>
   </div>
 
@@ -225,6 +255,8 @@
           <select id="filtroDiseñador" onchange="timelinePage=1; renderAll()" style="background:var(--card);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.75rem;padding:6px;outline:none;">
             <option value="">Todos</option>
           </select>
+          <span style="font-size:0.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-left:4px">Etapa:</span>
+          <select id="filtroEtapa" onchange="timelinePage=1; renderAll()" style="background:var(--card);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.75rem;padding:6px;outline:none;"></select>
           <span style="font-size:0.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-left:4px">Desde:</span>
           <input type="date" id="pdfDesde" onchange="timelinePage=1; renderAll()" style="background:var(--card);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.75rem;padding:6px;outline:none;">
           <span style="font-size:0.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-left:4px">Hasta:</span>
@@ -700,7 +732,77 @@ function getFiltered() {
   if (dis === SIN_DISEÑADOR) list = list.filter(p => !(p.diseñador || '').trim());
   else if (dis) list = list.filter(p => (p.diseñador || '').trim() === dis);
 
+  const etapaEl = document.getElementById('filtroEtapa');
+  const etapa = etapaEl ? etapaEl.value : '';
+  if (etapa === '__abiertas') list = list.filter(p => p.etapa !== 'Entregado');
+  else if (etapa === '__sin') list = list.filter(p => !p.etapa);
+  else if (etapa) list = list.filter(p => p.etapa === etapa);
+
   return list;
+}
+
+// =========================================================================
+// ETAPAS, CLIENTE VINCULADO Y COTIZACIÓN DE ORIGEN
+// =========================================================================
+// Cada producción avanza por ETAPAS. clienteId la une a la ficha del
+// cliente (antes solo se escribía el nombre) y cotizacionId a la cotización
+// desde la que se creó (Cotizaciones → "Crear producción").
+const ETAPAS = ['Diseño', 'Aprobación de diseño', 'Corte', 'Impresión / sublimación', 'Confección', 'Control de calidad', 'Listo para entrega', 'Entregado'];
+const ETAPA_COLOR = { 'Diseño':'#a855f7', 'Aprobación de diseño':'#d946ef', 'Corte':'#3b82f6', 'Impresión / sublimación':'#0ea5e9', 'Confección':'#6366f1', 'Control de calidad':'#f59e0b', 'Listo para entrega':'#22c55e', 'Entregado':'#64748b' };
+let cotizacionPendiente = null; // cotización que se está pasando a producción
+
+function poblarEtapas() {
+  const opts = ETAPAS.map(e => `<option value="${e}">${e}</option>`).join('');
+  document.getElementById('prodEtapa').innerHTML = opts;
+  const f = document.getElementById('filtroEtapa');
+  const val = f.value;
+  f.innerHTML = '<option value="">Todas</option><option value="__abiertas">En curso (no entregadas)</option>' + opts + '<option value="__sin">Sin etapa</option>';
+  f.value = val;
+}
+function clientePorNombre(nombre) {
+  const n = String(nombre || '').trim().toLowerCase();
+  return n ? clientesData.find(c => String(c.razonSocial || '').trim().toLowerCase() === n) || null : null;
+}
+function mostrarVinculoCliente() {
+  const c = clientePorNombre(document.getElementById('prodName').value);
+  const el = document.getElementById('prodClienteInfo');
+  if (!el) return;
+  el.innerHTML = c
+    ? `<span style="color:#22c55e">✓ Vinculado a la ficha de ${c.razonSocial}${c.rut ? ' · ' + c.rut : ''}</span>`
+    : (document.getElementById('prodName').value.trim() ? '<span style="color:#f59e0b">No está en la base de Clientes (se guarda solo el nombre)</span>' : 'Escribe el nombre del cliente');
+}
+function cambiarEtapa(id, etapa) {
+  const p = productions.find(x => x.id === id);
+  if (!p) return;
+  p.etapa = etapa; p.etapaFecha = hoyChile();
+  save(); renderAll();
+}
+
+// Viene desde Cotizaciones con ?cotizacion=ID: abre el formulario con los datos cargados.
+async function prepararDesdeCotizacion() {
+  const id = new URLSearchParams(location.search).get('cotizacion');
+  if (!id) return;
+  history.replaceState(null, '', location.pathname);
+  let cots = null;
+  try { cots = await loadFromCloudStrict('cotizaciones_ci_v1'); } catch (e) {}
+  const c = (cots || []).find(x => String(x.id) === String(id));
+  if (!c) { alert('No se encontró la cotización. Puede que no tengas acceso a Cotizaciones o que haya sido eliminada.'); return; }
+  const ya = productions.find(p => String(p.cotizacionId) === String(c.id));
+  if (ya) { alert(`La cotización N° ${String(c.correlativo || '').padStart(4, '0')} ya está en producción (OP ${ya.orden}).`); return; }
+  if (!document.getElementById('addForm').classList.contains('open')) toggleForm();
+  cotizacionPendiente = { id: c.id, correlativo: c.correlativo, clienteId: c.clienteId || '' };
+  const items = c.items || [];
+  const esSub = items.some(it => /sublim/i.test((it.tecnica || '') + ' ' + (it.producto || '')));
+  document.getElementById('prodName').value = c.cliente || '';
+  document.getElementById('prodMonto').value = Math.round(c.montoTotal || 0) || '';
+  document.getElementById('prodDate').value = hoyChile().startsWith(String(currentViewYear)) ? hoyChile() : '';
+  if (document.getElementById('prodDate').value) autoCalcEntrega();
+  if (esSub) { document.getElementById('prodTipo').value = 'Sublimación'; renderCantidadFields('Sublimación'); }
+  document.getElementById('prodDetalle').value = items.map(it => `${it.cantidad} ${it.producto}${it.tecnica ? ' (' + it.tecnica + ')' : ''}`).join(', ').slice(0, 300);
+  calcSaldo(); mostrarVinculoCliente();
+  const banner = document.getElementById('prodCotBanner');
+  banner.style.display = 'block';
+  banner.innerHTML = `🧾 Creando producción desde la <b>cotización N° ${String(c.correlativo || '').padStart(4, '0')}</b> de ${c.cliente || ''} por ${formatPesos(Math.round(c.montoTotal || 0))}. Revisa los datos, completa las cantidades de prendas y guarda.`;
 }
 
 const SIN_DISEÑADOR = '__sin__';
@@ -781,6 +883,11 @@ function editProduction(id) {
   document.getElementById('prodMonto').value = p.monto || '';
   document.getElementById('prodAbono').value = p.abono || '';
   document.getElementById('prodSaldo').value = p.saldo || '';
+  document.getElementById('prodEtapa').value = p.etapa || 'Diseño';
+  document.getElementById('prodDetalle').value = p.detalle || '';
+  cotizacionPendiente = null;
+  document.getElementById('prodCotBanner').style.display = 'none';
+  mostrarVinculoCliente();
   renderCantidadFields(p.tipo || '', p.cantidad || {});
   document.querySelector('.btn-add').textContent = 'Actualizar';
   f.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -892,11 +999,15 @@ function toggleForm() {
   document.getElementById('formBtnTxt').textContent = open ? '✕ Cancelar' : '＋ Agregar producción';
   document.querySelector('.btn-add').textContent = 'Guardar';
   editingId = null;
+  cotizacionPendiente = null;
+  document.getElementById('prodCotBanner').style.display = 'none';
   if (open) {
-    ['prodName','prodDiseñador','prodDate','prodFechaEntrega','prodMonto','prodAbono','prodSaldo']
+    ['prodName','prodDiseñador','prodDate','prodFechaEntrega','prodMonto','prodAbono','prodSaldo','prodDetalle']
       .forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
     document.getElementById('prodTipo').value = '';
+    document.getElementById('prodEtapa').value = 'Diseño';
     renderCantidadFields('');
+    mostrarVinculoCliente();
     document.getElementById('prodOrden').value = getNextOrden();
   }
 }
@@ -919,11 +1030,20 @@ function addProduction() {
   const totalPrendas = Object.entries(cantidad).filter(([k]) => !CANTIDAD_NO_PRENDA.includes(k)).reduce((s,[,v]) => s + (v||0), 0);
   let orden = editingId ? document.getElementById('prodOrden').value.trim() : getNextOrden();
 
-  const prod = {
+  // Al editar se conservan los campos que el formulario no muestra (pagos,
+  // cotización de origen, fecha de etapa…): antes se reemplazaba el objeto entero.
+  const previo = editingId ? productions.find(x => x.id === editingId) : null;
+  const etapa = document.getElementById('prodEtapa').value || 'Diseño';
+  const cliente = clientePorNombre(name);
+  const prod = Object.assign({}, previo || {}, {
     id: editingId || Date.now(), name, date, tag: tipo, orden, prenda: tipo,
     tipo, diseñador: document.getElementById('prodDiseñador').value.trim(),
-    fechaEntrega: document.getElementById('prodFechaEntrega').value, monto, abono, saldo: Math.max(0, monto - abono), cantidad, totalPrendas
-  };
+    fechaEntrega: document.getElementById('prodFechaEntrega').value, monto, abono, saldo: Math.max(0, monto - abono), cantidad, totalPrendas,
+    etapa, detalle: document.getElementById('prodDetalle').value.trim(),
+    clienteId: cliente ? cliente.id : ((cotizacionPendiente && cotizacionPendiente.clienteId) || (previo && previo.clienteId) || '')
+  });
+  if (!previo || previo.etapa !== etapa) prod.etapaFecha = hoyChile();
+  if (cotizacionPendiente) { prod.cotizacionId = cotizacionPendiente.id; prod.cotizacionCorrelativo = cotizacionPendiente.correlativo; }
   if (editingId) {
     const idx = productions.findIndex(x => x.id === editingId);
     if (idx !== -1) productions[idx] = prod;
@@ -933,10 +1053,131 @@ function addProduction() {
   save(); renderAll(); toggleForm();
 }
 
-function deleteProduction(id) { productions = productions.filter(p => p.id !== id); save(); renderAll(); }
+function deleteProduction(id) {
+  const p = productions.find(x => x.id === id);
+  if (p && (p.pagos || []).length && !confirm(`La producción ${p.name} tiene ${p.pagos.length} pago(s) registrados en Caja. Si la eliminas, esos pagos siguen en Caja. ¿Eliminar de todas formas?`)) return;
+  productions = productions.filter(p => p.id !== id); save(); renderAll();
+}
+
+// =========================================================================
+// PAGOS Y CUENTAS POR COBRAR
+// =========================================================================
+// Un pago se registra en el servidor (accion=pagoProduccion), que en un solo
+// paso lo suma a la producción y lo anota en la Caja del día. Después se
+// recargan las producciones para quedar con la versión que dejó el servidor.
+let pagoActual = null;      // { id, anio }
+let prodsAnterior = [];     // producciones del año anterior (para Por cobrar)
+
+function buscarProd(id, anio) {
+  if (Number(anio) === currentViewYear) return productions.find(x => x.id === id);
+  return prodsAnterior.find(x => x.id === id);
+}
+function abrirPagos(id, anio) {
+  const p = buscarProd(id, anio);
+  if (!p) return;
+  pagoActual = { id, anio: Number(anio) };
+  document.getElementById('pagoTitulo').textContent = `Pagos · OP ${p.orden || ''} ${p.name}`;
+  document.getElementById('pagoResumen').innerHTML = `Valor ${formatPesos(p.monto || 0)} · Pagado ${formatPesos(p.abono || 0)} · <b style="color:${p.saldo > 0 ? EST_COLORS.saldo : EST_COLORS.pagado}">Saldo ${formatPesos(p.saldo || 0)}</b>`;
+  const pagos = (p.pagos || []).slice().sort((a, b) => a.fecha.localeCompare(b.fecha));
+  document.getElementById('pagoLista').innerHTML = pagos.length
+    ? pagos.map(x => `<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:0.8rem;padding:6px 0;border-bottom:1px solid var(--border)">
+        <span>${x.fecha.split('-').reverse().join('-')} · ${x.medio}${x.obs ? ' · ' + x.obs : ''}</span>
+        <span style="display:flex;gap:8px;align-items:center"><b>${formatPesos(x.monto)}</b><button class="prod-delete" title="Anular pago (también se quita de Caja)" onclick="anularPago('${x.id}')">✕</button></span></div>`).join('')
+    : `<div style="font-size:0.75rem;color:var(--text3)">Sin pagos registrados desde aquí.${p.abono > 0 ? ' El abono de ' + formatPesos(p.abono) + ' se ingresó a mano en el formulario.' : ''}</div>`;
+  document.getElementById('pagoFecha').value = hoyChile();
+  document.getElementById('pagoMonto').value = p.saldo > 0 ? p.saldo : '';
+  document.getElementById('pagoObs').value = '';
+  document.getElementById('pagoModal').style.display = 'flex';
+}
+function cerrarPagos() { document.getElementById('pagoModal').style.display = 'none'; pagoActual = null; }
+
+async function enviarPago(cuerpo) {
+  const res = await fetchConTimeout(API_URL, { method: 'POST', body: JSON.stringify(Object.assign({ token: CLOUD_TOKEN, anio: String(pagoActual.anio), prodId: pagoActual.id }, cuerpo)) });
+  const j = await res.json();
+  if (j.estado === 'error') throw new Error(j.detalle || 'Error del servidor');
+  return j;
+}
+async function trasPago() {
+  const { id, anio } = pagoActual;
+  if (anio === currentViewYear) await loadYearData();
+  if (document.getElementById('cxcPanel').style.display !== 'none') await cargarCxc();
+  renderAll();
+  abrirPagos(id, anio);
+}
+async function registrarPago() {
+  if (!pagoActual) return;
+  if (!cargaProdsOk) { alert('No se pudo confirmar la conexión con la nube al abrir esta página. Recarga (F5) antes de registrar pagos.'); return; }
+  const monto = Math.round(Number(document.getElementById('pagoMonto').value) || 0);
+  const fecha = document.getElementById('pagoFecha').value;
+  const medio = document.getElementById('pagoMedio').value;
+  if (monto <= 0 || !fecha) { alert('Indica la fecha y un monto mayor a cero.'); return; }
+  const p = buscarProd(pagoActual.id, pagoActual.anio);
+  if (p && monto > (p.saldo || 0) && !confirm(`El pago (${formatPesos(monto)}) es mayor que el saldo (${formatPesos(p.saldo || 0)}). ¿Registrarlo igual?`)) return;
+  const btn = document.getElementById('pagoBtn'); btn.disabled = true; btn.textContent = 'Registrando…';
+  try {
+    await enviarPago({ accion: 'pagoProduccion', fecha, monto, medio, obs: document.getElementById('pagoObs').value.trim() });
+    await trasPago();
+  } catch (e) {
+    alert('No se pudo registrar el pago: ' + e.message);
+  } finally { btn.disabled = false; btn.textContent = 'Registrar pago'; }
+}
+async function anularPago(pagoId) {
+  if (!pagoActual || !confirm('¿Anular este pago? Se descuenta del abono y se quita de la Caja.')) return;
+  try {
+    await enviarPago({ accion: 'anularPagoProduccion', pagoId });
+    await trasPago();
+  } catch (e) { alert('No se pudo anular el pago: ' + e.message); }
+}
+
+function toggleCxc() {
+  const panel = document.getElementById('cxcPanel');
+  const abrir = panel.style.display === 'none';
+  panel.style.display = abrir ? 'block' : 'none';
+  if (abrir) { panel.innerHTML = '<div style="font-size:0.8rem;color:var(--text3)">Cargando…</div>'; cargarCxc(); }
+}
+async function cargarCxc() {
+  const anterior = currentViewYear - 1;
+  try { prodsAnterior = (await loadFromCloudSharded('prods' + anterior)) || []; } catch (e) { prodsAnterior = []; }
+  renderCxc();
+}
+function renderCxc() {
+  const hoy = hoyChile();
+  const dias = f => Math.round((Date.parse(hoy) - Date.parse(f)) / 86400000);
+  const filas = [
+    ...prodsAnterior.map(p => ({ p, anio: currentViewYear - 1 })),
+    ...productions.map(p => ({ p, anio: currentViewYear }))
+  ].filter(x => (Number(x.p.saldo) || 0) > 0).map(x => {
+    const base = x.p.fechaEntrega || x.p.date;
+    const d = base ? dias(base) : 0;
+    const tramo = base > hoy ? 'Por entregar' : d <= 30 ? '0–30 días' : d <= 60 ? '31–60 días' : d <= 90 ? '61–90 días' : 'Más de 90 días';
+    return Object.assign({}, x, { base, d, tramo });
+  });
+  const TRAMOS = ['Por entregar', '0–30 días', '31–60 días', '61–90 días', 'Más de 90 días'];
+  const COLOR = { 'Por entregar':'#64748b', '0–30 días':'#22c55e', '31–60 días':'#f59e0b', '61–90 días':'#f97316', 'Más de 90 días':'#ef4444' };
+  const total = filas.reduce((s, x) => s + x.p.saldo, 0);
+  const porCliente = {};
+  filas.forEach(x => { const k = (x.p.name || '—').trim(); (porCliente[k] = porCliente[k] || []).push(x); });
+  const clientes = Object.entries(porCliente).map(([n, l]) => ({ n, l, saldo: l.reduce((s, x) => s + x.p.saldo, 0), max: Math.max(...l.map(x => x.d)) })).sort((a, b) => b.saldo - a.saldo);
+  document.getElementById('cxcPanel').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+      <div style="font-size:0.9rem;font-weight:700;color:var(--text)">💰 Cuentas por cobrar · ${currentViewYear - 1} y ${currentViewYear}</div>
+      <div style="font-size:1.1rem;font-weight:700;color:${EST_COLORS.saldo}">Total ${formatPesos(total)}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:14px">
+      ${TRAMOS.map(t => { const s = filas.filter(x => x.tramo === t).reduce((a, x) => a + x.p.saldo, 0); return `<div style="border:1px solid ${COLOR[t]}55;border-left:4px solid ${COLOR[t]};border-radius:3px;padding:8px 10px"><div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--text3)">${t}</div><div style="font-size:0.95rem;font-weight:700;color:var(--text)">${formatPesos(s)}</div></div>`; }).join('')}
+    </div>
+    <div style="font-size:0.7rem;color:var(--text3);margin-bottom:8px">Antigüedad contada desde la fecha de entrega (o de ingreso si no tiene). Usa 💲 para registrar un pago: se descuenta del saldo y se anota en Caja.</div>
+    ${clientes.length ? clientes.map(c => `
+      <div style="border-top:1px solid var(--border);padding:8px 0">
+        <div style="display:flex;justify-content:space-between;gap:10px;font-size:0.85rem;color:var(--text)"><b>${c.n}</b><b style="color:${EST_COLORS.saldo}">${formatPesos(c.saldo)}</b></div>
+        ${c.l.sort((a, b) => b.d - a.d).map(x => `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:0.75rem;color:var(--text2);padding:3px 0 3px 12px">
+          <span>OP ${x.p.orden || ''} (${x.anio}) · ${x.p.etapa || 'sin etapa'} · entrega ${x.base ? x.base.split('-').reverse().join('-') : '—'} · <span style="color:${COLOR[x.tramo]}">${x.tramo}</span></span>
+          <span style="display:flex;gap:8px;align-items:center">${formatPesos(x.p.saldo)}<button class="prod-delete" style="color:#22c55e;border:1px solid #22c55e33" onclick="abrirPagos(${x.p.id}, ${x.anio})">💲</button></span></div>`).join('')}
+      </div>`).join('') : '<div style="font-size:0.8rem;color:var(--text3)">No hay saldos pendientes. 🎉</div>'}`;
+}
 function getProdsForDate(dateStr) { return productions.filter(p => p.date === dateStr); }
 
-function renderAll() { poblarFiltroDiseñador(); renderGrid(); renderTimeline(); renderStats(); }
+function renderAll() { poblarFiltroDiseñador(); renderGrid(); renderTimeline(); renderStats(); if (document.getElementById('cxcPanel').style.display !== 'none') renderCxc(); }
 
 function renderGrid() {
   const navContainer = document.getElementById('monthNav');
@@ -1079,10 +1320,16 @@ function renderTimeline() {
     else if (activeFilterType === 'estado' && activeFilterValue === 'pagado') filtroExtra = `<div style="margin-top:3px;font-size:0.7rem;color:${EST_COLORS.pagado};font-weight:600">✓ Pagado</div>`;
     else if (activeFilterType === 'tag') filtroExtra = `<div style="margin-top:3px"><span style="font-size:0.6rem;padding:1px 6px;border-radius:2px;background:${colorCategoria(p)}22;color:${colorCategoria(p)}">${categoriaDe(p)}</span></div>`;
     html += `<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:8px;align-items:center;padding:12px 8px;border-bottom:1px solid var(--border)22">
-      <div><div style="font-size:1rem;color:var(--text);font-weight:600">${p.name}</div>${p.orden ? `<div style="font-size:0.7rem;color:var(--accent);font-weight:600">#${p.orden}</div>` : ''}${filtroExtra}</div>
+      <div><div style="font-size:1rem;color:var(--text);font-weight:600">${p.name}${p.clienteId ? ' <span title="Vinculado a la ficha del cliente" style="font-size:0.7rem;color:#22c55e">●</span>' : ''}</div>${p.orden ? `<div style="font-size:0.7rem;color:var(--accent);font-weight:600">#${p.orden}${p.cotizacionCorrelativo ? ` <span style="color:var(--text3);font-weight:400">· cotización N° ${String(p.cotizacionCorrelativo).padStart(4, '0')}</span>` : ''}</div>` : ''}${filtroExtra}
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:5px">
+          <select onchange="cambiarEtapa(${p.id}, this.value)" title="Etapa de la producción" style="background:${(ETAPA_COLOR[p.etapa] || '#64748b')}22;border:1px solid ${ETAPA_COLOR[p.etapa] || 'var(--border)'};color:${ETAPA_COLOR[p.etapa] || 'var(--text3)'};border-radius:10px;font-family:'DM Mono',monospace;font-size:0.65rem;padding:2px 6px;outline:none">
+            ${p.etapa ? '' : '<option value="" selected>Sin etapa</option>'}${ETAPAS.map(e => `<option value="${e}" ${p.etapa === e ? 'selected' : ''}>${e}</option>`).join('')}
+          </select>
+          ${p.monto > 0 ? `<span style="font-size:0.7rem;color:${p.saldo > 0 ? EST_COLORS.saldo : EST_COLORS.pagado}">${p.saldo > 0 ? 'Saldo ' + formatPesos(p.saldo) : '✓ Pagado'}</span>` : ''}
+        </div></div>
       <div>${prendasHtml}</div><div style="font-size:0.85rem;color:var(--text2)">${p.diseñador || '—'}</div><div style="font-size:0.85rem;color:var(--text2)">${ingresoLabel}</div>
       <div style="font-size:0.85rem;color:${p.fechaEntrega ? 'var(--accent)' : 'var(--text3)'}">${entregaLabel}</div>
-      <div style="display:flex;gap:4px"><button class="prod-delete" style="color:var(--accent);border:1px solid var(--accent)22" onclick="editProduction(${p.id})">✏</button><button class="prod-delete" onclick="deleteProduction(${p.id})">✕</button></div></div>`;
+      <div style="display:flex;gap:4px"><button class="prod-delete" style="color:#22c55e;border:1px solid #22c55e33" title="Pagos del cliente" onclick="abrirPagos(${p.id}, ${currentViewYear})">💲</button><button class="prod-delete" style="color:var(--accent);border:1px solid var(--accent)22" onclick="editProduction(${p.id})">✏</button><button class="prod-delete" onclick="deleteProduction(${p.id})">✕</button></div></div>`;
   });
 
   if (totalPages > 1) {
@@ -1255,7 +1502,8 @@ async function exportPDF() {
 window.onload = async function() {
   document.getElementById('yearSelect').value = String(currentViewYear);
   applyYearBounds();
-  
+  poblarEtapas();
+
   try {
     // Clientes (para el autocompletado) y producciones se piden en paralelo.
     const [cloudClientes] = await Promise.all([
@@ -1276,6 +1524,7 @@ window.onload = async function() {
 
   // Sube los datos precargados solo si la nube todavía no los tiene.
   if (necesitaSubirInicial) save();
+  prepararDesdeCotizacion();
 };
 </script>
 </body>

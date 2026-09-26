@@ -258,9 +258,57 @@ function render() {
         '</div>' +
       '</div>' +
       tarjetaSeguridad() +
+      '<div class="card"><div class="card-title" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">Bitácora de cambios' +
+        '<span style="display:flex;gap:8px"><input id="bit-filtro" placeholder="Filtrar por persona, módulo o detalle" value="' + (state.bitFiltro || '') + '" oninput="state.bitFiltro=this.value;renderBitacora()" style="background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12.5px;min-width:240px">' +
+        '<button class="act-btn" onclick="cargarBitacora()">↻ Actualizar</button></span></div>' +
+        '<div class="help">Quién guardó qué y cuándo (últimos 400 movimientos). En <b style="color:var(--red)">rojo</b>, los guardados que dejaron menos registros que antes: revísalos si no fueron borrados a propósito. El registro completo está en la hoja "Bitácora" de la planilla.</div>' +
+        '<div id="bitacora"><div class="empty-state">Cargando…</div></div></div>' +
     '</div>';
 
   document.getElementById("app").innerHTML = html;
+  renderBitacora();
+}
+
+// ============================================================
+// BITÁCORA (solo administradores; la arma el servidor en cada guardado)
+// ============================================================
+var NOMBRES_LLAVE = [
+  [/^accesos_ci_v1/, "Accesos"], [/^clientes_ci_v1/, "Clientes"], [/^costos_ci_v1/, "Costos"],
+  [/^(cotizaciones|tarifario)_ci_v1/, "Cotizaciones"], [/^(compras|proveedores)_ci_v1/, "Proveedores"],
+  [/^creamos_imagen_v1/, "Otros (ventas)"], [/^sublipro_v2/, "Sala de venta"], [/^rendicion/, "Caja"],
+  [/^prods\d{4}/, "Producciones"], [/^rrhh_/, "Recursos Humanos"], [/^marketing_ci_v1/, "Marketing"]
+];
+function nombreLlave(k) {
+  for (var i = 0; i < NOMBRES_LLAVE.length; i++) if (NOMBRES_LLAVE[i][0].test(k)) return NOMBRES_LLAVE[i][1] + ' <span style="color:var(--muted);font-size:11px">(' + k + ')</span>';
+  return k;
+}
+async function cargarBitacora() {
+  try {
+    var res = await fetch(API_URL + "?accion=bitacora&token=" + encodeURIComponent(CLOUD_TOKEN));
+    var j = await res.json();
+    if (j.estado === 'error') throw new Error(j.detalle);
+    state.bitacora = j.filas || [];
+  } catch (e) {
+    state.bitacora = null; state.bitError = e.message;
+  }
+  renderBitacora();
+}
+function escB(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function renderBitacora() {
+  var cont = document.getElementById('bitacora'); if (!cont) return;
+  if (state.bitacora === undefined) return;
+  if (state.bitacora === null) { cont.innerHTML = '<div class="empty-state">No se pudo cargar la bitácora: ' + escB(state.bitError) + '</div>'; return; }
+  var f = (state.bitFiltro || '').toLowerCase();
+  var filas = state.bitacora.filter(function (r) { return !f || (r.usuario + ' ' + r.accion + ' ' + r.detalle + ' ' + nombreLlave(r.detalle)).toLowerCase().indexOf(f) !== -1; });
+  if (!filas.length) { cont.innerHTML = '<div class="empty-state">Sin movimientos' + (f ? ' para ese filtro' : ' todavía') + '.</div>'; return; }
+  cont.innerHTML = '<div style="overflow-x:auto;max-height:480px;overflow-y:auto"><table><thead><tr><th>Fecha</th><th class="email-col">Usuario</th><th>Acción</th><th class="email-col">Módulo / detalle</th><th>Registros</th></tr></thead><tbody>' +
+    filas.map(function (r) {
+      var menos = r.regAntes !== '' && r.regDespues !== '' && Number(r.regDespues) < Number(r.regAntes);
+      var reg = r.regAntes === '' && r.regDespues === '' ? '' : (r.regAntes === '' ? '' : r.regAntes + ' → ') + r.regDespues;
+      return '<tr' + (menos ? ' style="background:#FEF2F2"' : '') + '><td style="white-space:nowrap">' + escB(r.fecha) + '</td><td class="email-col">' + escB(r.usuario) + '</td><td>' + escB(r.accion) + '</td>' +
+        '<td class="email-col" style="font-weight:400">' + (r.accion === 'guardar' ? nombreLlave(escB(r.detalle)) : escB(r.detalle)) + '</td>' +
+        '<td style="white-space:nowrap' + (menos ? ';color:var(--red);font-weight:700' : '') + '">' + escB(reg) + '</td></tr>';
+    }).join('') + '</tbody></table></div>';
 }
 
 async function initApp() {
@@ -273,6 +321,7 @@ async function initApp() {
   }
   state.loaded = true;
   render();
+  cargarBitacora();
 }
 
 initApp().finally(ocultarCargando);

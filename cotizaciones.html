@@ -61,6 +61,10 @@ table.tbl input:focus,table.tbl select:focus{border-bottom:2px solid var(--gold)
 .badge.pendiente{background:#FFFBEB;color:var(--amber)}
 .badge.aceptada{background:#F0FDF4;color:var(--teal)}
 .badge.rechazada{background:#FEF2F2;color:var(--red)}
+.badge.vencida{background:#F3F4F6;color:#6B7280}
+.seg-box{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:10px;padding-top:10px;border-top:1px dashed var(--border)}
+.seg-box label{display:block;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
+.seg-box input{border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px}
 .badge.fortuito{background:#F5F3FF;color:var(--purple);cursor:default}
 .empty-state{text-align:center;padding:60px;color:var(--muted);background:#fff;border-radius:12px;border:1px dashed var(--border)}
 .pill-filters{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
@@ -193,8 +197,10 @@ table.tbl input:focus,table.tbl select:focus{border-bottom:2px solid var(--gold)
       <button class="pill" data-f="pendiente" onclick="setFiltroEstado('pendiente',this)">Pendientes</button>
       <button class="pill" data-f="aceptada" onclick="setFiltroEstado('aceptada',this)">Aceptadas</button>
       <button class="pill" data-f="rechazada" onclick="setFiltroEstado('rechazada',this)">Rechazadas</button>
+      <button class="pill" data-f="vencida" onclick="setFiltroEstado('vencida',this)">Vencidas</button>
+      <button class="pill" data-f="contactar" onclick="setFiltroEstado('contactar',this)">📞 Por contactar <span id="n-contactar"></span></button>
     </div>
-    <div class="note">Haz clic en una fila para ver el detalle y descargar el PDF de esa cotización.</div>
+    <div class="note">Haz clic en una fila para ver el detalle, registrar el seguimiento y descargar el PDF. Una cotización pendiente pasa a <b>Vencida</b> cuando supera los días de validez (Tarifario Base → Configuración General). Las aceptadas se pasan a Producciones con "Crear producción".</div>
     <div id="cotizacionesTableWrap"></div>
   </div>
 
@@ -204,6 +210,7 @@ table.tbl input:focus,table.tbl select:focus{border-bottom:2px solid var(--gold)
       <div class="card-title">Configuración General</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px,1fr));gap:12px">
         <div class="fld"><label>IVA (%)</label><div class="fld-row"><input type="number" id="cfg-iva" onchange="setConfigTarifario('ivaPct', this.value)"><span class="fld-suffix">%</span></div></div>
+        <div class="fld"><label>Validez de la cotización</label><div class="fld-row"><input type="number" id="cfg-validez" min="1" onchange="setConfigTarifario('validezDias', this.value)"><span class="fld-suffix">días</span></div></div>
         <div class="fld"><label>Nombre Lista de Precio 1</label><input type="text" id="cfg-lista0" onchange="setNombreLista(0, this.value)"></div>
         <div class="fld"><label>Nombre Lista de Precio 2</label><input type="text" id="cfg-lista1" onchange="setNombreLista(1, this.value)"></div>
         <div class="fld"><label>Nombre Lista de Precio 3</label><input type="text" id="cfg-lista2" onchange="setNombreLista(2, this.value)"></div>
@@ -772,6 +779,7 @@ function actualizarPreviewCorrelativo() {
 
 function renderTarifarioTable() {
   document.getElementById('cfg-iva').value = tarifario.ivaPct !== undefined ? tarifario.ivaPct : 19;
+  document.getElementById('cfg-validez').value = validezDias();
   const nombresListas = tarifario.nombresListas || ['Lista 1', 'Lista 2', 'Lista 3'];
   document.getElementById('cfg-lista0').value = nombresListas[0] || 'Lista 1';
   document.getElementById('cfg-lista1').value = nombresListas[1] || 'Lista 2';
@@ -848,9 +856,70 @@ function setFiltroEstado(f, btn) {
   renderCotizacionesTable();
 }
 
+// ===== ESTADOS Y SEGUIMIENTO =====
+// Se guardan: pendiente / aceptada / rechazada. "Vencida" no se guarda: se
+// calcula cuando una pendiente supera los días de validez del tarifario.
+function validezDias() { return tarifario.validezDias > 0 ? tarifario.validezDias : 15; }
+function venceEl(c) { const d = new Date((c.fecha || todayISO()) + 'T12:00:00'); d.setDate(d.getDate() + validezDias()); return d.toISOString().slice(0, 10); }
+function estadoVisible(c) { return c.estado === 'pendiente' && venceEl(c) < todayISO() ? 'vencida' : (c.estado || 'pendiente'); }
+function porContactar(c) { return c.estado === 'pendiente' && c.seguimiento && c.seguimiento <= todayISO(); }
+
 function cambiarEstado(id, nuevoEstado) {
   const c = cotizaciones.find(x => x.id === id);
-  if (c) { c.estado = nuevoEstado; guardarCotizacionesLocal(); renderCotizacionesTable(); }
+  if (!c) return;
+  if (nuevoEstado === 'rechazada') {
+    const motivo = prompt('¿Por qué la rechazó el cliente? (opcional: precio, plazo, eligió otro proveedor…)', c.motivoRechazo || '');
+    if (motivo === null) { renderCotizacionesTable(); return; }
+    c.motivoRechazo = motivo.trim();
+  }
+  c.estado = nuevoEstado;
+  c.fechaEstado = todayISO();
+  guardarCotizacionesLocal(); renderCotizacionesTable();
+}
+function setSeguimiento(id, campo, valor) {
+  const c = cotizaciones.find(x => x.id === id);
+  if (!c) return;
+  c[campo] = valor;
+  guardarCotizacionesLocal();
+  actualizarContadorContactar();
+}
+function actualizarContadorContactar() {
+  const n = cotizaciones.filter(porContactar).length;
+  const el = document.getElementById('n-contactar');
+  if (el) el.textContent = n ? '(' + n + ')' : '';
+}
+
+// ===== VÍNCULO CON PRODUCCIONES =====
+// Producciones guarda cotizacionId en la producción creada desde aquí. Se leen
+// las producciones del año actual y el anterior (solo lectura) para mostrar
+// qué cotizaciones ya están en producción.
+let produccionesPorCot = {};
+async function cargarVinculosProduccion() {
+  const anio = Number(todayISO().slice(0, 4));
+  const leer = async key => {
+    const principal = await loadFromCloud(key);
+    if (!principal) return [];
+    if (Array.isArray(principal)) return principal;
+    let lista = (principal.producciones || []).slice();
+    for (let i = 1; i < (principal.shardCount || 1); i++) { const b = await loadFromCloud(key + '_sh' + i); if (b && b.producciones) lista = lista.concat(b.producciones); }
+    return lista;
+  };
+  const listas = await Promise.all([anio - 1, anio].map(a => leer('prods' + a).catch(() => [])));
+  produccionesPorCot = {};
+  listas.flat().forEach(p => { if (p && p.cotizacionId) produccionesPorCot[p.cotizacionId] = p; });
+  if (document.getElementById('view-enviadas').style.display !== 'none') renderCotizacionesTable();
+}
+async function crearProduccion(id) {
+  const c = cotizaciones.find(x => x.id === id);
+  if (!c) return;
+  if (c.estado !== 'aceptada') {
+    if (!cotizacionesCargadasOk) { alert('No se pudo confirmar la conexión con la nube al abrir esta página. Recarga (F5) antes de crear la producción.'); return; }
+    c.estado = 'aceptada'; c.fechaEstado = todayISO();
+    localStorage.setItem(KEY_COTIZACIONES, JSON.stringify(cotizaciones));
+    // Se espera el guardado antes de cambiar de página, para que no se corte.
+    if (!(await saveToCloud(KEY_COTIZACIONES, cotizaciones))) { alert('No se pudo guardar la cotización como aceptada. Revisa tu conexión e inténtalo de nuevo.'); return; }
+  }
+  window.location.href = 'calendario.html?cotizacion=' + encodeURIComponent(id);
 }
 
 function toggleDetalle(id) {
@@ -861,7 +930,9 @@ function toggleDetalle(id) {
 function renderCotizacionesTable() {
   const wrap = document.getElementById('cotizacionesTableWrap');
   let lista = cotizaciones.slice().sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
-  if (filtroEstadoActual !== 'todas') lista = lista.filter(c => c.estado === filtroEstadoActual);
+  actualizarContadorContactar();
+  if (filtroEstadoActual === 'contactar') lista = lista.filter(porContactar).sort((a, b) => a.seguimiento.localeCompare(b.seguimiento));
+  else if (filtroEstadoActual !== 'todas') lista = lista.filter(c => estadoVisible(c) === filtroEstadoActual);
 
   if (lista.length === 0) {
     wrap.innerHTML = '<div class="empty-state">No hay cotizaciones para mostrar.</div>';
@@ -881,9 +952,9 @@ function renderCotizacionesTable() {
         <td>${c.cliente || '-'}${c.clienteTipo === 'fortuito' ? ' <span class="badge fortuito">Fortuito</span>' : ''}</td>
         <td>${resumenProductos}</td>
         <td>${fmt(c.montoTotal)}</td>
-        <td><select class="badge ${c.estado}" onclick="event.stopPropagation()" onchange="cambiarEstado(${c.id}, this.value)">` +
-          estados.map(e => `<option value="${e}" ${c.estado === e ? 'selected' : ''}>${e.charAt(0).toUpperCase() + e.slice(1)}</option>`).join('') +
-        `</select></td>
+        <td><select class="badge ${estadoVisible(c)}" onclick="event.stopPropagation()" onchange="cambiarEstado(${c.id}, this.value)">` +
+          estados.map(e => `<option value="${e}" ${c.estado === e ? 'selected' : ''}>${e === 'pendiente' && estadoVisible(c) === 'vencida' ? 'Vencida' : e.charAt(0).toUpperCase() + e.slice(1)}</option>`).join('') +
+        `</select>${produccionesPorCot[c.id] ? `<div style="font-size:10px;color:var(--teal);margin-top:3px">🏭 OP ${produccionesPorCot[c.id].orden || ''}</div>` : ''}${porContactar(c) ? '<div style="font-size:10px;color:var(--amber);margin-top:3px">📞 contactar</div>' : ''}</td>
       </tr>`;
       if (filaDetalleAbierta === c.id) {
         filas += `<tr class="detail-row"><td colspan="6"><div class="detail-inner">` +
@@ -892,7 +963,16 @@ function renderCotizacionesTable() {
           `<div class="detail-item"><span>Subtotal Neto</span><span>${fmt(c.subtotalNeto)}</span></div>` +
           `<div class="detail-item"><span>IVA (${c.ivaPct !== undefined ? c.ivaPct : 19}%)</span><span>${fmt(c.iva)}</span></div>` +
           `<div class="detail-item" style="font-weight:700"><span>Total</span><span>${fmt(c.montoTotal)}</span></div>` +
+          `<div class="seg-box" onclick="event.stopPropagation()">` +
+            `<div><label>Vence</label><span style="font-size:13px">${fmtFecha(venceEl(c))}</span></div>` +
+            `<div><label>Próximo contacto</label><input type="date" value="${c.seguimiento || ''}" onchange="setSeguimiento(${c.id}, 'seguimiento', this.value)"></div>` +
+            `<div style="flex:1;min-width:220px"><label>Notas de seguimiento</label><input style="width:100%" maxlength="300" value="${escAttr(c.notasSeguimiento || '')}" placeholder="Ej: llamé el lunes, pide rebaja por 100 unidades" onchange="setSeguimiento(${c.id}, 'notasSeguimiento', this.value.trim())"></div>` +
+            (c.estado === 'rechazada' && c.motivoRechazo ? `<div><label>Motivo de rechazo</label><span style="font-size:13px;color:var(--red)">${escAttr(c.motivoRechazo)}</span></div>` : '') +
+          `</div>` +
           `</div><div class="detail-actions">` +
+            (produccionesPorCot[c.id]
+              ? `<a class="act-btn small" href="calendario.html" onclick="event.stopPropagation()">🏭 En producción: OP ${produccionesPorCot[c.id].orden || ''}</a>`
+              : (c.estado !== 'rechazada' ? `<button class="act-btn small" onclick="event.stopPropagation(); crearProduccion(${c.id})" title="Marca la cotización como aceptada y abre Producciones con los datos cargados">🏭 Crear producción</button>` : '')) +
             `<button class="act-btn primary small" onclick="event.stopPropagation(); exportCotizacionPDF(${c.id})">📄 Descargar PDF</button>` +
             `<button class="act-btn small" onclick="event.stopPropagation(); editarCotizacion(${c.id})">✏️ Editar</button>` +
           `</div></td></tr>`;
@@ -1129,6 +1209,7 @@ async function cargarCotizador() {
   fichasCosto = (costosData && costosData.fichas) ? costosData.fichas : [];
 
   poblarSelectsCotizador();
+  cargarVinculosProduccion();
 }
 </script>
 </body>
