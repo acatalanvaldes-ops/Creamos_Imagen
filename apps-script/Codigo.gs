@@ -435,8 +435,10 @@ function accionLogin(credential) {
 //   MS_CLIENT_SECRET  Valor del secreto de cliente
 const MS_TENANT_CONSUMERS = "9188040d-6c67-4c5b-b112-36a304b66dad";
 
+// Devuelve { email, name } o { motivo } con la causa del rechazo (para
+// mostrarla en el menú; nunca incluye el secreto ni el token).
 function verificarCodigoMicrosoft(code, redirectUri) {
-  if (!code || typeof code !== "string" || !redirectUri || typeof redirectUri !== "string") return null;
+  if (!code || typeof code !== "string" || !redirectUri || typeof redirectUri !== "string") return { motivo: "faltan datos" };
   const props = PropertiesService.getScriptProperties();
   const clientId = props.getProperty("MS_CLIENT_ID");
   const secret = props.getProperty("MS_CLIENT_SECRET");
@@ -446,23 +448,30 @@ function verificarCodigoMicrosoft(code, redirectUri) {
     payload: { client_id: clientId, client_secret: secret, code: code, redirect_uri: redirectUri, grant_type: "authorization_code", scope: "openid email profile" },
     muteHttpExceptions: true
   });
-  if (res.getResponseCode() !== 200) return null;
-  const idToken = JSON.parse(res.getContentText()).id_token;
-  if (!idToken) return null;
+  let datos = {};
+  try { datos = JSON.parse(res.getContentText()); } catch (e) {}
+  if (res.getResponseCode() !== 200) {
+    // Microsoft explica el rechazo con un código AADSTS (secreto inválido, code usado, etc.).
+    return { motivo: "Microsoft rechazó el canje (" + (datos.error || res.getResponseCode()) + "): " + String(datos.error_description || "").split(/\r?\n/)[0].slice(0, 200) };
+  }
+  const idToken = datos.id_token;
+  if (!idToken) return { motivo: "Microsoft no entregó id_token" };
   let info;
   try {
     let b64 = idToken.split(".")[1]; while (b64.length % 4) b64 += "=";
     info = JSON.parse(Utilities.newBlob(Utilities.base64DecodeWebSafe(b64)).getDataAsString("UTF-8"));
-  } catch (e) { return null; }
+  } catch (e) { return { motivo: "id_token ilegible" }; }
   const email = normalizarCorreo(info.email || info.preferred_username);
-  if (info.aud !== clientId || info.tid !== MS_TENANT_CONSUMERS || email.indexOf("@") < 1) return null;
-  if (Number(info.exp) * 1000 < Date.now()) return null;
+  if (info.aud !== clientId) return { motivo: "id_token de otra aplicación" };
+  if (info.tid !== MS_TENANT_CONSUMERS) return { motivo: "no es una cuenta personal de Microsoft" };
+  if (email.indexOf("@") < 1) return { motivo: "la cuenta no informó correo" };
+  if (Number(info.exp) * 1000 < Date.now()) return { motivo: "id_token vencido" };
   return { email: email, name: info.name || "" };
 }
 
 function accionLoginMicrosoft(b) {
   const m = verificarCodigoMicrosoft(b.code, b.redirectUri);
-  if (!m) return error("CREDENCIAL_INVALIDA");
+  if (m.motivo) return error("Cuenta de Microsoft no verificada: " + m.motivo);
   const pf = perfil(m.email);
   return respuesta({
     estado: "éxito",
