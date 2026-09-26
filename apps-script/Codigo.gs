@@ -36,7 +36,7 @@ const GOOGLE_CLIENT_ID = "207433225749-76s4184pif80ge7gfr0nt39qa80b82ij.apps.goo
 const SUPER_ADMIN_EMAIL = "a.catalan.valdes@gmail.com";
 const ACL_KEY = "accesos_ci_v1";
 const SESION_TTL_MS = 24 * 60 * 60 * 1000; // igual que en las páginas
-const MODULOS = ["rendicion", "clientes", "costos", "cotizaciones", "dashboard", "calendario", "proveedores", "ventasci", "ventas", "rrhh", "marketing"];
+const MODULOS = ["rendicion", "clientes", "costos", "cotizaciones", "dashboard", "calendario", "proveedores", "ventasci", "ventas", "rrhh", "marketing", "inventario"];
 
 const CACHE_TTL_S = 21600; // 6 horas (máximo permitido por CacheService)
 const CACHE_PREFIX = "v1:";
@@ -50,14 +50,15 @@ const REGLAS = [
   { llave: /^clientes_ci_v1$/,       escribe: ["clientes"],     lee: ["calendario", "cotizaciones"] },
   { llave: /^costos_ci_v1$/,         escribe: ["costos"],       lee: ["cotizaciones", "dashboard"] },
   { llave: /^(cotizaciones|tarifario)_ci_v1$/, escribe: ["cotizaciones"], lee: ["calendario"] },
-  { llave: /^(compras|proveedores|ordenes_compra)_ci_v1$/, escribe: ["proveedores"], lee: ["dashboard"] },
+  { llave: /^(compras|proveedores|ordenes_compra)_ci_v1$/, escribe: ["proveedores"], lee: ["dashboard", "inventario"] },
   { llave: /^creamos_imagen_v1$/,    escribe: ["ventasci"],     lee: ["dashboard"] },
   { llave: /^sublipro_v2$/,          escribe: ["ventas"],       lee: ["dashboard"] },
   { llave: /^rendicion\d{4}_v\d+$/,  escribe: ["rendicion"],    lee: ["dashboard"] },
   { llave: /^cierres_caja_v1$/,      escribe: ["rendicion"],    lee: ["dashboard"] },
   { llave: /^prods\d{4}$/,           escribe: ["calendario"],   lee: ["clientes", "dashboard", "cotizaciones"] },
   { llave: /^rrhh_[a-z_]+_v\d+$/,    escribe: ["rrhh"],         lee: [] },
-  { llave: /^marketing_ci_v1$/,      escribe: ["marketing"],    lee: [] }
+  { llave: /^marketing_ci_v1$/,      escribe: ["marketing"],    lee: [] },
+  { llave: /^inventario_ci_v1$/,     escribe: ["inventario"],   lee: ["ventas", "ventasci", "calendario", "proveedores", "dashboard"] }
 ];
 
 // ------------------------------------------------------------------
@@ -454,24 +455,31 @@ function doPost(e) {
     // Las páginas antiguas (sin versión) se siguen aceptando.
     let valor = payload.value, fusion = false;
     const desactualizada = payload.version !== undefined && payload.version !== null && String(payload.version) !== versionDe(payload.key);
-    if (payload.key === KEY_CAJA) {
-      // Caja: las filas automáticas (ventas y pagos de producciones) siempre se
-      // toman de lo guardado, nunca de la página. Si la página está
-      // desactualizada solo por filas automáticas, se mezcla en vez de rechazar.
-      if (desactualizada && !soloCambiosAutomaticos(payload.version)) return respuesta({ estado: "error", detalle: "CONFLICTO", version: versionDe(payload.key) });
-      valor = combinarCaja(payload.value);
-      if (valor === null) return error("Datos de Caja inválidos.");
+    const combinar = COMBINAR_AUTOMATICOS[payload.key];
+    if (combinar) {
+      // Caja e Inventario: lo automático (ventas, pagos de producciones,
+      // movimientos de stock) siempre se toma de lo guardado, nunca de la
+      // página. Si la página quedó atrás solo por cambios automáticos, se
+      // mezcla en vez de rechazar.
+      if (desactualizada && !soloCambiosAutomaticos(payload.key, payload.version)) return respuesta({ estado: "error", detalle: "CONFLICTO", version: versionDe(payload.key) });
+      valor = combinar(payload.value);
+      if (valor === null) return error("Datos inválidos para " + payload.key + ".");
       fusion = desactualizada;
     } else if (desactualizada) {
       return respuesta({ estado: "error", detalle: "CONFLICTO", version: versionDe(payload.key) });
     }
     const antes = leerValor(payload.key);
     const version = escribirValor(payload.key, valor);
-    if (payload.key === KEY_CAJA) PropertiesService.getScriptProperties().setProperty("vermanual:" + KEY_CAJA, version);
+    if (combinar) PropertiesService.getScriptProperties().setProperty("vermanual:" + payload.key, version);
     registrarBitacora(usuario.email, fusion ? "guardar (mezcla)" : "guardar", payload.key, antes, valor);
     // Ventas de Sala de venta y Otros → filas automáticas en Caja.
-    if (ORIGEN_VENTAS[payload.key]) {
-      try { espejarVentas(payload.key, usuario.email); } catch (e) { registrarBitacora(usuario.email, "error espejo ventas", String(e)); }
+    if (ORIGEN_VENTAS[llaveBase(payload.key)]) {
+      try { espejarVentas(llaveBase(payload.key), usuario.email); } catch (e) { registrarBitacora(usuario.email, "error espejo ventas", String(e)); }
+    }
+    // Compras, ventas, producciones y el propio catálogo → movimientos de stock.
+    const fuente = fuenteInventario(payload.key);
+    if (fuente) {
+      try { fuente.forEach(function (f) { sincronizarInventario(f, usuario.email); }); } catch (e) { registrarBitacora(usuario.email, "error inventario", String(e)); }
     }
     return respuesta({ estado: "éxito", version: version, fusion: fusion || undefined });
   } catch (err) {
@@ -631,8 +639,8 @@ function espejarVentas(key, email) {
 
 // ¿Después de la versión que leyó la página solo hubo escrituras automáticas
 // (espejo de ventas o pagos de producciones)? Entonces se puede mezclar.
-function soloCambiosAutomaticos(versionPagina) {
-  const ultimaManual = PropertiesService.getScriptProperties().getProperty("vermanual:" + KEY_CAJA);
+function soloCambiosAutomaticos(key, versionPagina) {
+  const ultimaManual = PropertiesService.getScriptProperties().getProperty("vermanual:" + key);
   return !!ultimaManual && Number(versionPagina) >= Number(ultimaManual);
 }
 
@@ -652,6 +660,121 @@ function combinarCaja(valorPagina) {
     const automaticas = (Array.isArray(actual[f]) ? actual[f] : []).filter(esFilaAutomatica);
     out[f] = manuales.concat(automaticas);
   });
+  return JSON.stringify(out);
+}
+
+// ------------------------------------------------------------------
+// Inventario: catálogo único y movimientos de stock
+// ------------------------------------------------------------------
+// Llave inventario_ci_v1 = { articulos: [...], movimientos: [...] }.
+// Stock de un artículo = suma de las cantidades de sus movimientos.
+// Los movimientos automáticos (auto:true, ref.fuente) los arma el servidor
+// desde otras llaves y nunca se toman de la página de Inventario:
+//   compras        → entrada de cada producto comprado que calce con un
+//                    artículo (por nombre o alias), desde INV_DESDE;
+//   venta-sala/otros → salida del artículo elegido en la venta, desde INV_DESDE;
+//   prod:AAAA      → salida de los insumos usados y entrada del merch obtenido
+//                    que se anotan al entregar una producción.
+const KEY_INV = "inventario_ci_v1";
+const INV_DESDE = "2026-09-27";
+const COMBINAR_AUTOMATICOS = {};
+COMBINAR_AUTOMATICOS[KEY_CAJA] = combinarCaja;
+COMBINAR_AUTOMATICOS[KEY_INV] = combinarInventario;
+
+function normNombre(s) { return String(s || "").trim().toLowerCase().replace(/\s+/g, " "); }
+
+// Qué fuentes de movimientos hay que recalcular al guardar una llave.
+function fuenteInventario(key) {
+  const base = llaveBase(key);
+  if (base === "compras_ci_v1") return ["compras"];
+  if (base === "sublipro_v2") return ["venta-sala"];
+  if (base === "creamos_imagen_v1") return ["venta-otros"];
+  const m = /^prods(\d{4})$/.exec(base);
+  if (m) return ["prod:" + m[1]];
+  if (key === KEY_INV) { // un artículo o alias nuevo puede vincular compras, ventas y producciones ya guardadas
+    const anio = Number(hoyChileGS().slice(0, 4));
+    return ["compras", "venta-sala", "venta-otros", "prod:" + anio, "prod:" + (anio - 1)];
+  }
+  return null;
+}
+
+function leerInventario() {
+  const v = leerJSON(KEY_INV);
+  return v && typeof v === "object" && !Array.isArray(v) ? v : { articulos: [], movimientos: [] };
+}
+
+function movimientosDeseados(fuente, inv) {
+  const porNombre = {};
+  (inv.articulos || []).forEach(function (a) {
+    if (a.activo === false) return;
+    [a.nombre].concat(a.alias || []).forEach(function (n) { if (n) porNombre[normNombre(n)] = a; });
+  });
+  const out = [];
+  if (fuente === "compras") {
+    const compras = leerJSON("compras_ci_v1");
+    (Array.isArray(compras) ? compras : []).forEach(function (c) {
+      if (!c || !c.fecha || c.fecha < INV_DESDE) return;
+      (c.items || []).forEach(function (it, i) {
+        const a = porNombre[normNombre(it.producto)];
+        if (!a || !(Number(it.cantidad) > 0)) return;
+        out.push({ id: "c" + c.id + "-" + i, fecha: c.fecha, articuloId: a.id, cantidad: Number(it.cantidad), tipo: "compra",
+          costoUnit: Number(it.montoNeto) || 0, obs: "Compra" + (c.numeroDoc ? " doc. " + c.numeroDoc : ""), auto: true, ref: { fuente: fuente, compraId: c.id, idx: i } });
+      });
+    });
+  } else if (fuente === "venta-sala" || fuente === "venta-otros") {
+    const key = fuente === "venta-sala" ? "sublipro_v2" : "creamos_imagen_v1";
+    leerVentas(key).forEach(function (v) {
+      const q = Number(v.cantidadArticulo) || 0;
+      if (!v || !v.articuloId || q <= 0 || !v.fecha || v.fecha < INV_DESDE) return;
+      out.push({ id: "v" + fuente + v.id, fecha: v.fecha, articuloId: v.articuloId, cantidad: -q, tipo: "venta",
+        obs: "Venta " + (fuente === "venta-sala" ? "Sala de venta" : "Otros") + (v.cliente ? " · " + v.cliente : ""), auto: true, ref: { fuente: fuente, ventaId: v.id } });
+    });
+  } else if (fuente.indexOf("prod:") === 0) {
+    const anio = fuente.slice(5);
+    leerProducciones(anio).forEach(function (p) {
+      const fecha = p.fechaEntregaReal || p.fechaEntrega || p.date || "";
+      (p.consumos || []).forEach(function (x, i) {
+        if (!x.articuloId || !(Number(x.cantidad) > 0)) return;
+        out.push({ id: "p" + anio + "-" + p.id + "-c" + i, fecha: fecha, articuloId: x.articuloId, cantidad: -Number(x.cantidad), tipo: "produccion",
+          costoUnit: Number(x.costoUnit) || 0, obs: "Insumo OP " + (p.orden || "") + " " + (p.name || ""), auto: true, ref: { fuente: fuente, prodId: p.id } });
+      });
+      // El merch obtenido toma como costo los insumos de la producción repartidos por unidad.
+      const unidadesObtenidas = (p.obtenidos || []).reduce(function (s, x) { return s + (Number(x.cantidad) || 0); }, 0);
+      const costoObtenido = unidadesObtenidas > 0 ? Math.round((Number(p.costoInsumos) || 0) / unidadesObtenidas) : 0;
+      (p.obtenidos || []).forEach(function (x, i) {
+        if (!x.articuloId || !(Number(x.cantidad) > 0)) return;
+        out.push({ id: "p" + anio + "-" + p.id + "-o" + i, fecha: fecha, articuloId: x.articuloId, cantidad: Number(x.cantidad), tipo: "produccion", costoUnit: costoObtenido,
+          obs: "Producido en OP " + (p.orden || "") + " " + (p.name || ""), auto: true, ref: { fuente: fuente, prodId: p.id } });
+      });
+    });
+  }
+  return out;
+}
+
+function sincronizarInventario(fuente, email) {
+  const antes = leerValor(KEY_INV);
+  const inv = leerInventario();
+  if (!(inv.articulos || []).length) return; // sin catálogo no hay nada que mover
+  const deseados = movimientosDeseados(fuente, inv);
+  const actuales = (inv.movimientos || []).filter(function (m) { return m.auto && m.ref && m.ref.fuente === fuente; });
+  if (JSON.stringify(actuales) === JSON.stringify(deseados)) return;
+  inv.movimientos = (inv.movimientos || []).filter(function (m) { return !(m.auto && m.ref && m.ref.fuente === fuente); }).concat(deseados);
+  const texto = JSON.stringify(inv);
+  escribirValor(KEY_INV, texto);
+  registrarBitacora(email, "inventario automático", fuente + " (" + deseados.length + " movimientos)", antes, texto);
+}
+
+// Inventario a guardar: catálogo y movimientos manuales de la página +
+// movimientos automáticos actuales del servidor.
+function combinarInventario(valorPagina) {
+  let pagina;
+  try { pagina = JSON.parse(valorPagina); } catch (e) { return null; }
+  if (!pagina || typeof pagina !== "object" || Array.isArray(pagina)) return null;
+  const actual = leerInventario();
+  const out = Object.assign({}, pagina);
+  out.articulos = Array.isArray(pagina.articulos) ? pagina.articulos : [];
+  out.movimientos = (Array.isArray(pagina.movimientos) ? pagina.movimientos : []).filter(function (m) { return !m.auto; })
+    .concat((actual.movimientos || []).filter(function (m) { return m.auto; }));
   return JSON.stringify(out);
 }
 

@@ -892,7 +892,8 @@ function buildForm(form, editId, cp) {
     '<div class="fld"><label>Forma de Pago</label><select data-field="formaPago" onchange="ufld(this)">'+fpOpts+'</select></div>'+
     '<div class="fld span2"><label>Cliente</label><input type="text" id="f-cliente" placeholder="Nombre del cliente" value="'+form.cliente+'" oninput="state.form.cliente=this.value"></div>'+
     '<div class="fld span2"><label>Producto</label><select data-field="producto"  onchange="ufld(this)">'+prodOpts+'</select></div>'+
-    '<div class="fld"><label>Monto ($)</label><input type="number" id="f-monto" placeholder="0" min="0" value="'+form.montoBase+'" oninput="state.form.montoBase=this.value;updatePreview()"></div>'+
+    campoArticulo(form) +
+    '<div class="fld"><label>Monto ($)</label><input type="number" id="f-monto" placeholder="0" min="0" value="'+form.montoBase+'" oninput="state.form.montoBase=this.value;state.form.montoAuto=false;updatePreview()"></div>'+
     '<div class="fld"><label>Comision (%) <span style="color:#aaa;font-weight:400;font-size:10px">def. '+cp+'%</span></label>'+
     '<input type="number" id="f-com" placeholder="'+cp+'" min="0" max="100" step="0.5" value="'+form.comision+'" oninput="state.form.comision=this.value;updatePreview()"></div>'+
     wpAlert +
@@ -923,14 +924,57 @@ function buildDel() {
 // ============================================================
 // ACCIONES
 // ============================================================
+// ------------------------------------------------------------
+// ARTÍCULO DEL INVENTARIO (opcional): al elegirlo, el servidor descuenta el
+// stock (desde el 27-09-2026) y se propone el precio del catálogo.
+// ------------------------------------------------------------
+var CATALOGO = [];
+async function cargarCatalogo() {
+  try {
+    var inv = await loadFromCloud('inventario_ci_v1');
+    if (!inv || !Array.isArray(inv.articulos)) return;
+    var stock = {};
+    (inv.movimientos || []).forEach(function(m){ stock[m.articuloId] = (stock[m.articuloId] || 0) + (Number(m.cantidad) || 0); });
+    CATALOGO = inv.articulos.filter(function(a){ return a.tipo === 'producto' && a.activo !== false; })
+      .map(function(a){ return { id: a.id, codigo: a.codigo, nombre: a.nombre, precio: a.precioDetalle || a.precioDetalle || 0, stock: stock[a.id] || 0 }; })
+      .sort(function(a, b){ return a.nombre.localeCompare(b.nombre, 'es'); });
+  } catch (e) {}
+}
+function campoArticulo(form) {
+  if (!CATALOGO.length) return '';
+  var opts = '<option value="">— Sin artículo del inventario —</option>' + CATALOGO.map(function(a){
+    return '<option value="'+a.id+'" '+(form.articuloId===a.id?'selected':'')+'>'+a.codigo+' · '+a.nombre+' (stock '+a.stock+')</option>';
+  }).join('');
+  return '<div class="fld"><label>Artículo del inventario (opcional)</label><select onchange="elegirArticulo(this.value)">'+opts+'</select></div>'+
+    '<div class="fld"><label>Cantidad del artículo</label><input type="number" min="1" id="f-cant-art" value="'+(form.cantidadArticulo||1)+'" '+(form.articuloId?'':'disabled')+' oninput="cambiarCantidadArticulo(this.value)"></div>';
+}
+function precioArticulo(id) { var a = CATALOGO.find(function(x){ return x.id === id; }); return a ? a.precio : 0; }
+function elegirArticulo(id) {
+  var mi = document.getElementById('f-monto'); if (mi) state.form.montoBase = mi.value;
+  state.form.articuloId = id;
+  state.form.cantidadArticulo = +state.form.cantidadArticulo || 1;
+  // Se propone el precio del catálogo si el monto está vacío o lo había propuesto antes.
+  if (id && precioArticulo(id) && (!state.form.montoBase || state.form.montoAuto)) { state.form.montoBase = String(precioArticulo(id) * state.form.cantidadArticulo); state.form.montoAuto = true; }
+  setState({});
+}
+function cambiarCantidadArticulo(v) {
+  state.form.cantidadArticulo = v;
+  if (state.form.montoAuto && precioArticulo(state.form.articuloId)) {
+    state.form.montoBase = String(precioArticulo(state.form.articuloId) * (+v || 1));
+    var mi = document.getElementById('f-monto'); if (mi) mi.value = state.form.montoBase;
+    if (typeof updatePreview === 'function') updatePreview();
+  }
+}
+cargarCatalogo();
+
 function openForm() {
-  state.form = {fecha:hoyChile(),cliente:"",producto:PRODUCTOS[0],formaPago:FORMAS_PAGO[0],montoBase:"",comision:""+state.comDefPct,factura:false,tipoWebpay:"Crédito"};
+  state.form = {fecha:hoyChile(),cliente:"",producto:PRODUCTOS[0],formaPago:FORMAS_PAGO[0],montoBase:"",comision:""+state.comDefPct,factura:false,tipoWebpay:"Crédito",articuloId:"",cantidadArticulo:1};
   setState({showForm:true, editId:null});
 }
 
 function openEdit(id) {
   var v = state.ventas.find(function(x){return x.id===id;});
-  state.form = {fecha:v.fecha,cliente:v.cliente,producto:v.producto,formaPago:v.formaPago,montoBase:""+v.montoBase,comision:""+v.comision,factura:v.factura,tipoWebpay:v.tipoWebpay||"Crédito"};
+  state.form = {fecha:v.fecha,cliente:v.cliente,producto:v.producto,formaPago:v.formaPago,montoBase:""+v.montoBase,comision:""+v.comision,factura:v.factura,tipoWebpay:v.tipoWebpay||"Crédito",articuloId:v.articuloId||"",cantidadArticulo:v.cantidadArticulo||1};
   setState({showForm:true, editId:id});
 }
 
@@ -952,7 +996,9 @@ function submitForm() {
     montoBase: +f.montoBase,
     comision:  +f.comision || state.comDefPct,
     factura:   f.factura,
-    tipoWebpay: f.formaPago === WEBPAY ? (f.tipoWebpay || "Crédito") : undefined
+    tipoWebpay: f.formaPago === WEBPAY ? (f.tipoWebpay || "Crédito") : undefined,
+    articuloId: f.articuloId || undefined,
+    cantidadArticulo: f.articuloId ? (+f.cantidadArticulo || 1) : undefined
   };
   if (state.editId) {
     state.ventas = state.ventas.map(function(x){ return x.id===state.editId ? entry : x; });

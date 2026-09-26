@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inventario - Creamos Imagen</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F7F5F0;--surface:#FFFFFF;--dark:#1C1917;--gold:#C8973A;--teal:#0D7A6B;--red:#C0392B;--muted:#78716C;--border:#E7E2D9;--amber:#B45309;--blue:#1E40AF}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--dark);min-height:100vh}
+input,select,button,textarea{font-family:inherit;outline:none}
+.topbar{background:var(--dark);padding:0 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:100}
+.brand{padding:14px 0}
+.brand-name{font-family:'DM Serif Display',serif;font-size:22px;color:#fff}
+.brand-name span{color:var(--gold)}
+.tabs{display:flex;gap:2px;flex-wrap:wrap;padding:8px 0}
+.tab{background:none;border:none;font-size:12px;font-weight:600;color:#aaa;cursor:pointer;padding:7px 12px;border-radius:6px}
+.tab.on{background:#2C2926;color:var(--gold)}
+.content{padding:24px;max-width:1200px;margin:0 auto}
+.panel{display:none}.panel.on{display:block}
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:16px}
+.card-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--gold);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.act-btn{background:#fff;border:1.5px solid var(--border);color:var(--dark);padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer}
+.act-btn:hover{border-color:var(--gold);color:var(--gold)}
+.act-btn.primary{background:var(--gold);border-color:var(--gold);color:#fff}
+.act-btn.small{padding:4px 9px;font-size:11px}
+.act-btn.danger{color:var(--red)}
+.fld{margin-bottom:12px}
+.fld label{display:block;font-size:10px;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+.fld input,.fld select,.fld textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:9px 11px;font-size:14px;color:var(--dark)}
+.fila{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.fila .fld{flex:1;min-width:140px}
+.nota{font-size:12px;color:var(--muted);line-height:1.5}
+.aviso{border-radius:8px;padding:10px 14px;font-size:12px;line-height:1.5;margin-bottom:14px;background:#FEF3E2;border:1px solid #FDE68A;color:var(--amber)}
+.badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap}
+.b-ins{background:#EFF6FF;color:var(--blue)}.b-prd{background:#F5F3FF;color:#6D28D9}.b-bajo{background:#FEE2E2;color:#B91C1C}.b-auto{background:#F1F5F9;color:#475569}
+table.tbl{width:100%;border-collapse:collapse;background:#fff}
+table.tbl th{background:var(--dark);color:var(--gold);font-size:10px;text-transform:uppercase;padding:9px 10px;text-align:left;letter-spacing:.4px}
+table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+td.num,th.num{text-align:right}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+.kpi-l{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted)}
+.kpi-v{font-size:22px;font-weight:800;margin-top:2px}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none;align-items:flex-start;justify-content:center;padding:24px 12px;overflow-y:auto}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:14px;padding:24px;width:100%;max-width:640px}
+.modal h2{font-family:'DM Serif Display',serif;font-size:22px;margin-bottom:14px;color:var(--gold)}
+.modal-acc{display:flex;gap:10px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
+@media (max-width:720px){.content{padding:14px}}
+</style>
+<link rel="stylesheet" href="brand/brand.css">
+<script src="brand/brand.js"></script>
+<script src="brand/layout.js"></script>
+</head>
+<body>
+<script src="cargando.js"></script>
+<script src="sesion.js"></script>
+<script src="hora-chile.js"></script>
+
+<div class="topbar">
+  <div class="brand"><a href="index.html">← Menú</a><div class="brand-name">Inven<span>tario</span></div></div>
+  <div class="tabs">
+    <button class="tab on" onclick="verPanel('stock', this)">📦 Stock</button>
+    <button class="tab" onclick="verPanel('movimientos', this)">🔁 Movimientos</button>
+    <button class="tab" onclick="verPanel('articulos', this)">🏷️ Artículos</button>
+    <button class="tab" onclick="verPanel('conteo', this)">📝 Conteo físico</button>
+    <button class="tab" onclick="verPanel('vincular', this)">🔗 Compras sin vincular <span id="n-vincular"></span></button>
+  </div>
+</div>
+
+<div class="content">
+  <div id="aviso-nube" class="aviso" style="display:none"></div>
+
+  <!-- STOCK -->
+  <div class="panel on" id="p-stock">
+    <div class="kpis" id="st-kpis"></div>
+    <div class="card">
+      <div class="card-title"><span>Stock actual</span>
+        <span style="display:flex;gap:8px;flex-wrap:wrap">
+          <input id="st-buscar" placeholder="Buscar artículo o código" oninput="renderStock()" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px">
+          <select id="st-tipo" onchange="renderStock()" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px"><option value="">Insumos y productos</option><option value="insumo">Solo insumos</option><option value="producto">Solo productos terminados</option></select>
+          <label style="font-size:12px;display:flex;gap:5px;align-items:center"><input type="checkbox" id="st-bajo" onchange="renderStock()"> Solo bajo mínimo</label>
+        </span>
+      </div>
+      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Código</th><th>Artículo</th><th>Tipo</th><th class="num">Stock</th><th class="num">Mínimo</th><th class="num">Costo unit.</th><th class="num">Valor</th><th class="num">Precio detalle</th><th></th></tr></thead><tbody id="st-tbl"></tbody></table></div>
+      <div class="nota" style="margin-top:10px">El stock se calcula con los movimientos. Desde el 27-09-2026 entran solas las compras de Proveedores (si el producto calza con un artículo o su alias) y salen solas las ventas que indican el artículo y los insumos que se anotan al entregar una producción.</div>
+    </div>
+  </div>
+
+  <!-- MOVIMIENTOS -->
+  <div class="panel" id="p-movimientos">
+    <div class="card">
+      <div class="card-title"><span>Registrar movimiento manual</span></div>
+      <div class="fila">
+        <div class="fld"><label>Tipo</label><select id="mv-tipo"><option value="entrada">Entrada (+)</option><option value="salida">Salida (−)</option><option value="inicial">Stock inicial (+)</option></select></div>
+        <div class="fld" style="flex:2"><label>Artículo</label><select id="mv-articulo"></select></div>
+        <div class="fld"><label>Cantidad</label><input type="number" id="mv-cantidad" min="0" step="any"></div>
+        <div class="fld"><label>Fecha</label><input type="date" id="mv-fecha"></div>
+        <div class="fld" style="flex:2"><label>Motivo</label><input id="mv-obs" maxlength="150" placeholder="Ej: merma, muestra, devolución"></div>
+        <div class="fld" style="flex:0 0 auto"><button class="act-btn primary" onclick="registrarMovimiento()">Registrar</button></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span>Movimientos</span>
+        <span style="display:flex;gap:8px;flex-wrap:wrap">
+          <select id="mf-articulo" onchange="renderMovimientos()" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px"></select>
+          <select id="mf-tipo" onchange="renderMovimientos()" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px"><option value="">Todos los tipos</option><option value="compra">Compras</option><option value="venta">Ventas</option><option value="produccion">Producciones</option><option value="entrada">Entradas manuales</option><option value="salida">Salidas manuales</option><option value="ajuste">Ajustes</option><option value="inicial">Stock inicial</option></select>
+        </span>
+      </div>
+      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Fecha</th><th>Artículo</th><th>Tipo</th><th class="num">Cantidad</th><th>Detalle</th><th></th></tr></thead><tbody id="mv-tbl"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- ARTÍCULOS -->
+  <div class="panel" id="p-articulos">
+    <div class="card">
+      <div class="card-title"><span>Catálogo de artículos</span><button class="act-btn primary small" onclick="abrirArticulo()">+ Nuevo artículo</button></div>
+      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Código</th><th>Nombre</th><th>Tipo</th><th>Categoría</th><th>Unidad</th><th class="num">Detalle</th><th class="num">Mayor</th><th>Alias</th><th></th></tr></thead><tbody id="ar-tbl"></tbody></table></div>
+      <div class="nota" style="margin-top:10px"><b>Insumos</b>: lo que se compra para producir (tela, papel, tinta…). <b>Productos terminados</b>: lo que se vende en Sala de venta u Otros (merch). El <b>alias</b> sirve para que una compra con otro nombre (por ejemplo "Tela dry fit blanca 1,5m") sume al artículo.</div>
+    </div>
+  </div>
+
+  <!-- CONTEO FÍSICO -->
+  <div class="panel" id="p-conteo">
+    <div class="card">
+      <div class="card-title"><span>Conteo físico</span>
+        <span style="display:flex;gap:8px"><select id="co-tipo" onchange="renderConteo()" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px"><option value="">Todos</option><option value="insumo">Insumos</option><option value="producto">Productos terminados</option></select>
+        <button class="act-btn primary" onclick="aplicarConteo()">Aplicar ajustes</button></span>
+      </div>
+      <div class="nota" style="margin-bottom:10px">Escribe lo que contaste solo en los artículos revisados. Al aplicar, se crea un ajuste por la diferencia con el stock del sistema.</div>
+      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Código</th><th>Artículo</th><th class="num">Stock sistema</th><th class="num">Contado</th><th class="num">Diferencia</th></tr></thead><tbody id="co-tbl"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- COMPRAS SIN VINCULAR -->
+  <div class="panel" id="p-vincular">
+    <div class="card">
+      <div class="card-title"><span>Productos comprados que no son artículos</span></div>
+      <div class="nota" style="margin-bottom:10px">Productos de las compras de Proveedores (últimos 12 meses) que no calzan con ningún artículo ni alias. Créalos como artículo o vincúlalos a uno existente: las compras desde el 27-09-2026 sumarán stock.</div>
+      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Producto en la compra</th><th>Unidad</th><th class="num">Comprado</th><th>Última compra</th><th></th></tr></thead><tbody id="vi-tbl"></tbody></table></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal artículo -->
+<div class="modal-bg" id="m-articulo" onclick="if(event.target===this)cerrar('m-articulo')">
+  <div class="modal">
+    <h2 id="ma-titulo">Artículo</h2>
+    <div class="fila">
+      <div class="fld" style="flex:2"><label>Nombre</label><input id="ma-nombre" maxlength="100"></div>
+      <div class="fld"><label>Tipo</label><select id="ma-tipo" onchange="ajustarModalArticulo()"><option value="insumo">Insumo</option><option value="producto">Producto terminado</option></select></div>
+    </div>
+    <div class="fila">
+      <div class="fld"><label>Categoría</label><input id="ma-categoria" list="dl-categorias" maxlength="40"><datalist id="dl-categorias"></datalist></div>
+      <div class="fld"><label>Unidad</label><input id="ma-unidad" list="dl-unidades" maxlength="20"><datalist id="dl-unidades"><option value="Unidad"><option value="Metro"><option value="Rollo"><option value="Litro"><option value="Kilo"><option value="Cono"><option value="Hoja"></datalist></div>
+      <div class="fld"><label>Stock mínimo</label><input type="number" id="ma-min" min="0" step="any"></div>
+      <div class="fld"><label>Costo unitario ref.</label><input type="number" id="ma-costo" min="0" title="Se usa si aún no hay compras de este artículo"></div>
+    </div>
+    <div class="fila" id="ma-precios">
+      <div class="fld"><label>Precio al detalle</label><input type="number" id="ma-detalle" min="0"></div>
+      <div class="fld"><label>Precio por mayor</label><input type="number" id="ma-mayor" min="0"></div>
+    </div>
+    <div class="fld"><label>Alias (otros nombres con que aparece en las compras, separados por coma)</label><input id="ma-alias" maxlength="300"></div>
+    <label style="font-size:13px;display:flex;gap:8px;align-items:center"><input type="checkbox" id="ma-activo" checked> Activo</label>
+    <div class="modal-acc">
+      <button class="act-btn" onclick="cerrar('m-articulo')">Cancelar</button>
+      <button class="act-btn primary" onclick="guardarArticulo()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// =========================================================================
+// INVENTARIO: catálogo único, stock y movimientos
+// =========================================================================
+// Llave inventario_ci_v1 = { articulos, movimientos }. Stock = suma de los
+// movimientos de cada artículo. Los movimientos automáticos (auto:true) los
+// arma el servidor desde Proveedores, Sala de venta, Otros y Producciones:
+// aquí se muestran bloqueados y no se pueden editar ni borrar.
+const API_URL = "/api/portal";
+const CLOUD_TOKEN = tokenSesion();
+const LLAVE = "inventario_ci_v1";
+const INV_DESDE = "2026-09-27";
+let INV = { articulos: [], movimientos: [] };
+let COMPRAS = [], cargaOk = false;
+const SESION = (function(){ try { return JSON.parse(localStorage.getItem('cimagen_session')) || {}; } catch(e) { return {}; } })();
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const pesos = n => '$' + Math.round(n || 0).toLocaleString('es-CL');
+const cant = n => (Math.round((Number(n) || 0) * 100) / 100).toLocaleString('es-CL');
+const fCorta = s => s ? s.split('-').reverse().join('-') : '—';
+const norm = s => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+const nuevoId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const TIPO_MOV = { compra: 'Compra', venta: 'Venta', produccion: 'Producción', entrada: 'Entrada', salida: 'Salida', ajuste: 'Ajuste', inicial: 'Stock inicial' };
+
+// ------------------------------------------------------------------ nube
+async function pedir(url, opts){ const c = new AbortController(); const t = setTimeout(() => c.abort(), 20000); try { return await fetch(url, Object.assign({}, opts, { signal: c.signal })); } finally { clearTimeout(t); } }
+async function leerNube(key){
+  const res = await pedir(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
+  const j = await res.json();
+  if (j.estado === 'error') throw new Error(j.detalle || 'Error del servidor');
+  return j.valor ? JSON.parse(j.valor) : null;
+}
+let recargarTrasGuardar = false;
+async function guardar(){
+  if (!cargaOk) { alert('No se pudieron cargar los datos de Inventario. Recarga la página (F5) antes de hacer cambios.'); return false; }
+  try {
+    const res = await pedir(API_URL, { method: 'POST', body: JSON.stringify({ key: LLAVE, value: JSON.stringify(INV), token: CLOUD_TOKEN }) });
+    const j = await res.json();
+    if (j.estado === 'error') throw new Error(j.detalle);
+    // El servidor pudo sumar movimientos automáticos: se vuelve a leer.
+    await recargar();
+    return true;
+  } catch(e) {
+    if (e.message !== 'CONFLICTO') alert('No se pudo guardar (' + e.message + '). Revisa tu conexión.');
+    return false;
+  }
+}
+async function recargar(){
+  const d = await leerNube(LLAVE);
+  INV = Object.assign({ articulos: [], movimientos: [] }, d || {});
+  renderTodo();
+}
+
+// ------------------------------------------------------------------ cálculos
+function articulo(id){ return INV.articulos.find(a => a.id === id) || null; }
+function stockDe(id){ return INV.movimientos.filter(m => m.articuloId === id).reduce((s, m) => s + (Number(m.cantidad) || 0), 0); }
+// Costo: el de la última entrada con costo (compra, o producción para el merch
+// fabricado); si no hay, el de referencia del artículo.
+function costoDe(a){
+  const compras = INV.movimientos.filter(m => m.articuloId === a.id && m.cantidad > 0 && (m.tipo === 'compra' || m.tipo === 'produccion') && m.costoUnit > 0).sort((x, y) => String(x.fecha).localeCompare(String(y.fecha)));
+  return compras.length ? compras[compras.length - 1].costoUnit : (Number(a.costo) || 0);
+}
+function bajoMinimo(a){ return a.stockMin > 0 && stockDe(a.id) < a.stockMin; }
+function siguienteCodigo(tipo){
+  const pref = tipo === 'producto' ? 'PRD-' : 'INS-';
+  const n = Math.max(0, ...INV.articulos.filter(a => (a.codigo || '').startsWith(pref)).map(a => parseInt(a.codigo.slice(4)) || 0)) + 1;
+  return pref + String(n).padStart(4, '0');
+}
+function nombresVinculados(){ const s = new Set(); INV.articulos.forEach(a => [a.nombre].concat(a.alias || []).forEach(n => s.add(norm(n)))); return s; }
+
+// ------------------------------------------------------------------ vistas
+function verPanel(id, btn){
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('on'));
+  $('p-' + id).classList.add('on'); btn.classList.add('on');
+  renderTodo();
+}
+function renderTodo(){ renderStock(); renderMovimientos(); renderArticulos(); renderConteo(); renderVincular(); }
+function opcionesArticulos(conTodos){
+  return (conTodos ? '<option value="">Todos los artículos</option>' : '<option value="">— Seleccionar —</option>') +
+    INV.articulos.filter(a => a.activo !== false).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')).map(a => `<option value="${a.id}">${esc(a.codigo)} · ${esc(a.nombre)}</option>`).join('');
+}
+function renderStock(){
+  const q = norm($('st-buscar').value), tipo = $('st-tipo').value, soloBajo = $('st-bajo').checked;
+  const lista = INV.articulos.filter(a => a.activo !== false && (!tipo || a.tipo === tipo) && (!q || norm(a.nombre + ' ' + a.codigo).includes(q)) && (!soloBajo || bajoMinimo(a)))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  const activos = INV.articulos.filter(a => a.activo !== false);
+  const valorIns = activos.filter(a => a.tipo === 'insumo').reduce((s, a) => s + Math.max(0, stockDe(a.id)) * costoDe(a), 0);
+  const valorPrd = activos.filter(a => a.tipo === 'producto').reduce((s, a) => s + Math.max(0, stockDe(a.id)) * costoDe(a), 0);
+  $('st-kpis').innerHTML = `<div class="kpi"><div class="kpi-l">Artículos</div><div class="kpi-v">${activos.length}</div></div>
+    <div class="kpi"><div class="kpi-l">Valor insumos</div><div class="kpi-v">${pesos(valorIns)}</div></div>
+    <div class="kpi"><div class="kpi-l">Valor productos terminados</div><div class="kpi-v">${pesos(valorPrd)}</div></div>
+    <div class="kpi" style="border-left:5px solid #DC2626"><div class="kpi-l">Bajo mínimo</div><div class="kpi-v">${activos.filter(bajoMinimo).length}</div></div>`;
+  $('st-tbl').innerHTML = lista.map(a => {
+    const st = stockDe(a.id), c = costoDe(a);
+    return `<tr><td style="font-family:monospace">${esc(a.codigo)}</td><td><b>${esc(a.nombre)}</b>${a.categoria ? `<div class="nota">${esc(a.categoria)}</div>` : ''}</td>
+      <td><span class="badge ${a.tipo === 'producto' ? 'b-prd' : 'b-ins'}">${a.tipo === 'producto' ? 'Producto' : 'Insumo'}</span></td>
+      <td class="num" style="${st < 0 ? 'color:var(--red);' : ''}font-weight:700">${cant(st)} ${esc(a.unidad || '')} ${bajoMinimo(a) ? '<span class="badge b-bajo">bajo mínimo</span>' : ''}</td>
+      <td class="num">${a.stockMin ? cant(a.stockMin) : '—'}</td><td class="num">${c ? pesos(c) : '—'}</td><td class="num">${c ? pesos(Math.max(0, st) * c) : '—'}</td>
+      <td class="num">${a.tipo === 'producto' && a.precioDetalle ? pesos(a.precioDetalle) : '—'}</td>
+      <td><button class="act-btn small" onclick="verMovimientosDe('${a.id}')">Movimientos</button></td></tr>`;
+  }).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px">${INV.articulos.length ? 'Sin artículos para este filtro.' : 'Todavía no hay artículos. Créalos en la pestaña Artículos o desde "Compras sin vincular".'}</td></tr>`;
+}
+function verMovimientosDe(id){ verPanel('movimientos', document.querySelectorAll('.tab')[1]); $('mf-articulo').value = id; renderMovimientos(); }
+function renderMovimientos(){
+  const sel = $('mv-articulo').value; $('mv-articulo').innerHTML = opcionesArticulos(false); $('mv-articulo').value = sel;
+  const fa = $('mf-articulo').value; $('mf-articulo').innerHTML = opcionesArticulos(true); $('mf-articulo').value = fa;
+  if (!$('mv-fecha').value) $('mv-fecha').value = hoyChile();
+  const tipo = $('mf-tipo').value;
+  const lista = INV.movimientos.filter(m => (!fa || m.articuloId === fa) && (!tipo || m.tipo === tipo)).sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)) || String(b.id).localeCompare(String(a.id))).slice(0, 500);
+  $('mv-tbl').innerHTML = lista.map(m => {
+    const a = articulo(m.articuloId);
+    return `<tr><td>${fCorta(m.fecha)}</td><td>${a ? esc(a.codigo + ' · ' + a.nombre) : '<i>artículo eliminado</i>'}</td><td>${TIPO_MOV[m.tipo] || m.tipo}${m.auto ? ' <span class="badge b-auto">🔒 automático</span>' : ''}</td>
+      <td class="num" style="font-weight:700;color:${m.cantidad < 0 ? 'var(--red)' : 'var(--teal)'}">${m.cantidad > 0 ? '+' : ''}${cant(m.cantidad)}</td><td class="nota">${esc(m.obs || '')}${m.por ? ' · ' + esc(m.por) : ''}</td>
+      <td>${m.auto ? '' : `<button class="act-btn small danger" onclick="borrarMovimiento('${m.id}')">✕</button>`}</td></tr>`;
+  }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">Sin movimientos.</td></tr>';
+}
+async function registrarMovimiento(){
+  const a = articulo($('mv-articulo').value), q = Number($('mv-cantidad').value);
+  if (!a || !(q > 0)) { alert('Elige el artículo y una cantidad mayor a cero.'); return; }
+  const tipo = $('mv-tipo').value;
+  INV.movimientos.push({ id: nuevoId(), fecha: $('mv-fecha').value || hoyChile(), articuloId: a.id, cantidad: tipo === 'salida' ? -q : q, tipo, obs: $('mv-obs').value.trim(), por: SESION.name || SESION.email || '' });
+  $('mv-cantidad').value = ''; $('mv-obs').value = '';
+  await guardar();
+}
+async function borrarMovimiento(id){
+  if (!confirm('¿Eliminar este movimiento manual?')) return;
+  INV.movimientos = INV.movimientos.filter(m => m.id !== id);
+  await guardar();
+}
+function renderArticulos(){
+  $('ar-tbl').innerHTML = INV.articulos.slice().sort((a, b) => (a.tipo + a.nombre).localeCompare(b.tipo + b.nombre, 'es')).map(a => `<tr style="${a.activo === false ? 'opacity:.5' : ''}">
+    <td style="font-family:monospace">${esc(a.codigo)}</td><td><b>${esc(a.nombre)}</b></td><td><span class="badge ${a.tipo === 'producto' ? 'b-prd' : 'b-ins'}">${a.tipo === 'producto' ? 'Producto' : 'Insumo'}</span></td>
+    <td>${esc(a.categoria || '')}</td><td>${esc(a.unidad || '')}</td><td class="num">${a.precioDetalle ? pesos(a.precioDetalle) : '—'}</td><td class="num">${a.precioMayor ? pesos(a.precioMayor) : '—'}</td>
+    <td class="nota">${esc((a.alias || []).join(', '))}</td><td><button class="act-btn small" onclick="abrirArticulo('${a.id}')">Editar</button></td></tr>`).join('')
+    || '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px">Sin artículos.</td></tr>';
+  $('dl-categorias').innerHTML = [...new Set(INV.articulos.map(a => a.categoria).filter(Boolean))].map(c => `<option value="${esc(c)}">`).join('');
+}
+function renderConteo(){
+  const tipo = $('co-tipo').value;
+  const prev = {}; document.querySelectorAll('#co-tbl input').forEach(i => { if (i.value !== '') prev[i.dataset.id] = i.value; });
+  $('co-tbl').innerHTML = INV.articulos.filter(a => a.activo !== false && (!tipo || a.tipo === tipo)).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')).map(a => `<tr>
+    <td style="font-family:monospace">${esc(a.codigo)}</td><td>${esc(a.nombre)}</td><td class="num">${cant(stockDe(a.id))} ${esc(a.unidad || '')}</td>
+    <td class="num"><input type="number" step="any" min="0" data-id="${a.id}" value="${prev[a.id] || ''}" oninput="difConteo(this)" style="width:100px;border:1px solid var(--border);border-radius:5px;padding:5px 7px;text-align:right"></td>
+    <td class="num" id="dif-${a.id}">—</td></tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Sin artículos.</td></tr>';
+  document.querySelectorAll('#co-tbl input').forEach(i => { if (i.value !== '') difConteo(i); });
+}
+function difConteo(inp){
+  const d = inp.value === '' ? null : Number(inp.value) - stockDe(inp.dataset.id);
+  const el = $('dif-' + inp.dataset.id);
+  el.textContent = d === null ? '—' : (d > 0 ? '+' : '') + cant(d);
+  el.style.color = d === null || d === 0 ? '' : d < 0 ? 'var(--red)' : 'var(--teal)';
+}
+async function aplicarConteo(){
+  const ajustes = [...document.querySelectorAll('#co-tbl input')].filter(i => i.value !== '').map(i => ({ id: i.dataset.id, dif: Number(i.value) - stockDe(i.dataset.id) })).filter(x => Math.abs(x.dif) > 1e-9);
+  if (!ajustes.length) { alert('No hay diferencias que ajustar.'); return; }
+  if (!confirm('Se crearán ' + ajustes.length + ' ajuste(s) de stock con fecha de hoy. ¿Continuar?')) return;
+  ajustes.forEach(x => INV.movimientos.push({ id: nuevoId(), fecha: hoyChile(), articuloId: x.id, cantidad: x.dif, tipo: 'ajuste', obs: 'Conteo físico', por: SESION.name || SESION.email || '' }));
+  document.querySelectorAll('#co-tbl input').forEach(i => i.value = '');
+  await guardar();
+}
+function sinVincular(){
+  const vinc = nombresVinculados(), desde = new Date(Date.now() - 365 * 864e5).toISOString().slice(0, 10), grupos = {};
+  COMPRAS.filter(c => c.fecha >= desde).forEach(c => (c.items || []).forEach(it => {
+    const n = norm(it.producto); if (!n || vinc.has(n)) return;
+    const g = grupos[n] || (grupos[n] = { nombre: it.producto.trim(), unidad: it.unidad || '', cantidad: 0, ultima: '' });
+    g.cantidad += Number(it.cantidad) || 0; if (c.fecha > g.ultima) g.ultima = c.fecha;
+  }));
+  return Object.values(grupos).sort((a, b) => b.ultima.localeCompare(a.ultima));
+}
+function renderVincular(){
+  const lista = sinVincular();
+  $('n-vincular').textContent = lista.length ? '(' + lista.length + ')' : '';
+  const opts = INV.articulos.filter(a => a.activo !== false && a.tipo === 'insumo').sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')).map(a => `<option value="${a.id}">${esc(a.nombre)}</option>`).join('');
+  $('vi-tbl').innerHTML = lista.map((g, i) => `<tr><td><b>${esc(g.nombre)}</b></td><td>${esc(g.unidad)}</td><td class="num">${cant(g.cantidad)}</td><td>${fCorta(g.ultima)}</td>
+    <td style="white-space:nowrap"><button class="act-btn small primary" onclick='crearDesdeCompra(${JSON.stringify(g.nombre)}, ${JSON.stringify(g.unidad)})'>Crear artículo</button>
+      ${opts ? `<select id="vi-sel-${i}" style="padding:4px 6px;border:1px solid var(--border);border-radius:5px"><option value="">Vincular a…</option>${opts}</select> <button class="act-btn small" onclick='vincularA(${i}, ${JSON.stringify(g.nombre)})'>Vincular</button>` : ''}</td></tr>`).join('')
+    || '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Todos los productos comprados están vinculados a un artículo. 👍</td></tr>';
+}
+function crearDesdeCompra(nombre, unidad){ abrirArticulo(null, { nombre, unidad, tipo: 'insumo' }); }
+async function vincularA(i, nombre){
+  const a = articulo($('vi-sel-' + i).value); if (!a) { alert('Elige el artículo.'); return; }
+  a.alias = [...new Set((a.alias || []).concat([nombre]))];
+  await guardar();
+}
+
+// ------------------------------------------------------------------ artículo
+let ART_EDIT = null;
+function abrir(id){ $(id).classList.add('open'); } function cerrar(id){ $(id).classList.remove('open'); }
+function abrirArticulo(id, base){
+  const a = id ? articulo(id) : null; ART_EDIT = a ? a.id : null;
+  const d = a || Object.assign({ nombre: '', tipo: 'insumo', categoria: '', unidad: 'Unidad', stockMin: '', costo: '', precioDetalle: '', precioMayor: '', alias: [], activo: true }, base || {});
+  $('ma-titulo').textContent = a ? 'Editar ' + a.codigo : 'Nuevo artículo';
+  $('ma-nombre').value = d.nombre; $('ma-tipo').value = d.tipo; $('ma-categoria').value = d.categoria || ''; $('ma-unidad').value = d.unidad || '';
+  $('ma-min').value = d.stockMin || ''; $('ma-costo').value = d.costo || ''; $('ma-detalle').value = d.precioDetalle || ''; $('ma-mayor').value = d.precioMayor || '';
+  $('ma-alias').value = (d.alias || []).join(', '); $('ma-activo').checked = d.activo !== false;
+  ajustarModalArticulo(); abrir('m-articulo');
+}
+function ajustarModalArticulo(){ $('ma-precios').style.display = $('ma-tipo').value === 'producto' ? '' : 'none'; }
+async function guardarArticulo(){
+  const nombre = $('ma-nombre').value.trim();
+  if (!nombre) { alert('Escribe el nombre del artículo.'); return; }
+  const repetido = INV.articulos.find(a => a.id !== ART_EDIT && norm(a.nombre) === norm(nombre));
+  if (repetido) { alert('Ya existe un artículo con ese nombre (' + repetido.codigo + ').'); return; }
+  const tipo = $('ma-tipo').value;
+  const datos = { nombre, tipo, categoria: $('ma-categoria').value.trim(), unidad: $('ma-unidad').value.trim() || 'Unidad',
+    stockMin: Number($('ma-min').value) || 0, costo: Math.round(Number($('ma-costo').value) || 0),
+    precioDetalle: tipo === 'producto' ? Math.round(Number($('ma-detalle').value) || 0) : 0, precioMayor: tipo === 'producto' ? Math.round(Number($('ma-mayor').value) || 0) : 0,
+    alias: $('ma-alias').value.split(',').map(s => s.trim()).filter(Boolean), activo: $('ma-activo').checked };
+  if (ART_EDIT) Object.assign(articulo(ART_EDIT), datos);
+  else INV.articulos.push(Object.assign({ id: nuevoId(), codigo: siguienteCodigo(tipo) }, datos));
+  cerrar('m-articulo');
+  await guardar();
+}
+
+// ------------------------------------------------------------------ inicio
+(async function init(){
+  try {
+    const [inv, compras] = await Promise.all([leerNube(LLAVE), leerNube('compras_ci_v1').catch(() => [])]);
+    INV = Object.assign({ articulos: [], movimientos: [] }, inv || {});
+    COMPRAS = Array.isArray(compras) ? compras : [];
+    cargaOk = true;
+  } catch(e) {
+    $('aviso-nube').textContent = /SIN_PERMISO/.test(e.message) ? 'No tienes el módulo Inventario asignado. Pide a un administrador que te lo dé en Accesos.' : 'No se pudieron cargar los datos de Inventario. Recarga la página (F5) antes de hacer cambios.';
+    $('aviso-nube').style.display = 'block';
+  }
+  if (typeof ocultarCargando === 'function') ocultarCargando();
+  renderTodo();
+})();
+</script>
+</body>
+</html>
