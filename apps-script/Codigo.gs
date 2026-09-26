@@ -796,20 +796,39 @@ function leerProducciones(anio) {
 function accionPagoProduccion(b) {
   const u = usuarioDe(b.token);
   if (!u || u.legado) return error(u ? "SIN_PERMISO" : motivoRechazo(b.token));
-  if (!u.isAdmin && u.modules.indexOf("calendario") === -1) return error("SIN_PERMISO");
+  const anular = b.accion === "anularPagoProduccion";
+  // Registrar pagos: Producciones. Anular: también Caja (borra la fila importada).
+  const puede = u.isAdmin || u.modules.indexOf("calendario") !== -1 || (anular && u.modules.indexOf("rendicion") !== -1);
+  if (!puede) return error("SIN_PERMISO");
   const anio = String(b.anio || "");
   if (!/^\d{4}$/.test(anio)) return error("Año inválido.");
-  const anular = b.accion === "anularPagoProduccion";
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(20000);
     const keyProd = "prods" + anio;
     const prods = leerProducciones(anio);
     const p = prods.find(function (x) { return String(x.id) === String(b.prodId); });
-    if (!p) return error("La producción ya no existe. Recarga la página.");
-    p.pagos = Array.isArray(p.pagos) ? p.pagos : [];
     let caja = leerJSON(KEY_CAJA);
     if (!caja || typeof caja !== "object" || Array.isArray(caja)) caja = {};
+    // Fila de Caja cuyo pago ya no está en la producción (producción o pago
+    // borrados): solo se quita la fila de Caja.
+    if (anular && (!p || !(p.pagos || []).some(function (x) { return x.id === b.pagoId; }))) {
+      const antes = leerValor(KEY_CAJA);
+      let quitadas = 0;
+      Object.keys(caja).forEach(function (f) {
+        if (!Array.isArray(caja[f])) return;
+        const n = caja[f].length;
+        caja[f] = caja[f].filter(function (r) { return !(r.pagoRef && r.pagoRef.pagoId === b.pagoId); });
+        quitadas += n - caja[f].length;
+      });
+      if (!quitadas) return error("Ese pago ya no existe. Recarga la página.");
+      const texto = JSON.stringify(caja);
+      const vCaja = escribirValor(KEY_CAJA, texto);
+      registrarBitacora(u.email, "anular pago", "Fila de Caja de un pago de producción que ya no existe (" + b.pagoId + ")", antes, texto);
+      return respuesta({ estado: "éxito", produccion: p || null, versiones: { caja: vCaja } });
+    }
+    if (!p) return error("La producción ya no existe. Recarga la página.");
+    p.pagos = Array.isArray(p.pagos) ? p.pagos : [];
     let pago;
 
     if (anular) {

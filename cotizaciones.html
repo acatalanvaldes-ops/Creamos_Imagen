@@ -951,6 +951,18 @@ async function cargarVinculosProduccion() {
   listas.flat().forEach(p => { if (p && p.cotizacionId) produccionesPorCot[p.cotizacionId] = p; });
   if (document.getElementById('view-enviadas').style.display !== 'none') renderCotizacionesTable();
 }
+function eliminarCotizacion(id) {
+  const c = cotizaciones.find(x => x.id === id);
+  if (!c) return;
+  if (!cotizacionesCargadasOk) { alert('No se pudo confirmar la conexión con la nube al abrir esta página. Recarga (F5) antes de eliminar.'); return; }
+  const nombre = 'la cotización N° ' + fmtCorrelativo(c.correlativo) + (c.cliente ? ' de ' + c.cliente : '');
+  const prod = produccionesPorCot[c.id];
+  const aviso = prod ? '\n\nEstá vinculada a la producción OP ' + (prod.orden || '') + ': la producción no se borra, solo pierde el vínculo con esta cotización.' : '';
+  if (!confirm('¿Eliminar ' + nombre + '? Esta acción no se puede deshacer.' + aviso)) return;
+  cotizaciones = cotizaciones.filter(x => x.id !== id);
+  guardarCotizacionesLocal();
+  renderCotizacionesTable();
+}
 async function crearProduccion(id) {
   const c = cotizaciones.find(x => x.id === id);
   if (!c) return;
@@ -1016,6 +1028,7 @@ function renderCotizacionesTable() {
               : (c.estado !== 'rechazada' ? `<button class="act-btn small" onclick="event.stopPropagation(); crearProduccion(${c.id})" title="Marca la cotización como aceptada y abre Producciones con los datos cargados">🏭 Crear producción</button>` : '')) +
             `<button class="act-btn primary small" onclick="event.stopPropagation(); exportCotizacionPDF(${c.id})">📄 Descargar PDF</button>` +
             `<button class="act-btn small" onclick="event.stopPropagation(); editarCotizacion(${c.id})">✏️ Editar</button>` +
+            `<button class="act-btn small" style="color:var(--red)" onclick="event.stopPropagation(); eliminarCotizacion(${c.id})">🗑️ Eliminar</button>` +
           `</div></td></tr>`;
       }
       return filas;

@@ -1539,6 +1539,22 @@ async function recargarCajaSilenciosa(){
   } catch(e) { console.warn('No se pudo recargar Caja', e); }
 }
 
+// Eliminar un pago importado desde Producciones: se anula en el servidor,
+// que lo quita de la producción (abono y saldo) y de Caja al mismo tiempo.
+async function eliminarPagoProduccion(anio, prodId, pagoId, btn){
+  if (!confirm('¿Eliminar este pago?\n\nTambién se quitará de la producción: se descuenta del abono y vuelve a quedar como saldo por cobrar.')) return;
+  if (btn) btn.disabled = true;
+  try {
+    const res = await fetchConTimeout(API_URL, { method: 'POST', body: JSON.stringify({ token: CLOUD_TOKEN, accion: 'anularPagoProduccion', anio: String(anio), prodId: prodId, pagoId: pagoId }) });
+    const j = await res.json();
+    if (j.estado === 'error') throw new Error(j.detalle || 'Error del servidor');
+    await recargarCajaSilenciosa();
+  } catch (e) {
+    alert('No se pudo eliminar el pago: ' + (/SIN_PERMISO/.test(e.message) ? 'no tienes permiso.' : e.message));
+    if (btn) btn.disabled = false;
+  }
+}
+
 // CIERRE DEL DÍA (llave cierres_caja_v1: { "AAAA-MM-DD": {...} }).
 // Esperado en efectivo = fondo inicial + efectivo registrado del día.
 // Diferencia = contado − esperado. Si después del cierre cambia el efectivo
@@ -1647,7 +1663,7 @@ function renderTable(){
         const v = x => x ? fmt(+x) : '';
         tr.innerHTML = `<td style="color:var(--muted);font-size:11px">${curDate}</td><td>${escCaja(row.cliente || '')}</td><td>${escCaja(row.tipo || '')}</td><td>${origenLabel(row.origen)}</td><td>${escCaja(row.pago || '')}</td>
           <td style="text-align:right">${v(row.ef)}</td><td style="text-align:right">${v(row.tr)}</td><td style="text-align:right">${v(row.wpCredito)}</td><td style="text-align:right">${v(row.wpDebito)}</td>
-          <td style="font-size:11px">${escCaja(row.obs || '')}</td><td style="text-align:center"><a href="${modulo}" title="Abrir ${origenAuto}" style="text-decoration:none">🔒</a></td>`;
+          <td style="font-size:11px">${escCaja(row.obs || '')}</td><td style="text-align:center;white-space:nowrap"><a href="${modulo}" title="Abrir ${origenAuto}" style="text-decoration:none">🔒</a>${row.pagoRef ? ` <button class="btn-del" title="Eliminar este pago (también se quita de la producción)" onclick="eliminarPagoProduccion('${escCaja(row.pagoRef.anio)}','${escCaja(row.pagoRef.prodId)}','${escCaja(row.pagoRef.pagoId)}',this)">🗑️</button>` : ''}</td>`;
         tbody.appendChild(tr);
         return;
       }
