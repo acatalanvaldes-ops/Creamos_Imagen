@@ -155,8 +155,14 @@
   <div style="background:#fff;padding:36px 32px;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,0.3);max-width:340px;width:90%;text-align:center;">
     <div style="font-size:32px;margin-bottom:8px;">🔒</div>
     <h2 style="margin:0 0 6px;color:#1f2937;font-size:18px;">Creamos Imagen</h2>
-    <p id="cimagen-gate-msg" style="margin:0 0 20px;color:#6b7280;font-size:13px;">Inicia sesión con tu cuenta de Gmail para continuar</p>
-    <div id="cimagen-gate-btn-wrap" style="display:flex;justify-content:center;"></div>
+    <p id="cimagen-gate-msg" style="margin:0 0 20px;color:#6b7280;font-size:13px;">Inicia sesión con tu cuenta de Gmail o Hotmail para continuar</p>
+    <div id="cimagen-gate-btn-wrap" style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+      <div id="cimagen-gate-google"></div>
+      <button id="cimagen-gate-ms" type="button" style="display:none;align-items:center;gap:10px;height:40px;padding:0 18px;background:#fff;color:#3c4043;border:1px solid #dadce0;border-radius:20px;font:500 14px 'Segoe UI',Tahoma,sans-serif;cursor:pointer;">
+        <svg width="18" height="18" viewBox="0 0 21 21" aria-hidden="true"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
+        Iniciar sesión con Microsoft
+      </button>
+    </div>
     <div id="cimagen-gate-denied" style="display:none;margin-top:8px;">
       <div style="color:#dc2626;font-size:12.5px;margin-bottom:14px;">Tu cuenta no tiene acceso a ningún módulo todavía. Pide a Alejandra que te agregue. Si eres trabajador, pide que registren este mismo correo en tu ficha de Recursos Humanos.</div>
       <button id="cimagen-gate-retry" style="padding:9px 16px;background:#f3f4f6;color:#374151;border:1px solid #d1d5db;border-radius:6px;font-weight:600;font-size:13px;cursor:pointer;">Probar con otra cuenta</button>
@@ -230,8 +236,14 @@ function clearSession() {
 
 async function handleCredentialResponse(response) {
   if (!response || !response.credential) { showDenied(); return; }
-  // El servidor verifica la cuenta con Google y calcula los permisos; puede
-  // tardar unos segundos, así que se avisa en vez de dejar la pantalla quieta.
+  await iniciarSesionEnServidor({ accion: "login", credential: response.credential }, "Google");
+}
+
+// Envía al servidor la prueba de identidad (Google o Microsoft) y, si la
+// acepta, guarda la sesión firmada y entra al menú.
+async function iniciarSesionEnServidor(cuerpo, proveedor) {
+  // El servidor verifica la cuenta y calcula los permisos; puede tardar unos
+  // segundos, así que se avisa en vez de dejar la pantalla quieta.
   var msg = document.getElementById("cimagen-gate-msg");
   var btnWrap = document.getElementById("cimagen-gate-btn-wrap");
   if (msg) msg.textContent = "⏳ Verificando tus accesos…";
@@ -239,7 +251,7 @@ async function handleCredentialResponse(response) {
   var resultado = null;
   var errorRed = null;
   try {
-    resultado = await llamarServidor({ accion: "login", credential: response.credential });
+    resultado = await llamarServidor(cuerpo);
   } catch (e) {
     errorRed = e;
     console.error("Falló la llamada de inicio de sesión", e);
@@ -253,7 +265,7 @@ async function handleCredentialResponse(response) {
       ? errorRed.message
       : resultado ? "Respuesta sin sesión válida (estado: " + String(resultado.estado || "vacío") + ")." : "el servidor no entregó datos";
     if (msg) msg.textContent = detalle === "CREDENCIAL_INVALIDA"
-      ? "No se pudo verificar tu cuenta de Google. Inténtalo de nuevo."
+      ? "No se pudo verificar tu cuenta de " + proveedor + ". Inténtalo de nuevo."
       : detalle.indexOf("script.external_request") !== -1
         ? "El acceso requiere autorización del propietario del portal."
         : detalle.toLowerCase().indexOf("spreadsheets") !== -1 || detalle.toLowerCase().indexOf("spreadsheetapp") !== -1
@@ -278,6 +290,58 @@ async function handleCredentialResponse(response) {
   // Un trabajador sin otros módulos entra directo a su portal.
   if (soloPortal(sess)) { window.location.replace("trabajador.html"); return; }
   enterApp(sess);
+}
+
+// ------------------------------------------------------------
+// Inicio de sesión con Microsoft (Hotmail, Outlook.com, Live)
+// ------------------------------------------------------------
+// Se va a la página de Microsoft y se vuelve a este mismo menú con un "code"
+// de un solo uso; el servidor lo canjea con Microsoft y entrega la sesión.
+// "state" (guardado en sessionStorage) asegura que la vuelta la inició este
+// navegador y recuerda a qué página volver después (?return=...).
+var MS_CLIENT_ID = ""; // Id. de aplicación (cliente) del registro en Azure
+var MS_STATE_KEY = "cimagen_ms_state";
+
+function msRedirectUri() {
+  return new URL("index.html", window.location.href).href;
+}
+
+function iniciarSesionMicrosoft() {
+  var state = Array.from(crypto.getRandomValues(new Uint8Array(16)), function(b){ return b.toString(16).padStart(2, "0"); }).join("");
+  var volver = new URLSearchParams(window.location.search).get("return") || "";
+  try { sessionStorage.setItem(MS_STATE_KEY, JSON.stringify({ state: state, volver: volver })); } catch (e) {}
+  var q = new URLSearchParams({
+    client_id: MS_CLIENT_ID,
+    response_type: "code",
+    redirect_uri: msRedirectUri(),
+    response_mode: "query",
+    scope: "openid email profile",
+    state: state,
+    prompt: "select_account"
+  });
+  window.location.href = "https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize?" + q.toString();
+}
+
+// Si se vuelve de Microsoft (?code=...&state=... o ?error=...), completa el
+// inicio de sesión. Devuelve true si la página venía de Microsoft.
+function volverDeMicrosoft() {
+  var params = new URLSearchParams(window.location.search);
+  var code = params.get("code"), errorMs = params.get("error");
+  if (!code && !errorMs) return false;
+  var guardado = null;
+  try { guardado = JSON.parse(sessionStorage.getItem(MS_STATE_KEY)); sessionStorage.removeItem(MS_STATE_KEY); } catch (e) {}
+  var volver = (guardado && guardado.volver) || "";
+  // Se limpia la dirección para que el code no quede en el historial.
+  history.replaceState(null, "", "index.html" + (volver ? "?return=" + encodeURIComponent(volver) : ""));
+  if (errorMs || !guardado || guardado.state !== params.get("state")) {
+    var msg = document.getElementById("cimagen-gate-msg");
+    if (msg) msg.textContent = errorMs === "access_denied"
+      ? "Cancelaste el inicio de sesión con Microsoft."
+      : "No se pudo completar el inicio de sesión con Microsoft. Inténtalo de nuevo.";
+    return true;
+  }
+  iniciarSesionEnServidor({ accion: "loginMicrosoft", code: code, redirectUri: msRedirectUri() }, "Microsoft");
+  return true;
 }
 
 function soloPortal(sess) {
@@ -386,6 +450,12 @@ function renderMenu(sess) {
       clearSession();
       window.location.reload();
     });
+    var msBtn = document.getElementById("cimagen-gate-ms");
+    if (msBtn && MS_CLIENT_ID) {
+      msBtn.style.display = "inline-flex";
+      msBtn.addEventListener("click", iniciarSesionMicrosoft);
+    }
+    volverDeMicrosoft();
     function tryRenderButton(attemptsLeft){
       if (window.google && google.accounts && google.accounts.id) {
         google.accounts.id.initialize({
@@ -393,7 +463,7 @@ function renderMenu(sess) {
           callback: handleCredentialResponse
         });
         google.accounts.id.renderButton(
-          document.getElementById("cimagen-gate-btn-wrap"),
+          document.getElementById("cimagen-gate-google"),
           { theme: "outline", size: "large", text: "signin_with", shape: "pill" }
         );
       } else if (attemptsLeft > 0) {

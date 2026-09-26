@@ -141,7 +141,7 @@ table.tbl td.vacio{text-align:center;padding:28px;color:var(--muted)}
 <script src="hora-chile.js"></script>
 <script src="feriados-chile.js"></script>
 <script>
-// Mi Portal usa la misma sesión de Google del menú principal (index.html).
+// Mi Portal usa la misma sesión (Google o Microsoft) del menú principal (index.html).
 // Sin sesión válida se vuelve al menú para iniciar sesión.
 (function(){
   var sess = null;
@@ -744,15 +744,22 @@ async function cargarMarcacionesPortal(){
     tb.innerHTML = '<tr><td colspan="3" class="vacio">Las marcaciones solo están disponibles para la propia cuenta del trabajador.</td></tr>';
     return;
   }
-  if (!SESION.googleCredential) {
-    tb.innerHTML = '<tr><td colspan="3" class="vacio">Inicia sesión nuevamente para consultar las marcaciones de forma segura.</td></tr>';
-    return;
-  }
   const data = await apiMarcacionesPortal('listarMarcaciones');
   const mes = $('as-mes').value || mesChile();
   const marks = (data.marcaciones || []).filter(m => String(m.trabajadorId) === String(miFicha.id) && String(m.fechaServidor||'').startsWith(mes));
   tb.innerHTML = marks.slice().reverse().map(m => `<tr><td>${esc(m.fechaServidor||'-')}</td><td><b>${esc(m.tipo||'-')}</b></td><td>${Number.isFinite(Number(m.latitud)) && Number.isFinite(Number(m.longitud)) ? `${Number(m.latitud).toFixed(5)}, ${Number(m.longitud).toFixed(5)} (precisión ±${Math.round(Number(m.precisionMetros)||0)} m)` : 'Sin ubicación'}</td></tr>`).join('')
     || `<tr><td colspan="3" class="vacio">No hay marcaciones complementarias en ${esc(periodoTexto(mes))}.</td></tr>`;
+}
+
+// Marcaciones: el servidor identifica al trabajador por la sesión firmada
+// (sirve con cuentas de Google o Microsoft) y pone la hora. Lanza con el
+// mensaje del servidor si algo falla.
+async function apiMarcacionesPortal(action, datos){
+  const cuerpo = Object.assign({ action, token: CLOUD_TOKEN, trabajadorId: miFicha && miFicha.id }, datos || {});
+  const res = await fetchConTimeout(API_URL, { method:'POST', body: JSON.stringify(cuerpo) });
+  const data = await res.json();
+  if (!res.ok || data.estado === 'error') throw new Error(data.detalle || 'No se pudo conectar con el servidor.');
+  return data;
 }
 
 function obtenerUbicacionMarcacion(){

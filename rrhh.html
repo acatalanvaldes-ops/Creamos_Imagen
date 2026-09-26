@@ -118,7 +118,7 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
         <div class="fld"><label>Área</label><input id="tr-are"></div>
         <div class="fld"><label>Jefatura</label><input id="tr-jef"></div>
         <div class="fld"><label>Teléfono</label><div style="display:flex;gap:6px"><select id="tr-tel-cod" style="width:82px"><option>+56</option></select><input id="tr-tel" inputmode="tel"></div></div>
-        <div class="fld"><label>Email (acceso a Mi Portal)</label><input id="tr-ema" type="email" placeholder="correo Gmail del trabajador" title="El trabajador entra a Mi Portal con este mismo correo de Google"></div>
+        <div class="fld"><label>Email (acceso a Mi Portal)</label><input id="tr-ema" type="email" placeholder="correo Gmail o Hotmail del trabajador" title="El trabajador entra a Mi Portal con este mismo correo (Google o Microsoft)"></div>
         <div class="fld"><label>Fecha Ingreso</label><input type="date" id="tr-ing"></div>
         <div class="fld"><label>Tipo de Contrato</label><select id="tr-con"><option value="Indefinido">Indefinido</option><option value="Plazo Fijo">Plazo Fijo</option></select></div>
         <div class="fld"><label>Jornada Laboral</label><select id="tr-jor"><option value="Jornada de 44 horas semanales">44 horas semanales</option><option value="Jornada de 42 horas semanales">42 horas semanales</option><option value="Jornada de 40 horas semanales">40 horas semanales</option><option value="Jornada bajo Art. 22 inc. 2° del Código del Trabajo">Artículo 22 inc. 2°</option><option value="Jornada parcial de trabajo">Jornada parcial (Part-Time)</option></select></div>
@@ -748,12 +748,10 @@ function asRender() {
 async function cargarMarcacionesPortalRRHH(){
   const tb=$('as-portal-tbl');
   const btn=document.querySelector('#p-asis .card-title button[onclick="cargarMarcacionesPortalRRHH()"]');
-  let sess=null; try { sess=JSON.parse(localStorage.getItem('cimagen_session')||'null'); } catch(e) {}
-  if(!sess || !sess.googleCredential){ tb.innerHTML='<tr><td colspan="4" align="center">Vuelve a <a href="index.html?reauth=1&amp;return=rrhh">iniciar sesión con Google</a> para consultar las marcaciones.</td></tr>'; return; }
   if(btn){btn.disabled=true;btn.textContent='Cargando…';}
   tb.innerHTML='<tr><td colspan="4" align="center">Cargando marcaciones…</td></tr>';
   try {
-    const res=await fetchConTimeout(API_URL,{method:'POST',body:JSON.stringify({action:'listarMarcaciones',verTodos:true,token:CLOUD_TOKEN,googleCredential:sess.googleCredential})});
+    const res=await fetchConTimeout(API_URL,{method:'POST',body:JSON.stringify({action:'listarMarcaciones',verTodos:true,token:CLOUD_TOKEN})});
     const data=await res.json(); if(!res.ok || data.estado==='error') throw new Error(data.detalle||'No se pudieron cargar las marcaciones.');
     window.marcacionesPortalRRHH=data.marcaciones||[];
     renderMarcacionesPortalRRHH();

@@ -6,6 +6,8 @@
 //    accion=login. Aquí se verifica con Google (tokeninfo) que el token sea
 //    válido, de esta aplicación (aud = GOOGLE_CLIENT_ID) y con correo
 //    verificado, y se responde una sesión firmada (HMAC) que vence en 24 h.
+//    Las cuentas de Microsoft (Hotmail/Outlook) entran por
+//    accion=loginMicrosoft y reciben la misma sesión (ver "Login con Microsoft").
 //  - Cada lectura/escritura trae esa sesión en "token". Con el correo de la
 //    sesión se calculan los permisos en el servidor (accesos_ci_v1 + super
 //    admin), y cada llave solo se entrega o guarda si el usuario tiene el
@@ -230,15 +232,8 @@ function motivoRechazo(token) {
 // ------------------------------------------------------------------
 // Entradas HTTP
 // ------------------------------------------------------------------
-function validarCredencialGoogle(idToken) {
-  if (!idToken || typeof idToken !== "string") throw new Error("Vuelve a iniciar sesión con Google.");
-  const respuestaGoogle = UrlFetchApp.fetch("https://oauth2.googleapis.com/tokeninfo?id_token=" + encodeURIComponent(idToken), { muteHttpExceptions:true });
-  if (respuestaGoogle.getResponseCode() !== 200) throw new Error("La sesión de Google venció. Vuelve a iniciar sesión.");
-  const claims = JSON.parse(respuestaGoogle.getContentText());
-  if (claims.aud !== GOOGLE_CLIENT_ID || String(claims.email_verified) !== "true" || !claims.email || Number(claims.exp) * 1000 <= Date.now()) {
-    throw new Error("La sesión de Google no es válida. Vuelve a iniciar sesión.");
-  }
-  return { email:normalizarCorreo(claims.email), nombre:claims.name || "" };
+function normalizarCorreo(email) {
+  return String(email || "").trim().toLowerCase();
 }
 
 function hojaMarcaciones() {
@@ -283,8 +278,8 @@ function listarFilasMarcaciones(sh, trabajadorId) {
 function manejarMarcaciones(payload) {
   const sessionEmail = leerToken(payload.token);
   if (!sessionEmail) throw new Error("Sesión no autorizada o vencida.");
-  const identidad = validarCredencialGoogle(payload.googleCredential);
-  if (identidad.email !== sessionEmail) throw new Error("La cuenta no corresponde a esta sesión.");
+  // La sesión firmada ya identifica a la persona (con Google o Microsoft).
+  const identidad = { email: normalizarCorreo(sessionEmail) };
   if (payload.action === "listarMarcaciones" && payload.verTodos === true) {
     if (!usuarioPuedeVerMarcacionesRRHH(identidad.email)) throw new Error("No tienes permiso para ver las marcaciones del equipo.");
     return respuesta({ estado:"éxito", marcaciones:listarFilasMarcaciones(hojaMarcaciones(), null) });
@@ -386,6 +381,7 @@ function accionGet(p) {
 
 function accionPost(b) {
   if (b.accion === "login") return accionLogin(b.credential);
+  if (b.accion === "loginMicrosoft") return accionLoginMicrosoft(b);
   if (b.action === "listarMarcaciones" || b.action === "registrarMarcacion") return manejarMarcaciones(b);
   if (b.accion === "solicitarVac") return accionSolicitarVac(b);
   if (b.accion === "cancelarVac") return accionCancelarVac(b);
@@ -419,7 +415,58 @@ function accionLogin(credential) {
   const pf = perfil(g.email);
   return respuesta({
     estado: "éxito",
-      sesion: { token: crearToken(g.email), email: g.email, name: g.name || g.email, picture: g.picture, isAdmin: pf.isAdmin, modules: pf.modules, esTrabajador: pf.esTrabajador, googleCredential: credential, ts: Date.now() }
+      sesion: { token: crearToken(g.email), email: g.email, name: g.name || g.email, picture: g.picture, isAdmin: pf.isAdmin, modules: pf.modules, esTrabajador: pf.esTrabajador, ts: Date.now() }
+  });
+}
+
+// ------------------------------------------------------------------
+// Login con Microsoft (Hotmail, Outlook.com, Live, MSN)
+// ------------------------------------------------------------------
+// El menú manda a la persona a iniciar sesión en Microsoft y vuelve con un
+// "code" de un solo uso. Aquí se canjea ese code directamente con Microsoft
+// (con el secreto de la app, que el navegador nunca ve): el id_token que
+// Microsoft entrega por esa conexión es auténtico y no hace falta verificar
+// su firma. Se revisa que sea de esta app (aud) y de una cuenta personal de
+// Microsoft (tid de "consumers"): las cuentas de empresas quedan fuera porque
+// su correo lo escribe el administrador de esa empresa y no está verificado.
+//
+// Propiedades del script (Configuración del proyecto > Propiedades del script):
+//   MS_CLIENT_ID      Id. de aplicación (cliente) del registro en Azure
+//   MS_CLIENT_SECRET  Valor del secreto de cliente
+const MS_TENANT_CONSUMERS = "9188040d-6c67-4c5b-b112-36a304b66dad";
+
+function verificarCodigoMicrosoft(code, redirectUri) {
+  if (!code || typeof code !== "string" || !redirectUri || typeof redirectUri !== "string") return null;
+  const props = PropertiesService.getScriptProperties();
+  const clientId = props.getProperty("MS_CLIENT_ID");
+  const secret = props.getProperty("MS_CLIENT_SECRET");
+  if (!clientId || !secret) throw new Error("Falta configurar MS_CLIENT_ID y MS_CLIENT_SECRET en las propiedades del script.");
+  const res = UrlFetchApp.fetch("https://login.microsoftonline.com/consumers/oauth2/v2.0/token", {
+    method: "post",
+    payload: { client_id: clientId, client_secret: secret, code: code, redirect_uri: redirectUri, grant_type: "authorization_code", scope: "openid email profile" },
+    muteHttpExceptions: true
+  });
+  if (res.getResponseCode() !== 200) return null;
+  const idToken = JSON.parse(res.getContentText()).id_token;
+  if (!idToken) return null;
+  let info;
+  try {
+    let b64 = idToken.split(".")[1]; while (b64.length % 4) b64 += "=";
+    info = JSON.parse(Utilities.newBlob(Utilities.base64DecodeWebSafe(b64)).getDataAsString("UTF-8"));
+  } catch (e) { return null; }
+  const email = normalizarCorreo(info.email || info.preferred_username);
+  if (info.aud !== clientId || info.tid !== MS_TENANT_CONSUMERS || email.indexOf("@") < 1) return null;
+  if (Number(info.exp) * 1000 < Date.now()) return null;
+  return { email: email, name: info.name || "" };
+}
+
+function accionLoginMicrosoft(b) {
+  const m = verificarCodigoMicrosoft(b.code, b.redirectUri);
+  if (!m) return error("CREDENCIAL_INVALIDA");
+  const pf = perfil(m.email);
+  return respuesta({
+    estado: "éxito",
+    sesion: { token: crearToken(m.email), email: m.email, name: m.name || m.email, picture: "", isAdmin: pf.isAdmin, modules: pf.modules, esTrabajador: pf.esTrabajador, ts: Date.now() }
   });
 }
 
