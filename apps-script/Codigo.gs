@@ -36,7 +36,7 @@ const GOOGLE_CLIENT_ID = "207433225749-76s4184pif80ge7gfr0nt39qa80b82ij.apps.goo
 const SUPER_ADMIN_EMAIL = "a.catalan.valdes@gmail.com";
 const ACL_KEY = "accesos_ci_v1";
 const SESION_TTL_MS = 24 * 60 * 60 * 1000; // igual que en las páginas
-const MODULOS = ["rendicion", "clientes", "costos", "cotizaciones", "dashboard", "calendario", "proveedores", "ventasci", "ventas", "rrhh"];
+const MODULOS = ["rendicion", "clientes", "costos", "cotizaciones", "dashboard", "calendario", "proveedores", "ventasci", "ventas", "rrhh", "marketing"];
 
 const CACHE_TTL_S = 21600; // 6 horas (máximo permitido por CacheService)
 const CACHE_PREFIX = "v1:";
@@ -55,7 +55,8 @@ const REGLAS = [
   { llave: /^sublipro_v2$/,          escribe: ["ventas"],       lee: ["dashboard"] },
   { llave: /^rendicion\d{4}_v\d+$/,  escribe: ["rendicion"],    lee: ["dashboard"] },
   { llave: /^prods\d{4}$/,           escribe: ["calendario"],   lee: ["clientes", "dashboard"] },
-  { llave: /^rrhh_[a-z_]+_v\d+$/,    escribe: ["rrhh"],         lee: [] }
+  { llave: /^rrhh_[a-z_]+_v\d+$/,    escribe: ["rrhh"],         lee: [] },
+  { llave: /^marketing_ci_v1$/,      escribe: ["marketing"],    lee: [] }
 ];
 
 // ------------------------------------------------------------------

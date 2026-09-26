@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marketing - Creamos Imagen</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F7F5F0;--surface:#FFFFFF;--dark:#1C1917;--gold:#C8973A;--teal:#0D7A6B;--red:#C0392B;--muted:#78716C;--border:#E7E2D9;--rose:#BE123C;--purple:#6D28D9;--blue:#1E40AF;--amber:#B45309}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--dark);min-height:100vh}
+input,select,button,textarea{font-family:inherit;outline:none}
+.topbar{background:var(--dark);padding:0 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:100}
+.brand{padding:14px 0}
+.brand-name{font-family:'DM Serif Display',serif;font-size:22px;color:#fff}
+.brand-name span{color:var(--gold)}
+.tabs{display:flex;gap:2px;flex-wrap:wrap;padding:8px 0}
+.tab{background:none;border:none;font-size:12px;font-weight:600;color:#aaa;cursor:pointer;padding:7px 12px;border-radius:6px;transition:all .2s}
+.tab.on{background:#2C2926;color:var(--gold)}
+.content{padding:24px;max-width:1200px;margin:0 auto}
+.panel{display:none}.panel.on{display:block}
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:16px}
+.card-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--gold);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.act-btn{background:#fff;border:1.5px solid var(--border);color:var(--dark);padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.act-btn:hover{border-color:var(--gold);color:var(--gold)}
+.act-btn.primary{background:var(--gold);border-color:var(--gold);color:#fff}
+.act-btn.primary:hover{background:#B8872A;color:#fff}
+.act-btn.small{padding:4px 9px;font-size:11px}
+.act-btn.danger{color:var(--red)}
+.act-btn:disabled{opacity:.5;cursor:default}
+.fld{margin-bottom:12px}
+.fld label{display:block;font-size:10px;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+.fld input,.fld select,.fld textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:9px 11px;font-size:14px;color:var(--dark)}
+.fld textarea{min-height:90px;resize:vertical}
+.fld input:focus,.fld select:focus,.fld textarea:focus{border-color:var(--gold);background:#fff}
+.fila{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.fila .fld{flex:1;min-width:150px}
+.nota{font-size:12px;color:var(--muted);line-height:1.5}
+.aviso{border-radius:8px;padding:10px 14px;font-size:12px;line-height:1.5;margin-bottom:14px;background:#FEF3E2;border:1px solid #FDE68A;color:var(--amber)}
+.badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap}
+.b-idea{background:#F3F4F6;color:#4B5563}.b-diseno{background:#EDE9FE;color:var(--purple)}.b-lista{background:#DBEAFE;color:var(--blue)}.b-publicada{background:#D1FAE5;color:var(--teal)}
+.b-warn{background:#FEF3C7;color:var(--amber)}.b-nuevo{background:#FFE4E6;color:var(--rose)}
+table.tbl{width:100%;border-collapse:collapse;background:#fff}
+table.tbl th{background:var(--dark);color:var(--gold);font-size:10px;text-transform:uppercase;padding:9px 10px;text-align:left;letter-spacing:.4px}
+table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:top}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px}
+/* Próximos */
+.semana{margin-bottom:18px}
+.semana h3{font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:8px}
+.evento{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid var(--border);border-left:5px solid var(--gold);border-radius:10px;padding:12px 14px;margin-bottom:8px}
+.ev-fecha{min-width:56px;text-align:center}
+.ev-dia{font-size:22px;font-weight:800;line-height:1}
+.ev-mes{font-size:10px;text-transform:uppercase;color:var(--muted);font-weight:700}
+.ev-falta{font-size:10px;color:var(--rose);font-weight:700;margin-top:3px}
+.ev-cuerpo{flex:1;min-width:0}
+.ev-titulo{font-weight:700;font-size:14px}
+.ev-det{font-size:12px;color:var(--muted);margin-top:2px}
+.ev-idea{font-size:12px;margin-top:6px;background:var(--bg);border-radius:6px;padding:7px 9px;line-height:1.45}
+.ev-acc{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+/* Calendario */
+.cal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:10px;flex-wrap:wrap}
+.cal-head h2{font-family:'DM Serif Display',serif;font-size:24px;text-transform:capitalize}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-dow{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted);text-align:center;padding:4px 0}
+.cal-dia{background:#fff;border:1px solid var(--border);border-radius:8px;min-height:92px;padding:5px;cursor:pointer;overflow:hidden}
+.cal-dia.fuera{opacity:.4}
+.cal-dia.hoy{border-color:var(--rose);box-shadow:inset 0 0 0 1px var(--rose)}
+.cal-num{font-size:11px;font-weight:700;margin-bottom:3px}
+.chip{display:block;font-size:10px;line-height:1.25;border-radius:4px;padding:2px 4px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff}
+.chip.pub{background:#fff;color:var(--dark);border:1px dashed var(--muted)}
+/* Grupos */
+.grupos{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
+.grupo{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px;border-top:5px solid var(--gold)}
+.grupo.pausado{opacity:.55}
+.grupo h4{font-size:16px;margin-bottom:2px}
+.g-meta{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:8px}
+.g-acc{display:flex;gap:6px;flex-wrap:wrap}
+.resultado{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;background:#fff}
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none;align-items:flex-start;justify-content:center;padding:24px 12px;overflow-y:auto}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:14px;padding:24px;width:100%;max-width:680px;box-shadow:0 24px 60px rgba(0,0,0,.2)}
+.modal h2{font-family:'DM Serif Display',serif;font-size:22px;margin-bottom:14px;color:var(--gold)}
+.modal-acc{display:flex;gap:10px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
+@media (max-width:720px){
+  .content{padding:14px}
+  .cal-dia{min-height:62px}
+  .chip{font-size:9px}
+  .evento{flex-wrap:wrap}
+  .ev-acc{flex-direction:row;width:100%;justify-content:flex-end}
+}
+</style>
+<link rel="stylesheet" href="brand/brand.css">
+<script src="brand/brand.js"></script>
+<script src="brand/layout.js"></script>
+</head>
+<body>
+<script src="cargando.js"></script>
+<script src="sesion.js"></script>
+<script src="hora-chile.js"></script>
+
+<div class="topbar">
+  <div class="brand">
+    <a href="index.html">← Menú</a>
+    <div class="brand-name">Mar<span>keting</span></div>
+  </div>
+  <div class="tabs">
+    <button class="tab on" onclick="verPanel('proximos', this)">📅 Próximos</button>
+    <button class="tab" onclick="verPanel('calendario', this)">🗓️ Calendario</button>
+    <button class="tab" onclick="verPanel('publicaciones', this)">📝 Publicaciones</button>
+    <button class="tab" onclick="verPanel('grupos', this)">🎤 Grupos</button>
+    <button class="tab" onclick="verPanel('sugerencias', this)">💡 Sugerencias <span id="n-sug"></span></button>
+  </div>
+</div>
+
+<div class="content">
+  <div id="aviso-nube" class="aviso" style="display:none"></div>
+
+  <!-- PRÓXIMOS -->
+  <div class="panel on" id="p-proximos">
+    <div class="card">
+      <div class="card-title">
+        <span>Fechas para preparar contenido</span>
+        <span style="display:flex;gap:8px;align-items:center">
+          <select id="px-rango" onchange="renderProximos()" style="padding:6px 8px;border:1px solid var(--border);border-radius:6px">
+            <option value="7">Próximos 7 días</option>
+            <option value="14">Próximos 14 días</option>
+            <option value="30" selected>Próximos 30 días</option>
+            <option value="60">Próximos 60 días</option>
+          </select>
+          <button class="act-btn small" onclick="abrirFecha()">+ Fecha manual</button>
+        </span>
+      </div>
+      <div class="nota" style="margin-bottom:14px">Se arma solo con los cumpleaños y aniversarios de debut de los grupos que sigues (pestaña Grupos), las fechas comerciales de Chile y las fechas que agregues a mano (conciertos, lanzamientos). Recuerda: diseños propios, sin logos ni fotos oficiales de los artistas y sin decir "oficial".</div>
+      <div id="px-lista"></div>
+    </div>
+  </div>
+
+  <!-- CALENDARIO -->
+  <div class="panel" id="p-calendario">
+    <div class="card">
+      <div class="cal-head">
+        <button class="act-btn small" onclick="moverMes(-1)">← Anterior</button>
+        <h2 id="cal-titulo"></h2>
+        <span style="display:flex;gap:6px">
+          <button class="act-btn small" onclick="moverMes(0)">Hoy</button>
+          <button class="act-btn small" onclick="moverMes(1)">Siguiente →</button>
+        </span>
+      </div>
+      <div class="cal" id="cal"></div>
+      <div class="nota" style="margin-top:10px">Toca un día para ver sus fechas y planificar publicaciones. Las publicaciones planificadas aparecen con borde punteado.</div>
+    </div>
+  </div>
+
+  <!-- PUBLICACIONES -->
+  <div class="panel" id="p-publicaciones">
+    <div class="card">
+      <div class="card-title">
+        <span>Publicaciones planificadas</span>
+        <span style="display:flex;gap:8px;flex-wrap:wrap">
+          <select id="pb-estado" onchange="renderPublicaciones()" style="padding:6px 8px;border:1px solid var(--border);border-radius:6px">
+            <option value="">Todos los estados</option>
+            <option value="pendientes">Pendientes (no publicadas)</option>
+            <option>Idea</option><option>En diseño</option><option>Lista</option><option>Publicada</option>
+          </select>
+          <button class="act-btn small primary" onclick="abrirPublicacion()">+ Nueva publicación</button>
+        </span>
+      </div>
+      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Fecha</th><th>Publicación</th><th>Redes</th><th>Estado</th><th>Responsable</th><th></th></tr></thead><tbody id="pb-tbl"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- GRUPOS -->
+  <div class="panel" id="p-grupos">
+    <div class="card">
+      <div class="card-title"><span>Agregar grupo o artista</span></div>
+      <div class="fila">
+        <div class="fld"><label>Nombre (como aparece en Wikipedia en inglés)</label><input id="gr-buscar" placeholder="Ej: Stray Kids, TWICE, Jungkook" onkeydown="if(event.key==='Enter')buscarGrupo()"></div>
+        <div class="fld" style="flex:0 0 auto"><button class="act-btn primary" onclick="buscarGrupo()">Buscar</button></div>
+      </div>
+      <div id="gr-resultados"></div>
+      <div class="nota">Los integrantes, cumpleaños y fecha de debut se traen de Wikidata (la base de datos de Wikipedia) y se actualizan solos cada 30 días. Wikidata la edita cualquiera: revisa los integrantes de cada grupo nuevo. Tus correcciones se mantienen en cada actualización.</div>
+    </div>
+    <div id="gr-inicial" class="card" style="display:none">
+      <div class="card-title"><span>¿Empezamos con los grupos más pedidos?</span></div>
+      <div class="nota" style="margin-bottom:10px">Se buscarán en Wikidata y podrás revisarlos después.</div>
+      <button class="act-btn primary" id="gr-inicial-btn" onclick="cargarIniciales()">Cargar BTS, Stray Kids, TWICE, BLACKPINK, SEVENTEEN, ATEEZ, ENHYPEN, TXT, NewJeans y aespa</button>
+    </div>
+    <div class="grupos" id="gr-lista"></div>
+  </div>
+
+  <!-- SUGERENCIAS -->
+  <div class="panel" id="p-sugerencias">
+    <div class="card">
+      <div class="card-title"><span>Sugerir un grupo o artista</span></div>
+      <div class="fila">
+        <div class="fld"><label>Grupo o artista</label><input id="sg-nombre" maxlength="80" placeholder="Ej: ILLIT, BOYNEXTDOOR, Jennie"></div>
+        <div class="fld" style="flex:2"><label>¿Por qué? (opcional)</label><input id="sg-motivo" maxlength="200" placeholder="Ej: lo piden mucho en la tienda, viene a Chile en marzo…"></div>
+        <div class="fld" style="flex:0 0 auto"><button class="act-btn primary" onclick="sugerir()">Enviar sugerencia</button></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span>Sugerencias</span></div>
+      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Grupo / artista</th><th>Motivo</th><th>Sugerido por</th><th>Estado</th><th></th></tr></thead><tbody id="sg-tbl"></tbody></table></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: publicación -->
+<div class="modal-bg" id="m-pub" onclick="if(event.target===this)cerrar('m-pub')">
+  <div class="modal">
+    <h2 id="mp-titulo-modal">Publicación</h2>
+    <div class="fila">
+      <div class="fld" style="flex:2"><label>Título</label><input id="mp-titulo" maxlength="120"></div>
+      <div class="fld"><label>Fecha de publicación</label><input type="date" id="mp-fecha"></div>
+    </div>
+    <div class="fila">
+      <div class="fld"><label>Estado</label><select id="mp-estado"><option>Idea</option><option>En diseño</option><option>Lista</option><option>Publicada</option></select></div>
+      <div class="fld"><label>Responsable</label><input id="mp-resp" maxlength="60"></div>
+    </div>
+    <div class="fld"><label>Redes</label>
+      <div id="mp-redes" style="display:flex;gap:12px;flex-wrap:wrap;font-size:13px"></div>
+    </div>
+    <div class="fld"><label>Texto / idea de la publicación</label><textarea id="mp-copy" maxlength="2000"></textarea></div>
+    <div class="nota" id="mp-evento"></div>
+    <div class="modal-acc">
+      <button class="act-btn danger" id="mp-borrar" onclick="borrarPublicacion()">Eliminar</button>
+      <button class="act-btn" onclick="cerrar('m-pub')">Cancelar</button>
+      <button class="act-btn primary" onclick="guardarPublicacion()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: fecha manual -->
+<div class="modal-bg" id="m-fecha" onclick="if(event.target===this)cerrar('m-fecha')">
+  <div class="modal">
+    <h2>Fecha manual</h2>
+    <div class="fila">
+      <div class="fld" style="flex:2"><label>Qué pasa</label><input id="mf-titulo" maxlength="120" placeholder="Ej: Concierto de Stray Kids en Santiago"></div>
+      <div class="fld"><label>Fecha</label><input type="date" id="mf-fecha"></div>
+    </div>
+    <div class="fila">
+      <div class="fld"><label>Tipo</label><select id="mf-tipo"><option value="concierto">Concierto / evento</option><option value="lanzamiento">Lanzamiento / comeback</option><option value="comercial">Fecha comercial (CyberDay, liquidación…)</option><option value="otro">Otro</option></select></div>
+      <div class="fld"><label>Grupo (opcional)</label><select id="mf-grupo"></select></div>
+    </div>
+    <label style="font-size:13px;display:flex;gap:8px;align-items:center"><input type="checkbox" id="mf-anual"> Se repite todos los años</label>
+    <div class="modal-acc">
+      <button class="act-btn danger" id="mf-borrar" onclick="borrarFecha()">Eliminar</button>
+      <button class="act-btn" onclick="cerrar('m-fecha')">Cancelar</button>
+      <button class="act-btn primary" onclick="guardarFecha()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: integrantes -->
+<div class="modal-bg" id="m-grupo" onclick="if(event.target===this)cerrar('m-grupo')">
+  <div class="modal" style="max-width:820px">
+    <h2 id="mg-titulo">Grupo</h2>
+    <div class="fila">
+      <div class="fld"><label>Nombre del grupo</label><input id="mg-nombre" maxlength="60"></div>
+      <div class="fld"><label>Fandom</label><input id="mg-fandom" maxlength="40" placeholder="Ej: ARMY, STAY, ONCE"></div>
+      <div class="fld"><label>Debut</label><input type="date" id="mg-debut"></div>
+      <div class="fld" style="flex:0 0 90px"><label>Color</label><input type="color" id="mg-color" style="height:40px;padding:3px"></div>
+    </div>
+    <div class="nota" id="mg-nota" style="margin-bottom:10px"></div>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Integrante</th><th>Cumpleaños</th><th>Mostrar</th><th></th></tr></thead><tbody id="mg-tbl"></tbody></table></div>
+    <button class="act-btn small" style="margin-top:10px" onclick="agregarIntegrante()">+ Agregar integrante a mano</button>
+    <div class="modal-acc">
+      <button class="act-btn" onclick="cerrar('m-grupo')">Cancelar</button>
+      <button class="act-btn primary" onclick="guardarGrupo()">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: día del calendario -->
+<div class="modal-bg" id="m-dia" onclick="if(event.target===this)cerrar('m-dia')">
+  <div class="modal">
+    <h2 id="md-titulo">Día</h2>
+    <div id="md-lista"></div>
+    <div class="modal-acc">
+      <button class="act-btn" onclick="abrirFecha(null, DIA_ABIERTO)">+ Fecha manual</button>
+      <button class="act-btn" onclick="abrirPublicacion(null, {fecha: DIA_ABIERTO})">+ Publicación</button>
+      <button class="act-btn primary" onclick="cerrar('m-dia')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// =========================================================================
+// MARKETING: calendario de contenidos
+// =========================================================================
+// Datos en la llave marketing_ci_v1 (módulo "marketing" en Accesos):
+//   grupos:        grupos/artistas que se siguen, con integrantes y cumpleaños
+//                  traídos de Wikidata. Lo que se corrige a mano queda en
+//                  "manual" y se respeta al actualizar.
+//   sugerencias:   grupos que alguien propuso seguir.
+//   publicaciones: posts planificados (fecha, redes, estado, texto).
+//   fechas:        fechas manuales (conciertos, lanzamientos, CyberDay…).
+// Las fechas del calendario se calculan al abrir la página, así que siempre
+// avanzan solas al año siguiente.
+const API_URL = "/api/portal";
+const CLOUD_TOKEN = tokenSesion();
+const LLAVE = "marketing_ci_v1";
+const DIAS_ACTUALIZAR = 30;
+const REDES = ["Instagram", "TikTok", "Facebook", "Historias", "WhatsApp"];
+const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+const COLORES = ["#BE123C","#6D28D9","#0D7A6B","#1E40AF","#B45309","#DB2777","#0E7490","#4D7C0F","#9333EA","#C2410C"];
+const COLOR_TIPO = { cumple:"#DB2777", debut:"#6D28D9", comercial:"#0D7A6B", concierto:"#1E40AF", lanzamiento:"#B45309", otro:"#57534E" };
+const ICONO_TIPO = { cumple:"🎂", debut:"🎉", comercial:"🛍️", concierto:"🎤", lanzamiento:"💿", otro:"📌" };
+
+let DB = { grupos:[], sugerencias:[], publicaciones:[], fechas:[] };
+let cargaOk = false;
+const SESION = (function(){ try { return JSON.parse(localStorage.getItem('cimagen_session')) || {}; } catch(e) { return {}; } })();
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const nuevoId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const aUTC = s => Date.UTC(+s.slice(0,4), +s.slice(5,7)-1, +s.slice(8,10));
+const deUTC = t => new Date(t).toISOString().slice(0,10);
+const sumarDias = (s, n) => deUTC(aUTC(s) + n * 86400000);
+const diasEntre = (a, b) => Math.round((aUTC(b) - aUTC(a)) / 86400000);
+const fCorta = s => { const [y,m,d] = s.split('-'); return `${+d} ${MESES[+m-1].slice(0,3)}`; };
+const fLarga = s => { const [y,m,d] = s.split('-'); return `${+d} de ${MESES[+m-1]} de ${y}`; };
+
+// ------------------------------------------------------------------ nube
+function esperar(ms){ return new Promise(r => setTimeout(r, ms)); }
+async function pedir(url, opts, ms){
+  const c = new AbortController(); const t = setTimeout(() => c.abort(), ms || 15000);
+  try { return await fetch(url, Object.assign({}, opts, { signal: c.signal })); } finally { clearTimeout(t); }
+}
+async function leerNube(key){
+  let err;
+  for (let i = 0; i < 3; i++) {
+    try {
+      const res = await pedir(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
+      const j = await res.json();
+      if (j.estado === 'error') throw new Error(j.detalle || 'Error del servidor');
+      return j.valor ? JSON.parse(j.valor) : null;
+    } catch(e) { err = e; await esperar(500 * (i + 1)); }
+  }
+  throw err;
+}
+async function escribirNube(key, obj){
+  const res = await pedir(API_URL, { method:'POST', body: JSON.stringify({ key, value: JSON.stringify(obj), token: CLOUD_TOKEN }) });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok || j.estado === 'error') throw new Error(j.detalle || 'HTTP ' + res.status);
+}
+// Se guarda partido en bloques de 40.000 caracteres (límite de una celda).
+async function cargar(){
+  const primero = await leerNube(LLAVE);
+  if (!primero) return null;
+  let texto = primero.parte || '';
+  const resto = await Promise.all(Array.from({ length: (primero.shardCount || 1) - 1 }, (_, i) => leerNube(LLAVE + '_sh' + (i + 1))));
+  resto.forEach((b, i) => { if (!b || typeof b.parte !== 'string') throw new Error('Falta la parte ' + (i + 1)); texto += b.parte; });
+  return texto ? JSON.parse(texto) : null;
+}
+let guardando = Promise.resolve();
+function guardar(){
+  if (!cargaOk) { alert('No se pudieron cargar los datos de Marketing desde la nube. Recarga la página (F5) antes de hacer cambios, para no borrar información.'); return Promise.resolve(false); }
+  const texto = JSON.stringify(DB);
+  const partes = []; for (let i = 0; i < texto.length; i += 40000) partes.push(texto.slice(i, i + 40000));
+  if (!partes.length) partes.push('');
+  guardando = guardando.then(async () => {
+    try {
+      for (let i = 0; i < partes.length; i++) await escribirNube(i ? LLAVE + '_sh' + i : LLAVE, { shardCount: partes.length, parte: partes[i] });
+      return true;
+    } catch(e) {
+      console.error(e);
+      alert('No se pudo guardar en la nube (' + e.message + '). Revisa tu conexión e inténtalo de nuevo.');
+      return false;
+    }
+  });
+  return guardando;
+}
+
+// ------------------------------------------------------------------ Wikidata
+// Búsqueda de grupos/artistas y sus integrantes con fecha de nacimiento.
+// Solo se aceptan fechas con precisión de día (timePrecision 11); si Wikidata
+// solo tiene el año, el integrante queda marcado para completar a mano.
+// Debuts que en Wikidata solo tienen el año (se usan si Wikidata no trae el día).
+const DEBUTS_CONOCIDOS = { Q46134670: "2018-03-25", Q20645861: "2015-10-20", Q25056945: "2016-08-08" };
+const WD_API = "https://www.wikidata.org/w/api.php";
+const WD_SPARQL = "https://query.wikidata.org/sparql";
+async function wdBuscar(texto){
+  const url = WD_API + "?action=wbsearchentities&format=json&origin=*&language=en&uselang=es&type=item&limit=10&search=" + encodeURIComponent(texto);
+  const r = await (await pedir(url, null, 30000)).json();
+  return (r.search || []).map(s => ({ id: s.id, nombre: s.label, desc: s.description || '' }));
+}
+async function wdSparql(q){
+  const r = await pedir(WD_SPARQL + "?format=json&query=" + encodeURIComponent(q), { headers: { Accept: "application/sparql-results+json" } }, 30000);
+  if (!r.ok) throw new Error('Wikidata respondió ' + r.status);
+  return (await r.json()).results.bindings;
+}
+async function wdGrupo(qid){
+  const base = await wdSparql(`SELECT ?nombre ?debut ?debutP ?nac ?nacP WHERE {
+    OPTIONAL { wd:${qid} p:P571/psv:P571 [ wikibase:timeValue ?debut ; wikibase:timePrecision ?debutP ] }
+    OPTIONAL { wd:${qid} p:P2031/psv:P2031 [ wikibase:timeValue ?debut ; wikibase:timePrecision ?debutP ] }
+    OPTIONAL { wd:${qid} p:P569/psv:P569 [ wikibase:timeValue ?nac ; wikibase:timePrecision ?nacP ] }
+    wd:${qid} rdfs:label ?nombre . FILTER(LANG(?nombre) IN ("en","mul"))
+  } LIMIT 5`);
+  const miembros = await wdSparql(`SELECT ?m ?mLabel ?nac ?nacP ?fin WHERE {
+    { wd:${qid} p:P527 ?st . ?st ps:P527 ?m . ?m wdt:P31 wd:Q5 . OPTIONAL { ?st pq:P582 ?fin } }
+    UNION { ?m p:P463 ?st2 . ?st2 ps:P463 wd:${qid} . ?m wdt:P31 wd:Q5 . OPTIONAL { ?st2 pq:P582 ?fin } }
+    OPTIONAL { ?m p:P569/psv:P569 [ wikibase:timeValue ?nac ; wikibase:timePrecision ?nacP ] }
+    SERVICE wikibase:label { bd:serviceParam wikibase:language "en,mul,ko". } }`);
+  const fecha = (v, p) => v && Number(p && p.value) >= 11 ? v.value.slice(0, 10) : '';
+  const conDia = base.find(b => b.debut && Number(b.debutP.value) >= 11) || base[0] || {};
+  // Se prefiere la etiqueta en inglés ("TWICE"); la multilingüe viene en otro formato ("Twice").
+  const conNombre = base.find(b => b.nombre['xml:lang'] === 'en') || base[0];
+  const debutWd = fecha(conDia.debut, conDia.debutP) || DEBUTS_CONOCIDOS[qid] || '';
+  const r = { qid, nombre: conNombre ? conNombre.nombre.value : qid, debut: debutWd, debutParcial: !debutWd && !!conDia.debut, miembros: [] };
+  const vistos = {};
+  miembros.forEach(b => {
+    const id = b.m.value.split('/').pop();
+    const actual = vistos[id] || (vistos[id] = { wd: id, nombre: b.mLabel.value, nac: '', nacParcial: false, ex: false });
+    if (b.fin) actual.ex = true;
+    if (b.nac) { const f = fecha(b.nac, b.nacP); if (f) actual.nac = f; else if (!actual.nac) actual.nacParcial = true; }
+  });
+  r.miembros = Object.values(vistos);
+  // Artista solista: sin integrantes, pero con su propia fecha de nacimiento.
+  const solo = base.find(b => b.nac);
+  if (!r.miembros.length && solo) r.miembros = [{ wd: qid, nombre: r.nombre, nac: fecha(solo.nac, solo.nacP), nacParcial: Number(solo.nacP.value) < 11, ex: false }];
+  return r;
+}
+
+// Integra datos nuevos de Wikidata sin pisar lo corregido a mano.
+function fusionar(grupo, wd){
+  grupo.wd = wd.qid;
+  if (!grupo.manual || !grupo.manual.debut) grupo.debut = wd.debut || grupo.debut || '';
+  grupo.debutParcial = !grupo.debut && wd.debutParcial;
+  const porId = {}; (grupo.miembros || []).forEach(m => porId[m.wd] = m);
+  wd.miembros.forEach(n => {
+    const m = porId[n.wd];
+    if (!m) {
+      // Wikidata a veces tiene a la misma persona en dos fichas (ej. "Jin" y
+      // "Kim Seok-jin"): si ya hay otro integrante visible con la misma fecha
+      // de nacimiento, el nuevo entra oculto y marcado para revisar.
+      const dup = !!n.nac && grupo.miembros.some(x => !x.oculto && x.nac === n.nac);
+      grupo.miembros.push(Object.assign({ id: nuevoId(), manual: {}, oculto: n.ex || dup, dup, nuevo: grupo.actualizado ? true : false }, n));
+      return;
+    }
+    m.nombreWd = n.nombre; m.nacWd = n.nac; m.ex = n.ex; m.nacParcial = n.nacParcial;
+    if (!m.manual.nombre) m.nombre = n.nombre;
+    if (!m.manual.nac) m.nac = n.nac;
+  });
+  grupo.actualizado = hoyChile();
+}
+
+// ------------------------------------------------------------------ fechas
+function nEsimoDia(anio, mes, diaSemana, n){ // mes 1-12, diaSemana 0=domingo
+  const primero = new Date(Date.UTC(anio, mes - 1, 1)).getUTCDay();
+  return deUTC(Date.UTC(anio, mes - 1, 1 + ((diaSemana - primero + 7) % 7) + (n - 1) * 7));
+}
+// Fechas comerciales de Chile que se calculan solas cada año.
+function comercialesChile(anio){
+  const p = (m, d) => `${anio}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  return [
+    [p(2,14), "San Valentín", "Regalos para parejas y amigos: poleras y pañuelos con dedicatoria."],
+    [nEsimoDia(anio, 3, 1, 1), "Vuelta a clases", "Poleras de curso, jockeys y bolsos; buen momento para colegios."],
+    [p(3,8), "Día de la Mujer", "Contenido de equipo y promociones especiales."],
+    [nEsimoDia(anio, 5, 0, 2), "Día de la Madre", "Regalos personalizados: poleras, tazas y pañuelos con nombre o foto familiar."],
+    [nEsimoDia(anio, 6, 0, 3), "Día del Padre", "Camisetas de su equipo, poleras con frase o foto."],
+    [nEsimoDia(anio, 8, 0, 2), "Día del Niño", "Poleras con el nombre del niño o de su grupo favorito."],
+    [p(9,18), "Fiestas Patrias", "Poleras y pañuelos dieciocheros; anticipa pedidos de empresas."],
+    [p(10,31), "Halloween", "Diseños temáticos y concursos en redes."],
+    [sumarDias(nEsimoDia(anio, 11, 4, 4), 1), "Black Friday", "Descuentos por volumen y packs."],
+    [p(12,25), "Navidad", "Regalos corporativos y pedidos de fin de año: publica desde noviembre."]
+  ].map(([fecha, titulo, idea]) => ({ fecha, titulo, idea, tipo: 'comercial', clave: 'com:' + titulo }));
+}
+function edadEn(nac, fecha){ return +fecha.slice(0,4) - +nac.slice(0,4); }
+// Todas las fechas entre desde y hasta (YYYY-MM-DD), ordenadas.
+function eventosEntre(desde, hasta){
+  const anios = []; for (let a = +desde.slice(0,4); a <= +hasta.slice(0,4); a++) anios.push(a);
+  const ev = [];
+  const enRango = f => f >= desde && f <= hasta;
+  anios.forEach(anio => {
+    DB.grupos.filter(g => g.activo !== false).forEach(g => {
+      (g.miembros || []).filter(m => !m.oculto && m.nac).forEach(m => {
+        const f = anio + m.nac.slice(4);
+        if (enRango(f)) ev.push({ fecha: f, tipo: 'cumple', grupo: g, titulo: `Cumpleaños de ${m.nombre}` + (g.miembros.length > 1 ? ` (${g.nombre})` : ''),
+          detalle: `Cumple ${edadEn(m.nac, f)} años`,
+          idea: `Publica 1–2 días antes y el mismo día: productos de ${g.nombre}${g.fandom ? ' para ' + g.fandom : ''}, un saludo de cumpleaños y un descuento o regalo por el día.`,
+          clave: `cumple:${g.id}:${m.id}:${anio}` });
+      });
+      if (g.debut) {
+        const f = anio + g.debut.slice(4), n = anio - +g.debut.slice(0,4);
+        if (n > 0 && enRango(f)) ev.push({ fecha: f, tipo: 'debut', grupo: g, titulo: `Aniversario de ${g.nombre}`, detalle: `${n} años desde su debut`,
+          idea: `Colección o promoción de aniversario de ${g.nombre}; video mostrando todos sus productos.`, clave: `debut:${g.id}:${anio}` });
+      }
+    });
+    comercialesChile(anio).forEach(c => { if (enRango(c.fecha)) ev.push(Object.assign({}, c, { clave: c.clave + ':' + anio })); });
+    DB.fechas.forEach(fm => {
+      const f = fm.anual ? anio + fm.fecha.slice(4) : fm.fecha;
+      if ((fm.anual || +fm.fecha.slice(0,4) === anio) && enRango(f)) {
+        const g = DB.grupos.find(x => x.id === fm.grupoId);
+        ev.push({ fecha: f, tipo: fm.tipo, grupo: g, titulo: fm.titulo, detalle: g ? g.nombre : '', manual: fm,
+          idea: { concierto: 'Merch para ir al evento (pañuelos, poleras, telones): publica 2–3 semanas antes y recuerda los plazos de pedido.', lanzamiento: 'Diseños nuevos inspirados en la era: publica apenas salga el teaser.', comercial: 'Prepara la promoción y los precios con anticipación.' }[fm.tipo] || '',
+          clave: `fecha:${fm.id}:${anio}` });
+      }
+    });
+  });
+  return ev.sort((a, b) => a.fecha.localeCompare(b.fecha) || a.titulo.localeCompare(b.titulo));
+}
+function colorEvento(e){ return (e.grupo && e.grupo.color) || COLOR_TIPO[e.tipo] || '#57534E'; }
+function pubsDeEvento(clave){ return DB.publicaciones.filter(p => p.evento === clave); }
+function claseEstado(e){ return { 'Idea':'b-idea', 'En diseño':'b-diseno', 'Lista':'b-lista', 'Publicada':'b-publicada' }[e] || 'b-idea'; }
+
+// ------------------------------------------------------------------ vistas
+function verPanel(id, btn){
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('on'));
+  $('p-' + id).classList.add('on'); btn.classList.add('on');
+  renderTodo();
+}
+function renderTodo(){ renderProximos(); renderCalendario(); renderPublicaciones(); renderGrupos(); renderSugerencias(); }
+
+function tarjetaEvento(e, hoy){
+  const falta = diasEntre(hoy, e.fecha);
+  const pubs = pubsDeEvento(e.clave);
+  return `<div class="evento" style="border-left-color:${colorEvento(e)}">
+    <div class="ev-fecha"><div class="ev-dia">${+e.fecha.slice(8)}</div><div class="ev-mes">${MESES[+e.fecha.slice(5,7)-1].slice(0,3)}</div><div class="ev-falta">${falta === 0 ? 'HOY' : falta === 1 ? 'mañana' : 'en ' + falta + ' días'}</div></div>
+    <div class="ev-cuerpo">
+      <div class="ev-titulo">${ICONO_TIPO[e.tipo] || '📌'} ${esc(e.titulo)}</div>
+      ${e.detalle ? `<div class="ev-det">${esc(e.detalle)}</div>` : ''}
+      ${e.idea ? `<div class="ev-idea">💡 ${esc(e.idea)}</div>` : ''}
+      ${pubs.map(p => `<div style="margin-top:6px;font-size:12px"><span class="badge ${claseEstado(p.estado)}">${esc(p.estado)}</span> <a href="#" onclick="abrirPublicacion('${p.id}');return false">${esc(p.titulo)}</a> · ${fCorta(p.fecha)}</div>`).join('')}
+    </div>
+    <div class="ev-acc">
+      <button class="act-btn small primary" onclick='planificar(${JSON.stringify(e.clave)})'>+ Planificar</button>
+      ${e.manual ? `<button class="act-btn small" onclick="abrirFecha('${e.manual.id}')">Editar</button>` : ''}
+    </div>
+  </div>`;
+}
+let EVENTOS_VISTA = {};
+function planificar(clave){
+  const e = EVENTOS_VISTA[clave]; if (!e) return;
+  // Se sugiere publicar 2 días antes (o hoy si ya está encima).
+  const hoy = hoyChile(), antes = sumarDias(e.fecha, -2);
+  abrirPublicacion(null, { titulo: e.titulo, fecha: antes < hoy ? hoy : antes, copy: e.idea || '', evento: e.clave, eventoTexto: `${e.titulo} · ${fLarga(e.fecha)}` });
+}
+function renderProximos(){
+  const hoy = hoyChile(), hasta = sumarDias(hoy, +$('px-rango').value);
+  const ev = eventosEntre(hoy, hasta);
+  ev.forEach(e => EVENTOS_VISTA[e.clave] = e);
+  if (!ev.length) {
+    $('px-lista').innerHTML = `<div class="nota" style="padding:30px;text-align:center">${DB.grupos.length ? 'No hay fechas en este período.' : 'Todavía no sigues ningún grupo. Ve a la pestaña <b>Grupos</b> para agregarlos.'}</div>`;
+    return;
+  }
+  const semanas = {};
+  ev.forEach(e => { const n = Math.floor(diasEntre(hoy, e.fecha) / 7); (semanas[n] = semanas[n] || []).push(e); });
+  $('px-lista').innerHTML = Object.keys(semanas).sort((a,b) => a - b).map(n => {
+    const ini = sumarDias(hoy, n * 7), fin = sumarDias(hoy, n * 7 + 6);
+    return `<div class="semana"><h3>${n == 0 ? 'Esta semana' : n == 1 ? 'Próxima semana' : 'Del ' + fCorta(ini) + ' al ' + fCorta(fin)}</h3>${semanas[n].map(e => tarjetaEvento(e, hoy)).join('')}</div>`;
+  }).join('');
+}
+
+let MES_VISTA = hoyChile().slice(0, 7);
+function moverMes(d){
+  if (d === 0) MES_VISTA = hoyChile().slice(0, 7);
+  else { const [y, m] = MES_VISTA.split('-').map(Number); const t = new Date(Date.UTC(y, m - 1 + d, 1)); MES_VISTA = deUTC(t).slice(0, 7); }
+  renderCalendario();
+}
+function renderCalendario(){
+  const [y, m] = MES_VISTA.split('-').map(Number);
+  $('cal-titulo').textContent = MESES[m - 1] + ' ' + y;
+  const primero = `${MES_VISTA}-01`;
+  const lunesAntes = sumarDias(primero, -((new Date(Date.UTC(y, m - 1, 1)).getUTCDay() + 6) % 7));
+  const dias = Array.from({ length: 42 }, (_, i) => sumarDias(lunesAntes, i));
+  const ev = eventosEntre(dias[0], dias[41]);
+  ev.forEach(e => EVENTOS_VISTA[e.clave] = e);
+  const hoy = hoyChile();
+  $('cal').innerHTML = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(d => `<div class="cal-dow">${d}</div>`).join('') +
+    dias.map(d => {
+      const deDia = ev.filter(e => e.fecha === d), pubs = DB.publicaciones.filter(p => p.fecha === d);
+      return `<div class="cal-dia${d.slice(0,7) !== MES_VISTA ? ' fuera' : ''}${d === hoy ? ' hoy' : ''}" onclick="abrirDia('${d}')">
+        <div class="cal-num">${+d.slice(8)}</div>
+        ${deDia.map(e => `<span class="chip" style="background:${colorEvento(e)}" title="${esc(e.titulo)}">${ICONO_TIPO[e.tipo] || ''} ${esc(e.titulo.replace(/^Cumpleaños de /, ''))}</span>`).join('')}
+        ${pubs.map(p => `<span class="chip pub" title="${esc(p.titulo)}">📝 ${esc(p.titulo)}</span>`).join('')}
+      </div>`;
+    }).join('');
+}
+let DIA_ABIERTO = null;
+function abrirDia(d){
+  DIA_ABIERTO = d;
+  $('md-titulo').textContent = fLarga(d);
+  const ev = eventosEntre(d, d), pubs = DB.publicaciones.filter(p => p.fecha === d);
+  ev.forEach(e => EVENTOS_VISTA[e.clave] = e);
+  $('md-lista').innerHTML = (ev.map(e => tarjetaEvento(e, hoyChile())).join('') +
+    pubs.map(p => `<div class="evento" style="border-left-style:dashed"><div class="ev-cuerpo"><div class="ev-titulo">📝 ${esc(p.titulo)}</div><div class="ev-det">${esc((p.redes||[]).join(', '))} · <span class="badge ${claseEstado(p.estado)}">${esc(p.estado)}</span></div></div><div class="ev-acc"><button class="act-btn small" onclick="cerrar('m-dia');abrirPublicacion('${p.id}')">Abrir</button></div></div>`).join(''))
+    || '<div class="nota" style="padding:14px 0">Sin fechas ni publicaciones este día.</div>';
+  abrir('m-dia');
+}
+
+function renderPublicaciones(){
+  const f = $('pb-estado').value;
+  const lista = DB.publicaciones.filter(p => !f || (f === 'pendientes' ? p.estado !== 'Publicada' : p.estado === f))
+    .sort((a, b) => a.fecha.localeCompare(b.fecha));
+  const hoy = hoyChile();
+  $('pb-tbl').innerHTML = lista.map(p => `<tr>
+    <td style="white-space:nowrap${p.fecha < hoy && p.estado !== 'Publicada' ? ';color:var(--red);font-weight:700' : ''}">${fCorta(p.fecha)} ${p.fecha.slice(0,4)}</td>
+    <td><b>${esc(p.titulo)}</b>${p.copy ? `<div class="nota" style="max-width:420px;white-space:pre-wrap">${esc(p.copy.slice(0, 160))}${p.copy.length > 160 ? '…' : ''}</div>` : ''}</td>
+    <td>${esc((p.redes || []).join(', '))}</td>
+    <td><span class="badge ${claseEstado(p.estado)}">${esc(p.estado)}</span></td>
+    <td>${esc(p.responsable || '')}</td>
+    <td><button class="act-btn small" onclick="abrirPublicacion('${p.id}')">Editar</button></td>
+  </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">No hay publicaciones. Planifícalas desde Próximos o el Calendario.</td></tr>';
+}
+
+function renderGrupos(){
+  $('gr-inicial').style.display = cargaOk && !DB.grupos.length ? '' : 'none';
+  $('gr-lista').innerHTML = DB.grupos.slice().sort((a, b) => a.nombre.localeCompare(b.nombre)).map(g => {
+    const visibles = (g.miembros || []).filter(m => !m.oculto);
+    const sinFecha = visibles.filter(m => !m.nac).length, nuevos = (g.miembros || []).filter(m => m.nuevo).length;
+    return `<div class="grupo${g.activo === false ? ' pausado' : ''}" style="border-top-color:${g.color || 'var(--gold)'}">
+      <h4>${esc(g.nombre)}${g.activo === false ? ' <span class="badge b-idea">pausado</span>' : ''}</h4>
+      <div class="g-meta">
+        ${g.fandom ? 'Fandom: <b>' + esc(g.fandom) + '</b> · ' : ''}${visibles.length} ${visibles.length === 1 ? 'integrante' : 'integrantes'}<br>
+        Debut: ${g.debut ? fLarga(g.debut) : '<span class="badge b-warn">falta la fecha</span>'}<br>
+        ${sinFecha ? `<span class="badge b-warn">${sinFecha} sin cumpleaños</span> ` : ''}${nuevos ? `<span class="badge b-nuevo">${nuevos} nuevo(s) por revisar</span> ` : ''}
+        <span style="font-size:11px">Actualizado: ${g.actualizado ? fCorta(g.actualizado) + ' ' + g.actualizado.slice(0,4) : '—'}</span>
+      </div>
+      <div class="g-acc">
+        <button class="act-btn small primary" onclick="abrirGrupo('${g.id}')">Revisar</button>
+        <button class="act-btn small" onclick="actualizarGrupo('${g.id}', true)">↻ Actualizar</button>
+        <button class="act-btn small" onclick="pausarGrupo('${g.id}')">${g.activo === false ? 'Activar' : 'Pausar'}</button>
+        <button class="act-btn small danger" onclick="quitarGrupo('${g.id}')">Quitar</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderSugerencias(){
+  const pend = DB.sugerencias.filter(s => s.estado === 'Pendiente').length;
+  $('n-sug').textContent = pend ? '(' + pend + ')' : '';
+  const orden = { 'Pendiente': 0, 'Agregado': 1, 'Descartado': 2 };
+  $('sg-tbl').innerHTML = DB.sugerencias.slice().sort((a, b) => orden[a.estado] - orden[b.estado] || b.fecha.localeCompare(a.fecha)).map(s => `<tr>
+    <td><b>${esc(s.nombre)}</b><div class="nota">${fCorta(s.fecha)} ${s.fecha.slice(0,4)}</div></td>
+    <td>${esc(s.motivo || '')}</td>
+    <td>${esc(s.por || '')}</td>
+    <td><span class="badge ${s.estado === 'Agregado' ? 'b-publicada' : s.estado === 'Descartado' ? 'b-idea' : 'b-warn'}">${esc(s.estado)}</span></td>
+    <td style="white-space:nowrap">${s.estado === 'Pendiente' ? `<button class="act-btn small primary" onclick="revisarSugerencia('${s.id}')">Buscar y agregar</button> <button class="act-btn small" onclick="descartarSugerencia('${s.id}')">Descartar</button>` : ''}</td>
+  </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Sin sugerencias todavía.</td></tr>';
+}
+
+// ------------------------------------------------------------------ modales
+function abrir(id){ $(id).classList.add('open'); }
+function cerrar(id){ $(id).classList.remove('open'); }
+
+let PUB_EDIT = null, PUB_BASE = null;
+function abrirPublicacion(id, base){
+  const p = id ? DB.publicaciones.find(x => x.id === id) : null;
+  PUB_EDIT = p ? p.id : null; PUB_BASE = base || {};
+  const d = p || Object.assign({ titulo: '', fecha: hoyChile(), estado: 'Idea', redes: ['Instagram', 'TikTok'], copy: '', responsable: SESION.name || '' }, base || {});
+  $('mp-titulo-modal').textContent = p ? 'Editar publicación' : 'Nueva publicación';
+  $('mp-titulo').value = d.titulo || ''; $('mp-fecha').value = d.fecha || hoyChile();
+  $('mp-estado').value = d.estado || 'Idea'; $('mp-resp').value = d.responsable || ''; $('mp-copy').value = d.copy || '';
+  $('mp-redes').innerHTML = REDES.map(r => `<label style="display:flex;gap:5px;align-items:center"><input type="checkbox" value="${r}" ${(d.redes || ['Instagram','TikTok']).includes(r) ? 'checked' : ''}> ${r}</label>`).join('');
+  $('mp-evento').textContent = (p && p.eventoTexto) || d.eventoTexto ? 'Fecha relacionada: ' + ((p && p.eventoTexto) || d.eventoTexto) : '';
+  $('mp-borrar').style.display = p ? '' : 'none';
+  abrir('m-pub');
+}
+function guardarPublicacion(){
+  const titulo = $('mp-titulo').value.trim(), fecha = $('mp-fecha').value;
+  if (!titulo || !fecha) { alert('Completa el título y la fecha.'); return; }
+  const datos = { titulo, fecha, estado: $('mp-estado').value, responsable: $('mp-resp').value.trim(), copy: $('mp-copy').value,
+    redes: Array.from(document.querySelectorAll('#mp-redes input:checked')).map(i => i.value) };
+  if (PUB_EDIT) Object.assign(DB.publicaciones.find(x => x.id === PUB_EDIT), datos);
+  else DB.publicaciones.push(Object.assign({ id: nuevoId(), creado: hoyChile(), evento: PUB_BASE.evento || '', eventoTexto: PUB_BASE.eventoTexto || '' }, datos));
+  cerrar('m-pub'); guardar(); renderTodo();
+}
+function borrarPublicacion(){
+  if (!PUB_EDIT || !confirm('¿Eliminar esta publicación?')) return;
+  DB.publicaciones = DB.publicaciones.filter(x => x.id !== PUB_EDIT);
+  cerrar('m-pub'); guardar(); renderTodo();
+}
+
+let FECHA_EDIT = null;
+function abrirFecha(id, fecha){
+  const f = id ? DB.fechas.find(x => x.id === id) : null;
+  FECHA_EDIT = f ? f.id : null;
+  $('mf-grupo').innerHTML = '<option value="">—</option>' + DB.grupos.map(g => `<option value="${g.id}">${esc(g.nombre)}</option>`).join('');
+  $('mf-titulo').value = f ? f.titulo : ''; $('mf-fecha').value = f ? f.fecha : (fecha || hoyChile());
+  $('mf-tipo').value = f ? f.tipo : 'concierto'; $('mf-grupo').value = f ? (f.grupoId || '') : ''; $('mf-anual').checked = f ? !!f.anual : false;
+  $('mf-borrar').style.display = f ? '' : 'none';
+  cerrar('m-dia'); abrir('m-fecha');
+}
+function guardarFecha(){
+  const titulo = $('mf-titulo').value.trim(), fecha = $('mf-fecha').value;
+  if (!titulo || !fecha) { alert('Completa qué pasa y la fecha.'); return; }
+  const datos = { titulo, fecha, tipo: $('mf-tipo').value, grupoId: $('mf-grupo').value, anual: $('mf-anual').checked };
+  if (FECHA_EDIT) Object.assign(DB.fechas.find(x => x.id === FECHA_EDIT), datos);
+  else DB.fechas.push(Object.assign({ id: nuevoId() }, datos));
+  cerrar('m-fecha'); guardar(); renderTodo();
+}
+function borrarFecha(){
+  if (!FECHA_EDIT || !confirm('¿Eliminar esta fecha?')) return;
+  DB.fechas = DB.fechas.filter(x => x.id !== FECHA_EDIT);
+  cerrar('m-fecha'); guardar(); renderTodo();
+}
+
+// ------------------------------------------------------------------ grupos
+async function buscarGrupo(texto){
+  const q = (texto || $('gr-buscar').value).trim();
+  if (!q) return;
+  $('gr-buscar').value = q;
+  $('gr-resultados').innerHTML = '<div class="nota" style="padding:8px 0">Buscando en Wikidata…</div>';
+  try {
+    const res = await wdBuscar(q);
+    const relevantes = res.filter(r => /band|group|idol|singer|rapper|musician|artist|k-pop|boy|girl|dancer|grupo|cantante/i.test(r.desc));
+    const lista = relevantes.length ? relevantes : res;
+    $('gr-resultados').innerHTML = lista.length ? lista.map(r => {
+      const ya = DB.grupos.some(g => g.wd === r.id);
+      return `<div class="resultado"><div><b>${esc(r.nombre)}</b><div class="nota">${esc(r.desc || 'sin descripción')} · ${r.id}</div></div>
+        ${ya ? '<span class="badge b-publicada">ya lo sigues</span>' : `<button class="act-btn small primary" onclick="importarGrupo('${r.id}', this)">Agregar</button>`}</div>`;
+    }).join('') : '<div class="nota" style="padding:8px 0">No se encontró. Prueba con el nombre en inglés, como en Wikipedia.</div>';
+  } catch(e) {
+    $('gr-resultados').innerHTML = `<div class="aviso">No se pudo consultar Wikidata (${esc(e.message)}). Inténtalo de nuevo en un momento.</div>`;
+  }
+}
+async function importarGrupo(qid, btn, silencioso){
+  if (DB.grupos.some(g => g.wd === qid)) return null;
+  if (btn) { btn.disabled = true; btn.textContent = 'Importando…'; }
+  try {
+    const wd = await wdGrupo(qid);
+    const g = { id: nuevoId(), nombre: wd.nombre, fandom: FANDOMS[wd.nombre.toLowerCase()] || '', color: COLORES[DB.grupos.length % COLORES.length], activo: true, manual: {}, miembros: [], debut: '' };
+    fusionar(g, wd);
+    DB.grupos.push(g);
+    const sug = DB.sugerencias.find(s => s.id === SUG_REVISANDO && s.estado === 'Pendiente');
+    if (sug) { sug.estado = 'Agregado'; sug.resuelto = hoyChile(); SUG_REVISANDO = null; }
+    if (!silencioso) {
+      await guardar(); renderTodo(); $('gr-resultados').innerHTML = '';
+      abrirGrupo(g.id);
+    }
+    return g;
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Agregar'; }
+    if (!silencioso) alert('No se pudo importar desde Wikidata: ' + e.message);
+    return null;
+  }
+}
+// Fandoms conocidos (Wikidata no los trae de forma ordenada). Se pueden editar.
+const FANDOMS = { 'bts':'ARMY', 'stray kids':'STAY', 'twice':'ONCE', 'blackpink':'BLINK', 'seventeen':'CARAT', 'ateez':'ATINY', 'enhypen':'ENGENE', 'tomorrow x together':'MOA', 'newjeans':'Bunnies', 'aespa':'MY', 'itzy':'MIDZY', 'le sserafim':'FEARNOT', 'nct 127':'NCTzen', 'ive':'DIVE', '(g)i-dle':'Neverland', 'red velvet':'ReVeluv', 'exo':'EXO-L', 'got7':'Ahgase', 'monsta x':'Monbebe', 'the boyz':'THE B', 'treasure':'Teume', 'illit':'GLLIT', 'babymonster':'MONSTIEZ', 'zerobaseone':'ZEROSE', 'riize':'BRIIZE', 'boynextdoor':'ONEDOOR' };
+const INICIALES = { "BTS":"Q13580495", "Stray Kids":"Q46134670", "TWICE":"Q20645861", "BLACKPINK":"Q25056945", "SEVENTEEN":"Q14524548", "ATEEZ":"Q59793088", "ENHYPEN":"Q99479445", "TXT":"Q60550265", "NewJeans":"Q113189277", "aespa":"Q100877982" };
+async function cargarIniciales(){
+  const btn = $('gr-inicial-btn'); btn.disabled = true;
+  let ok = 0;
+  for (const [nombre, qid] of Object.entries(INICIALES)) {
+    btn.textContent = `Importando ${nombre}…`;
+    const g = await importarGrupo(qid, null, true);
+    if (g) { g.nombre = nombre; ok++; }
+  }
+  await guardar(); renderTodo();
+  alert(`Se agregaron ${ok} grupos. Revisa cada uno en "Revisar": Wikidata puede tener integrantes o fechas incorrectas.`);
+}
+async function actualizarGrupo(id, avisar){
+  const g = DB.grupos.find(x => x.id === id); if (!g || !g.wd) return;
+  try {
+    fusionar(g, await wdGrupo(g.wd));
+    if (avisar) { await guardar(); renderTodo(); alert(`${g.nombre} actualizado.`); }
+  } catch(e) { if (avisar) alert('No se pudo actualizar desde Wikidata: ' + e.message); }
+}
+// Actualización automática: al abrir el módulo, los grupos con más de 30 días
+// sin actualizar se refrescan en segundo plano (uno a la vez).
+async function actualizarVencidos(){
+  const limite = sumarDias(hoyChile(), -DIAS_ACTUALIZAR);
+  const vencidos = DB.grupos.filter(g => g.wd && g.activo !== false && (!g.actualizado || g.actualizado < limite));
+  if (!vencidos.length) return;
+  for (const g of vencidos) await actualizarGrupo(g.id, false);
+  await guardar(); renderTodo();
+}
+function pausarGrupo(id){ const g = DB.grupos.find(x => x.id === id); g.activo = g.activo === false; guardar(); renderTodo(); }
+function quitarGrupo(id){
+  const g = DB.grupos.find(x => x.id === id);
+  if (!confirm(`¿Dejar de seguir a ${g.nombre}? Se quitan sus cumpleaños del calendario (las publicaciones ya planificadas se mantienen).`)) return;
+  DB.grupos = DB.grupos.filter(x => x.id !== id); guardar(); renderTodo();
+}
+
+let GRUPO_EDIT = null, MIEMBROS_EDIT = [];
+function abrirGrupo(id){
+  const g = DB.grupos.find(x => x.id === id); if (!g) return;
+  GRUPO_EDIT = id; MIEMBROS_EDIT = JSON.parse(JSON.stringify(g.miembros || []));
+  $('mg-titulo').textContent = g.nombre;
+  $('mg-nombre').value = g.nombre; $('mg-fandom').value = g.fandom || ''; $('mg-debut').value = g.debut || ''; $('mg-color').value = g.color || '#C8973A';
+  $('mg-nota').innerHTML = (g.debutParcial ? '⚠️ Wikidata solo tiene el año del debut: completa la fecha exacta. ' : '') +
+    'Desmarca "Mostrar" en quien ya no está en el grupo o no corresponde. Lo que cambies aquí no se pierde al actualizar.' +
+    (g.wd ? ` <a href="https://www.wikidata.org/wiki/${g.wd}" target="_blank" rel="noopener">Ver en Wikidata</a>` : '');
+  renderMiembros(); abrir('m-grupo');
+}
+function renderMiembros(){
+  $('mg-tbl').innerHTML = MIEMBROS_EDIT.map((m, i) => `<tr>
+    <td><input value="${esc(m.nombre)}" oninput="MIEMBROS_EDIT[${i}].nombre=this.value;MIEMBROS_EDIT[${i}].manual.nombre=true" style="width:100%;border:1px solid var(--border);border-radius:5px;padding:5px 7px">
+      ${m.nuevo ? '<span class="badge b-nuevo">nuevo</span> ' : ''}${m.ex ? '<span class="badge b-idea">ex integrante según Wikidata</span> ' : ''}${m.dup ? '<span class="badge b-warn">posible duplicado</span>' : ''}</td>
+    <td><input type="date" value="${m.nac || ''}" onchange="MIEMBROS_EDIT[${i}].nac=this.value;MIEMBROS_EDIT[${i}].manual.nac=true" style="border:1px solid var(--border);border-radius:5px;padding:5px 7px">
+      ${!m.nac ? `<div><span class="badge b-warn">${m.nacParcial ? 'solo el año en Wikidata' : 'sin fecha'}</span></div>` : ''}</td>
+    <td style="text-align:center"><input type="checkbox" ${m.oculto ? '' : 'checked'} onchange="MIEMBROS_EDIT[${i}].oculto=!this.checked"></td>
+    <td>${m.wd ? '' : `<button class="act-btn small danger" onclick="MIEMBROS_EDIT.splice(${i},1);renderMiembros()">✕</button>`}</td>
+  </tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--muted)">Sin integrantes</td></tr>';
+}
+function agregarIntegrante(){ MIEMBROS_EDIT.push({ id: nuevoId(), wd: '', nombre: '', nac: '', manual: { nombre: true, nac: true }, oculto: false }); renderMiembros(); }
+function guardarGrupo(){
+  const g = DB.grupos.find(x => x.id === GRUPO_EDIT); if (!g) return;
+  const debut = $('mg-debut').value;
+  if (debut !== (g.debut || '')) { g.manual = g.manual || {}; g.manual.debut = !!debut; }
+  g.nombre = $('mg-nombre').value.trim() || g.nombre; g.fandom = $('mg-fandom').value.trim(); g.debut = debut; g.color = $('mg-color').value;
+  g.miembros = MIEMBROS_EDIT.filter(m => m.nombre.trim()).map(m => Object.assign(m, { nombre: m.nombre.trim(), nuevo: false }));
+  cerrar('m-grupo'); guardar(); renderTodo();
+}
+
+// ------------------------------------------------------------------ sugerencias
+function sugerir(){
+  const nombre = $('sg-nombre').value.trim(); if (!nombre) { alert('Escribe el grupo o artista.'); return; }
+  if (DB.grupos.some(g => g.nombre.toLowerCase() === nombre.toLowerCase())) { alert(`Ya sigues a ${nombre}.`); return; }
+  DB.sugerencias.push({ id: nuevoId(), nombre, motivo: $('sg-motivo').value.trim(), por: SESION.name || SESION.email || '', fecha: hoyChile(), estado: 'Pendiente' });
+  $('sg-nombre').value = ''; $('sg-motivo').value = '';
+  guardar(); renderTodo();
+}
+// La sugerencia queda "Agregado" solo cuando el grupo se importa de verdad.
+let SUG_REVISANDO = null;
+function revisarSugerencia(id){
+  const s = DB.sugerencias.find(x => x.id === id);
+  SUG_REVISANDO = id;
+  verPanel('grupos', document.querySelectorAll('.tab')[3]);
+  buscarGrupo(s.nombre);
+}
+function descartarSugerencia(id){
+  const s = DB.sugerencias.find(x => x.id === id);
+  s.estado = 'Descartado'; s.resuelto = hoyChile(); guardar(); renderTodo();
+}
+
+// ------------------------------------------------------------------ inicio
+(async function init(){
+  try {
+    const d = await cargar();
+    if (d) DB = Object.assign({ grupos:[], sugerencias:[], publicaciones:[], fechas:[] }, d);
+    cargaOk = true;
+  } catch(e) {
+    console.error(e);
+    const sinPermiso = /SIN_PERMISO/.test(e.message);
+    $('aviso-nube').textContent = sinPermiso
+      ? 'No tienes el módulo Marketing asignado. Pide a un administrador que te lo dé en Accesos.'
+      : 'No se pudieron cargar los datos de Marketing desde la nube. Recarga la página (F5) antes de hacer cambios.';
+    $('aviso-nube').style.display = 'block';
+  }
+  if (typeof ocultarCargando === 'function') ocultarCargando();
+  renderTodo();
+  if (cargaOk) actualizarVencidos();
+})();
+</script>
+</body>
+</html>
