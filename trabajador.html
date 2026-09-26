@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mi Portal - Creamos Imagen</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#141414">
+<link rel="icon" type="image/png" sizes="192x192" href="/brand/app-icon-192.png">
+<link rel="apple-touch-icon" href="/brand/app-icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mi Portal">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<script src="/app-instalable.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#F7F5F0;--surface:#FFFFFF;--dark:#1C1917;--gold:#C8973A;--teal:#0D7A6B;--red:#C0392B;--muted:#78716C;--border:#E7E2D9;--blue:#141414;--amber:#B45309;--mono:'DM Mono',monospace}
@@ -25,6 +34,8 @@ input,select,button,textarea{font-family:inherit;outline:none}
 .user-role{font-size:10px;color:var(--gold);text-transform:uppercase;letter-spacing:1px}
 .logout-btn{background:none;border:1px solid rgba(255,255,255,0.2);color:#fff;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;transition:0.2s}
 .logout-btn:hover{background:var(--red);border-color:var(--red)}
+#btn-instalar{border-color:var(--gold);color:var(--gold)}
+#btn-instalar:hover{background:var(--gold);color:var(--dark)}
 
 /* BARRA "VER COMO" (solo administradores) */
 .admin-bar{background:#FEF3E2;border-bottom:1px solid #FDE68A;color:var(--amber);font-size:12px;padding:8px 24px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -163,6 +174,7 @@ table.tbl td.vacio{text-align:center;padding:28px;color:var(--muted)}
       <div class="user-role" id="ui-role"></div>
     </div>
     <div class="user-avatar" id="ui-avatar"></div>
+    <button class="logout-btn" id="btn-instalar" style="display:none" onclick="instalarApp()">📲 Instalar app</button>
     <button class="logout-btn" onclick="cerrarSesion()">Salir</button>
   </div>
 </div>

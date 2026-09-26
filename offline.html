@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#141414">
+  <title>Sin conexión · Mi Portal</title>
+  <style>
+    body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #141414; color: #F7F5F0; font-family: 'Segoe UI', Tahoma, sans-serif; padding: 24px; box-sizing: border-box; text-align: center; }
+    .caja { max-width: 320px; }
+    img { width: 72px; height: 72px; border-radius: 16px; margin-bottom: 18px; }
+    h1 { font-size: 19px; margin: 0 0 8px; }
+    p { font-size: 14px; line-height: 1.5; color: #c9c5bb; margin: 0 0 22px; }
+    button { background: #F1AF13; color: #141414; border: 0; border-radius: 10px; padding: 12px 22px; font-weight: 700; font-size: 15px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="caja">
+    <img src="/brand/app-icon-192.png" alt="">
+    <h1>Sin conexión</h1>
+    <p>Mi Portal necesita internet para mostrar tu información y registrar marcaciones. Revisa tu conexión y vuelve a intentarlo.</p>
+    <button onclick="location.reload()">Reintentar</button>
+  </div>
+</body>
+</html>
