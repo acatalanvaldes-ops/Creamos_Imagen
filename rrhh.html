@@ -62,6 +62,7 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
 <script src="sesion.js"></script>
 <script src="cargando.js"></script>
 <script src="hora-chile.js"></script>
+<script src="vacaciones-saldo.js"></script>
 <script src="permisos-legales.js"></script>
 <script src="feriados-chile.js"></script>
 <script>
@@ -209,6 +210,11 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
       <div class="card-title">Permisos (con y sin goce de sueldo)</div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Los permisos aprobados no descuentan del saldo de vacaciones. Los permisos sin goce de sueldo no se pagan: descuéntalos al preparar la liquidación.</div>
       <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Trabajador</th><th>Tipo</th><th>Desde</th><th>Hasta</th><th>Días</th><th>Estado</th><th></th></tr></thead><tbody id="pe-tbl"></tbody></table></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Saldos de vacaciones</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">15 días hábiles por año (1,25 por mes). Según el art. 70 del Código del Trabajo, el feriado se puede acumular hasta <b>2 períodos (30 días hábiles)</b>, y el empleador debe otorgar al menos el primero antes de que el trabajador cumpla el año que le daría un tercero. Si se supera, los días no se pierden, pero la empresa queda expuesta a multa de la Dirección del Trabajo.</div>
+      <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Trabajador</th><th>Ganados</th><th>Usados</th><th>Disponibles</th><th>Próximo aniversario</th><th>Alerta</th></tr></thead><tbody id="va-saldos-tbl"></tbody></table></div>
     </div>
     <div class="card">
       <div class="card-title">Gestión</div>
@@ -796,7 +802,8 @@ function aplicarCorreccionSaldosVacaciones(){
     }
     const trabajador=coincidencias[0];
     if(trabajador.correccionSaldoVacaciones?.id==='saldos-efectivos-2026-09') return;
-    trabajador.correccionSaldoVacaciones={id:'saldos-efectivos-2026-09',fecha,disponibles:ajuste.disponibles,habilesTomados:ajuste.habilesTomados,inhabilesTomados:ajuste.inhabilesTomados};
+    // Saldos informados por la empresa el 25-09-2026: desde esa fecha se suman 1,25 días por mes.
+    trabajador.correccionSaldoVacaciones={id:'saldos-efectivos-2026-09',fecha:fecha<'2026-09-25'?fecha:'2026-09-25',disponibles:ajuste.disponibles,habilesTomados:ajuste.habilesTomados,inhabilesTomados:ajuste.inhabilesTomados};
     cambio=true;
   });
   if(cambio) sync('trab');
@@ -806,18 +813,20 @@ function vaHabiles(fi,ff){
   let i=aUTC(fi), f=aUTC(ff), h=0;
   while(i<=f){ const dia=new Date(i); const d=dia.getUTCDay(); if(d!==0&&d!==6&&!FER.includes(dia.toISOString().slice(0,10)))h++; i+=86400000; } return h;
 }
-function vaSaldo(t){
-  const v = fqVacaciones(t, hoyChile());
-  if(!v) return null;
-  const ajuste=t.correccionSaldoVacaciones;
-  if(ajuste && ajuste.fecha){
-    const mesesNuevos=mesesEntre(ajuste.fecha,hoyChile());
-    const vacacionesPosteriores=DB.vac.filter(x=>String(x.trabajadorId)===String(t.id)&&x.estado==='Aprobada'&&String(x.fechaInicio||'')>=ajuste.fecha).reduce((s,x)=>s+(Number(x.dias)||0),0);
-    const usados=Number(ajuste.habilesTomados||0)+vacacionesPosteriores;
-    const ganados=Number(ajuste.disponibles||0)+Number(ajuste.habilesTomados||0)+mesesNuevos*1.25;
-    return {ganados:Math.round(ganados*100)/100,usados:Math.round(usados*100)/100,disponibles:Math.max(0,Math.round((Number(ajuste.disponibles||0)+mesesNuevos*1.25-vacacionesPosteriores)*100)/100)};
-  }
-  return { ganados:v.ganados, usados:v.usados, disponibles:Math.round((v.ganados-v.usados)*100)/100 };
+// Mismo cálculo en RRHH, Mi Portal y finiquito (vacaciones-saldo.js).
+function vacAprobadasDe(t){ return DB.vac.filter(v=>String(v.trabajadorId)===String(t.id)&&v.estado==="Aprobada"); }
+function vaSaldo(t, al){ return t ? SaldoVacaciones.calcular(t, vacAprobadasDe(t), al || hoyChile()) : null; }
+function vaSaldosRender(){
+  const tb=$('va-saldos-tbl'); if(!tb) return;
+  const activos=DB.trab.filter(t=>t.estado!=='Inactivo').sort((a,b)=>getTName(a.id).localeCompare(getTName(b.id),'es'));
+  tb.innerHTML = activos.map(t=>{
+    const s=vaSaldo(t);
+    if(!s) return `<tr><td><b>${getTName(t.id)}</b></td><td colspan="5" style="color:var(--muted)">Falta la fecha de ingreso en su ficha</td></tr>`;
+    const color = s.alerta ? (s.alerta.nivel==='excede' ? 'var(--red)' : 'var(--amber)') : 'var(--teal)';
+    return `<tr><td><b>${getTName(t.id)}</b><div style="font-size:10px;color:var(--muted)">${s.origen}</div></td><td>${fmtDias(s.ganados)}</td><td>${fmtDias(s.usados)}</td>
+      <td><b style="color:${color}">${fmtDias(s.disponibles)}</b> / ${s.limite}</td><td>${s.aniversario ? fDate(s.aniversario) : '—'}</td>
+      <td style="font-size:11px;color:${color};max-width:360px">${s.alerta ? (s.alerta.nivel==='excede'?'⛔ ':'⚠️ ') + s.alerta.texto : 'Dentro del límite'}</td></tr>`;
+  }).join('') || `<tr><td colspan="6" align="center">Sin trabajadores activos</td></tr>`;
 }
 function vaPrev() {
   const tid=$('va-tra').value; if(!tid){['gan','usa','dis','sol','fin'].forEach(k=>$(`vp-${k}`).textContent='0'); return;}
@@ -917,7 +926,7 @@ function vaRender() {
   }).join('');
   tb.innerHTML = h||`<tr><td colspan="6" align="center">Sin datos</td></tr>`;
   $('k-va-pen').textContent=p+SOL_VAC.length; $('k-va-apr').textContent=a;
-  vaPortalRender(); peRender();
+  vaPortalRender(); peRender(); vaSaldosRender();
 }
 
 // ================= LICENCIAS =================
@@ -1433,16 +1442,17 @@ function habilesACorridos(desdeISO, habiles){
   }
   return corridos + restantes;
 }
+// Vacaciones a pagar en el finiquito: saldo a la fecha de término (con el
+// saldo efectivo cargado, si existe), separado en pendientes (años
+// completos) y proporcionales (meses desde el último aniversario).
 function fqVacaciones(t, ter){
   if(!t || !t.fechaIngreso || !ter || ter<t.fechaIngreso) return null;
-  const meses=mesesEntre(t.fechaIngreso, ter);
-  const anios=Math.floor(meses/12);
-  const ganadosAnios=15*anios;
-  const usados=DB.vac.filter(v=>String(v.trabajadorId)===String(t.id)&&v.estado==="Aprobada").reduce((s,v)=>s+(Number(v.dias)||0),0);
-  let pend=ganadosAnios-usados, prop=1.25*(meses-anios*12);
-  if(pend<0){ prop=Math.max(0, prop+pend); pend=0; }
-  pend=Math.round(pend*100)/100; prop=Math.round(prop*100)/100;
-  return { meses, anios, ganados:Math.round((ganadosAnios+1.25*(meses-anios*12))*100)/100, usados, pend, prop, corridos:Math.round(habilesACorridos(ter, pend+prop)*100)/100 };
+  const s=vaSaldo(t, ter); if(!s) return null;
+  const meses=mesesEntre(t.fechaIngreso, ter), anios=Math.floor(meses/12);
+  const total=Math.max(0, s.disponibles);
+  const prop=Math.round(Math.min(total, 1.25*(meses-anios*12))*100)/100;
+  const pend=Math.round((total-prop)*100)/100;
+  return { meses, anios, ganados:s.ganados, usados:s.usados, pend, prop, corridos:Math.round(habilesACorridos(ter, pend+prop)*100)/100 };
 }
 function fqAutoVac(){
   const t=getT($('fq-tra').value), ter=$('fq-ter').value, nota=$('fq-vac-nota');

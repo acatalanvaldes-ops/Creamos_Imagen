@@ -152,6 +152,7 @@ table.tbl td.vacio{text-align:center;padding:28px;color:var(--muted)}
 <script src="hora-chile.js"></script>
 <script src="feriados-chile.js"></script>
 <script src="permisos-legales.js"></script>
+<script src="vacaciones-saldo.js"></script>
 <script>
 // Mi Portal usa la misma sesión (Google o Microsoft) del menú principal (index.html).
 // Sin sesión válida se vuelve al menú para iniciar sesión.
@@ -632,12 +633,12 @@ function mesesEntre(ini, fin){
   return Math.max(0, meses + dias/30);
 }
 function saldoVacaciones(){
-  const usados = misDatos.vac.filter(v => v.estado === 'Aprobada').reduce((s, v) => s + (Number(v.dias)||0), 0);
+  // Mismo cálculo que RRHH (vacaciones-saldo.js), incluido el saldo efectivo cargado por RRHH.
   // Los permisos (con o sin goce) no descuentan del saldo de vacaciones.
   const pendientes = misDatos.sol.filter(v => tipoSolicitud(v) === 'vacaciones').reduce((s, v) => s + (Number(v.dias)||0), 0);
-  if (!miFicha.fechaIngreso) return { ganados:null, usados, pendientes, disponibles:null };
-  const ganados = Math.round(1.25 * mesesEntre(miFicha.fechaIngreso, hoyChile()) * 100) / 100;
-  return { ganados, usados, pendientes, disponibles: Math.round((ganados - usados) * 100) / 100 };
+  const s = SaldoVacaciones.calcular(miFicha, misDatos.vac.filter(v => v.estado === 'Aprobada'), hoyChile());
+  if (!s) return { ganados:null, usados:0, pendientes, disponibles:null, alerta:null };
+  return Object.assign({ pendientes }, s);
 }
 const aUTC = s => Date.UTC(+s.slice(0,4), +s.slice(5,7)-1, +s.slice(8,10));
 function diasHab(ini, fin){
@@ -676,7 +677,7 @@ function renderInicio(){
 
   const s = saldoVacaciones();
   $('kp-vac').textContent = s.disponibles === null ? '—' : fmtDias(s.disponibles);
-  $('kp-vac-sub').textContent = s.disponibles === null ? 'Falta tu fecha de ingreso en RRHH' : `días hábiles · ganados ${fmtDias(s.ganados)}, usados ${fmtDias(s.usados)}` + (s.pendientes ? ` · ${fmtDias(s.pendientes)} en revisión` : '');
+  $('kp-vac-sub').textContent = s.disponibles === null ? 'Falta tu fecha de ingreso en RRHH' : `días hábiles · ganados ${fmtDias(s.ganados)}, usados ${fmtDias(s.usados)}` + (s.pendientes ? ` · ${fmtDias(s.pendientes)} en revisión` : '') + (s.alerta ? (s.alerta.nivel === 'excede' ? ' · ⛔ ' : ' · ⚠️ ') + s.alerta.texto : '');
 
   const mes = mesChile(), anio = mes.slice(0,4);
   const atrasos = misDatos.asis.filter(a => (a.fecha||'').startsWith(mes) && Number(a.atraso) > 0);
