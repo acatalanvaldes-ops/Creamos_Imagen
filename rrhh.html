@@ -62,6 +62,7 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
 <script src="sesion.js"></script>
 <script src="cargando.js"></script>
 <script src="hora-chile.js"></script>
+<script src="permisos-legales.js"></script>
 <script src="feriados-chile.js"></script>
 <script>
 (function(){
@@ -202,7 +203,12 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
         <button class="act-btn small" onclick="vaCargarSolicitudes(true)" title="Volver a leer las solicitudes enviadas por los trabajadores">🔄 Actualizar</button>
       </div>
       <div id="va-portal-msg" style="font-size:12px;color:var(--muted);margin-bottom:10px">Las solicitudes que los trabajadores envían desde Mi Portal aparecen aquí hasta que las apruebes o rechaces.</div>
-      <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Trabajador</th><th>Desde</th><th>Hasta</th><th>Días hábiles</th><th>Motivo</th><th>Enviada</th><th>Acciones</th></tr></thead><tbody id="va-portal-tbl"></tbody></table></div>
+      <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Trabajador</th><th>Tipo</th><th>Desde</th><th>Hasta</th><th>Días</th><th>Motivo</th><th>Enviada</th><th>Acciones</th></tr></thead><tbody id="va-portal-tbl"></tbody></table></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Permisos (con y sin goce de sueldo)</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Los permisos aprobados no descuentan del saldo de vacaciones. Los permisos sin goce de sueldo no se pagan: descuéntalos al preparar la liquidación.</div>
+      <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Trabajador</th><th>Tipo</th><th>Desde</th><th>Hasta</th><th>Días</th><th>Estado</th><th></th></tr></thead><tbody id="pe-tbl"></tbody></table></div>
     </div>
     <div class="card">
       <div class="card-title">Gestión</div>
@@ -454,8 +460,8 @@ const money = v => "$" + Math.round(Number(v||0)).toLocaleString("es-CL");
 const fmt = money; // alias: algunas plantillas (liquidación/finiquito) usan fmt()
 const fDate = iso => { if(!iso)return'-'; const [y,m,d]=iso.split('-'); return `${d}/${m}/${y}`; };
 
-let DB = { trab:[], asis:[], vac:[], lic:[], liq:[], lib:[], prev:[], fini:[], doc:[] };
-const KEYS = { trab:"rrhh_trabajadores_v1", asis:"rrhh_asistencia_v1", vac:"rrhh_vacaciones_v1", lic:"rrhh_licencias_v1", liq:"rrhh_liquidaciones_v1", lib:"rrhh_libro_rem_v1", prev:"rrhh_previred_v1", fini:"rrhh_finiquitos_v1", doc:"rrhh_documentos_v1" };
+let DB = { trab:[], asis:[], vac:[], perm:[], lic:[], liq:[], lib:[], prev:[], fini:[], doc:[] };
+const KEYS = { trab:"rrhh_trabajadores_v1", asis:"rrhh_asistencia_v1", vac:"rrhh_vacaciones_v1", perm:"rrhh_permisos_v1", lic:"rrhh_licencias_v1", liq:"rrhh_liquidaciones_v1", lib:"rrhh_libro_rem_v1", prev:"rrhh_previred_v1", fini:"rrhh_finiquitos_v1", doc:"rrhh_documentos_v1" };
 const CFG = { AFP:10, SAL:7, AFC:0.6, C_AFP:{UNO:0.46, MODELO:0.58, PLANVITAL:1.16, HABITAT:1.27, CAPITAL:1.44, CUPRUM:1.44, PROVIDA:1.45} };
 let indicadoresPrevired = null;
 async function cargarIndicadoresPrevired() {
@@ -563,7 +569,7 @@ async function loadCloudSharded(key) {
   throw new Error('Formato de datos no reconocido para ' + key);
 }
 
-const cargaOk = { trab:false, asis:false, vac:false, lic:false, liq:false, lib:false, prev:false, fini:false, doc:false };
+const cargaOk = { trab:false, asis:false, vac:false, perm:false, lic:false, liq:false, lib:false, prev:false, fini:false, doc:false };
 
 function sync(keyId) {
   const k = KEYS[keyId];
@@ -836,29 +842,55 @@ async function vaResolverPortal(id, estado, motivoRechazo){
   catch(e){ alert('No se pudo conectar con la nube. Intenta de nuevo.'); return; }
   const s = lista.find(x => x.id === id);
   if(!s){ alert('Esta solicitud ya no está pendiente (el trabajador la canceló o ya fue resuelta).'); SOL_VAC = lista; vaRender(); return; }
-  if(estado === 'Aprobada' && DB.vac.some(v=>String(v.trabajadorId)===String(s.trabajadorId)&&v.estado==='Aprobada'&&s.fechaInicio<=v.fechaFin&&s.fechaFin>=v.fechaInicio)){
-    if(!confirm('Este trabajador ya tiene vacaciones aprobadas que se cruzan con estas fechas. ¿Aprobar de todas formas?')) return;
+  // Los permisos (con o sin goce) se guardan aparte de las vacaciones para no descontarlos del saldo ni del finiquito.
+  const tipo = tipoSolicitud(s), esPermiso = tipo !== 'vacaciones', lista_ = esPermiso ? 'perm' : 'vac';
+  if(!cargaOk[lista_]){ alert('No se pudo confirmar la carga de ' + (esPermiso ? 'Permisos' : 'Vacaciones') + ' desde la nube. Recarga la página (F5) antes de resolver solicitudes.'); return; }
+  const cruzaCon = arr => arr.some(v=>String(v.trabajadorId)===String(s.trabajadorId)&&v.estado==='Aprobada'&&s.fechaInicio<=v.fechaFin&&s.fechaFin>=v.fechaInicio);
+  if(estado === 'Aprobada' && (cruzaCon(DB.perm) || (tipo !== 'permiso_con_goce' && cruzaCon(DB.vac)))){
+    if(!confirm('Este trabajador ya tiene vacaciones o permisos aprobados que se cruzan con estas fechas. ¿Aprobar de todas formas?')) return;
   }
-  // Los días hábiles se recalculan aquí con los feriados de RRHH: no se confía en el número que envía el portal.
-  const reg = { id:s.id, trabajadorId:String(s.trabajadorId), fechaInicio:s.fechaInicio, fechaFin:s.fechaFin, dias:vaHabiles(s.fechaInicio, s.fechaFin), motivo:s.motivo||'', estado, origen:'Portal', fechaSolicitud:s.fechaSolicitud||'', fechaResolucion:hoyChile() };
+  // Los días se recalculan aquí con los feriados de RRHH: no se confía en el número que envía el portal.
+  const dias = tipo === 'permiso_con_goce' ? diasPermiso(s.causal, s.fechaInicio, s.fechaFin, vaHabiles) : vaHabiles(s.fechaInicio, s.fechaFin);
+  const reg = { id:s.id, trabajadorId:String(s.trabajadorId), fechaInicio:s.fechaInicio, fechaFin:s.fechaFin, dias, motivo:s.motivo||'', estado, origen:'Portal', fechaSolicitud:s.fechaSolicitud||'', fechaResolucion:hoyChile() };
+  if(esPermiso){ reg.tipo = tipo; if(s.causal) reg.causal = s.causal; }
   if(estado === 'Rechazada') reg.motivoRechazo = motivoRechazo || '';
-  DB.vac.push(reg); sync('vac');
+  DB[lista_].push(reg); sync(lista_);
   const resto = lista.filter(x => x.id !== id);
   const ok = await saveCloudRaw(KEY_SOL_VAC, resto);
   SOL_VAC = ok ? resto : lista.filter(x => x.id !== id);
-  if(!ok) alert('La solicitud quedó registrada en Vacaciones, pero no se pudo quitar de la lista del portal. Si vuelve a aparecer, recárgala con 🔄.');
+  if(!ok) alert('La solicitud quedó registrada en ' + (esPermiso ? 'Permisos' : 'Vacaciones') + ', pero no se pudo quitar de la lista del portal. Si vuelve a aparecer, recárgala con 🔄.');
   renderAll();
 }
 function vaPortalRender(){
   const tb=$('va-portal-tbl'); if(!tb) return;
   $('va-portal-n').textContent = SOL_VAC.length;
-  if(!solVacOk){ tb.innerHTML = `<tr><td colspan="7" align="center" style="color:var(--muted)">No se pudieron leer las solicitudes. Usa 🔄 Actualizar.</td></tr>`; return; }
+  if(!solVacOk){ tb.innerHTML = `<tr><td colspan="8" align="center" style="color:var(--muted)">No se pudieron leer las solicitudes. Usa 🔄 Actualizar.</td></tr>`; return; }
   tb.innerHTML = SOL_VAC.slice().sort((a,b)=>a.id-b.id).map(s=>{
-    const t=getT(s.trabajadorId); const sal=t?vaSaldo(t):null;
-    const dh = vaHabiles(s.fechaInicio, s.fechaFin);
-    const aviso = sal && dh>sal.disponibles ? `<div style="font-size:10px;color:var(--red)">Saldo disponible: ${fmtDias(sal.disponibles)}</div>` : '';
-    return `<tr><td><b>${escH(getTName(s.trabajadorId))}</b></td><td>${fDate(s.fechaInicio)}</td><td>${fDate(s.fechaFin)}</td><td>${dh}${aviso}</td><td>${escH(s.motivo||'-')}</td><td>${s.fechaSolicitud?fDate(s.fechaSolicitud):'-'}</td><td><button class="act-btn small bdg-act" onclick="vaResolverPortal(${s.id},'Aprobada')" title="Aprobar">✓</button> <button class="act-btn small bdg-err" onclick="vaOpenRej(${s.id},true)" title="Rechazar">✗</button></td></tr>`;
-  }).join('') || `<tr><td colspan="7" align="center" style="color:var(--muted)">No hay solicitudes pendientes desde Mi Portal.</td></tr>`;
+    const tipo = tipoSolicitud(s), p = tipo === 'permiso_con_goce' ? permisoLegal(s.causal) : null;
+    const dias = p ? diasPermiso(s.causal, s.fechaInicio, s.fechaFin, vaHabiles) : vaHabiles(s.fechaInicio, s.fechaFin);
+    let aviso = '';
+    if(tipo === 'vacaciones'){
+      const t=getT(s.trabajadorId); const sal=t?vaSaldo(t):null;
+      if(sal && dias>sal.disponibles) aviso = `<div style="font-size:10px;color:var(--red)">Saldo disponible: ${fmtDias(sal.disponibles)}</div>`;
+    } else if(p){
+      aviso = `<div style="font-size:10px;color:${dias>p.dias?'var(--red)':'var(--muted)'}">Ley: ${p.unidad==='medio'?'medio día':p.dias+' días '+(p.unidad==='corridos'?'corridos':'hábiles')} (${escH(p.norma)})</div>`;
+    } else {
+      aviso = '<div style="font-size:10px;color:var(--muted)">No se paga: descontar en la liquidación</div>';
+    }
+    const unidad = p && p.unidad === 'corridos' ? ' corridos' : '';
+    return `<tr><td><b>${escH(getTName(s.trabajadorId))}</b></td><td>${escH(etiquetaSolicitud(s))}</td><td>${fDate(s.fechaInicio)}</td><td>${fDate(s.fechaFin)}</td><td>${fmtDias(dias)}${unidad}${aviso}</td><td>${escH(s.motivo||'-')}</td><td>${s.fechaSolicitud?fDate(s.fechaSolicitud):'-'}</td><td><button class="act-btn small bdg-act" onclick="vaResolverPortal(${s.id},'Aprobada')" title="Aprobar">✓</button> <button class="act-btn small bdg-err" onclick="vaOpenRej(${s.id},true)" title="Rechazar">✗</button></td></tr>`;
+  }).join('') || `<tr><td colspan="8" align="center" style="color:var(--muted)">No hay solicitudes pendientes desde Mi Portal.</td></tr>`;
+}
+
+// Permisos resueltos (con y sin goce de sueldo). No afectan el saldo de vacaciones.
+function peDel(id){ if(confirm("¿Eliminar este permiso?")){ DB.perm=DB.perm.filter(x=>x.id!==id); sync('perm'); renderAll(); } }
+function peRender(){
+  const tb=$('pe-tbl'); if(!tb) return;
+  const q=($('va-bus').value||'').toLowerCase();
+  tb.innerHTML = DB.perm.filter(v=>!q||getTName(v.trabajadorId).toLowerCase().includes(q)).sort((a,b)=>String(b.fechaInicio).localeCompare(String(a.fechaInicio))).map(v=>{
+    const bdg = v.estado==="Aprobada"?"bdg-act":v.estado==="Rechazada"?"bdg-err":"bdg-pen";
+    return `<tr><td><b>${escH(getTName(v.trabajadorId))}</b></td><td>${escH(etiquetaSolicitud(v))}${v.motivo?`<div style="font-size:10px;color:var(--muted)">${escH(v.motivo)}</div>`:''}</td><td>${fDate(v.fechaInicio)}</td><td>${fDate(v.fechaFin)}</td><td>${fmtDias(Number(v.dias)||0)}</td><td><span class="badge ${bdg}">${escH(v.estado)}</span>${v.motivoRechazo?`<div style="font-size:10px;color:var(--red)">${escH(v.motivoRechazo)}</div>`:''}</td><td><button class="act-btn small" style="color:red" onclick="peDel(${v.id})">🗑</button></td></tr>`;
+  }).join('') || `<tr><td colspan="7" align="center">Sin permisos registrados</td></tr>`;
 }
 function vaSave() {
   const tid=$('va-tra').value, fi=$('va-ini').value, ff=$('va-fin').value; if(!tid||!fi||!ff)return;
@@ -885,7 +917,7 @@ function vaRender() {
   }).join('');
   tb.innerHTML = h||`<tr><td colspan="6" align="center">Sin datos</td></tr>`;
   $('k-va-pen').textContent=p+SOL_VAC.length; $('k-va-apr').textContent=a;
-  vaPortalRender();
+  vaPortalRender(); peRender();
 }
 
 // ================= LICENCIAS =================

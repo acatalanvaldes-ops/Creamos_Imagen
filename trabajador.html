@@ -140,6 +140,7 @@ table.tbl td.vacio{text-align:center;padding:28px;color:var(--muted)}
 <script src="cargando.js"></script>
 <script src="hora-chile.js"></script>
 <script src="feriados-chile.js"></script>
+<script src="permisos-legales.js"></script>
 <script>
 // Mi Portal usa la misma sesión (Google o Microsoft) del menú principal (index.html).
 // Sin sesión válida se vuelve al menú para iniciar sesión.
@@ -179,7 +180,7 @@ table.tbl td.vacio{text-align:center;padding:28px;color:var(--muted)}
     <button class="ntab on" onclick="showTab('inicio', this)">👤 Mi Ficha</button>
     <button class="ntab" onclick="showTab('liquidaciones', this)">💰 Liquidaciones</button>
     <button class="ntab" onclick="showTab('certificados', this)">📜 Certificados</button>
-    <button class="ntab" onclick="showTab('vacaciones', this)">🏖️ Vacaciones</button>
+    <button class="ntab" onclick="showTab('vacaciones', this)">🏖️ Vacaciones y permisos</button>
     <button class="ntab" onclick="showTab('asistencia', this)">🕒 Asistencia y Licencias</button>
     <button class="ntab" onclick="showTab('documentos', this)">📁 Documentos</button>
   </div>
@@ -302,19 +303,30 @@ table.tbl td.vacio{text-align:center;padding:28px;color:var(--muted)}
     <div class="panel" id="p-vacaciones">
       <div class="two-col">
         <div class="card">
-          <div class="card-title">Solicitar vacaciones</div>
+          <div class="card-title">Solicitar vacaciones o permisos</div>
           <div id="vac-solo-lectura" class="aviso info" style="display:none">Estás viendo el portal de otro trabajador: solo él o ella puede enviar solicitudes.</div>
-          <div class="pair">
-            <div class="fld"><label>Desde</label><input type="date" id="vac-ini" onchange="previewVac()"></div>
+          <div class="fld"><label>Tipo de solicitud</label>
+            <select id="vac-tipo" onchange="cambiarTipoSolicitud()">
+              <option value="vacaciones">Vacaciones</option>
+              <option value="permiso_con_goce">Permiso con goce de sueldo</option>
+              <option value="permiso_sin_goce">Permiso sin goce de sueldo</option>
+            </select>
+          </div>
+          <div class="fld" id="vac-causal-fld" style="margin-top:10px;display:none"><label>Motivo del permiso (según el Código del Trabajo)</label>
+            <select id="vac-causal" onchange="cambiarTipoSolicitud()"></select>
+          </div>
+          <div class="aviso info" id="vac-info" style="display:none;margin:10px 0 0"></div>
+          <div class="pair" style="margin-top:10px">
+            <div class="fld"><label>Desde</label><input type="date" id="vac-ini" onchange="cambiarTipoSolicitud()"></div>
             <div class="fld"><label>Hasta</label><input type="date" id="vac-fin" onchange="previewVac()"></div>
           </div>
-          <div class="fld" style="margin-top:10px"><label>Motivo / observaciones</label><input id="vac-mot" maxlength="200" placeholder="Opcional…"></div>
+          <div class="fld" style="margin-top:10px"><label id="vac-mot-label">Motivo / observaciones</label><input id="vac-mot" maxlength="200" placeholder="Opcional…"></div>
           <div class="resumen">
-            <div><span>Saldo disponible hoy:</span><strong id="vac-r-saldo">—</strong></div>
-            <div><span>Días en solicitudes pendientes:</span><strong id="vac-r-pend">0</strong></div>
-            <div><span>Días hábiles de esta solicitud:</span><strong id="vac-dias" style="color:var(--amber)">0</strong></div>
+            <div class="solo-vac"><span>Saldo disponible hoy:</span><strong id="vac-r-saldo">—</strong></div>
+            <div class="solo-vac"><span>Días en solicitudes pendientes:</span><strong id="vac-r-pend">0</strong></div>
+            <div><span id="vac-dias-label">Días hábiles de esta solicitud:</span><strong id="vac-dias" style="color:var(--amber)">0</strong></div>
             <div><span>Fines de semana / feriados en el rango:</span><strong id="vac-r-nohab">0 / 0</strong></div>
-            <div><span>Saldo estimado después:</span><strong id="vac-saldo" style="color:var(--teal)">—</strong></div>
+            <div class="solo-vac"><span>Saldo estimado después:</span><strong id="vac-saldo" style="color:var(--teal)">—</strong></div>
           </div>
           <button class="act-btn primary" id="vac-btn" style="width:100%;margin-top:14px" onclick="enviarSolicitudVac()">Enviar solicitud</button>
           <div class="nota" id="vac-nota"></div>
@@ -323,7 +335,7 @@ table.tbl td.vacio{text-align:center;padding:28px;color:var(--muted)}
           <div class="card-title">Mis solicitudes</div>
           <div class="table-wrap">
             <table class="tbl" style="min-width:420px">
-              <thead><tr><th>Período</th><th>Días</th><th style="text-align:right">Estado</th></tr></thead>
+              <thead><tr><th>Solicitud</th><th>Días</th><th style="text-align:right">Estado</th></tr></thead>
               <tbody id="tb-vac"></tbody>
             </table>
           </div>
@@ -405,7 +417,7 @@ const CLOUD_TOKEN = tokenSesion(); // sesión firmada por el servidor (ver sesio
 // Igual que en RRHH (liquidación)
 const CFG = { AFP:10, SAL:7, AFC:0.6 };
 const KEYS = { trab:'rrhh_trabajadores_v1', liq:'rrhh_liquidaciones_v1', vac:'rrhh_vacaciones_v1', asis:'rrhh_asistencia_v1', lic:'rrhh_licencias_v1', sol:'rrhh_solicitudes_vac_v1', doc:'rrhh_documentos_v1' };
-const TODO = { liq:[], vac:[], asis:[], lic:[], sol:[], doc:null };
+const TODO = { liq:[], vac:[], perm:[], asis:[], lic:[], sol:[], doc:null };
 
 const $ = id => document.getElementById(id);
 const fmt = v => "$" + Math.round(Number(v||0)).toLocaleString("es-CL");
@@ -477,8 +489,8 @@ let SESION = null;
 let TRABS = [];              // solo para administradores / RRHH ("Ver como")
 let miFicha = null;          // trabajador que se está mostrando
 let esPropio = false;        // true si la ficha corresponde al correo de la sesión
-const cargaOk = { liq:false, vac:false, asis:false, lic:false, sol:false };
-let misDatos = { liq:[], vac:[], asis:[], lic:[], sol:[], doc:null };
+const cargaOk = { liq:false, vac:false, perm:false, asis:false, lic:false, sol:false };
+let misDatos = { liq:[], vac:[], perm:[], asis:[], lic:[], sol:[], doc:null };
 const mismoId = (a, b) => String(a) === String(b);
 
 function leerSesion(){ try { return JSON.parse(localStorage.getItem('cimagen_session')); } catch(e) { return null; } }
@@ -526,9 +538,9 @@ async function cargarPortal(trabajadorId){
   }
 
   TRABS = Array.isArray(r.trabajadores) ? r.trabajadores : [];
-  misDatos = { liq:r.liq||[], vac:r.vac||[], asis:r.asis||[], lic:r.lic||[], sol:r.sol||[], doc:null };
-  ['liq','vac','asis','lic','sol'].forEach(k => { TODO[k] = misDatos[k]; cargaOk[k] = !(r.fallas||[]).includes(k); });
-  const fallidas = (r.fallas||[]).map(k=>({liq:'liquidaciones',vac:'vacaciones',asis:'asistencia',lic:'licencias',sol:'solicitudes pendientes'}[k]||k));
+  misDatos = { liq:r.liq||[], vac:r.vac||[], perm:r.perm||[], asis:r.asis||[], lic:r.lic||[], sol:r.sol||[], doc:null };
+  ['liq','vac','perm','asis','lic','sol'].forEach(k => { TODO[k] = misDatos[k]; cargaOk[k] = !(r.fallas||[]).includes(k); });
+  const fallidas = (r.fallas||[]).map(k=>({liq:'liquidaciones',vac:'vacaciones',perm:'permisos',asis:'asistencia',lic:'licencias',sol:'solicitudes pendientes'}[k]||k));
   if (fallidas.length) {
     $('aviso-carga').textContent = '⚠️ No se pudieron cargar: ' + fallidas.join(', ') + '. Recarga la página (F5) para reintentar.';
     $('aviso-carga').style.display = 'block';
@@ -584,7 +596,7 @@ function seleccionarTrabajador(t, propio){
 
   renderInicio(); renderLiquidaciones(); renderVacaciones(); renderAsistencia();
   if (TODO.doc) renderDocumentos();
-  previewVac();
+  cambiarTipoSolicitud();
 }
 
 function showTab(name, btn){
@@ -609,7 +621,8 @@ function mesesEntre(ini, fin){
 }
 function saldoVacaciones(){
   const usados = misDatos.vac.filter(v => v.estado === 'Aprobada').reduce((s, v) => s + (Number(v.dias)||0), 0);
-  const pendientes = misDatos.sol.reduce((s, v) => s + (Number(v.dias)||0), 0);
+  // Los permisos (con o sin goce) no descuentan del saldo de vacaciones.
+  const pendientes = misDatos.sol.filter(v => tipoSolicitud(v) === 'vacaciones').reduce((s, v) => s + (Number(v.dias)||0), 0);
   if (!miFicha.fechaIngreso) return { ganados:null, usados, pendientes, disponibles:null };
   const ganados = Math.round(1.25 * mesesEntre(miFicha.fechaIngreso, hoyChile()) * 100) / 100;
   return { ganados, usados, pendientes, disponibles: Math.round((ganados - usados) * 100) / 100 };
@@ -688,13 +701,14 @@ function renderVacaciones(){
   if (!cargaOk.vac && !cargaOk.sol) { tb.innerHTML = `<tr><td colspan="3" class="vacio">No se pudieron cargar tus vacaciones. Recarga la página.</td></tr>`; return; }
   const filas = [
     ...misDatos.sol.map(s => ({ ...s, estado:'En revisión', portal:true })),
-    ...misDatos.vac
+    ...misDatos.vac,
+    ...misDatos.perm
   ].sort((a,b) => String(b.fechaInicio).localeCompare(String(a.fechaInicio)));
-  if (!filas.length) { tb.innerHTML = `<tr><td colspan="3" class="vacio">No tienes vacaciones registradas.</td></tr>`; return; }
+  if (!filas.length) { tb.innerHTML = `<tr><td colspan="3" class="vacio">No tienes vacaciones ni permisos registrados.</td></tr>`; return; }
   tb.innerHTML = filas.map(v => `
     <tr>
-      <td style="font-family:var(--mono);font-size:12px">${fDate(v.fechaInicio)} al ${fDate(v.fechaFin)}${v.motivo ? `<div style="font-family:'DM Sans';font-size:11px;color:var(--muted)">${esc(v.motivo)}</div>` : ''}</td>
-      <td style="font-weight:700">${esc(v.dias)}</td>
+      <td style="font-family:var(--mono);font-size:12px"><div style="font-family:'DM Sans';font-size:11px;font-weight:700;color:var(--dark)">${esc(etiquetaSolicitud(v))}</div>${fDate(v.fechaInicio)}${v.fechaFin !== v.fechaInicio ? ' al ' + fDate(v.fechaFin) : ''}${v.motivo ? `<div style="font-family:'DM Sans';font-size:11px;color:var(--muted)">${esc(v.motivo)}</div>` : ''}</td>
+      <td style="font-weight:700">${fmtDias(Number(v.dias)||0)}</td>
       <td style="text-align:right">
         ${badgeEstado(v.estado)}
         ${v.motivoRechazo ? `<div style="font-size:10px;color:var(--red);margin-top:4px">${esc(v.motivoRechazo)}</div>` : ''}
@@ -832,14 +846,66 @@ function descargarDoc(id){
 // =========================================================================
 // 6. SOLICITUD DE VACACIONES
 // =========================================================================
+// Tipos: vacaciones (descuentan saldo), permiso con goce (causal legal de
+// permisos-legales.js, no descuenta saldo) y permiso sin goce (RRHH decide
+// si lo acepta; esos días no se pagan).
+function tipoElegido(){ return $('vac-tipo').value; }
+function causalElegida(){ return tipoElegido() === 'permiso_con_goce' ? permisoLegal($('vac-causal').value) : null; }
+
+// Fecha en que termina un permiso continuo que parte en ini.
+function finPermiso(ini, p){
+  if (p.unidad === 'medio') return ini;
+  let d = aUTC(ini);
+  if (p.unidad === 'corridos') return new Date(d + (p.dias - 1) * 86400000).toISOString().slice(0,10);
+  for (let cuenta = 0, guardia = 0; guardia < 60; guardia++, d += 86400000) {
+    const f = new Date(d).toISOString().slice(0,10);
+    if (diasHab(f, f).habs && ++cuenta === p.dias) return f;
+  }
+  return ini;
+}
+
+function cambiarTipoSolicitud(){
+  const tipo = tipoElegido(), p = causalElegida();
+  if (!$('vac-causal').options.length) {
+    $('vac-causal').innerHTML = PERMISOS_LEGALES.map(x => `<option value="${x.clave}">${esc(x.nombre)} — ${x.unidad === 'medio' ? 'medio día' : x.dias + ' días ' + (x.unidad === 'corridos' ? 'corridos' : 'hábiles')}</option>`).join('');
+  }
+  const esVac = tipo === 'vacaciones';
+  $('vac-causal-fld').style.display = tipo === 'permiso_con_goce' ? '' : 'none';
+  document.querySelectorAll('#p-vacaciones .solo-vac').forEach(el => el.style.display = esVac ? '' : 'none');
+  const info = $('vac-info');
+  if (tipo === 'permiso_con_goce') {
+    const pp = causalElegida();
+    info.innerHTML = `<b>${esc(pp.norma)} · Código del Trabajo.</b> ${esc(pp.nota)}<br>Se paga normalmente y no descuenta de tus vacaciones.`;
+  } else if (tipo === 'permiso_sin_goce') {
+    info.innerHTML = '<b>Permiso sin goce de sueldo.</b> Es un acuerdo con la empresa: Recursos Humanos puede aceptarlo o rechazarlo. Los días aprobados no se pagan y no descuentan de tus vacaciones.';
+  }
+  info.style.display = esVac ? 'none' : '';
+  $('vac-mot-label').textContent = tipo === 'permiso_sin_goce' ? 'Motivo (obligatorio)' : 'Motivo / observaciones';
+  $('vac-mot').placeholder = tipo === 'permiso_sin_goce' ? 'Explica brevemente para qué necesitas el permiso' : 'Opcional…';
+  const ini = $('vac-ini').value;
+  // Los permisos que se toman seguidos calculan solos la fecha de término.
+  if (p && p.continuo && ini) $('vac-fin').value = finPermiso(ini, p);
+  if (p && p.unidad === 'medio' && ini) $('vac-fin').value = ini;
+  previewVac();
+}
+
 function previewVac(){
   if (!miFicha) return;
+  const tipo = tipoElegido(), p = causalElegida();
   const ini = $('vac-ini').value, fin = $('vac-fin').value;
   const s = saldoVacaciones();
   let r = { habs:0, fer:0, finde:0 };
   if (ini && fin && fin >= ini) r = diasHab(ini, fin);
-  $('vac-dias').textContent = r.habs;
+  const dias = (ini && fin && fin >= ini && p) ? diasPermiso(p.clave, ini, fin, (a,b) => diasHab(a,b).habs) : r.habs;
+  $('vac-dias').textContent = fmtDias(dias);
+  $('vac-dias-label').textContent = p ? (p.unidad === 'corridos' ? 'Días corridos de este permiso:' : p.unidad === 'medio' ? 'Duración del permiso (días):' : 'Días hábiles de este permiso:') : 'Días hábiles de esta solicitud:';
   $('vac-r-nohab').textContent = r.finde + ' / ' + r.fer;
+  if (tipo !== 'vacaciones') {
+    $('vac-nota').textContent = p && dias > p.dias
+      ? `Atención: la ley da ${p.unidad === 'medio' ? 'medio día' : p.dias + ' días'} para este permiso y estás pidiendo ${fmtDias(dias)}. RRHH revisará los días adicionales.`
+      : 'Recursos Humanos revisará la solicitud y verás aquí cuando sea aprobada o rechazada.';
+    return;
+  }
   $('vac-r-pend').textContent = fmtDias(s.pendientes);
   $('vac-r-saldo').textContent = s.disponibles === null ? '—' : fmtDias(s.disponibles) + ' días';
   $('vac-saldo').textContent = s.disponibles === null ? '—' : fmtDias(s.disponibles - s.pendientes - r.habs) + ' días';
@@ -851,35 +917,49 @@ function previewVac(){
 
 async function enviarSolicitudVac(){
   if (!esPropio) { alert('Solo el propio trabajador puede enviar solicitudes desde su portal.'); return; }
-  if (!cargaOk.vac || !cargaOk.sol) { alert('No se pudieron cargar tus vacaciones desde la nube. Recarga la página (F5) antes de enviar una solicitud.'); return; }
+  if (!cargaOk.vac || !cargaOk.sol || !cargaOk.perm) { alert('No se pudieron cargar tus vacaciones y permisos desde la nube. Recarga la página (F5) antes de enviar una solicitud.'); return; }
+  const tipo = tipoElegido(), p = causalElegida();
   const ini = $('vac-ini').value, fin = $('vac-fin').value, mot = $('vac-mot').value.trim();
   if (!ini || !fin) { alert('Completa las fechas Desde y Hasta.'); return; }
   if (fin < ini) { alert('La fecha de término es anterior a la de inicio.'); return; }
-  if (ini < hoyChile()) { alert('La fecha de inicio no puede ser anterior a hoy.'); return; }
+  if (tipo === 'permiso_sin_goce' && !mot) { alert('Indica el motivo del permiso sin goce de sueldo.'); return; }
+  if (p && p.unidad === 'medio' && fin !== ini) { alert('Este permiso es de medio día: Desde y Hasta deben ser la misma fecha.'); return; }
+  // Los permisos por hechos imprevistos (fallecimiento, nacimiento...) se pueden pedir hasta 30 días después.
+  const limite = p && p.retroactivo ? new Date(aUTC(hoyChile()) - 30 * 86400000).toISOString().slice(0,10) : hoyChile();
+  if (ini < limite) { alert(p && p.retroactivo ? 'Este permiso se puede pedir hasta 30 días después de ocurrido el hecho.' : 'La fecha de inicio no puede ser anterior a hoy.'); return; }
   const cruza = x => ini <= x.fechaFin && fin >= x.fechaInicio;
-  if (misDatos.vac.some(v => (v.estado === 'Aprobada' || v.estado === 'Pendiente') && cruza(v)) || misDatos.sol.some(cruza)) {
-    alert('Ya tienes vacaciones aprobadas o una solicitud en esas fechas.'); return;
+  const vigente = v => v.estado === 'Aprobada' || v.estado === 'Pendiente';
+  // Los permisos con goce son adicionales al feriado: pueden caer sobre vacaciones ya aprobadas.
+  if ((tipo !== 'permiso_con_goce' && misDatos.vac.some(v => vigente(v) && cruza(v))) || misDatos.perm.some(v => vigente(v) && cruza(v)) || misDatos.sol.some(cruza)) {
+    alert('Ya tienes vacaciones, un permiso o una solicitud en esas fechas.'); return;
   }
-  const dh = diasHab(ini, fin).habs;
-  if (dh <= 0) { alert('El rango elegido no tiene días hábiles.'); return; }
-  const s = saldoVacaciones();
-  if (s.disponibles !== null && dh > s.disponibles - s.pendientes) {
-    if (!confirm('Estás solicitando más días de los que tienes disponibles. ¿Enviar de todas formas? Recursos Humanos decidirá si la aprueba.')) return;
+  const dias = p ? diasPermiso(p.clave, ini, fin, (a,b) => diasHab(a,b).habs) : diasHab(ini, fin).habs;
+  if (dias <= 0) { alert('El rango elegido no tiene días hábiles.'); return; }
+  if (tipo === 'vacaciones') {
+    const s = saldoVacaciones();
+    if (s.disponibles !== null && dias > s.disponibles - s.pendientes) {
+      if (!confirm('Estás solicitando más días de los que tienes disponibles. ¿Enviar de todas formas? Recursos Humanos decidirá si la aprueba.')) return;
+    }
+  } else if (p && dias > p.dias) {
+    if (!confirm(`La ley da ${p.unidad === 'medio' ? 'medio día' : p.dias + ' días'} para este permiso y estás pidiendo ${fmtDias(dias)}. ¿Enviar de todas formas? Recursos Humanos decidirá.`)) return;
   }
 
   const btn = $('vac-btn'); btn.disabled = true; btn.textContent = 'Enviando…';
   try {
-    // El servidor valida las fechas y los cruces, y guarda la solicitud con bloqueo.
-    const r = await enviar('solicitarVac', { fechaInicio: ini, fechaFin: fin, dias: dh, motivo: mot });
+    // El servidor valida el tipo, las fechas y los cruces, y guarda la solicitud con bloqueo.
+    const r = await enviar('solicitarVac', { tipo, causal: p ? p.clave : '', fechaInicio: ini, fechaFin: fin, dias, motivo: mot });
     misDatos.sol = misDatos.sol.concat([r.solicitud]);
     $('vac-ini').value = ''; $('vac-fin').value = ''; $('vac-mot').value = '';
     renderVacaciones(); renderInicio(); previewVac();
-    alert('Solicitud enviada. Recursos Humanos la revisará y verás aquí cuando sea aprobada o rechazada.');
+    alert('Solicitud enviada. Recursos Humanos la revisará y verás aquí cuando sea aprobada o rechazada.' + (p ? ' Recuerda entregar el documento que acredita el permiso.' : ''));
   } catch(e) {
     const motivos = {
-      CRUCE_FECHAS: 'Ya tienes vacaciones aprobadas o una solicitud en esas fechas.',
-      FECHA_PASADA: 'La fecha de inicio no puede ser anterior a hoy.',
-      FECHAS_INVALIDAS: 'Revisa las fechas: la de término debe ser igual o posterior a la de inicio.'
+      CRUCE_FECHAS: 'Ya tienes vacaciones, un permiso o una solicitud en esas fechas.',
+      FECHA_PASADA: 'La fecha de inicio es demasiado antigua para este tipo de solicitud.',
+      FECHAS_INVALIDAS: 'Revisa las fechas: la de término debe ser igual o posterior a la de inicio.',
+      FALTA_MOTIVO: 'Indica el motivo del permiso sin goce de sueldo.',
+      CAUSAL_INVALIDA: 'Elige el motivo del permiso con goce de sueldo.',
+      TIPO_INVALIDO: 'Elige el tipo de solicitud.'
     };
     alert(motivos[e.message] || 'No se pudo enviar la solicitud. Revisa tu conexión e inténtalo de nuevo.');
   } finally {
@@ -889,7 +969,7 @@ async function enviarSolicitudVac(){
 
 async function cancelarSolicitud(id){
   if (!esPropio) return;
-  if (!confirm('¿Cancelar esta solicitud de vacaciones?')) return;
+  if (!confirm('¿Cancelar esta solicitud?')) return;
   try {
     await enviar('cancelarVac', { id });
     misDatos.sol = misDatos.sol.filter(x => x.id !== id);

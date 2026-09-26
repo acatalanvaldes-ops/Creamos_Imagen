@@ -490,7 +490,13 @@ function autorizarServicios() {
 // Mi Portal
 // ------------------------------------------------------------------
 const KEY_SOL_VAC = "rrhh_solicitudes_vac_v1";
-const RRHH = { trab: "rrhh_trabajadores_v1", liq: "rrhh_liquidaciones_v1", vac: "rrhh_vacaciones_v1", asis: "rrhh_asistencia_v1", lic: "rrhh_licencias_v1", doc: "rrhh_documentos_v1" };
+const RRHH = { trab: "rrhh_trabajadores_v1", liq: "rrhh_liquidaciones_v1", vac: "rrhh_vacaciones_v1", perm: "rrhh_permisos_v1", asis: "rrhh_asistencia_v1", lic: "rrhh_licencias_v1", doc: "rrhh_documentos_v1" };
+// Solicitudes desde Mi Portal: vacaciones o permisos. Los permisos con goce
+// deben traer una causal legal (mismas claves que permisos-legales.js); las
+// marcadas como retroactivas admiten fecha de inicio hasta 30 días atrás
+// (fallecimiento, nacimiento, accidente de un hijo: ocurren sin aviso).
+const TIPOS_SOLICITUD = ["vacaciones", "permiso_con_goce", "permiso_sin_goce"];
+const PERMISOS_CAUSALES = { nacimiento: true, matrimonio: false, muerte_hijo: true, muerte_conyuge: true, muerte_gestacion: true, muerte_familiar: true, hijo_grave: true, examenes: false, vacuna: false };
 const mismoId = function (a, b) { return String(a) === String(b); };
 
 // Resuelve qué trabajador se muestra. Un trabajador solo puede verse a sí
@@ -524,14 +530,14 @@ function accionPortal(token, trabajadorId) {
   const mios = function (lista) { return (lista || []).filter(function (x) { return mismoId(x.trabajadorId, id); }); };
   const secciones = {};
   const fallas = [];
-  ["liq", "vac", "asis", "lic"].forEach(function (k) {
+  ["liq", "vac", "perm", "asis", "lic"].forEach(function (k) {
     try { secciones[k] = mios(leerRRHH(RRHH[k])); } catch (e) { secciones[k] = []; fallas.push(k); }
   });
   let sol = [];
   try { const s = leerJSON(KEY_SOL_VAC); sol = mios(Array.isArray(s) ? s : []); } catch (e) { fallas.push("sol"); }
   const out = {
     estado: "éxito", trabajador: r.t, propio: r.propio, supervisa: r.supervisa,
-    liq: secciones.liq, vac: secciones.vac, asis: secciones.asis, lic: secciones.lic, sol: sol, fallas: fallas
+    liq: secciones.liq, vac: secciones.vac, perm: secciones.perm, asis: secciones.asis, lic: secciones.lic, sol: sol, fallas: fallas
   };
   if (r.supervisa) {
     out.trabajadores = r.trabs.map(function (t) { return { id: t.id, nombre: nombre(t), estado: t.estado || "", email: t.email || "" }; });
@@ -555,17 +561,32 @@ function accionSolicitarVac(b) {
   if (!r.propio) return error("SIN_PERMISO");
   const ini = String(b.fechaInicio || ""), fin = String(b.fechaFin || "");
   if (!FECHA_RE.test(ini) || !FECHA_RE.test(fin) || fin < ini) return error("FECHAS_INVALIDAS");
-  if (ini < hoyChileGS()) return error("FECHA_PASADA");
-  const dias = Math.max(0, Math.min(366, Math.round(Number(b.dias) || 0)));
+  const tipo = b.tipo || "vacaciones";
+  if (TIPOS_SOLICITUD.indexOf(tipo) === -1) return error("TIPO_INVALIDO");
+  const causal = tipo === "permiso_con_goce" ? String(b.causal || "") : "";
+  if (tipo === "permiso_con_goce" && !PERMISOS_CAUSALES.hasOwnProperty(causal)) return error("CAUSAL_INVALIDA");
+  const motivo = String(b.motivo || "").trim().slice(0, 200);
+  if (tipo === "permiso_sin_goce" && !motivo) return error("FALTA_MOTIVO");
+  const desde = PERMISOS_CAUSALES[causal] === true
+    ? Utilities.formatDate(new Date(Date.now() - 30 * 86400000), "America/Santiago", "yyyy-MM-dd")
+    : hoyChileGS();
+  if (ini < desde) return error("FECHA_PASADA");
+  // Medios días permitidos (exámenes, vacunación).
+  const dias = Math.max(0, Math.min(366, Math.round((Number(b.dias) || 0) * 2) / 2));
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(20000);
     const actual = leerJSON(KEY_SOL_VAC);
     const lista = Array.isArray(actual) ? actual : [];
     const cruza = function (x) { return mismoId(x.trabajadorId, r.t.id) && ini <= x.fechaFin && fin >= x.fechaInicio; };
-    const vac = leerRRHH(RRHH.vac).filter(function (v) { return v.estado === "Aprobada" || v.estado === "Pendiente"; });
-    if (lista.some(cruza) || vac.some(cruza)) return error("CRUCE_FECHAS");
-    const nueva = { id: Date.now(), trabajadorId: String(r.t.id), fechaInicio: ini, fechaFin: fin, dias: dias, motivo: String(b.motivo || "").slice(0, 200), fechaSolicitud: hoyChileGS(), email: r.email };
+    const vigente = function (v) { return v.estado === "Aprobada" || v.estado === "Pendiente"; };
+    const perm = leerRRHH(RRHH.perm).filter(vigente);
+    // Los permisos con goce son adicionales al feriado (Art. 66 y 207 bis):
+    // pueden caer sobre vacaciones ya aprobadas, pero no sobre otra solicitud o permiso.
+    const vac = tipo === "permiso_con_goce" ? [] : leerRRHH(RRHH.vac).filter(vigente);
+    if (lista.some(cruza) || perm.some(cruza) || vac.some(cruza)) return error("CRUCE_FECHAS");
+    const nueva = { id: Date.now(), trabajadorId: String(r.t.id), tipo: tipo, fechaInicio: ini, fechaFin: fin, dias: dias, motivo: motivo, fechaSolicitud: hoyChileGS(), email: r.email };
+    if (causal) nueva.causal = causal;
     lista.push(nueva);
     escribirValor(KEY_SOL_VAC, JSON.stringify(lista));
     return respuesta({ estado: "éxito", solicitud: nueva });
