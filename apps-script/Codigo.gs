@@ -440,8 +440,8 @@ const MS_TENANT_CONSUMERS = "9188040d-6c67-4c5b-b112-36a304b66dad";
 function verificarCodigoMicrosoft(code, redirectUri) {
   if (!code || typeof code !== "string" || !redirectUri || typeof redirectUri !== "string") return { motivo: "faltan datos" };
   const props = PropertiesService.getScriptProperties();
-  const clientId = props.getProperty("MS_CLIENT_ID");
-  const secret = props.getProperty("MS_CLIENT_SECRET");
+  const clientId = String(props.getProperty("MS_CLIENT_ID") || "").trim();
+  const secret = String(props.getProperty("MS_CLIENT_SECRET") || "").trim();
   if (!clientId || !secret) throw new Error("Falta configurar MS_CLIENT_ID y MS_CLIENT_SECRET en las propiedades del script.");
   const res = UrlFetchApp.fetch("https://login.microsoftonline.com/consumers/oauth2/v2.0/token", {
     method: "post",
