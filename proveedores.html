@@ -82,12 +82,18 @@ table.tbl tr:last-child td{border-bottom:none}
 .compra-totales{margin-top:6px}
 .compra-totales .dr-row{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);padding:4px 0}
 .compra-totales .dr-row.tot{font-size:16px;font-weight:700;color:var(--dark);border-top:1px solid var(--border);padding-top:10px;margin-top:4px}
+.pp-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+.pp-kpi{background:#fff;border:1px solid var(--border);border-left:5px solid var(--gold);border-radius:10px;padding:10px 14px}
+.pp-kpi-l{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted);letter-spacing:.4px}
+.pp-kpi-v{font-size:20px;font-weight:800;margin-top:2px}
 </style>
   <link rel="stylesheet" href="brand/brand.css">
   <script src="brand/brand.js"></script>
   <script src="brand/form-examples.js"></script>
   <script src="brand/layout.js"></script>
   <script src="brand/geografia.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
 <script src="sesion.js"></script>
@@ -115,6 +121,8 @@ table.tbl tr:last-child td{border-bottom:none}
   <div class="tabs">
     <button class="tab on" id="tabbtn-proveedores" onclick="setTab('proveedores')">Proveedores</button>
     <button class="tab" id="tabbtn-compras" onclick="setTab('compras')">Historial de Compras</button>
+    <button class="tab" id="tabbtn-porpagar" onclick="setTab('porpagar')">Por pagar</button>
+    <button class="tab" id="tabbtn-oc" onclick="setTab('oc')">Órdenes de compra</button>
   </div>
 </div>
 
@@ -142,6 +150,9 @@ table.tbl tr:last-child td{border-bottom:none}
     <div id="pendientesResumen" class="pend-resumen"></div>
     <div id="comprasTableWrap"></div>
   </div>
+
+  <div id="view-porpagar" style="display:none"><div id="porPagarWrap"></div></div>
+  <div id="view-oc" style="display:none"><div id="ordenesWrap"></div></div>
 
 </div>
 
@@ -172,6 +183,7 @@ table.tbl tr:last-child td{border-bottom:none}
       <div class="fld"><label>Teléfono</label><div style="display:flex;gap:6px"><select id="p-tel-cod" style="width:82px"><option>+56</option></select><input type="text" id="p-telefono" inputmode="tel"></div></div>
 
       <div class="fld"><label>Condiciones de Pago</label><input type="text" id="p-condiciones" placeholder="Ej: 30 días, contado, 50% anticipo..."></div>
+      <div class="fld"><label>Plazo de pago (días)</label><input type="number" id="p-plazo-pago" min="0" placeholder="0 = contado" title="Días para pagar una factura: con esto se calcula su vencimiento"></div>
       <div class="fld"><label>Plazo de Entrega Habitual</label><input type="text" id="p-plazo" placeholder="Ej: 5 días hábiles"></div>
     </div>
 
@@ -204,8 +216,10 @@ table.tbl tr:last-child td{border-bottom:none}
       <button class="act-btn" style="padding:4px 8px;font-size:16px;border:none" onclick="cerrarModalCompra()">✕</button>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <div class="fld"><label>Proveedor *</label><select id="cp-proveedor" onchange="actualizarInsumosDatalist()"></select></div>
-      <div class="fld"><label>Fecha *</label><input type="date" id="cp-fecha"></div>
+      <div class="fld"><label>Proveedor *</label><select id="cp-proveedor" onchange="actualizarInsumosDatalist();sugerirVencimiento()"></select></div>
+      <div class="fld"><label>Fecha *</label><input type="date" id="cp-fecha" onchange="sugerirVencimiento()"></div>
+      <div class="fld"><label>N° factura / documento</label><input type="text" id="cp-doc" maxlength="40"></div>
+      <div class="fld"><label>Vencimiento</label><input type="date" id="cp-venc" title="Se calcula con el plazo de pago del proveedor; puedes cambiarlo"></div>
     </div>
 
     <div class="sub-section" style="margin-top:8px">
@@ -224,7 +238,8 @@ table.tbl tr:last-child td{border-bottom:none}
 
     <div class="sub-section" style="margin-top:14px">
       <div class="pago-box">
-        <label class="chk"><input type="checkbox" id="cp-pagada" onchange="onCambioPagada()"> Factura pagada</label>
+        <div id="cp-pagos-info" style="display:none;font-size:13px"></div>
+        <label class="chk" id="cp-pagada-wrap"><input type="checkbox" id="cp-pagada" onchange="onCambioPagada()"> Pagada al contado (se registra el pago completo)</label>
         <div class="fld" id="cp-fechapago-wrap" style="margin:0;display:none"><label>Fecha de pago</label><input type="date" id="cp-fechapago"></div>
       </div>
     </div>
@@ -444,6 +459,7 @@ function abrirForm(id) {
     const partesContacto=(p.contacto||'').split(' '); ['p-contacto-n1','p-contacto-n2','p-contacto-a1','p-contacto-a2'].forEach((id,i)=>document.getElementById(id).value=partesContacto[i]||'');
     document.getElementById('p-telefono').value = (p.telefono || '').replace(/^\+?56\s*/, '');
     document.getElementById('p-condiciones').value = p.condicionesPago || '';
+    document.getElementById('p-plazo-pago').value = p.plazoPagoDias != null ? p.plazoPagoDias : '';
     document.getElementById('p-plazo').value = p.plazoEntrega || '';
     btnDel.style.display = 'block';
     insSection.style.display = 'block';
@@ -481,6 +497,7 @@ function abrirForm(id) {
     ['p-contacto-n1','p-contacto-n2','p-contacto-a1','p-contacto-a2'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('p-telefono').value = '';
     document.getElementById('p-condiciones').value = '';
+    document.getElementById('p-plazo-pago').value = '';
     document.getElementById('p-plazo').value = '';
     btnDel.style.display = 'none';
     insSection.style.display = 'none';
@@ -510,6 +527,7 @@ function guardarProveedor() {
     contacto: ['p-contacto-n1','p-contacto-n2','p-contacto-a1','p-contacto-a2'].map(id=>document.getElementById(id).value.trim()).filter(Boolean).join(' '),
     telefono: document.getElementById('p-tel-cod').value+' '+document.getElementById('p-telefono').value.trim(),
     condicionesPago: document.getElementById('p-condiciones').value.trim(),
+    plazoPagoDias: document.getElementById('p-plazo-pago').value === '' ? null : Math.max(0, parseInt(document.getElementById('p-plazo-pago').value) || 0),
     plazoEntrega: document.getElementById('p-plazo').value.trim(),
     insumos: insumosLimpios
   };
@@ -556,7 +574,14 @@ function abrirFormCompra(id) {
   } else {
     compraItemsEdit = [nuevoCompraItem()];
   }
-  document.getElementById('cp-pagada').checked = !!(c && c.pagada === true);
+  document.getElementById('cp-doc').value = (c && c.numeroDoc) || '';
+  if (c) document.getElementById('cp-venc').value = c.vencimiento || vencimientoDe(c); else sugerirVencimiento();
+  // Con pagos ya registrados, se gestionan en "Por pagar" (no con la casilla).
+  const conPagos = !!(c && Array.isArray(c.pagos) && c.pagos.length);
+  document.getElementById('cp-pagada-wrap').style.display = conPagos ? 'none' : '';
+  document.getElementById('cp-pagos-info').style.display = conPagos ? 'block' : 'none';
+  if (conPagos) document.getElementById('cp-pagos-info').innerHTML = 'Pagado <b>' + pesos(pagadoDe(c)) + '</b> de ' + pesos(compraMontoTotal(c)) + '. Los pagos se registran en la pestaña <b>Por pagar</b>.';
+  document.getElementById('cp-pagada').checked = !conPagos && !!(c && c.pagada === true);
   document.getElementById('cp-fechapago').value = (c && c.fechaPago) || '';
   onCambioPagada();
   actualizarInsumosDatalist();
@@ -668,7 +693,13 @@ function guardarCompra() {
   const iva = Math.round(subtotalNeto * IVA_PCT / 100);
   const total = subtotalNeto + iva;
 
-  const c = {
+  // Pagos: se conservan los registrados; "Pagada al contado" crea un pago
+  // por el total. Pagada = sin saldo (ver proveedores-erp.js).
+  const previa = editCompraId ? compras.find(x => x.id === editCompraId) : null;
+  let pagos = previa && Array.isArray(previa.pagos) && previa.pagos.length ? previa.pagos : [];
+  if (!pagos.length && pagada) pagos = [{ id: String(Date.now()), fecha: fechaPago, monto: total, medio: '', obs: 'Pagada al registrar' }];
+  const pagadoTotal = pagos.reduce((s, p) => s + (Number(p.monto) || 0), 0);
+  const c = Object.assign({}, previa || {}, {
     id: editCompraId || Date.now(),
     fecha: fecha,
     proveedorId: proveedorId,
@@ -676,9 +707,12 @@ function guardarCompra() {
     subtotalNeto: subtotalNeto,
     iva: iva,
     total: total,
-    pagada: pagada,
-    fechaPago: fechaPago
-  };
+    pagos: pagos,
+    pagada: total - pagadoTotal <= 0,
+    fechaPago: total - pagadoTotal <= 0 ? (pagos.map(p => p.fecha).sort().pop() || fechaPago) : '',
+    numeroDoc: document.getElementById('cp-doc').value.trim(),
+    vencimiento: document.getElementById('cp-venc').value
+  });
   if (editCompraId) compras = compras.map(x => x.id === editCompraId ? c : x);
   else compras.push(c);
   editCompraId = null;
@@ -787,5 +821,6 @@ window.onload = async function () {
   }
 };
 </script>
+<script src="proveedores-erp.js"></script>
 </body>
 </html>

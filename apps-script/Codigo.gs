@@ -50,7 +50,7 @@ const REGLAS = [
   { llave: /^clientes_ci_v1$/,       escribe: ["clientes"],     lee: ["calendario", "cotizaciones"] },
   { llave: /^costos_ci_v1$/,         escribe: ["costos"],       lee: ["cotizaciones", "dashboard"] },
   { llave: /^(cotizaciones|tarifario)_ci_v1$/, escribe: ["cotizaciones"], lee: ["calendario"] },
-  { llave: /^(compras|proveedores)_ci_v1$/,    escribe: ["proveedores"],  lee: ["dashboard"] },
+  { llave: /^(compras|proveedores|ordenes_compra)_ci_v1$/, escribe: ["proveedores"], lee: ["dashboard"] },
   { llave: /^creamos_imagen_v1$/,    escribe: ["ventasci"],     lee: ["dashboard"] },
   { llave: /^sublipro_v2$/,          escribe: ["ventas"],       lee: ["dashboard"] },
   { llave: /^rendicion\d{4}_v\d+$/,  escribe: ["rendicion"],    lee: ["dashboard"] },

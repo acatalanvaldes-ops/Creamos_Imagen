@@ -389,6 +389,15 @@ function renderCostos(r) {
   let pagosProv = 0, nPagos = 0, pendientesProv = 0, nPend = 0, sinDatoProv = 0, nSinDato = 0;
   compras.forEach(c => {
     const monto = compraMontoTotalDash(c);
+    // Compras con pagos detallados (Por pagar): cada pago cuenta en su fecha,
+    // y lo que falta pagar de una compra del período queda como pendiente.
+    if (Array.isArray(c.pagos) && c.pagos.length) {
+      let pagadoEnRango = 0, pagadoTotal = 0;
+      c.pagos.forEach(p => { pagadoTotal += Number(p.monto) || 0; if (enRango(p.fecha, r)) pagadoEnRango += Number(p.monto) || 0; });
+      if (pagadoEnRango > 0) { pagosProv += pagadoEnRango; nPagos++; }
+      if (monto - pagadoTotal > 0 && enRango(c.fecha, r)) { pendientesProv += monto - pagadoTotal; nPend++; }
+      return;
+    }
     if (c.pagada === true) {
       if (enRango(c.fechaPago || c.fecha, r)) { pagosProv += monto; nPagos++; }
     } else if (c.pagada === false) {
