@@ -62,6 +62,7 @@ table.tbl input:focus,table.tbl select:focus{border-bottom:2px solid var(--gold)
 .badge.aceptada{background:#F0FDF4;color:var(--teal)}
 .badge.rechazada{background:#FEF2F2;color:var(--red)}
 .badge.vencida{background:#F3F4F6;color:#6B7280}
+.badge.contactar{background:#EFF6FF;color:#1D4ED8}
 .seg-box{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:10px;padding-top:10px;border-top:1px dashed var(--border)}
 .seg-box label{display:block;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
 .seg-box input{border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px}
@@ -127,9 +128,12 @@ table.tbl input:focus,table.tbl select:focus{border-bottom:2px solid var(--gold)
         <div class="card">
           <div class="card-title">Datos de la Cotización</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-            <div class="fld"><label>Fecha de la Cotización</label><input type="date" id="cz-fecha"></div>
+            <div class="fld"><label>Fecha de la Cotización</label><input type="date" id="cz-fecha" onchange="actualizarVigencia()"></div>
             <div class="fld"><label>N° de Cotización</label><input type="text" id="cz-correlativo-preview" readonly></div>
+            <div class="fld"><label>Vigencia (días, de lunes a sábado)</label><div class="fld-row"><input type="number" id="cz-vigencia" min="1" max="60" oninput="actualizarVigencia()"><span class="fld-suffix">días</span></div></div>
+            <div class="fld"><label>Válida hasta</label><input type="text" id="cz-valida-hasta" readonly></div>
           </div>
+          <div class="note" style="margin-top:6px">La vigencia cuenta de lunes a sábado desde el día siguiente a la fecha de la cotización (no cuenta domingos) y aparece en el PDF. Al pasar esa fecha sin respuesta, la cotización queda como <b>Vencida</b>.</div>
         </div>
 
         <div class="card">
@@ -210,7 +214,7 @@ table.tbl input:focus,table.tbl select:focus{border-bottom:2px solid var(--gold)
       <div class="card-title">Configuración General</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px,1fr));gap:12px">
         <div class="fld"><label>IVA (%)</label><div class="fld-row"><input type="number" id="cfg-iva" onchange="setConfigTarifario('ivaPct', this.value)"><span class="fld-suffix">%</span></div></div>
-        <div class="fld"><label>Validez de la cotización</label><div class="fld-row"><input type="number" id="cfg-validez" min="1" onchange="setConfigTarifario('validezDias', this.value)"><span class="fld-suffix">días</span></div></div>
+        <div class="fld"><label>Vigencia por defecto (lun–sáb)</label><div class="fld-row"><input type="number" id="cfg-validez" min="1" onchange="setConfigTarifario('vigenciaDias', this.value)"><span class="fld-suffix">días</span></div></div>
         <div class="fld"><label>Nombre Lista de Precio 1</label><input type="text" id="cfg-lista0" onchange="setNombreLista(0, this.value)"></div>
         <div class="fld"><label>Nombre Lista de Precio 2</label><input type="text" id="cfg-lista1" onchange="setNombreLista(1, this.value)"></div>
         <div class="fld"><label>Nombre Lista de Precio 3</label><input type="text" id="cfg-lista2" onchange="setNombreLista(2, this.value)"></div>
@@ -609,6 +613,9 @@ function poblarSelectsCotizador() {
 
   const fechaInput = document.getElementById('cz-fecha');
   if (fechaInput && !fechaInput.value) fechaInput.value = todayISO();
+  const vig = document.getElementById('cz-vigencia');
+  if (vig && !vig.value) vig.value = vigenciaPorDefecto();
+  actualizarVigencia();
   actualizarPreviewCorrelativo();
 
   if (itemsCotizador.length === 0) itemsCotizador.push(nuevoItemVacio());
@@ -625,6 +632,8 @@ function guardarCotizacion() {
   const resumen = recalcularResumen();
   const nombresListas = tarifario.nombresListas || ['Lista 1', 'Lista 2', 'Lista 3'];
   const fechaInput = document.getElementById('cz-fecha').value;
+  const vigenciaDias = Math.max(1, parseInt(document.getElementById('cz-vigencia').value) || vigenciaPorDefecto());
+  const validaHasta = calcularValidaHasta(fechaInput || todayISO(), vigenciaDias);
 
   const itemsGuardados = itemsValidos.map(item => {
     const calc = calcularItem(item);
@@ -656,6 +665,8 @@ function guardarCotizacion() {
     cot.ivaPct = resumen.ivaPct;
     cot.iva = resumen.iva;
     cot.montoTotal = resumen.total;
+    cot.vigenciaDias = vigenciaDias;
+    cot.validaHasta = validaHasta;
     // El correlativo y el estado de la cotización no cambian al editarla.
 
     guardarCotizacionesLocal();
@@ -686,6 +697,8 @@ function guardarCotizacion() {
     ivaPct: resumen.ivaPct,
     iva: resumen.iva,
     montoTotal: resumen.total,
+    vigenciaDias: vigenciaDias,
+    validaHasta: validaHasta,
     estado: 'pendiente'
   };
   cotizaciones.push(cot);
@@ -716,6 +729,8 @@ function limpiarFormularioCotizador() {
   ['cz-contacto-n1','cz-contacto-n2','cz-contacto-a1','cz-contacto-a2'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('cz-direccion-f').value = '';
   document.getElementById('cz-fecha').value = todayISO();
+  document.getElementById('cz-vigencia').value = vigenciaPorDefecto();
+  actualizarVigencia();
 
   itemsCotizador = [nuevoItemVacio()];
   actualizarPreviewCorrelativo();
@@ -730,6 +745,8 @@ function editarCotizacion(id) {
   setTab('cotizador');
 
   document.getElementById('cz-fecha').value = c.fecha || todayISO();
+  document.getElementById('cz-vigencia').value = c.vigenciaDias || vigenciaPorDefecto();
+  actualizarVigencia();
 
   const clienteMatch = c.clienteTipo === 'registrado' && c.clienteId != null &&
     clientesData.some(x => String(x.id) === String(c.clienteId));
@@ -779,7 +796,7 @@ function actualizarPreviewCorrelativo() {
 
 function renderTarifarioTable() {
   document.getElementById('cfg-iva').value = tarifario.ivaPct !== undefined ? tarifario.ivaPct : 19;
-  document.getElementById('cfg-validez').value = validezDias();
+  document.getElementById('cfg-validez').value = vigenciaPorDefecto();
   const nombresListas = tarifario.nombresListas || ['Lista 1', 'Lista 2', 'Lista 3'];
   document.getElementById('cfg-lista0').value = nombresListas[0] || 'Lista 1';
   document.getElementById('cfg-lista1').value = nombresListas[1] || 'Lista 2';
@@ -856,13 +873,38 @@ function setFiltroEstado(f, btn) {
   renderCotizacionesTable();
 }
 
-// ===== ESTADOS Y SEGUIMIENTO =====
-// Se guardan: pendiente / aceptada / rechazada. "Vencida" no se guarda: se
-// calcula cuando una pendiente supera los días de validez del tarifario.
-function validezDias() { return tarifario.validezDias > 0 ? tarifario.validezDias : 15; }
-function venceEl(c) { const d = new Date((c.fecha || todayISO()) + 'T12:00:00'); d.setDate(d.getDate() + validezDias()); return d.toISOString().slice(0, 10); }
-function estadoVisible(c) { return c.estado === 'pendiente' && venceEl(c) < todayISO() ? 'vencida' : (c.estado || 'pendiente'); }
-function porContactar(c) { return c.estado === 'pendiente' && c.seguimiento && c.seguimiento <= todayISO(); }
+// ===== VIGENCIA, ESTADOS Y SEGUIMIENTO =====
+// Cada cotización tiene su vigencia en días que cuentan de lunes a sábado
+// (no domingos), desde el día siguiente a su fecha; se guarda validaHasta y
+// sale en el PDF. Estados: pendiente, contactar ("Por contactar"),
+// aceptada, rechazada y vencida. Una pendiente o por contactar pasa sola a
+// "Vencida" cuando hoy es posterior a validaHasta.
+const ESTADOS = [['pendiente', 'Pendiente'], ['contactar', 'Por contactar'], ['aceptada', 'Aceptada'], ['rechazada', 'Rechazada'], ['vencida', 'Vencida']];
+function vigenciaPorDefecto() { return tarifario.vigenciaDias > 0 ? tarifario.vigenciaDias : 7; }
+function calcularValidaHasta(fecha, dias) {
+  const d = new Date((fecha || todayISO()) + 'T12:00:00');
+  let cuenta = 0;
+  while (cuenta < dias) { d.setDate(d.getDate() + 1); if (d.getDay() !== 0) cuenta++; }
+  return d.toISOString().slice(0, 10);
+}
+function venceEl(c) { return c.validaHasta || calcularValidaHasta(c.fecha, c.vigenciaDias || vigenciaPorDefecto()); }
+function estadoVisible(c) {
+  const e = c.estado || 'pendiente';
+  return (e === 'pendiente' || e === 'contactar') && venceEl(c) < todayISO() ? 'vencida' : e;
+}
+function porContactar(c) {
+  const e = estadoVisible(c);
+  return e === 'contactar' || (e === 'pendiente' && c.seguimiento && c.seguimiento <= todayISO());
+}
+function actualizarVigencia() {
+  const el = document.getElementById('cz-vigencia');
+  const dias = Math.max(1, parseInt(el.value) || vigenciaPorDefecto());
+  document.getElementById('cz-valida-hasta').value = fmtFecha(calcularValidaHasta(document.getElementById('cz-fecha').value || todayISO(), dias));
+}
+function fechaLarga(iso) {
+  const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const [y, m, d] = iso.split('-'); return `${parseInt(d)} de ${meses[parseInt(m) - 1]} de ${y}`;
+}
 
 function cambiarEstado(id, nuevoEstado) {
   const c = cotizaciones.find(x => x.id === id);
@@ -931,7 +973,7 @@ function renderCotizacionesTable() {
   const wrap = document.getElementById('cotizacionesTableWrap');
   let lista = cotizaciones.slice().sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
   actualizarContadorContactar();
-  if (filtroEstadoActual === 'contactar') lista = lista.filter(porContactar).sort((a, b) => a.seguimiento.localeCompare(b.seguimiento));
+  if (filtroEstadoActual === 'contactar') lista = lista.filter(porContactar).sort((a, b) => (a.seguimiento || '').localeCompare(b.seguimiento || ''));
   else if (filtroEstadoActual !== 'todas') lista = lista.filter(c => estadoVisible(c) === filtroEstadoActual);
 
   if (lista.length === 0) {
@@ -939,7 +981,6 @@ function renderCotizacionesTable() {
     return;
   }
 
-  const estados = ['pendiente', 'aceptada', 'rechazada'];
   wrap.innerHTML = `<div class="table-scroll"><table class="tbl"><thead><tr><th>N°</th><th>Fecha</th><th>Cliente</th><th>Productos</th><th>Total</th><th>Estado</th></tr></thead><tbody>` +
     lista.map(c => {
       const items = c.items || [];
@@ -952,8 +993,8 @@ function renderCotizacionesTable() {
         <td>${c.cliente || '-'}${c.clienteTipo === 'fortuito' ? ' <span class="badge fortuito">Fortuito</span>' : ''}</td>
         <td>${resumenProductos}</td>
         <td>${fmt(c.montoTotal)}</td>
-        <td><select class="badge ${estadoVisible(c)}" onclick="event.stopPropagation()" onchange="cambiarEstado(${c.id}, this.value)">` +
-          estados.map(e => `<option value="${e}" ${c.estado === e ? 'selected' : ''}>${e === 'pendiente' && estadoVisible(c) === 'vencida' ? 'Vencida' : e.charAt(0).toUpperCase() + e.slice(1)}</option>`).join('') +
+        <td><select class="badge ${estadoVisible(c)}" onclick="event.stopPropagation()" onchange="cambiarEstado(${c.id}, this.value)" title="Vigente hasta el ${fmtFecha(venceEl(c))}">` +
+          ESTADOS.map(([e, nombre]) => `<option value="${e}" ${estadoVisible(c) === e ? 'selected' : ''}>${nombre}</option>`).join('') +
         `</select>${produccionesPorCot[c.id] ? `<div style="font-size:10px;color:var(--teal);margin-top:3px">🏭 OP ${produccionesPorCot[c.id].orden || ''}</div>` : ''}${porContactar(c) ? '<div style="font-size:10px;color:var(--amber);margin-top:3px">📞 contactar</div>' : ''}</td>
       </tr>`;
       if (filaDetalleAbierta === c.id) {
@@ -1072,6 +1113,11 @@ async function exportCotizacionPDF(id) {
   doc.text('Cotización N° ' + fmtCorrelativo(c.correlativo), pageWidth - marginX, y, { align: 'right' });
   y += 5;
   doc.text(fmtFecha(c.fecha), pageWidth - marginX, y, { align: 'right' });
+  y += 5;
+  // Vigencia para conocimiento del cliente (días de lunes a sábado).
+  doc.setTextColor(180, 83, 9);
+  doc.text('Válida hasta el ' + fechaLarga(venceEl(c)), pageWidth - marginX, y, { align: 'right' });
+  doc.setTextColor(0);
   y += 8;
 
   // Datos del cliente
@@ -1134,7 +1180,11 @@ async function exportCotizacionPDF(id) {
   doc.setFontSize(11);
   doc.text('TOTAL:', totalsX - 40, finalY, { align: 'right' });
   doc.text(fmt(c.montoTotal), totalsX, finalY, { align: 'right' });
-  finalY += 10;
+  finalY += 7;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.text(`Vigencia de la cotización: ${c.vigenciaDias || vigenciaPorDefecto()} días (de lunes a sábado), válida hasta el ${fechaLarga(venceEl(c))}. Pasada esa fecha, los precios pueden cambiar.`, marginX, finalY, { maxWidth: pageWidth - marginX * 2 });
+  finalY += 9;
 
   // Caja de condiciones / forma de pago / firma
   doc.setDrawColor(241, 175, 19);

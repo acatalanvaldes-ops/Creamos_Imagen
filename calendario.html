@@ -96,6 +96,14 @@
   .tooltip-prod { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
   .tooltip-prod-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
   .cantidad-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 4px; }
+  .pi-row { display: grid; grid-template-columns: 3fr 1.2fr 1.4fr 90px 34px; gap: 6px; align-items: center; margin-bottom: 6px; }
+  .pi-row input, .pi-row select { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 2px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 0.75rem; padding: 7px 8px; outline: none; }
+  .pi-row input:focus, .pi-row select:focus { border-color: var(--accent); }
+  .pi-head { font-size: 0.55rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text3); }
+  .pi-tallas { display: flex; flex-wrap: wrap; gap: 6px; margin: -2px 0 10px 12px; align-items: center; }
+  .pi-tallas label { font-size: 0.6rem; color: var(--text3); display: flex; align-items: center; gap: 3px; }
+  .pi-tallas input { width: 52px; background: var(--bg); border: 1px solid var(--border); border-radius: 2px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 0.75rem; padding: 5px 6px; text-align: center; }
+  @media (max-width: 720px) { .pi-row { grid-template-columns: 1fr 1fr; } }
   .cantidad-item label { display: block; font-size: 0.55rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text3); margin-bottom: 4px; }
   .cantidad-item input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 2px; color: var(--accent); font-family: 'DM Mono', monospace; font-size: 0.85rem; font-weight: 500; padding: 7px 10px; outline: none; transition: border-color 0.2s; text-align: center; }
   .cantidad-item input:focus { border-color: var(--accent); }
@@ -201,11 +209,16 @@
     </div>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:14px 16px;margin-bottom:12px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <span style="font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--text3)">Cantidad de prendas</span>
+        <span style="font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--text3)">Productos de la orden</span>
         <span id="totalPrendasBadge" class="cantidad-total-badge">Total: 0 prendas</span>
       </div>
-      <div class="cantidad-grid" id="cantidadGrid"></div>
+      <div id="prodItemsWrap"></div>
+      <div id="legacyCantidad" style="display:none">
+        <div style="font-size:0.7rem;color:var(--text3);margin-bottom:6px">Esta producción usa el formato anterior (cantidades por tipo de prenda). <a href="#" onclick="pasarAProductos();return false" style="color:var(--accent)">Pasar a productos por línea</a></div>
+        <div class="cantidad-grid" id="cantidadGrid"></div>
+      </div>
     </div>
+    <datalist id="listProductos"></datalist>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px">
       <div class="form-group"><label>Valor Total ($)</label><input type="number" id="prodMonto" placeholder="0" min="0" oninput="calcSaldo()"></div>
       <div class="form-group"><label>Abono ($)</label><input type="number" id="prodAbono" placeholder="0" min="0" oninput="calcSaldo()"></div>
@@ -792,17 +805,20 @@ async function prepararDesdeCotizacion() {
   if (!document.getElementById('addForm').classList.contains('open')) toggleForm();
   cotizacionPendiente = { id: c.id, correlativo: c.correlativo, clienteId: c.clienteId || '' };
   const items = c.items || [];
-  const esSub = items.some(it => /sublim/i.test((it.tecnica || '') + ' ' + (it.producto || '')));
+  const esSub = items.some(it => /sublim|calandra|plancha/i.test((it.tecnica || '') + ' ' + (it.producto || '')));
   document.getElementById('prodName').value = c.cliente || '';
   document.getElementById('prodMonto').value = Math.round(c.montoTotal || 0) || '';
   document.getElementById('prodDate').value = hoyChile().startsWith(String(currentViewYear)) ? hoyChile() : '';
   if (document.getElementById('prodDate').value) autoCalcEntrega();
   if (esSub) { document.getElementById('prodTipo').value = 'Sublimación'; renderCantidadFields('Sublimación'); }
-  document.getElementById('prodDetalle').value = items.map(it => `${it.cantidad} ${it.producto}${it.tecnica ? ' (' + it.tecnica + ')' : ''}`).join(', ').slice(0, 300);
+  // Los productos de la cotización pasan tal cual; las tallas se completan aquí.
+  itemsEdit = items.map(it => ({ producto: it.producto || '', tecnica: it.tecnica || '', personalizacion: it.personalizacion || '', cantidad: parseInt(it.cantidad) || 0, cantidadCotizada: parseInt(it.cantidad) || 0, tallas: {} }));
+  if (!itemsEdit.length) itemsEdit = [lineaVacia()];
+  mostrarFormatoAnterior(false);
   calcSaldo(); mostrarVinculoCliente();
   const banner = document.getElementById('prodCotBanner');
   banner.style.display = 'block';
-  banner.innerHTML = `🧾 Creando producción desde la <b>cotización N° ${String(c.correlativo || '').padStart(4, '0')}</b> de ${c.cliente || ''} por ${formatPesos(Math.round(c.montoTotal || 0))}. Revisa los datos, completa las cantidades de prendas y guarda.`;
+  banner.innerHTML = `🧾 Creando producción desde la <b>cotización N° ${String(c.correlativo || '').padStart(4, '0')}</b> de ${c.cliente || ''} por ${formatPesos(Math.round(c.montoTotal || 0))}. Se copiaron sus ${itemsEdit.length} producto(s): completa las tallas de cada uno, revisa los datos y guarda.`;
 }
 
 const SIN_DISEÑADOR = '__sin__';
@@ -889,6 +905,11 @@ function editProduction(id) {
   document.getElementById('prodCotBanner').style.display = 'none';
   mostrarVinculoCliente();
   renderCantidadFields(p.tipo || '', p.cantidad || {});
+  // Antiguas sin productos por línea: se editan en su formato (con opción de convertirlas).
+  const tieneItems = Array.isArray(p.items) && p.items.length;
+  const tieneCantidad = p.cantidad && cantidadItems(p.cantidad).length;
+  itemsEdit = tieneItems ? JSON.parse(JSON.stringify(p.items)) : [lineaVacia()];
+  mostrarFormatoAnterior(!tieneItems && !!tieneCantidad);
   document.querySelector('.btn-add').textContent = 'Actualizar';
   f.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -974,16 +995,119 @@ function cantidadItems(c) {
 }
 
 function prendasDetalleTexto(p) {
+  if (Array.isArray(p.items) && p.items.length) return p.items.map(it => `${cantidadLinea(it)} ${it.producto}${tallasTexto(it) ? ' (' + tallasTexto(it) + ')' : ''}`).join(', ');
   if (!p.cantidad) return p.prenda || '—';
   const parts = cantidadItems(p.cantidad).map(([label,v]) => `${v} ${label.toLowerCase()}`);
   return parts.length ? parts.join(', ') : '—';
 }
 
 function calcTotalPrendas() {
-  const inputs = document.querySelectorAll('#cantidadGrid input[type=number]:not([data-metros])');
   let total = 0;
-  inputs.forEach(i => { total += (parseInt(i.value) || 0); });
+  if (usaFormatoAnterior()) {
+    document.querySelectorAll('#cantidadGrid input[type=number]:not([data-metros])').forEach(i => { total += (parseInt(i.value) || 0); });
+  } else {
+    total = totalPrendasItems(itemsEdit);
+  }
   document.getElementById('totalPrendasBadge').textContent = `Total: ${total} prenda${total !== 1 ? 's' : ''}`;
+}
+
+// =========================================================================
+// PRODUCTOS DE LA ORDEN (por línea, con tallas)
+// =========================================================================
+// Las producciones nuevas guardan items: [{producto, tecnica, personalizacion,
+// cantidad, tallas:{S:5,M:10…}}], los mismos productos del tarifario de
+// Cotizaciones, así una cotización pasa a producción sin reescribir nada.
+// Las antiguas (cantidad por tipo de prenda) se siguen mostrando igual.
+const PRODUCTOS_ORDEN = [
+  "Camisetas por tallas xs-xxl", "Camisetas por tallas 8-10", "Camisetas por tallas 12-14",
+  "Conjuntos por tallas xs-xxl", "Conjuntos por tallas 8-10", "Conjuntos por tallas 12-14",
+  "Mantas 135*180", "Mantas 100*130", "Lienzos", "Banderas", "Banderas 60*90",
+  "Pañuelos 45*45", "Pañoletas 70*70", "Servicio sublimación plancha", "Servicio sublimación calandra",
+  "Servicio de diseño", "Papel sublimación", "Adhesivos"
+];
+const TECNICAS_ORDEN = ["Calandra", "Plancha", "Confección", "Servicio"];
+let itemsEdit = [];
+let productosTarifario = [];
+
+// Tallas según el rango que dice el producto ("… xs-xxl", "… 8-10", "… 12-14").
+function tallasDe(producto) {
+  const p = String(producto || '').toLowerCase();
+  if (/xs\s*-\s*xxl/.test(p)) return ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+  if (/\b8\s*-\s*10\b/.test(p)) return ['8', '10'];
+  if (/\b12\s*-\s*14\b/.test(p)) return ['12', '14'];
+  return [];
+}
+// Servicios e insumos no son prendas: no suman al total de prendas.
+function esPrenda(producto) { return !/^(servicio|papel|adhesivo)/i.test(String(producto || '').trim()); }
+function sumaTallas(it) { return Object.values(it.tallas || {}).reduce((s, v) => s + (parseInt(v) || 0), 0); }
+function cantidadLinea(it) { return sumaTallas(it) || (parseInt(it.cantidad) || 0); }
+function tallasTexto(it) { return Object.entries(it.tallas || {}).filter(([, v]) => parseInt(v) > 0).map(([t, v]) => `${t} ${v}`).join(' · '); }
+function totalPrendasItems(items) { return (items || []).filter(it => esPrenda(it.producto)).reduce((s, it) => s + cantidadLinea(it), 0); }
+function lineaVacia() { return { producto: '', tecnica: '', personalizacion: '', cantidad: '', tallas: {} }; }
+function usaFormatoAnterior() { return document.getElementById('legacyCantidad').style.display !== 'none'; }
+
+function poblarProductos() {
+  const todos = [...new Set([...productosTarifario, ...PRODUCTOS_ORDEN])];
+  document.getElementById('listProductos').innerHTML = todos.map(p => `<option value="${p}">`).join('');
+}
+function renderProdItems() {
+  const wrap = document.getElementById('prodItemsWrap');
+  if (usaFormatoAnterior()) { wrap.innerHTML = ''; calcTotalPrendas(); return; }
+  const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  wrap.innerHTML = `<div class="pi-row pi-head"><span>Producto</span><span>Técnica</span><span>Personalización</span><span>Cantidad</span><span></span></div>` +
+    itemsEdit.map((it, i) => {
+      const tallas = tallasDe(it.producto);
+      const conTallas = sumaTallas(it) > 0;
+      return `<div class="pi-row">
+        <input list="listProductos" value="${esc(it.producto)}" title="Elige un producto del tarifario o escribe uno" onchange="cambiarLinea(${i}, 'producto', this.value)">
+        <select onchange="cambiarLinea(${i}, 'tecnica', this.value)"><option value="">—</option>${TECNICAS_ORDEN.concat(it.tecnica && !TECNICAS_ORDEN.includes(it.tecnica) ? [it.tecnica] : []).map(t => `<option ${it.tecnica === t ? 'selected' : ''}>${t}</option>`).join('')}</select>
+        <input value="${esc(it.personalizacion)}" title="Ej: diseño propio, diseño K-pop" onchange="cambiarLinea(${i}, 'personalizacion', this.value)">
+        <input type="number" min="0" value="${conTallas ? sumaTallas(it) : esc(it.cantidad)}" ${conTallas ? 'readonly title="Suma de las tallas" style="opacity:.7"' : ''} oninput="cambiarLinea(${i}, 'cantidad', this.value, true)">
+        <button type="button" class="prod-delete" title="Quitar línea" onclick="quitarLinea(${i})">✕</button>
+      </div>` +
+      (tallas.length ? `<div class="pi-tallas"><span style="font-size:0.6rem;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Tallas:</span>${tallas.map(t => `<label>${t}<input type="number" min="0" value="${(it.tallas || {})[t] || ''}" oninput="cambiarTalla(${i}, '${t}', this.value)"></label>`).join('')}
+        ${it.cantidadCotizada ? `<span class="pi-dif" style="font-size:0.65rem;color:#f59e0b">${sumaTallas(it) && sumaTallas(it) !== it.cantidadCotizada ? `Cotizado: ${it.cantidadCotizada} · tallas suman ${sumaTallas(it)}` : `Cotizado: ${it.cantidadCotizada}`}</span>` : ''}</div>` : '');
+    }).join('') +
+    `<button type="button" class="toggle-form-btn" style="padding:6px 12px;font-size:0.65rem" onclick="agregarLinea()">＋ Agregar producto</button>`;
+  calcTotalPrendas();
+}
+function cambiarLinea(i, campo, valor, sinRender) {
+  itemsEdit[i][campo] = campo === 'producto' ? valor.trim() : valor;
+  if (campo === 'producto') { const vigentes = tallasDe(valor); Object.keys(itemsEdit[i].tallas || {}).forEach(t => { if (!vigentes.includes(t)) delete itemsEdit[i].tallas[t]; }); }
+  if (sinRender) calcTotalPrendas(); else renderProdItems();
+}
+function cambiarTalla(i, talla, valor) {
+  const it = itemsEdit[i];
+  it.tallas = it.tallas || {};
+  if (parseInt(valor) > 0) it.tallas[talla] = parseInt(valor); else delete it.tallas[talla];
+  // La cantidad de la línea pasa a ser la suma de las tallas.
+  const fila = document.querySelectorAll('#prodItemsWrap .pi-row:not(.pi-head)')[i];
+  const cant = fila && fila.querySelectorAll('input')[2];
+  if (cant) { const s = sumaTallas(it); cant.value = s || it.cantidad || ''; cant.readOnly = s > 0; cant.style.opacity = s > 0 ? '.7' : ''; }
+  const dif = fila && fila.nextElementSibling && fila.nextElementSibling.querySelector('.pi-dif');
+  if (dif) { const s = sumaTallas(it); dif.textContent = s && s !== it.cantidadCotizada ? `Cotizado: ${it.cantidadCotizada} · tallas suman ${s}` : `Cotizado: ${it.cantidadCotizada}`; }
+  calcTotalPrendas();
+}
+function agregarLinea() { itemsEdit.push(lineaVacia()); renderProdItems(); }
+function quitarLinea(i) { itemsEdit.splice(i, 1); if (!itemsEdit.length) itemsEdit.push(lineaVacia()); renderProdItems(); }
+function mostrarFormatoAnterior(mostrar) {
+  document.getElementById('legacyCantidad').style.display = mostrar ? '' : 'none';
+  renderProdItems();
+}
+// Convierte las cantidades antiguas en líneas de producto (para seguir editando en el formato nuevo).
+function pasarAProductos() {
+  const c = buildCantidadFromForm();
+  itemsEdit = cantidadItems(c).map(([label, v]) => ({ producto: label, tecnica: '', personalizacion: '', cantidad: v, tallas: {} }));
+  if (!itemsEdit.length) itemsEdit = [lineaVacia()];
+  mostrarFormatoAnterior(false);
+}
+function itemsParaGuardar() {
+  return itemsEdit.filter(it => it.producto && cantidadLinea(it) > 0).map(it => {
+    const out = { producto: it.producto, tecnica: it.tecnica || '', personalizacion: it.personalizacion || '', cantidad: cantidadLinea(it) };
+    if (sumaTallas(it)) out.tallas = Object.assign({}, it.tallas);
+    if (it.cantidadCotizada) out.cantidadCotizada = it.cantidadCotizada;
+    return out;
+  });
 }
 
 function getNextOrden() {
@@ -1007,6 +1131,8 @@ function toggleForm() {
     document.getElementById('prodTipo').value = '';
     document.getElementById('prodEtapa').value = 'Diseño';
     renderCantidadFields('');
+    itemsEdit = [lineaVacia()];
+    mostrarFormatoAnterior(false);
     mostrarVinculoCliente();
     document.getElementById('prodOrden').value = getNextOrden();
   }
@@ -1026,8 +1152,15 @@ function addProduction() {
   if (!date.startsWith(String(currentViewYear))) { alert('Por favor selecciona una fecha dentro de ' + currentViewYear + '.'); return; }
   const monto = parseFloat(document.getElementById('prodMonto').value) || 0;
   const abono = parseFloat(document.getElementById('prodAbono').value) || 0;
-  const cantidad = buildCantidadFromForm();
-  const totalPrendas = Object.entries(cantidad).filter(([k]) => !CANTIDAD_NO_PRENDA.includes(k)).reduce((s,[,v]) => s + (v||0), 0);
+  // Formato nuevo: productos por línea (items). El anterior (cantidad por tipo
+  // de prenda) solo se usa al editar una producción antigua que no se convirtió.
+  const anterior = usaFormatoAnterior();
+  const items = anterior ? [] : itemsParaGuardar();
+  const cantidad = anterior ? buildCantidadFromForm() : {};
+  const totalPrendas = anterior
+    ? Object.entries(cantidad).filter(([k]) => !CANTIDAD_NO_PRENDA.includes(k)).reduce((s,[,v]) => s + (v||0), 0)
+    : totalPrendasItems(items);
+  if (!anterior && !items.length && !confirm('La producción no tiene productos con cantidad. ¿Guardar de todas formas?')) return;
   let orden = editingId ? document.getElementById('prodOrden').value.trim() : getNextOrden();
 
   // Al editar se conservan los campos que el formulario no muestra (pagos,
@@ -1039,7 +1172,7 @@ function addProduction() {
     id: editingId || Date.now(), name, date, tag: tipo, orden, prenda: tipo,
     tipo, diseñador: document.getElementById('prodDiseñador').value.trim(),
     fechaEntrega: document.getElementById('prodFechaEntrega').value, monto, abono, saldo: Math.max(0, monto - abono), cantidad, totalPrendas,
-    etapa, detalle: document.getElementById('prodDetalle').value.trim(),
+    items, etapa, detalle: document.getElementById('prodDetalle').value.trim(),
     clienteId: cliente ? cliente.id : ((cotizacionPendiente && cotizacionPendiente.clienteId) || (previo && previo.clienteId) || '')
   });
   if (!previo || previo.etapa !== etapa) prod.etapaFecha = hoyChile();
@@ -1308,7 +1441,9 @@ function renderTimeline() {
     let entregaLabel = '—';
     if (p.fechaEntrega) { const [ey,em,ed] = p.fechaEntrega.split('-'); entregaLabel = `${parseInt(ed)} ${MONTHS_SHORT[parseInt(em)-1]}`; }
     let prendasHtml = '—';
-    if (p.cantidad && Object.keys(p.cantidad).length) {
+    if (Array.isArray(p.items) && p.items.length) {
+      prendasHtml = `<div style="line-height:1.6">${p.items.map(it => `<div style="font-size:0.72rem;color:var(--text2)"><b style="color:var(--accent)">${cantidadLinea(it)}</b> ${it.producto}${tallasTexto(it) ? `<span style="color:var(--text3)"> · ${tallasTexto(it)}</span>` : ''}</div>`).join('')}</div>`;
+    } else if (p.cantidad && Object.keys(p.cantidad).length) {
       const items = cantidadItems(p.cantidad).map(([label,v]) => {
         return `<span style="display:inline-block;margin-right:4px;margin-bottom:2px;background:var(--accent)14;border:1px solid var(--accent)30;border-radius:2px;padding:1px 5px;font-size:0.7rem;color:var(--accent);white-space:nowrap"><b>${v}</b> ${label}</span>`;
       });
@@ -1503,6 +1638,11 @@ window.onload = async function() {
   document.getElementById('yearSelect').value = String(currentViewYear);
   applyYearBounds();
   poblarEtapas();
+  poblarProductos();
+  // Productos del tarifario de Cotizaciones (solo lectura) para el autocompletado.
+  loadFromCloud('tarifario_ci_v1').then(t => {
+    if (t && Array.isArray(t.items)) { productosTarifario = t.items.map(i => i.producto).filter(Boolean); poblarProductos(); }
+  }).catch(() => {});
 
   try {
     // Clientes (para el autocompletado) y producciones se piden en paralelo.
