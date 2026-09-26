@@ -167,10 +167,10 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
     <div class="card">
       <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
         <span>Marcaciones complementarias desde Mi Portal</span>
-        <div style="display:flex;gap:8px;align-items:center"><input type="month" id="as-portal-mes" onchange="renderMarcacionesPortalRRHH()"><button class="act-btn small" onclick="cargarMarcacionesPortalRRHH()">Actualizar</button></div>
+        <div style="display:flex;gap:8px;align-items:center"><input type="month" id="as-portal-mes" onchange="renderMarcacionesPortalRRHH()"><button class="act-btn small" onclick="cargarMarcacionesPortalRRHH().then(sincronizarMarcacionesAsistencia)">Actualizar</button></div>
       </div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Registro interno complementario; separado del control oficial de asistencia.</div>
-      <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Trabajador</th><th>Fecha y hora servidor</th><th>Tipo</th><th>Ubicación</th></tr></thead><tbody id="as-portal-tbl"><tr><td colspan="4" align="center">Selecciona Actualizar para cargar las marcaciones de Mi Portal.</td></tr></tbody></table></div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Las marcaciones se pasan solas al Historial al abrir RRHH (📱 Mi Portal): primera entrada y última salida de cada día, y el corte entre dos tramos como colación. Si ese día ya tiene un registro ingresado a mano, se mantiene el manual. La jornada en curso se importa cuando el trabajador marca la salida.</div>
+      <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Trabajador</th><th>Fecha y hora servidor</th><th>Tipo</th><th>Ubicación</th></tr></thead><tbody id="as-portal-tbl"><tr><td colspan="4" align="center">Cargando marcaciones de Mi Portal…</td></tr></tbody></table></div>
     </div>
   </div>
 
@@ -627,6 +627,7 @@ async function init() {
   popSel(); renderAll();
   aplicarCorreccionSaldosVacaciones();
   popSel(); renderAll();
+  sincronizarMarcacionesAsistencia();
   await vaCargarSolicitudes();
 }
 
@@ -728,31 +729,37 @@ function asActualizarHorario() {
   div.style.borderLeftColor = cargo === 'Diseño / Producción' ? 'var(--amber,#f59e0b)' : 'var(--teal,#0d9488)';
 }
 
+// Horas trabajadas, extras (sobre 9 h diarias) y atraso según el horario del cargo.
+function calcAsistencia(tid, fecha, e, sc, rc, s, horasDirectas){
+  const h=horasDirectas!=null ? Number(horasDirectas.toFixed(2)) : (Number(((decHr(s)-decHr(e))-(decHr(rc)-decHr(sc))).toFixed(2))||0);
+  const he=h>9?Number((h-9).toFixed(2)):0;
+  const trab = DB.trab.find(t => String(t.id) === String(tid));
+  const hor = horarioEsperado(trab ? (trab.cargo || '') : '', fecha);
+  const at = e && hor.atrasoRef ? Math.max(0, Math.round((decHr(e) - decHr(hor.atrasoRef)) * 60)) : 0;
+  return { horas:h, horasExtras:he, atraso:at };
+}
 function asSave() {
   const tid=$('as-tra').value; if(!tid)return;
   const e=$('as-ent').value, sc=$('as-sc').value, rc=$('as-rc').value, s=$('as-sal').value;
-  const h=Number(((decHr(s)-decHr(e))-(decHr(rc)-decHr(sc))).toFixed(2))||0;
-  const he=h>9?Number((h-9).toFixed(2)):0;
-  // Calcular atraso según cargo y día
-  const trab = DB.trab.find(t => String(t.id) === String(tid));
-  const cargo = trab ? (trab.cargo || '') : '';
-  const fecha = $('as-fec').value;
-  const hor = horarioEsperado(cargo, fecha);
-  let at = 0;
-  if (e && hor.atrasoRef) {
-    at = Math.max(0, Math.round((decHr(e) - decHr(hor.atrasoRef)) * 60));
-  }
-  DB.asis.push({id:Date.now(),trabajadorId:tid,fecha:$('as-fec').value,jornada:$('as-jor').value,turno:$('as-tur').value,entrada:e,salida:s,sc,rc,horas:h,horasExtras:he,atraso:at});
+  const c=calcAsistencia(tid, $('as-fec').value, e, sc, rc, s);
+  DB.asis.push({id:Date.now(),trabajadorId:tid,fecha:$('as-fec').value,jornada:$('as-jor').value,turno:$('as-tur').value,entrada:e,salida:s,sc,rc,horas:c.horas,horasExtras:c.horasExtras,atraso:c.atraso});
   sync('asis'); ['fec','ent','sc','rc','sal'].forEach(k=>$(`as-${k}`).value='');
   $('as-horario-ref').style.display='none'; renderAll();
 }
-function asDel(id){ if(confirm("¿Eliminar?")){ DB.asis=DB.asis.filter(x=>x.id!==id); sync('asis'); renderAll(); } }
+function asDel(id){
+  const a=DB.asis.find(x=>x.id===id); if(!a) return;
+  const portal=a.origen==='portal';
+  if(!confirm(portal?'¿Eliminar este registro importado de Mi Portal?\n\nNo se volverá a importar desde las marcaciones de ese día.':'¿Eliminar?')) return;
+  DB.asis=DB.asis.filter(x=>x.id!==id); sync('asis');
+  if(portal) descartarMarcacionDia(a.trabajadorId, a.fecha);
+  renderAll();
+}
 function asRender() {
   const q=$('as-bus').value.toLowerCase(); const tb=$('as-tbl'); let hex=0, atr=0;
   const h=DB.asis.filter(a=>{
     hex+=a.horasExtras; if(a.atraso>0)atr++;
     return !q||getTName(a.trabajadorId).toLowerCase().includes(q);
-  }).sort((a,b)=>b.id-a.id).map(a=>`<tr><td><b>${getTName(a.trabajadorId)}</b></td><td>${fDate(a.fecha)}</td><td>${a.entrada||'-'}</td><td>${a.salida||'-'}</td><td>${a.horas}</td><td><span class="badge ${a.horasExtras>0?'bdg-ok':''}">${a.horasExtras}</span></td><td><span class="badge ${a.atraso>0?'bdg-err':'bdg-act'}">${a.atraso}</span></td><td><button class="act-btn small" style="color:var(--red)" onclick="asDel(${a.id})">🗑</button></td></tr>`).join('');
+  }).sort((a,b)=>String(b.fecha||'').localeCompare(String(a.fecha||''))||b.id-a.id).map(a=>`<tr><td><b>${getTName(a.trabajadorId)}</b>${a.origen==='portal'?'<div style="font-size:10px;color:var(--muted)">📱 Mi Portal</div>':''}</td><td>${fDate(a.fecha)}</td><td>${a.entrada||'-'}</td><td>${a.salida||(a.sinSalida?'<span style="color:var(--red);font-size:11px">sin salida</span>':'-')}</td><td>${a.horas}</td><td><span class="badge ${a.horasExtras>0?'bdg-ok':''}">${a.horasExtras}</span></td><td><span class="badge ${a.atraso>0?'bdg-err':'bdg-act'}">${a.atraso}</span></td><td><button class="act-btn small" style="color:var(--red)" onclick="asDel(${a.id})">🗑</button></td></tr>`).join('');
   tb.innerHTML = h||`<tr><td colspan="8" align="center">Sin datos</td></tr>`;
   $('k-as-reg').textContent=DB.asis.length; $('k-as-hex').textContent=hex.toFixed(1);$('k-as-atr').textContent=atr;
 }
@@ -771,6 +778,73 @@ async function cargarMarcacionesPortalRRHH(){
   finally { if(btn){btn.disabled=false;btn.textContent='Actualizar';} }
 }
 
+// ===== Marcaciones de Mi Portal → Historial de asistencia =====
+// Por trabajador y día: primera entrada y última salida; si hay dos tramos,
+// el corte entre ellos es la colación. Horas = suma de los tramos.
+// Un registro ingresado a mano en RRHH para ese día manda (no se toca).
+// El día en curso con entrada abierta no se importa hasta marcar la salida.
+const KEY_MARC_DESCARTES='rrhh_marc_descartes_v1';
+let MARC_DESCARTES=[];
+function jornadaDeFicha(t){
+  const j=String(t&&t.jornada||'');
+  if(/22/.test(j)) return 'ART22';
+  if(/parcial|part/i.test(j)) return 'PART';
+  const m=j.match(/(\d{2})\s*horas/); return m ? m[1] : '42';
+}
+function registrosDesdeMarcaciones(marcas, hoy){
+  const grupos={};
+  marcas.forEach(m=>{ const f=String(m.fechaServidor||''); if(!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(f)) return; (grupos[m.trabajadorId+'|'+f.slice(0,10)] ||= []).push(m); });
+  return Object.keys(grupos).map(k=>{
+    const [tid, fecha]=k.split('|');
+    const lista=grupos[k].slice().sort((a,b)=>String(a.fechaServidor).localeCompare(String(b.fechaServidor)));
+    const tramos=[]; let abierta=null;
+    lista.forEach(m=>{ const hh=m.fechaServidor.slice(11,16);
+      if(m.tipo==='ENTRADA'){ if(abierta===null) abierta=hh; }
+      else if(m.tipo==='SALIDA' && abierta!==null){ tramos.push([abierta, hh]); abierta=null; } });
+    const entrada=tramos.length?tramos[0][0]:abierta;
+    if(!entrada) return null;
+    if(abierta!==null && fecha>=hoy) return null; // jornada en curso
+    const sinSalida=abierta!==null;
+    const salida=sinSalida?'':tramos[tramos.length-1][1];
+    const sc=tramos.length>=2?tramos[0][1]:'', rc=tramos.length>=2?tramos[1][0]:'';
+    const horas=tramos.reduce((s,t)=>s+Math.max(0,decHr(t[1])-decHr(t[0])),0);
+    return { tid, fecha, entrada, salida, sc, rc, horas, sinSalida, marcaciones:lista.length };
+  }).filter(Boolean);
+}
+async function sincronizarMarcacionesAsistencia(){
+  if(!cargaOk.asis || !cargaOk.trab) return;
+  let marcas;
+  try {
+    const res=await fetchConTimeout(API_URL,{method:'POST',body:JSON.stringify({action:'listarMarcaciones',verTodos:true,token:CLOUD_TOKEN})});
+    const data=await res.json(); if(!res.ok || data.estado==='error') throw new Error(data.detalle||'error');
+    marcas=data.marcaciones||[];
+  } catch(e){ console.warn('No se pudieron leer las marcaciones de Mi Portal', e); return; }
+  window.marcacionesPortalRRHH=marcas; renderMarcacionesPortalRRHH();
+  try { const d=await fetchClaveNube(KEY_MARC_DESCARTES); MARC_DESCARTES=Array.isArray(d)?d:[]; }
+  catch(e){ console.warn('No se pudieron leer los descartes; no se importa para no revivir registros borrados', e); return; }
+  let cambios=0, n=0;
+  registrosDesdeMarcaciones(marcas, hoyChile()).forEach(r=>{
+    if(MARC_DESCARTES.includes(r.tid+'|'+r.fecha)) return;
+    const t=getT(r.tid); if(!t) return;
+    const existe=DB.asis.find(a=>String(a.trabajadorId)===String(r.tid)&&a.fecha===r.fecha);
+    if(existe && existe.origen!=='portal') return; // manda el registro manual
+    const c=calcAsistencia(r.tid, r.fecha, r.entrada, r.sc, r.rc, r.salida, r.horas);
+    const datos={trabajadorId:String(t.id),fecha:r.fecha,jornada:jornadaDeFicha(t),turno:'Mi Portal',entrada:r.entrada,salida:r.salida,sc:r.sc,rc:r.rc,horas:c.horas,horasExtras:c.horasExtras,atraso:c.atraso,origen:'portal',sinSalida:r.sinSalida};
+    if(existe){
+      const antes=JSON.stringify(existe); Object.assign(existe, datos);
+      if(JSON.stringify(existe)!==antes) cambios++;
+    } else { DB.asis.push(Object.assign({id:Date.now()+(n++)}, datos)); cambios++; }
+  });
+  if(cambios){ sync('asis'); renderAll(); }
+}
+async function descartarMarcacionDia(tid, fecha){
+  const k=String(tid)+'|'+fecha; if(MARC_DESCARTES.includes(k)) return;
+  MARC_DESCARTES=MARC_DESCARTES.concat([k]);
+  try {
+    const res=await fetchConTimeout(API_URL,{method:'POST',body:JSON.stringify({key:KEY_MARC_DESCARTES,value:JSON.stringify(MARC_DESCARTES),token:CLOUD_TOKEN})});
+    const j=await res.json(); if(j.estado==='error') throw new Error(j.detalle);
+  } catch(e){ if(e.message!=='CONFLICTO') alert('El registro se eliminó, pero no se pudo guardar que no se vuelva a importar: '+e.message); }
+}
 function renderMarcacionesPortalRRHH(){
   const tb=$('as-portal-tbl'); if(!tb)return;
   const mes=$('as-portal-mes').value||mesChile();

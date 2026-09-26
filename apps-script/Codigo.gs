@@ -356,12 +356,10 @@ function hojaMarcaciones() {
   return sh;
 }
 
+// Mismos permisos que el resto del portal: administradores o módulo RRHH.
 function usuarioPuedeVerMarcacionesRRHH(email) {
-  if (email === "a.catalan.valdes@gmail.com") return true;
-  let acl = leerJSON(ACL_KEY);
-  try { if (typeof acl === "string") acl = JSON.parse(acl); } catch (e) { return false; }
-  const acceso = acl && acl[email];
-  return !!(acceso && (acceso.admin || (acceso.modules || []).indexOf("rrhh") !== -1));
+  const pm = permisosDe(email);
+  return pm.isAdmin || pm.modules.indexOf("rrhh") !== -1;
 }
 
 function listarFilasMarcaciones(sh, trabajadorId) {
