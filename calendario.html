@@ -995,7 +995,7 @@ function cantidadItems(c) {
 }
 
 function prendasDetalleTexto(p) {
-  if (Array.isArray(p.items) && p.items.length) return p.items.map(it => `${cantidadLinea(it)} ${it.producto}${tallasTexto(it) ? ' (' + tallasTexto(it) + ')' : ''}`).join(', ');
+  if (Array.isArray(p.items) && p.items.length) return p.items.map(it => `${cantidadLinea(it)} ${it.producto}${detalleLinea(it) ? ' (' + detalleLinea(it) + ')' : ''}`).join(', ');
   if (!p.cantidad) return p.prenda || '—';
   const parts = cantidadItems(p.cantidad).map(([label,v]) => `${v} ${label.toLowerCase()}`);
   return parts.length ? parts.join(', ') : '—';
@@ -1042,6 +1042,10 @@ function esPrenda(producto) { return !/^(servicio|papel|adhesivo)/i.test(String(
 function sumaTallas(it) { return Object.values(it.tallas || {}).reduce((s, v) => s + (parseInt(v) || 0), 0); }
 function cantidadLinea(it) { return sumaTallas(it) || (parseInt(it.cantidad) || 0); }
 function tallasTexto(it) { return Object.entries(it.tallas || {}).filter(([, v]) => parseInt(v) > 0).map(([t, v]) => `${t} ${v}`).join(' · '); }
+// Los lienzos llevan, además de la cantidad, los metros (admite decimales).
+function esLienzo(producto) { return /lienzo/i.test(String(producto || '')); }
+function detalleLinea(it) { return [tallasTexto(it), Number(it.metros) > 0 ? metrosTexto(Number(it.metros)) : ''].filter(Boolean).join(' · '); }
+function cambiarMetros(i, valor) { const m = parseFloat(String(valor).replace(',', '.')); if (m > 0) itemsEdit[i].metros = m; else delete itemsEdit[i].metros; }
 function totalPrendasItems(items) { return (items || []).filter(it => esPrenda(it.producto)).reduce((s, it) => s + cantidadLinea(it), 0); }
 function lineaVacia() { return { producto: '', tecnica: '', personalizacion: '', cantidad: '', tallas: {} }; }
 function usaFormatoAnterior() { return document.getElementById('legacyCantidad').style.display !== 'none'; }
@@ -1066,14 +1070,18 @@ function renderProdItems() {
         <button type="button" class="prod-delete" title="Quitar línea" onclick="quitarLinea(${i})">✕</button>
       </div>` +
       (tallas.length ? `<div class="pi-tallas"><span style="font-size:0.6rem;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Tallas:</span>${tallas.map(t => `<label>${t}<input type="number" min="0" value="${(it.tallas || {})[t] || ''}" oninput="cambiarTalla(${i}, '${t}', this.value)"></label>`).join('')}
-        ${it.cantidadCotizada ? `<span class="pi-dif" style="font-size:0.65rem;color:#f59e0b">${sumaTallas(it) && sumaTallas(it) !== it.cantidadCotizada ? `Cotizado: ${it.cantidadCotizada} · tallas suman ${sumaTallas(it)}` : `Cotizado: ${it.cantidadCotizada}`}</span>` : ''}</div>` : '');
+        ${it.cantidadCotizada ? `<span class="pi-dif" style="font-size:0.65rem;color:#f59e0b">${sumaTallas(it) && sumaTallas(it) !== it.cantidadCotizada ? `Cotizado: ${it.cantidadCotizada} · tallas suman ${sumaTallas(it)}` : `Cotizado: ${it.cantidadCotizada}`}</span>` : ''}</div>` : '') +
+      (esLienzo(it.producto) ? `<div class="pi-tallas"><label>Metros de lienzo<input type="number" min="0" step="any" style="width:80px" value="${it.metros || ''}" oninput="cambiarMetros(${i}, this.value)" title="Metros totales de lienzo de esta línea"></label></div>` : '');
     }).join('') +
     `<button type="button" class="toggle-form-btn" style="padding:6px 12px;font-size:0.65rem" onclick="agregarLinea()">＋ Agregar producto</button>`;
   calcTotalPrendas();
 }
 function cambiarLinea(i, campo, valor, sinRender) {
   itemsEdit[i][campo] = campo === 'producto' ? valor.trim() : valor;
-  if (campo === 'producto') { const vigentes = tallasDe(valor); Object.keys(itemsEdit[i].tallas || {}).forEach(t => { if (!vigentes.includes(t)) delete itemsEdit[i].tallas[t]; }); }
+  if (campo === 'producto') {
+    const vigentes = tallasDe(valor); Object.keys(itemsEdit[i].tallas || {}).forEach(t => { if (!vigentes.includes(t)) delete itemsEdit[i].tallas[t]; });
+    if (!esLienzo(valor)) delete itemsEdit[i].metros;
+  }
   if (sinRender) calcTotalPrendas(); else renderProdItems();
 }
 function cambiarTalla(i, talla, valor) {
@@ -1097,14 +1105,20 @@ function mostrarFormatoAnterior(mostrar) {
 // Convierte las cantidades antiguas en líneas de producto (para seguir editando en el formato nuevo).
 function pasarAProductos() {
   const c = buildCantidadFromForm();
-  itemsEdit = cantidadItems(c).map(([label, v]) => ({ producto: label, tecnica: '', personalizacion: '', cantidad: v, tallas: {} }));
+  itemsEdit = Object.entries(c)
+    .filter(([k, v]) => !CANTIDAD_NO_PRENDA.includes(k) && (v > 0 || (k === 'lienzo' && c.lienzoMetros > 0)))
+    .map(([k, v]) => {
+      if (k === 'lienzo') return { producto: 'Lienzos', tecnica: '', personalizacion: '', cantidad: v, tallas: {}, metros: c.lienzoMetros || undefined };
+      return { producto: (k === 'otros' && c.otrosDesc) ? c.otrosDesc : (PRENDA_LABELS[k] || k), tecnica: '', personalizacion: '', cantidad: v, tallas: {} };
+    });
   if (!itemsEdit.length) itemsEdit = [lineaVacia()];
   mostrarFormatoAnterior(false);
 }
 function itemsParaGuardar() {
-  return itemsEdit.filter(it => it.producto && cantidadLinea(it) > 0).map(it => {
+  return itemsEdit.filter(it => it.producto && (cantidadLinea(it) > 0 || (esLienzo(it.producto) && Number(it.metros) > 0))).map(it => {
     const out = { producto: it.producto, tecnica: it.tecnica || '', personalizacion: it.personalizacion || '', cantidad: cantidadLinea(it) };
     if (sumaTallas(it)) out.tallas = Object.assign({}, it.tallas);
+    if (esLienzo(it.producto) && Number(it.metros) > 0) out.metros = Number(it.metros);
     if (it.cantidadCotizada) out.cantidadCotizada = it.cantidadCotizada;
     return out;
   });
