@@ -94,7 +94,7 @@ table.er tr:not(.sub):not(.res):not(.sec) td:first-child{padding-left:18px;backg
       <div class="tbl-wrap"><table class="er" id="fl-tbl"></table></div>
       <div class="nota" style="margin-top:10px">
         <b>Entradas</b>: saldos por cobrar de Producciones (con IVA) en su fecha de entrega (las ya entregadas y sin pagar, en la primera semana) y, si se marca, el promedio semanal de ventas de Sala de venta y Otros con IVA.
-        <b>Salidas</b>: facturas por pagar de Proveedores en su vencimiento (las vencidas, en la primera semana), remuneraciones a fin de mes, gastos fijos el día 5 y el IVA del mes anterior el día 20.
+        <b>Salidas</b>: facturas por pagar de Proveedores en su vencimiento (las vencidas, en la primera semana), remuneraciones a fin de mes, gastos fijos el día 5, el F29 del mes anterior (IVA + PPM) el día 20 y el IVA postergado que siga pendiente en su vencimiento (dos meses después).
         Las cifras son estimaciones para anticipar semanas con saldo negativo.
       </div>
     </div>
@@ -107,8 +107,41 @@ table.er tr:not(.sub):not(.res):not(.sec) td:first-child{padding-left:18px;backg
       <div class="nota" style="margin-top:10px">
         <b>Débito</b>: 19% de todas las ventas netas (Sala de venta, Otros) más el IVA incluido en el valor de las producciones, por la fecha de venta o entrega.
         <b>Crédito</b>: IVA de las facturas de compra registradas en Proveedores, por su fecha (las compras antiguas sin IVA registrado no suman crédito).
-        Si el crédito supera al débito, la diferencia pasa como <b>remanente</b> al mes siguiente. No incluye PPM, retenciones ni ajustes: es una estimación para revisar con el contador antes de declarar.
+        Si el crédito supera al débito, la diferencia pasa como <b>remanente</b> al mes siguiente. <b>PPM</b>: tasa del F29 (código 115) sobre las ventas netas.
+        Los meses con <b>F29 declarado</b> usan las cifras reales del SII (y su remanente), y la fila "Débito según el portal" permite compararlas. Los demás meses son estimaciones para revisar con el contador.
       </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span>F29 declarados (SII)</span>
+        <span style="display:flex;gap:8px;flex-wrap:wrap">
+          <label class="act-btn" style="cursor:pointer">📥 Importar archivo<input type="file" id="f29-archivo" accept=".json" style="display:none" onchange="importarF29(this)"></label>
+          <button class="act-btn" onclick="toggleFormF29()">＋ Registrar mes</button>
+        </span>
+      </div>
+      <div id="f29-form" style="display:none;margin-bottom:14px">
+        <div class="fila">
+          <div class="fld"><label>Período</label><input type="month" id="f29-periodo"></div>
+          <div class="fld"><label>Base imponible (563)</label><input type="number" id="f29-base" style="width:130px"></div>
+          <div class="fld"><label>Total débitos (538)</label><input type="number" id="f29-debito" style="width:130px"></div>
+          <div class="fld"><label>Total créditos (537)</label><input type="number" id="f29-credito" style="width:130px"></div>
+          <div class="fld"><label>Remanente mes anterior (504)</label><input type="number" id="f29-remant" style="width:130px"></div>
+          <div class="fld"><label>Remanente siguiente (077)</label><input type="number" id="f29-remsig" style="width:130px"></div>
+          <div class="fld"><label>IVA determinado (089)</label><input type="number" id="f29-ivadet" style="width:130px"></div>
+          <div class="fld"><label>IVA postergado (755)</label><input type="number" id="f29-post" style="width:130px"></div>
+          <div class="fld"><label>PPM (062)</label><input type="number" id="f29-ppm" style="width:110px"></div>
+          <div class="fld"><label>Retención (048)</label><input type="number" id="f29-ret" style="width:110px"></div>
+          <div class="fld"><label>Total a pagar (91)</label><input type="number" id="f29-total" style="width:130px"></div>
+          <div class="fld"><label>Presentado el</label><input type="date" id="f29-fecha"></div>
+          <label style="font-size:13px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="f29-giro"> Declarado con giro (sin pago)</label>
+          <button class="act-btn primary" onclick="guardarF29Form()">Guardar</button>
+        </div>
+      </div>
+      <div class="fila" style="margin-bottom:12px">
+        <div class="fld"><label>Tasa PPM (%)</label><input type="number" step="0.001" id="f29-tasa" style="width:90px" onchange="guardarTasaPpm()"></div>
+        <div class="nota" style="flex:1;min-width:260px">Se usa para estimar el PPM de los meses sin F29 declarado.</div>
+      </div>
+      <div id="f29-alertas"></div>
+      <div class="tbl-wrap"><table class="er" id="f29-tbl"></table></div>
     </div>
   </div>
 </div>
@@ -119,8 +152,8 @@ table.er tr:not(.sub):not(.res):not(.sec) td:first-child{padding-left:18px;backg
 // =========================================================================
 // Solo lectura de: Sala de venta (sublipro_v2), Otros (creamos_imagen_v1),
 // Producciones (prods<AÑO>), Proveedores (compras_ci_v1, proveedores_ci_v1)
-// y Costos (costos_ci_v1: nómina y gastos fijos). Guarda solo el saldo
-// inicial del flujo en finanzas_ci_v1.
+// y Costos (costos_ci_v1: nómina y gastos fijos). Guarda en finanzas_ci_v1
+// el saldo inicial del flujo, la tasa de PPM y los F29 declarados.
 const API_URL = "/api/portal";
 const CLOUD_TOKEN = tokenSesion();
 const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -191,16 +224,37 @@ async function resultadosAnio(anio){
   const comis = porMes(anio, D.sala.map(v => [v.fecha, comision(v)]));
   return { sala, otros, prod, prodIva, compras, credito, comis };
 }
-function ivaMeses(r, remanenteInicial){
+const f29De = (anio, i) => (D.cfg.f29 || {})[anio + '-' + String(i + 1).padStart(2, '0')] || null;
+const tasaPpm = () => D.cfg.tasaPpm != null ? +D.cfg.tasaPpm : 1;
+// IVA mes a mes: los meses con F29 declarado usan las cifras del SII; los
+// demás se estiman desde el portal arrastrando el remanente.
+function ivaMeses(r, remanenteInicial, anio){
   let rem = remanenteInicial || 0;
   return MESES.map((_, i) => {
-    const debito = Math.round((r.sala[i] + r.otros[i]) * 0.19 + r.prodIva[i]);
-    const credito = Math.round(r.credito[i]);
-    const saldo = debito - credito - rem;
-    const out = { debito, credito, remAnterior: rem, pagar: Math.max(0, saldo), remSiguiente: Math.max(0, -saldo) };
+    const debPortal = Math.round((r.sala[i] + r.otros[i]) * 0.19 + r.prodIva[i]);
+    const d = anio ? f29De(anio, i) : null;
+    let out;
+    if (d) {
+      const remAnt = +d.remAnterior || 0;
+      out = { declarado: true, debPortal, debito: +d.debito || 0, credito: (+d.credito || 0) - remAnt, remAnterior: remAnt,
+        pagar: +d.ivaDeterminado || 0, postergado: +d.postergado || 0, ppm: (+d.ppm || 0) + (+d.retencion || 0),
+        remSiguiente: +d.remSiguiente || 0, total: +d.total || 0, conGiro: !!d.conGiro };
+    } else {
+      const credito = Math.round(r.credito[i]);
+      const saldo = debPortal - credito - rem;
+      const ppm = Math.round((r.sala[i] + r.otros[i] + r.prod[i]) * tasaPpm() / 100);
+      out = { declarado: false, debPortal, debito: debPortal, credito, remAnterior: rem, pagar: Math.max(0, saldo), postergado: 0, ppm, remSiguiente: Math.max(0, -saldo) };
+      out.total = out.pagar + ppm;
+    }
     rem = out.remSiguiente;
     return out;
   });
+}
+// Encadena el remanente desde el primer año con datos (máx. 3 años atrás).
+async function ivaAnio(anio, prof){
+  prof = prof || 0;
+  const previo = prof < 3 ? await ivaAnio(anio - 1, prof + 1) : null;
+  return ivaMeses(await resultadosAnio(anio), previo ? previo[11].remSiguiente : 0, anio);
 }
 
 // ------------------------------------------------------------------ vistas
@@ -253,17 +307,95 @@ async function renderResultados(){
 
 async function renderIva(){
   const anio = +$('anio').value;
-  // Remanente que viene de diciembre del año anterior.
-  const previo = ivaMeses(await resultadosAnio(anio - 1), 0);
-  const meses = ivaMeses(await resultadosAnio(anio), previo[11].remSiguiente);
-  const cols = (fn) => meses.map((m, i) => `<td class="${!mesCerrado(anio, i) ? 'proj' : ''}">${fn(m) ? pesos(fn(m)) : '—'}</td>`).join('');
-  const tot = k => meses.reduce((s, m) => s + m[k], 0);
+  const meses = await ivaAnio(anio);
+  const cols = (fn) => meses.map((m, i) => `<td class="${!m.declarado && !mesCerrado(anio, i) ? 'proj' : ''}">${fn(m) ? pesos(fn(m)) : '—'}</td>`).join('');
+  const tot = k => meses.reduce((s, m) => s + (m[k] || 0), 0);
   $('iva-tbl').innerHTML = `<tr><th>${anio}</th>${MESES.map(m => `<th>${m}</th>`).join('')}<th>Total</th></tr>
+    <tr><td>Origen</td>${meses.map(m => `<td style="font-size:10px;font-weight:700;color:${m.declarado ? '#15803D' : '#9CA3AF'}">${m.declarado ? 'F29 SII' + (m.conGiro ? ' ⚠️' : '') : 'estimado'}</td>`).join('')}<td></td></tr>
     <tr><td>IVA débito (ventas)</td>${cols(m => m.debito)}<td><b>${pesos(tot('debito'))}</b></td></tr>
+    <tr><td style="color:#78716C">Débito según el portal</td>${meses.map(m => `<td style="color:#78716C">${m.debPortal ? pesos(m.debPortal) : '—'}</td>`).join('')}<td style="color:#78716C">${pesos(tot('debPortal'))}</td></tr>
     <tr><td>IVA crédito (compras)</td>${cols(m => m.credito)}<td><b>${pesos(tot('credito'))}</b></td></tr>
     <tr><td>Remanente del mes anterior</td>${cols(m => m.remAnterior)}<td></td></tr>
-    <tr class="res"><td>IVA a pagar (F29, día 20 del mes siguiente)</td>${cols(m => m.pagar)}<td><b>${pesos(tot('pagar'))}</b></td></tr>
+    <tr class="sub"><td>IVA determinado</td>${cols(m => m.pagar)}<td><b>${pesos(tot('pagar'))}</b></td></tr>
+    <tr><td>IVA postergado (se paga 2 meses después)</td>${cols(m => m.postergado)}<td><b>${pesos(tot('postergado'))}</b></td></tr>
+    <tr><td>PPM y retenciones</td>${cols(m => m.ppm)}<td><b>${pesos(tot('ppm'))}</b></td></tr>
+    <tr class="res"><td>Total F29 (día 20 del mes siguiente)</td>${cols(m => m.total)}<td><b>${pesos(tot('total'))}</b></td></tr>
     <tr><td>Remanente para el mes siguiente</td>${cols(m => m.remSiguiente)}<td></td></tr>`;
+  renderF29();
+}
+
+// ------------------------------------------------------------------ F29 declarados
+const mesLargo = k => ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][+k.slice(5, 7) - 1] + ' ' + k.slice(0, 4);
+function vencePostergado(k){ const [y, m] = k.split('-').map(Number); return deUTC(Date.UTC(y, m + 2, 20)); }
+function renderF29(){
+  const f29 = D.cfg.f29 || {};
+  const claves = Object.keys(f29).sort().reverse();
+  $('f29-tasa').value = tasaPpm();
+  const hoy = hoyChile();
+  const alertas = [];
+  claves.forEach(k => {
+    const d = f29[k];
+    if (d.conGiro && !d.giroPagado) alertas.push(`<b>${mesLargo(k)}</b>: declarado con giro por ${pesos(d.total)} (sin pago al presentar). Confirma en la Tesorería si está pagado; si no, genera intereses y multas.`);
+    if (+d.postergado > 0 && !d.postergadoPagado && vencePostergado(k) >= sumarDias(hoy, -150)) alertas.push(`<b>${mesLargo(k)}</b>: IVA postergado ${pesos(d.postergado)}, vence ~${vencePostergado(k).split('-').reverse().join('-')}. Márcalo como pagado cuando lo pagues.`);
+  });
+  $('f29-alertas').innerHTML = alertas.length ? `<div class="aviso">${alertas.join('<br>')}</div>` : '';
+  if (!claves.length) { $('f29-tbl').innerHTML = '<tr><td class="nota" style="padding:14px">Aún no hay F29 registrados. Importa el archivo o registra cada mes con los datos de tu carpeta tributaria.</td></tr>'; return; }
+  $('f29-tbl').innerHTML = `<tr><th>Período</th><th>Base imponible</th><th>Débitos</th><th>Créditos</th><th>IVA determinado</th><th>Postergado</th><th>PPM + ret.</th><th>Total pagado</th><th>Remanente sig.</th><th>Presentado</th><th>Pendientes</th><th></th></tr>` +
+    claves.map(k => { const d = f29[k]; return `<tr><td>${mesLargo(k)}</td><td>${pesos(d.base)}</td><td>${pesos(d.debito)}</td><td>${pesos(d.credito)}</td><td>${pesos(d.ivaDeterminado)}</td>
+      <td>${+d.postergado ? pesos(d.postergado) : '—'}</td><td>${pesos((+d.ppm || 0) + (+d.retencion || 0))}</td><td>${pesos(d.total)}</td><td>${+d.remSiguiente ? pesos(d.remSiguiente) : '—'}</td>
+      <td>${d.presentado ? d.presentado.split('-').reverse().join('-') : ''}${d.conGiro ? ' · con giro' : ''}</td>
+      <td style="text-align:left">${+d.postergado ? `<label style="font-size:11px"><input type="checkbox" ${d.postergadoPagado ? 'checked' : ''} onchange="marcarF29('${k}','postergadoPagado',this.checked)"> postergado pagado</label>` : ''}
+        ${d.conGiro ? `<label style="font-size:11px"><input type="checkbox" ${d.giroPagado ? 'checked' : ''} onchange="marcarF29('${k}','giroPagado',this.checked)"> giro pagado</label>` : ''}</td>
+      <td><button class="act-btn" style="padding:3px 8px" onclick="editarF29('${k}')">✏️</button></td></tr>`; }).join('');
+}
+async function guardarCfg(){
+  try {
+    const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: 'finanzas_ci_v1', value: JSON.stringify(D.cfg), token: CLOUD_TOKEN }) });
+    const j = await res.json(); if (j.estado === 'error') throw new Error(j.detalle);
+  } catch (e) { if (e.message !== 'CONFLICTO') alert('No se pudo guardar: ' + e.message); }
+}
+const CAMPOS_F29 = { base: 'f29-base', debito: 'f29-debito', credito: 'f29-credito', remAnterior: 'f29-remant', remSiguiente: 'f29-remsig', ivaDeterminado: 'f29-ivadet', postergado: 'f29-post', ppm: 'f29-ppm', retencion: 'f29-ret', total: 'f29-total' };
+function toggleFormF29(){ const f = $('f29-form'); f.style.display = f.style.display === 'none' ? 'block' : 'none'; }
+function editarF29(k){
+  const d = (D.cfg.f29 || {})[k] || {};
+  $('f29-periodo').value = k;
+  Object.keys(CAMPOS_F29).forEach(c => $(CAMPOS_F29[c]).value = d[c] != null ? d[c] : '');
+  $('f29-fecha').value = d.presentado || ''; $('f29-giro').checked = !!d.conGiro;
+  $('f29-form').style.display = 'block'; $('f29-form').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+async function guardarF29Form(){
+  const k = $('f29-periodo').value;
+  if (!/^\d{4}-\d{2}$/.test(k)) return alert('Indica el período.');
+  const previo = (D.cfg.f29 || {})[k] || {};
+  const d = Object.assign({}, previo, { presentado: $('f29-fecha').value || '', conGiro: $('f29-giro').checked });
+  Object.keys(CAMPOS_F29).forEach(c => d[c] = Math.round(+$(CAMPOS_F29[c]).value || 0));
+  D.cfg.f29 = Object.assign({}, D.cfg.f29, { [k]: d });
+  await guardarCfg();
+  $('f29-form').style.display = 'none';
+  renderTodo();
+}
+async function marcarF29(k, campo, valor){ D.cfg.f29[k][campo] = valor; await guardarCfg(); renderTodo(); }
+async function guardarTasaPpm(){ D.cfg.tasaPpm = +$('f29-tasa').value || 0; await guardarCfg(); renderTodo(); }
+function importarF29(input){
+  const archivo = input.files[0]; if (!archivo) return;
+  const lector = new FileReader();
+  lector.onload = async () => {
+    try {
+      const datos = JSON.parse(lector.result);
+      const f29 = datos.f29 || datos;
+      const claves = Object.keys(f29).filter(k => /^\d{4}-\d{2}$/.test(k));
+      if (!claves.length) throw new Error('el archivo no trae períodos');
+      const actual = D.cfg.f29 || {};
+      claves.forEach(k => actual[k] = Object.assign({}, actual[k], f29[k]));
+      D.cfg.f29 = actual;
+      if (datos.tasaPpm != null && D.cfg.tasaPpm == null) D.cfg.tasaPpm = datos.tasaPpm;
+      await guardarCfg();
+      alert('Se importaron ' + claves.length + ' períodos de F29.');
+      renderTodo();
+    } catch (e) { alert('No se pudo importar: ' + e.message); }
+    input.value = '';
+  };
+  lector.readAsText(archivo);
 }
 
 async function renderFlujo(){
@@ -273,7 +405,7 @@ async function renderFlujo(){
   const idx = f => { if (!f || f <= semanas[0].fin) return 0; const i = semanas.findIndex(s => f >= s.ini && f <= s.fin); return i; };
   const anioHoy = +hoy.slice(0, 4);
   const prods = (await cargarProds(anioHoy - 1)).concat(await cargarProds(anioHoy));
-  let atrasado = 0, vencido = 0;
+  let atrasado = 0, vencido = 0, ivaAtrasado = 0;
   prods.forEach(p => {
     const saldo = +p.saldo || 0; if (saldo <= 0) return;
     // Se cobra al entregar: entregada y sin pagar (o con entrega ya pasada) = atrasado.
@@ -304,10 +436,17 @@ async function renderFlujo(){
     const dia20 = ym + '-20'; i = idx(dia20);
     if (i >= 0 && dia20 >= semanas[0].ini) {
       const ant = new Date(Date.UTC(y, m - 2, 1)), ya = ant.getUTCFullYear(), ma = ant.getUTCMonth();
-      const r = ivaMeses(await resultadosAnio(ya), 0);
-      semanas[i].iva += r[ma].pagar;
+      const r = (await ivaAnio(ya))[ma];
+      // Un F29 ya declarado se pagó al presentarlo; el postergado y los giros salen aparte.
+      if (!r.declarado) semanas[i].iva += r.total;
     }
   }
+  // F29 declarados: giros sin pagar e IVA postergado pendiente.
+  Object.keys(D.cfg.f29 || {}).forEach(k => {
+    const d = D.cfg.f29[k];
+    if (+d.postergado > 0 && !d.postergadoPagado) { const v = vencePostergado(k); if (v < hoy) ivaAtrasado += +d.postergado; const i = idx(v < hoy ? hoy : v); if (i >= 0) semanas[i].iva += +d.postergado; }
+    if (d.conGiro && !d.giroPagado && +d.total > 0) { ivaAtrasado += +d.total; semanas[0].iva += +d.total; }
+  });
   let saldo = +(D.cfg.saldoInicial || 0);
   const neg = [];
   const filas = semanas.map((s, i) => {
@@ -319,6 +458,7 @@ async function renderFlujo(){
   $('fl-kpis').innerHTML = `<div class="kpi"><div class="kpi-l">Saldo inicial</div><div class="kpi-v">${pesos(D.cfg.saldoInicial || 0)}</div><div class="nota">${D.cfg.fechaSaldo ? 'al ' + D.cfg.fechaSaldo.split('-').reverse().join('-') : 'ingresa tu saldo actual'}</div></div>
     <div class="kpi"><div class="kpi-l">Cobros atrasados (producciones)</div><div class="kpi-v" style="color:#B45309">${pesos(atrasado)}</div></div>
     <div class="kpi"><div class="kpi-l">Facturas vencidas (proveedores)</div><div class="kpi-v" style="color:#B91C1C">${pesos(vencido)}</div></div>
+    ${ivaAtrasado ? `<div class="kpi"><div class="kpi-l">Impuestos pendientes (SII)</div><div class="kpi-v" style="color:#B91C1C">${pesos(ivaAtrasado)}</div><div class="nota">IVA postergado vencido o giros sin pagar</div></div>` : ''}
     <div class="kpi" style="border-left:5px solid ${neg.length ? '#DC2626' : '#16A34A'}"><div class="kpi-l">Saldo en 12 semanas</div><div class="kpi-v" style="color:${saldo < 0 ? '#B91C1C' : '#15803D'}">${pesos(saldo)}</div><div class="nota">${neg.length ? '⚠️ Saldo negativo en ' + neg.length + ' semana(s)' : 'Sin semanas en negativo'}</div></div>`;
   const col = (k) => filas.map(f => `<td class="${k === 'saldo' && f.saldo < 0 ? 'neg' : ''}">${f[k] ? pesos(k === 'proveedores' || k === 'sueldos' || k === 'gastos' || k === 'iva' ? -f[k] : f[k]) : '—'}</td>`).join('');
   $('fl-tbl').innerHTML = `<tr><th>Semana</th>${filas.map(f => `<th>${fCorta(f.ini)} al ${fCorta(f.fin)}</th>`).join('')}</tr>
@@ -329,7 +469,7 @@ async function renderFlujo(){
     <tr><td>Pagos a proveedores</td>${col('proveedores')}</tr>
     <tr><td>Remuneraciones</td>${col('sueldos')}</tr>
     <tr><td>Gastos fijos</td>${col('gastos')}</tr>
-    <tr><td>IVA (F29)</td>${col('iva')}</tr>
+    <tr><td>Impuestos (F29 e IVA postergado)</td>${col('iva')}</tr>
     <tr class="sub"><td>Flujo neto de la semana</td>${filas.map(f => `<td class="${f.neto < 0 ? 'neg' : ''}">${pesos(f.neto)}</td>`).join('')}</tr>
     <tr class="res"><td>Saldo proyectado</td>${col('saldo')}</tr>`;
 }
