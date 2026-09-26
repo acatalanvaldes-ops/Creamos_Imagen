@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finanzas - Creamos Imagen</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F7F5F0;--surface:#FFFFFF;--dark:#1C1917;--gold:#C8973A;--teal:#0D7A6B;--red:#C0392B;--muted:#78716C;--border:#E7E2D9;--amber:#B45309;--blue:#1E40AF}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--dark);min-height:100vh}
+input,select,button{font-family:inherit;outline:none}
+.topbar{background:var(--dark);padding:0 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:100}
+.brand{padding:14px 0}
+.brand-name{font-family:'DM Serif Display',serif;font-size:22px;color:#fff}
+.brand-name span{color:var(--gold)}
+.tabs{display:flex;gap:2px;flex-wrap:wrap;padding:8px 0;align-items:center}
+.tab{background:none;border:none;font-size:12px;font-weight:600;color:#aaa;cursor:pointer;padding:7px 12px;border-radius:6px}
+.tab.on{background:#2C2926;color:var(--gold)}
+.content{padding:24px;max-width:1300px;margin:0 auto}
+.panel{display:none}.panel.on{display:block}
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:16px}
+.card-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--gold);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.act-btn{background:#fff;border:1.5px solid var(--border);color:var(--dark);padding:7px 12px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer}
+.act-btn.primary{background:var(--gold);border-color:var(--gold);color:#fff}
+.nota{font-size:12px;color:var(--muted);line-height:1.55}
+.aviso{border-radius:8px;padding:10px 14px;font-size:12px;line-height:1.5;margin-bottom:14px;background:#FEF3E2;border:1px solid #FDE68A;color:var(--amber)}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px}
+table.er{width:100%;border-collapse:collapse;background:#fff;font-size:12.5px}
+table.er th{background:var(--dark);color:var(--gold);font-size:10px;text-transform:uppercase;padding:8px 8px;text-align:right;white-space:nowrap}
+table.er th:first-child,table.er td:first-child{text-align:left;position:sticky;left:0;background:inherit;min-width:230px}
+table.er th:first-child{background:var(--dark)}
+table.er td{padding:6px 8px;border-bottom:1px solid #F1EEE8;text-align:right;white-space:nowrap}
+table.er tr.sub td{font-weight:700;background:#FAF8F4;border-top:1px solid var(--border)}
+table.er tr.res td{font-weight:800;background:#F0FDF4}
+table.er tr.sec td{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);background:#fff;font-weight:700;padding-top:12px}
+table.er td.neg{color:var(--red)} table.er td.proj{color:#9CA3AF;font-style:italic}
+table.er tr:not(.sub):not(.res):not(.sec) td:first-child{padding-left:18px;background:#fff}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+.kpi-l{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted)}
+.kpi-v{font-size:21px;font-weight:800;margin-top:2px}
+.fila{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.fld label{display:block;font-size:10px;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase}
+.fld input{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:14px}
+@media (max-width:720px){.content{padding:12px}}
+</style>
+<link rel="stylesheet" href="brand/brand.css">
+<script src="brand/brand.js"></script>
+<script src="brand/layout.js"></script>
+</head>
+<body>
+<script src="cargando.js"></script>
+<script src="sesion.js"></script>
+<script src="hora-chile.js"></script>
+
+<div class="topbar">
+  <div class="brand"><a href="index.html">← Menú</a><div class="brand-name">Finan<span>zas</span></div></div>
+  <div class="tabs">
+    <button class="tab on" onclick="verPanel('resultados', this)">📊 Estado de resultados</button>
+    <button class="tab" onclick="verPanel('flujo', this)">💧 Flujo de caja</button>
+    <button class="tab" onclick="verPanel('iva', this)">🧾 IVA (F29)</button>
+    <select id="anio" onchange="renderTodo()" style="margin-left:8px;padding:6px 8px;border-radius:6px;border:1px solid #444;background:#2C2926;color:#fff"></select>
+  </div>
+</div>
+
+<div class="content">
+  <div id="aviso" class="aviso" style="display:none"></div>
+
+  <div class="panel on" id="p-resultados">
+    <div class="kpis" id="er-kpis"></div>
+    <div class="card">
+      <div class="card-title"><span>Estado de resultados mensual</span></div>
+      <div class="tbl-wrap"><table class="er" id="er-tbl"></table></div>
+      <div class="nota" style="margin-top:10px">
+        <b>Ingresos netos (sin IVA)</b>: Sala de venta y Otros por la fecha de la venta; Producciones por su fecha de entrega (valor total ÷ 1,19).
+        <b>Compras</b>: facturas de Proveedores por su fecha (neto). <b>Comisiones</b>: las de Sala de venta.
+        <b>Remuneraciones y gastos fijos</b>: los valores mensuales actuales de Costos (nómina con leyes sociales, arriendo, servicios…), aplicados a cada mes con ventas registradas (los meses anteriores a usar el sistema no tienen datos y no se cargan); en gris, los meses que aún no terminan.
+        Es una vista de gestión: para el balance tributario, confírmalo con tu contador.
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="p-flujo">
+    <div class="card">
+      <div class="card-title"><span>Flujo de caja proyectado · próximas 12 semanas</span></div>
+      <div class="fila" style="margin-bottom:12px">
+        <div class="fld"><label>Saldo actual en caja y banco</label><input type="number" id="fl-saldo" style="width:170px"></div>
+        <div class="fld"><label>Al día</label><input type="date" id="fl-fecha"></div>
+        <button class="act-btn primary" onclick="guardarSaldo()">Guardar saldo</button>
+        <label style="font-size:13px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="fl-ventas" checked onchange="renderFlujo()"> Incluir ventas estimadas (promedio de las últimas 8 semanas)</label>
+      </div>
+      <div class="kpis" id="fl-kpis"></div>
+      <div class="tbl-wrap"><table class="er" id="fl-tbl"></table></div>
+      <div class="nota" style="margin-top:10px">
+        <b>Entradas</b>: saldos por cobrar de Producciones (con IVA) en su fecha de entrega (las ya entregadas y sin pagar, en la primera semana) y, si se marca, el promedio semanal de ventas de Sala de venta y Otros con IVA.
+        <b>Salidas</b>: facturas por pagar de Proveedores en su vencimiento (las vencidas, en la primera semana), remuneraciones a fin de mes, gastos fijos el día 5 y el IVA del mes anterior el día 20.
+        Las cifras son estimaciones para anticipar semanas con saldo negativo.
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="p-iva">
+    <div class="card">
+      <div class="card-title"><span>IVA mensual (apoyo para el F29)</span></div>
+      <div class="tbl-wrap"><table class="er" id="iva-tbl"></table></div>
+      <div class="nota" style="margin-top:10px">
+        <b>Débito</b>: 19% de todas las ventas netas (Sala de venta, Otros) más el IVA incluido en el valor de las producciones, por la fecha de venta o entrega.
+        <b>Crédito</b>: IVA de las facturas de compra registradas en Proveedores, por su fecha (las compras antiguas sin IVA registrado no suman crédito).
+        Si el crédito supera al débito, la diferencia pasa como <b>remanente</b> al mes siguiente. No incluye PPM, retenciones ni ajustes: es una estimación para revisar con el contador antes de declarar.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// =========================================================================
+// FINANZAS: estado de resultados (E2), flujo de caja proyectado (E1) e IVA (E3)
+// =========================================================================
+// Solo lectura de: Sala de venta (sublipro_v2), Otros (creamos_imagen_v1),
+// Producciones (prods<AÑO>), Proveedores (compras_ci_v1, proveedores_ci_v1)
+// y Costos (costos_ci_v1: nómina y gastos fijos). Guarda solo el saldo
+// inicial del flujo en finanzas_ci_v1.
+const API_URL = "/api/portal";
+const CLOUD_TOKEN = tokenSesion();
+const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const $ = id => document.getElementById(id);
+const pesos = n => (n < 0 ? '−$' : '$') + Math.abs(Math.round(n || 0)).toLocaleString('es-CL');
+const fCorta = s => s ? s.slice(8, 10) + '-' + s.slice(5, 7) : '';
+const aUTC = s => Date.UTC(+s.slice(0,4), +s.slice(5,7)-1, +s.slice(8,10));
+const deUTC = t => new Date(t).toISOString().slice(0, 10);
+const sumarDias = (s, n) => deUTC(aUTC(s) + n * 86400000);
+let D = { sala: [], comDefPct: 6, otros: [], prods: {}, compras: [], proveedores: [], costos: null, cfg: {} };
+
+// ------------------------------------------------------------------ datos
+async function leer(key){
+  const res = await fetch(API_URL + "?key=" + key + "&token=" + CLOUD_TOKEN);
+  const j = await res.json();
+  if (j.estado === 'error') throw new Error(j.detalle || 'Error del servidor');
+  return j.valor ? JSON.parse(j.valor) : null;
+}
+async function leerBloques(key, campo){
+  const p = await leer(key);
+  if (!p) return { lista: [], principal: null };
+  if (Array.isArray(p)) return { lista: p, principal: null };
+  let lista = (p[campo] || []).slice();
+  for (let i = 1; i < (p.shardCount || 1); i++) { const b = await leer(key + '_sh' + i); if (b && b[campo]) lista = lista.concat(b[campo]); }
+  return { lista, principal: p };
+}
+async function cargarProds(anio){
+  if (D.prods[anio]) return D.prods[anio];
+  try { D.prods[anio] = (await leerBloques('prods' + anio, 'producciones')).lista; } catch (e) { D.prods[anio] = []; }
+  return D.prods[anio];
+}
+
+// ------------------------------------------------------------------ cálculos
+function costoMensualTrabajador(p){
+  const com = +p.comision || 0, provision = (+p.anual || 0) / 12, afp = +p.afp || 0, fonasa = +p.fonasa || 0;
+  let sueldo = +p.sueldo || 0;
+  if (p.liquidacionPeriodo) {
+    sueldo = Math.max(0, sueldo + com - (+p.comisionLiquidacion || 0));
+    const asig = Math.max(0, (+p.bonoAsignacionesLiquidacion || 0) + ((+p.bono || 0) - (+p.bonoLiquidacion || 0)));
+    return sueldo * (1 + afp / 100 + fonasa / 100) + asig + provision;
+  }
+  return sueldo * (1 + afp / 100 + fonasa / 100) + (+p.bono || 0) + com + provision;
+}
+function remuneracionesMes(){ return Math.round(((D.costos && D.costos.config && D.costos.config.rrhh) || []).reduce((s, p) => s + costoMensualTrabajador(p), 0)); }
+const NOMBRE_GASTO = { arriendo: 'Arriendo', servicios: 'Servicios básicos', marketing: 'Marketing', contador: 'Contador', software: 'Software', otros: 'Otros gastos' };
+function gastosFijos(){ const g = (D.costos && D.costos.config && D.costos.config.gastos) || {}; return Object.keys(g).map(k => ({ nombre: NOMBRE_GASTO[k] || k, monto: +g[k] || 0 })); }
+function fechaIngresoProd(p){ return p.fechaEntregaReal || p.fechaEntrega || p.date || ''; }
+function netoCompra(c){ return c.subtotalNeto != null ? +c.subtotalNeto : (+c.monto || 0); }
+function totalCompra(c){ return c.total != null ? +c.total : netoCompra(c) + (+c.iva || 0); }
+function pagadoCompra(c){ if (Array.isArray(c.pagos)) return c.pagos.reduce((s, p) => s + (+p.monto || 0), 0); return c.pagada === true ? totalCompra(c) : 0; }
+function vencimientoCompra(c){
+  if (c.vencimiento) return c.vencimiento;
+  const p = D.proveedores.find(x => String(x.id) === String(c.proveedorId));
+  return sumarDias(c.fecha || hoyChile(), p && p.plazoPagoDias ? p.plazoPagoDias : 0);
+}
+function comision(v){ return Math.round((+v.montoBase || 0) * (+v.comision || D.comDefPct || 0) / 100); }
+
+// Suma por mes (0..11) del año a partir de [fecha, monto].
+function porMes(anio, filas){ const m = new Array(12).fill(0); filas.forEach(([f, x]) => { if (f && f.slice(0, 4) === String(anio)) m[+f.slice(5, 7) - 1] += x; }); return m; }
+async function resultadosAnio(anio){
+  const prods = (await cargarProds(anio - 1)).concat(await cargarProds(anio));
+  const sala = porMes(anio, D.sala.map(v => [v.fecha, +v.montoBase || 0]));
+  const otros = porMes(anio, D.otros.map(v => [v.fecha, +v.montoBase || 0]));
+  const prod = porMes(anio, prods.map(p => [fechaIngresoProd(p), (+p.monto || 0) / 1.19]));
+  const prodIva = porMes(anio, prods.map(p => [fechaIngresoProd(p), (+p.monto || 0) - (+p.monto || 0) / 1.19]));
+  const compras = porMes(anio, D.compras.map(c => [c.fecha, netoCompra(c)]));
+  const credito = porMes(anio, D.compras.filter(c => c.iva != null).map(c => [c.fecha, +c.iva || 0]));
+  const comis = porMes(anio, D.sala.map(v => [v.fecha, comision(v)]));
+  return { sala, otros, prod, prodIva, compras, credito, comis };
+}
+function ivaMeses(r, remanenteInicial){
+  let rem = remanenteInicial || 0;
+  return MESES.map((_, i) => {
+    const debito = Math.round((r.sala[i] + r.otros[i]) * 0.19 + r.prodIva[i]);
+    const credito = Math.round(r.credito[i]);
+    const saldo = debito - credito - rem;
+    const out = { debito, credito, remAnterior: rem, pagar: Math.max(0, saldo), remSiguiente: Math.max(0, -saldo) };
+    rem = out.remSiguiente;
+    return out;
+  });
+}
+
+// ------------------------------------------------------------------ vistas
+function verPanel(id, btn){
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('on'));
+  $('p-' + id).classList.add('on'); btn.classList.add('on');
+  renderTodo();
+}
+async function renderTodo(){ await renderResultados(); await renderIva(); await renderFlujo(); }
+function mesCerrado(anio, i){ const h = hoyChile(); return anio < +h.slice(0, 4) || (anio === +h.slice(0, 4) && i < +h.slice(5, 7) - 1); }
+function mesIniciado(anio, i){ const h = hoyChile(); return anio < +h.slice(0, 4) || (anio === +h.slice(0, 4) && i <= +h.slice(5, 7) - 1); }
+
+async function renderResultados(){
+  const anio = +$('anio').value;
+  const r = await resultadosAnio(anio);
+  const remu = remuneracionesMes(), gastos = gastosFijos();
+  const filas = [];
+  const fila = (nombre, arr, clase) => filas.push({ nombre, arr, clase, total: arr.reduce((s, x) => s + x, 0) });
+  const ingresos = MESES.map((_, i) => r.sala[i] + r.otros[i] + r.prod[i]);
+  // Remuneraciones y gastos fijos solo en meses ya iniciados y con ventas
+  // registradas: los meses anteriores a usar el sistema no tienen datos.
+  const aplica = i => mesIniciado(anio, i) && ingresos[i] > 0 ? 1 : 0;
+  const directos = MESES.map((_, i) => r.compras[i] + r.comis[i]);
+  const bruto = MESES.map((_, i) => ingresos[i] - directos[i]);
+  const remuArr = MESES.map((_, i) => remu * aplica(i));
+  const gastosArr = gastos.map(g => MESES.map((_, i) => g.monto * aplica(i)));
+  const operacional = MESES.map((_, i) => bruto[i] - remuArr[i] - gastosArr.reduce((s, a) => s + a[i], 0));
+  filas.push({ sec: 'Ingresos netos' });
+  fila('Sala de venta', r.sala); fila('Otros (ventas empresa)', r.otros); fila('Producciones', r.prod);
+  fila('Total ingresos', ingresos, 'sub');
+  filas.push({ sec: 'Costos directos' });
+  fila('Compras a proveedores', r.compras); fila('Comisiones Sala de venta', r.comis);
+  fila('Margen bruto', bruto, 'sub');
+  filas.push({ sec: 'Gastos operacionales' });
+  fila('Remuneraciones (costo empresa)', remuArr);
+  gastos.forEach((g, k) => fila(g.nombre, gastosArr[k]));
+  fila('Resultado operacional', operacional, 'res');
+  const pct = MESES.map((_, i) => ingresos[i] ? Math.round(operacional[i] / ingresos[i] * 100) : null);
+  $('er-tbl').innerHTML = `<tr><th>${anio}</th>${MESES.map(m => `<th>${m}</th>`).join('')}<th>Total</th></tr>` +
+    filas.map(f => f.sec ? `<tr class="sec"><td colspan="14">${f.sec}</td></tr>` :
+      `<tr class="${f.clase || ''}"><td>${f.nombre}</td>${f.arr.map((x, i) => `<td class="${x < 0 ? 'neg' : ''} ${!mesCerrado(anio, i) ? 'proj' : ''}">${x ? pesos(x) : '—'}</td>`).join('')}<td class="${f.total < 0 ? 'neg' : ''}"><b>${pesos(f.total)}</b></td></tr>`).join('') +
+    `<tr><td>Margen operacional</td>${pct.map(p => `<td class="${p < 0 ? 'neg' : ''}">${p === null ? '—' : p + '%'}</td>`).join('')}<td>${ingresos.reduce((s,x)=>s+x,0) ? Math.round(operacional.reduce((s,x)=>s+x,0) / ingresos.reduce((s,x)=>s+x,0) * 100) + '%' : '—'}</td></tr>`;
+  const tIng = ingresos.reduce((s, x) => s + x, 0), tBruto = bruto.reduce((s, x) => s + x, 0), tOp = operacional.reduce((s, x) => s + x, 0);
+  $('er-kpis').innerHTML = `<div class="kpi"><div class="kpi-l">Ingresos netos ${anio}</div><div class="kpi-v">${pesos(tIng)}</div></div>
+    <div class="kpi"><div class="kpi-l">Margen bruto</div><div class="kpi-v">${pesos(tBruto)}</div><div class="nota">${tIng ? Math.round(tBruto / tIng * 100) + '% de los ingresos' : ''}</div></div>
+    <div class="kpi"><div class="kpi-l">Remuneraciones + gastos fijos / mes</div><div class="kpi-v">${pesos(remu + gastos.reduce((s, g) => s + g.monto, 0))}</div></div>
+    <div class="kpi" style="border-left:5px solid ${tOp >= 0 ? '#16A34A' : '#DC2626'}"><div class="kpi-l">Resultado operacional</div><div class="kpi-v" style="color:${tOp >= 0 ? '#15803D' : '#B91C1C'}">${pesos(tOp)}</div></div>`;
+}
+
+async function renderIva(){
+  const anio = +$('anio').value;
+  // Remanente que viene de diciembre del año anterior.
+  const previo = ivaMeses(await resultadosAnio(anio - 1), 0);
+  const meses = ivaMeses(await resultadosAnio(anio), previo[11].remSiguiente);
+  const cols = (fn) => meses.map((m, i) => `<td class="${!mesCerrado(anio, i) ? 'proj' : ''}">${fn(m) ? pesos(fn(m)) : '—'}</td>`).join('');
+  const tot = k => meses.reduce((s, m) => s + m[k], 0);
+  $('iva-tbl').innerHTML = `<tr><th>${anio}</th>${MESES.map(m => `<th>${m}</th>`).join('')}<th>Total</th></tr>
+    <tr><td>IVA débito (ventas)</td>${cols(m => m.debito)}<td><b>${pesos(tot('debito'))}</b></td></tr>
+    <tr><td>IVA crédito (compras)</td>${cols(m => m.credito)}<td><b>${pesos(tot('credito'))}</b></td></tr>
+    <tr><td>Remanente del mes anterior</td>${cols(m => m.remAnterior)}<td></td></tr>
+    <tr class="res"><td>IVA a pagar (F29, día 20 del mes siguiente)</td>${cols(m => m.pagar)}<td><b>${pesos(tot('pagar'))}</b></td></tr>
+    <tr><td>Remanente para el mes siguiente</td>${cols(m => m.remSiguiente)}<td></td></tr>`;
+}
+
+async function renderFlujo(){
+  const hoy = hoyChile();
+  const lunes = sumarDias(hoy, -((new Date(aUTC(hoy)).getUTCDay() + 6) % 7));
+  const semanas = Array.from({ length: 12 }, (_, i) => ({ ini: sumarDias(lunes, i * 7), fin: sumarDias(lunes, i * 7 + 6), cobros: 0, ventas: 0, proveedores: 0, sueldos: 0, gastos: 0, iva: 0 }));
+  const idx = f => { if (!f || f <= semanas[0].fin) return 0; const i = semanas.findIndex(s => f >= s.ini && f <= s.fin); return i; };
+  const anioHoy = +hoy.slice(0, 4);
+  const prods = (await cargarProds(anioHoy - 1)).concat(await cargarProds(anioHoy));
+  let atrasado = 0, vencido = 0;
+  prods.forEach(p => {
+    const saldo = +p.saldo || 0; if (saldo <= 0) return;
+    // Se cobra al entregar: entregada y sin pagar (o con entrega ya pasada) = atrasado.
+    const esperado = p.etapa === 'Entregado' ? (p.fechaEntregaReal || p.fechaEntrega || p.date || hoy) : (p.fechaEntrega || p.date || hoy);
+    if (esperado < hoy) atrasado += saldo;
+    const i = idx(esperado < hoy ? hoy : esperado); if (i >= 0) semanas[i].cobros += saldo;
+  });
+  if ($('fl-ventas').checked) {
+    const desde = sumarDias(lunes, -56);
+    const ultimas = D.sala.concat(D.otros).filter(v => v.fecha >= desde && v.fecha < lunes).reduce((s, v) => s + (+v.montoBase || 0) * 1.19, 0);
+    semanas.forEach(s => s.ventas = Math.round(ultimas / 8));
+  }
+  D.compras.forEach(c => {
+    const saldo = Math.max(0, totalCompra(c) - pagadoCompra(c));
+    if (saldo <= 0 || (c.pagada === undefined && !Array.isArray(c.pagos))) return; // sin dato de pago: no se proyecta
+    const v = vencimientoCompra(c);
+    if (v < hoy) vencido += saldo;
+    const i = idx(v < hoy ? hoy : v); if (i >= 0) semanas[i].proveedores += saldo;
+  });
+  // Sueldos a fin de mes, gastos fijos el día 5 e IVA del mes anterior el día 20.
+  const remu = remuneracionesMes(), gastos = gastosFijos().reduce((s, g) => s + g.monto, 0);
+  const meses = [...new Set(semanas.flatMap(s => [s.ini.slice(0, 7), s.fin.slice(0, 7)]))];
+  for (const ym of meses) {
+    const [y, m] = ym.split('-').map(Number);
+    const finMes = deUTC(Date.UTC(y, m, 0));
+    let i = idx(finMes); if (i >= 0 && finMes >= semanas[0].ini) semanas[i].sueldos += remu;
+    const dia5 = ym + '-05'; i = idx(dia5); if (i >= 0 && dia5 >= semanas[0].ini) semanas[i].gastos += gastos;
+    const dia20 = ym + '-20'; i = idx(dia20);
+    if (i >= 0 && dia20 >= semanas[0].ini) {
+      const ant = new Date(Date.UTC(y, m - 2, 1)), ya = ant.getUTCFullYear(), ma = ant.getUTCMonth();
+      const r = ivaMeses(await resultadosAnio(ya), 0);
+      semanas[i].iva += r[ma].pagar;
+    }
+  }
+  let saldo = +(D.cfg.saldoInicial || 0);
+  const neg = [];
+  const filas = semanas.map((s, i) => {
+    const entra = s.cobros + s.ventas, sale = s.proveedores + s.sueldos + s.gastos + s.iva;
+    saldo += entra - sale;
+    if (saldo < 0) neg.push(i);
+    return Object.assign({}, s, { entra, sale, neto: entra - sale, saldo });
+  });
+  $('fl-kpis').innerHTML = `<div class="kpi"><div class="kpi-l">Saldo inicial</div><div class="kpi-v">${pesos(D.cfg.saldoInicial || 0)}</div><div class="nota">${D.cfg.fechaSaldo ? 'al ' + D.cfg.fechaSaldo.split('-').reverse().join('-') : 'ingresa tu saldo actual'}</div></div>
+    <div class="kpi"><div class="kpi-l">Cobros atrasados (producciones)</div><div class="kpi-v" style="color:#B45309">${pesos(atrasado)}</div></div>
+    <div class="kpi"><div class="kpi-l">Facturas vencidas (proveedores)</div><div class="kpi-v" style="color:#B91C1C">${pesos(vencido)}</div></div>
+    <div class="kpi" style="border-left:5px solid ${neg.length ? '#DC2626' : '#16A34A'}"><div class="kpi-l">Saldo en 12 semanas</div><div class="kpi-v" style="color:${saldo < 0 ? '#B91C1C' : '#15803D'}">${pesos(saldo)}</div><div class="nota">${neg.length ? '⚠️ Saldo negativo en ' + neg.length + ' semana(s)' : 'Sin semanas en negativo'}</div></div>`;
+  const col = (k) => filas.map(f => `<td class="${k === 'saldo' && f.saldo < 0 ? 'neg' : ''}">${f[k] ? pesos(k === 'proveedores' || k === 'sueldos' || k === 'gastos' || k === 'iva' ? -f[k] : f[k]) : '—'}</td>`).join('');
+  $('fl-tbl').innerHTML = `<tr><th>Semana</th>${filas.map(f => `<th>${fCorta(f.ini)} al ${fCorta(f.fin)}</th>`).join('')}</tr>
+    <tr class="sec"><td colspan="13">Entradas</td></tr>
+    <tr><td>Cobros de producciones</td>${col('cobros')}</tr>
+    <tr><td>Ventas estimadas</td>${col('ventas')}</tr>
+    <tr class="sec"><td colspan="13">Salidas</td></tr>
+    <tr><td>Pagos a proveedores</td>${col('proveedores')}</tr>
+    <tr><td>Remuneraciones</td>${col('sueldos')}</tr>
+    <tr><td>Gastos fijos</td>${col('gastos')}</tr>
+    <tr><td>IVA (F29)</td>${col('iva')}</tr>
+    <tr class="sub"><td>Flujo neto de la semana</td>${filas.map(f => `<td class="${f.neto < 0 ? 'neg' : ''}">${pesos(f.neto)}</td>`).join('')}</tr>
+    <tr class="res"><td>Saldo proyectado</td>${col('saldo')}</tr>`;
+}
+
+async function guardarSaldo(){
+  D.cfg.saldoInicial = Math.round(+$('fl-saldo').value || 0);
+  D.cfg.fechaSaldo = $('fl-fecha').value || hoyChile();
+  try {
+    const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: 'finanzas_ci_v1', value: JSON.stringify(D.cfg), token: CLOUD_TOKEN }) });
+    const j = await res.json(); if (j.estado === 'error') throw new Error(j.detalle);
+  } catch (e) { if (e.message !== 'CONFLICTO') alert('No se pudo guardar el saldo: ' + e.message); }
+  renderFlujo();
+}
+
+// ------------------------------------------------------------------ inicio
+(async function init(){
+  const anioHoy = +hoyChile().slice(0, 4);
+  $('anio').innerHTML = [anioHoy - 1, anioHoy].map(a => `<option ${a === anioHoy ? 'selected' : ''}>${a}</option>`).join('');
+  const faltan = [];
+  const intentar = async (nombre, fn) => { try { return await fn(); } catch (e) { faltan.push(nombre + (/SIN_PERMISO/.test(e.message) ? ' (sin permiso)' : '')); return null; } };
+  const sala = await intentar('Sala de venta', () => leerBloques('sublipro_v2', 'ventas'));
+  if (sala) { D.sala = sala.lista; D.comDefPct = (sala.principal && sala.principal.comDefPct) || 6; }
+  const otros = await intentar('Otros', () => leer('creamos_imagen_v1')); if (otros) D.otros = Array.isArray(otros.ventas) ? otros.ventas : [];
+  D.compras = (await intentar('Compras', () => leer('compras_ci_v1'))) || [];
+  D.proveedores = (await intentar('Proveedores', () => leer('proveedores_ci_v1'))) || [];
+  D.costos = await intentar('Costos', () => leer('costos_ci_v1'));
+  D.cfg = (await intentar('Configuración de Finanzas', () => leer('finanzas_ci_v1'))) || {};
+  await intentar('Producciones', async () => { await cargarProds(anioHoy - 1); await cargarProds(anioHoy); });
+  if (faltan.length) { $('aviso').textContent = 'No se pudieron leer: ' + faltan.join(', ') + '. Las cifras pueden estar incompletas. Si dice "sin permiso", asigna el módulo Finanzas en Accesos.'; $('aviso').style.display = 'block'; }
+  $('fl-saldo').value = D.cfg.saldoInicial || '';
+  $('fl-fecha').value = D.cfg.fechaSaldo || hoyChile();
+  if (typeof ocultarCargando === 'function') ocultarCargando();
+  renderTodo();
+})();
+</script>
+</body>
+</html>

@@ -36,7 +36,7 @@ const GOOGLE_CLIENT_ID = "207433225749-76s4184pif80ge7gfr0nt39qa80b82ij.apps.goo
 const SUPER_ADMIN_EMAIL = "a.catalan.valdes@gmail.com";
 const ACL_KEY = "accesos_ci_v1";
 const SESION_TTL_MS = 24 * 60 * 60 * 1000; // igual que en las páginas
-const MODULOS = ["rendicion", "clientes", "costos", "cotizaciones", "dashboard", "calendario", "proveedores", "ventasci", "ventas", "rrhh", "marketing", "inventario"];
+const MODULOS = ["rendicion", "clientes", "costos", "cotizaciones", "dashboard", "calendario", "proveedores", "ventasci", "ventas", "rrhh", "marketing", "inventario", "finanzas"];
 
 const CACHE_TTL_S = 21600; // 6 horas (máximo permitido por CacheService)
 const CACHE_PREFIX = "v1:";
@@ -48,17 +48,18 @@ const CACHE_MAX_CHARS = 90000; // CacheService admite hasta 100 KB por valor
 // Una llave que no calce con ninguna regla es solo para administradores.
 const REGLAS = [
   { llave: /^clientes_ci_v1$/,       escribe: ["clientes"],     lee: ["calendario", "cotizaciones"] },
-  { llave: /^costos_ci_v1$/,         escribe: ["costos"],       lee: ["cotizaciones", "dashboard"] },
+  { llave: /^costos_ci_v1$/,         escribe: ["costos"],       lee: ["cotizaciones", "dashboard", "finanzas"] },
   { llave: /^(cotizaciones|tarifario)_ci_v1$/, escribe: ["cotizaciones"], lee: ["calendario"] },
-  { llave: /^(compras|proveedores|ordenes_compra)_ci_v1$/, escribe: ["proveedores"], lee: ["dashboard", "inventario"] },
-  { llave: /^creamos_imagen_v1$/,    escribe: ["ventasci"],     lee: ["dashboard"] },
-  { llave: /^sublipro_v2$/,          escribe: ["ventas"],       lee: ["dashboard"] },
-  { llave: /^rendicion\d{4}_v\d+$/,  escribe: ["rendicion"],    lee: ["dashboard"] },
+  { llave: /^(compras|proveedores|ordenes_compra)_ci_v1$/, escribe: ["proveedores"], lee: ["dashboard", "inventario", "finanzas"] },
+  { llave: /^creamos_imagen_v1$/,    escribe: ["ventasci"],     lee: ["dashboard", "finanzas"] },
+  { llave: /^sublipro_v2$/,          escribe: ["ventas"],       lee: ["dashboard", "finanzas"] },
+  { llave: /^rendicion\d{4}_v\d+$/,  escribe: ["rendicion"],    lee: ["dashboard", "finanzas"] },
   { llave: /^cierres_caja_v1$/,      escribe: ["rendicion"],    lee: ["dashboard"] },
-  { llave: /^prods\d{4}$/,           escribe: ["calendario"],   lee: ["clientes", "dashboard", "cotizaciones"] },
+  { llave: /^prods\d{4}$/,           escribe: ["calendario"],   lee: ["clientes", "dashboard", "cotizaciones", "finanzas"] },
   { llave: /^rrhh_[a-z_]+_v\d+$/,    escribe: ["rrhh"],         lee: [] },
   { llave: /^marketing_ci_v1$/,      escribe: ["marketing"],    lee: [] },
-  { llave: /^inventario_ci_v1$/,     escribe: ["inventario"],   lee: ["ventas", "ventasci", "calendario", "proveedores", "dashboard"] }
+  { llave: /^inventario_ci_v1$/,     escribe: ["inventario"],   lee: ["ventas", "ventasci", "calendario", "proveedores", "dashboard", "finanzas"] },
+  { llave: /^finanzas_ci_v1$/,       escribe: ["finanzas"],     lee: [] }
 ];
 
 // ------------------------------------------------------------------

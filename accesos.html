@@ -88,6 +88,7 @@ const MODULOS = [
   { key: "ventas",       label: "Sala de venta" },
   { key: "rrhh",         label: "Recursos Humanos" },
   { key: "inventario",   label: "Inventario" },
+  { key: "finanzas",     label: "Finanzas" },
   { key: "marketing",    label: "Marketing" },
   { key: "trabajador",   label: "Mi Portal" }
 ];
@@ -277,7 +278,7 @@ var NOMBRES_LLAVE = [
   [/^accesos_ci_v1/, "Accesos"], [/^clientes_ci_v1/, "Clientes"], [/^costos_ci_v1/, "Costos"],
   [/^(cotizaciones|tarifario)_ci_v1/, "Cotizaciones"], [/^(compras|proveedores)_ci_v1/, "Proveedores"],
   [/^creamos_imagen_v1/, "Otros (ventas)"], [/^sublipro_v2/, "Sala de venta"], [/^rendicion/, "Caja"],
-  [/^prods\d{4}/, "Producciones"], [/^rrhh_/, "Recursos Humanos"], [/^marketing_ci_v1/, "Marketing"], [/^inventario_ci_v1/, "Inventario"], [/^cierres_caja_v1/, "Caja (cierres)"], [/^ordenes_compra_ci_v1/, "Proveedores (OC)"]
+  [/^prods\d{4}/, "Producciones"], [/^rrhh_/, "Recursos Humanos"], [/^marketing_ci_v1/, "Marketing"], [/^inventario_ci_v1/, "Inventario"], [/^finanzas_ci_v1/, "Finanzas"], [/^cierres_caja_v1/, "Caja (cierres)"], [/^ordenes_compra_ci_v1/, "Proveedores (OC)"]
 ];
 function nombreLlave(k) {
   for (var i = 0; i < NOMBRES_LLAVE.length; i++) if (NOMBRES_LLAVE[i][0].test(k)) return NOMBRES_LLAVE[i][1] + ' <span style="color:var(--muted);font-size:11px">(' + k + ')</span>';
