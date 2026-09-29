@@ -589,6 +589,17 @@ const ORIGEN_VENTAS = {};
 function soltarFilasSalaDeCaja() {
   soltarFilasVentasDeCaja("sala", "caja_sin_sala_v1", "Sala de venta");
   soltarFilasVentasDeCaja("otros", "caja_sin_otros_v1", "Otros");
+  cerrarMezclaCajaAntigua();
+}
+// Una sola vez: las conversiones anteriores no quedaron marcadas como cambio
+// manual, y una pestaña de Caja abierta desde antes podía "mezclarse" y
+// descartar las filas convertidas. Se marca la versión actual como manual:
+// cualquier pestaña abierta antes de este momento recibe CONFLICTO y recarga.
+function cerrarMezclaCajaAntigua() {
+  const props = PropertiesService.getScriptProperties();
+  if (props.getProperty("caja_mezcla_cerrada_v1")) return;
+  props.setProperty("vermanual:" + KEY_CAJA, versionDe(KEY_CAJA));
+  props.setProperty("caja_mezcla_cerrada_v1", "1");
 }
 function soltarFilasVentasDeCaja(origen, marca, nombreOrigen) {
   const props = PropertiesService.getScriptProperties();
@@ -614,7 +625,9 @@ function soltarFilasVentasDeCaja(origen, marca, nombreOrigen) {
     });
     if (n) {
       const texto = JSON.stringify(caja);
-      escribirValor(KEY_CAJA, texto);
+      // Convertir filas en manuales es un cambio manual: una pestaña abierta
+      // antes no debe "mezclarse" (perdería estas filas), sino recargar.
+      props.setProperty("vermanual:" + KEY_CAJA, escribirValor(KEY_CAJA, texto));
       registrarBitacora("sistema", "caja sin " + nombreOrigen, n + " fila(s) copiadas desde " + nombreOrigen + " pasan a manuales", antes, texto);
     }
     props.setProperty(marca, "1");
