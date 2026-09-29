@@ -425,6 +425,7 @@ function manejarMarcaciones(payload) {
 }
 
 function doGet(e) {
+  try { soltarFilasSalaDeCaja(); } catch (err) { console.error("soltarFilasSalaDeCaja", err); }
   try {
     const p = (e && e.parameter) || {};
     if (p.accion) return accionGet(p);
@@ -438,6 +439,7 @@ function doGet(e) {
 }
 
 function doPost(e) {
+  try { soltarFilasSalaDeCaja(); } catch (err) { console.error("soltarFilasSalaDeCaja", err); }
   let payload;
   try { payload = JSON.parse(e.postData.contents); } catch (err) { return error("Petición inválida"); }
   if (payload.accion || payload.action) {
@@ -471,7 +473,7 @@ function doPost(e) {
     const version = escribirValor(payload.key, valor);
     if (combinar) PropertiesService.getScriptProperties().setProperty("vermanual:" + payload.key, version);
     registrarBitacora(usuario.email, fusion ? "guardar (mezcla)" : "guardar", payload.key, antes, valor);
-    // Ventas de Sala de venta y Otros → filas automáticas en Caja.
+    // Ventas de Otros → filas automáticas en Caja (Sala de venta no pasa a Caja).
     if (ORIGEN_VENTAS[llaveBase(payload.key)]) {
       try { espejarVentas(llaveBase(payload.key), usuario.email); } catch (e) { registrarBitacora(usuario.email, "error espejo ventas", String(e)); }
     }
@@ -569,14 +571,50 @@ const MEDIOS_PAGO = { "Efectivo": "ef", "Transferencia": "tr", "Webpay crédito"
 // ------------------------------------------------------------------
 // Ventas → Caja (espejo automático)
 // ------------------------------------------------------------------
-// Cada vez que Sala de venta (sublipro_v2) u Otros (creamos_imagen_v1)
-// guardan, sus ventas con fecha desde ESPEJO_VENTAS_DESDE se reflejan en la
+// Cada vez que Otros (creamos_imagen_v1) guarda, sus ventas con fecha desde
+// ESPEJO_VENTAS_DESDE se reflejan en la
 // Caja del día como filas automáticas (ventaRef): se crean, actualizan o
 // borran junto con la venta. Las ventas anteriores a esa fecha ya estaban
 // anotadas a mano en Caja y no se tocan. En Caja, estas filas (y las de pagos
 // de producciones, pagoRef) se muestran bloqueadas: se corrigen en su módulo.
+// Sala de venta (sublipro_v2) NO pasa a Caja: registra ventas netas para
+// calcular comisiones; la Caja del local se anota a mano.
 const ESPEJO_VENTAS_DESDE = "2026-09-27";
-const ORIGEN_VENTAS = { "sublipro_v2": { id: "sala", origen: "Local", nombre: "Sala de venta" }, "creamos_imagen_v1": { id: "otros", origen: "Empresa", nombre: "Otros" } };
+const ORIGEN_VENTAS = { "creamos_imagen_v1": { id: "otros", origen: "Empresa", nombre: "Otros" } };
+
+// Una sola vez: las filas que Sala de venta alcanzó a copiar en Caja (27 y
+// 28-09-2026) pasan a ser filas manuales (editables en Caja) en vez de
+// borrarse, para no perder el registro de esos días.
+function soltarFilasSalaDeCaja() {
+  const props = PropertiesService.getScriptProperties();
+  if (props.getProperty("caja_sin_sala_v1")) return;
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    if (props.getProperty("caja_sin_sala_v1")) return;
+    const antes = leerValor(KEY_CAJA);
+    let caja;
+    try { caja = JSON.parse(antes || "{}") || {}; } catch (e) { return; }
+    let n = 0;
+    Object.keys(caja).forEach(function (f) {
+      if (!Array.isArray(caja[f])) return;
+      caja[f] = caja[f].map(function (r) {
+        if (!(r && r.ventaRef && r.ventaRef.origen === "sala")) return r;
+        n++;
+        const m = Object.assign({}, r);
+        delete m.ventaRef;
+        m.obs = "";
+        return m;
+      });
+    });
+    if (n) {
+      const texto = JSON.stringify(caja);
+      escribirValor(KEY_CAJA, texto);
+      registrarBitacora("sistema", "caja sin Sala de venta", n + " fila(s) copiadas desde Sala de venta pasan a manuales", antes, texto);
+    }
+    props.setProperty("caja_sin_sala_v1", "1");
+  } finally { lock.releaseLock(); }
+}
 const COM_WEBPAY_PCT = 2; // recargo Webpay que paga el cliente (igual que en los módulos de ventas)
 const TIPO_CAJA = { "Camisetas": "Camiseta", "Camisetas estampadas": "Camiseta", "Polerones": "Impresión Polerones", "Lienzo": "Lienzo", "Mantas": "Mantas",
   "Pañuelos": "Pañuelos", "Banderas": "Banderas", "Banner": "Banner", "Bandanas": "Bandanas", "Conjuntos": "Conjuntos", "Estampados": "Estampados",
