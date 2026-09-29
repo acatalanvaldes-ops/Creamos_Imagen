@@ -50,10 +50,10 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);min-height:10
 .content-head .sub{font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:2px}
 .btn-new{background:var(--accent);color:#fff;border:none;font-family:var(--sans);font-size:13px;font-weight:700;padding:10px 18px;border-radius:6px;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,.15);transition:transform 0.1s}
 .btn-new:hover{transform:translateY(-1px);background:#1b5e20}
-.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-.card{background:var(--white);border:1px solid var(--border);border-radius:8px;padding:13px 15px}
+.cards{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px}
+.card{background:var(--white);border:1px solid var(--border);border-radius:8px;padding:9px 12px;min-width:0}
 .card-lbl{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-family:var(--mono);margin-bottom:5px}
-.card-val{font-family:var(--mono);font-size:18px;font-weight:600}
+.card-val{font-family:var(--mono);font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .g{color:var(--green)}.b{color:var(--blue)}.a{color:var(--amber)}
 .tbl-wrap{background:var(--white);border:1px solid var(--border);border-radius:8px;overflow-x:auto;overflow-y:auto;flex:1;min-width:0;overscroll-behavior-x:contain;scrollbar-gutter:stable}
 .tbl-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#faf9f6;border-bottom:1px solid var(--border);flex-wrap:wrap}
@@ -62,30 +62,31 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);min-height:10
 .type-pills{display:flex;gap:5px;flex-wrap:wrap}
 .pill{background:var(--white);border:1px solid var(--border);color:var(--muted);font-family:var(--sans);font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;cursor:pointer;}
 .pill.on{background:var(--accent);color:#fff;border-color:var(--accent)}
-.tbl-wrap table{width:max-content;min-width:1470px;table-layout:fixed;border-collapse:collapse}
-thead th{background:#f5f3ee;font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-weight:600;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);}
+.tbl-wrap table{width:100%;table-layout:fixed;border-collapse:collapse}
+thead th{background:#f5f3ee;font-family:var(--mono);font-size:9px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);font-weight:600;padding:8px 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;border-bottom:1px solid var(--border);}
 tbody td{border-bottom:1px solid var(--border);padding:0;font-size:12px}
-td input,td select{background:transparent;border:none;color:var(--ink);font-family:var(--mono);font-size:12px;padding:8px 12px;width:100%;outline:none;}
+td input,td select{background:transparent;border:none;color:var(--ink);font-family:var(--mono);font-size:12px;padding:7px 6px;width:100%;min-width:0;outline:none;}
+tbody td{overflow:hidden;text-overflow:ellipsis}
 td input[type="number"]{text-align:right}
 td select{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .btn-sidebar-toggle{flex:none;background:#fff;border:1px solid var(--border2);color:var(--ink);font-family:var(--sans);font-size:11px;font-weight:700;padding:8px 10px;border-radius:6px;cursor:pointer}
 .btn-sidebar-toggle:hover{border-color:var(--accent);color:var(--accent)}
 .ef-inp input{color:var(--green);font-weight:600}
-.btn-del{background:rgba(183, 28, 28, 0.1);border:1px solid rgba(183, 28, 28, 0.2);color:var(--red);cursor:pointer;padding:6px 10px;font-size:14px;border-radius:6px;transition:all 0.15s;}
+.btn-del{background:rgba(183, 28, 28, 0.1);border:1px solid rgba(183, 28, 28, 0.2);color:var(--red);cursor:pointer;padding:4px 6px;font-size:13px;border-radius:6px;transition:all 0.15s;}
 .btn-del:hover{background:var(--red);color:#fff;}
-tfoot .tot-row td{background:var(--accent-l);font-family:var(--mono);font-size:12px;font-weight:600;padding:9px 12px;border-top:2px solid var(--border2)}
+tfoot .tot-row td{background:var(--accent-l);font-family:var(--mono);font-size:12px;font-weight:600;padding:9px 6px;border-top:2px solid var(--border2)}
 .tot-ef{color:var(--green);font-size:14px}
 .tot-lc{color:var(--blue);font-size:14px}
 .empty-row td{padding:48px;text-align:center;color:var(--muted);font-size:13px;font-family:var(--sans);}
 .summ-header{display:flex;align-items:center;gap:16px}
 .summ-header h2{font-size:22px;font-weight:700;letter-spacing:-.5px}
-.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
-.kpi{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:18px 20px;position:relative;overflow:hidden}
+.kpi-row{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:10px}
+.kpi{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:12px 14px;position:relative;overflow:hidden;min-width:0}
 .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
 .kpi.k-tot::before{background:var(--accent)}
 .kpi-icon{font-size:22px;margin-bottom:8px}
 .kpi-lbl{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-family:var(--mono);margin-bottom:6px}
-.kpi-val{font-family:var(--mono);font-size:24px;font-weight:700}
+.kpi-val{font-family:var(--mono);font-size:19px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .summ-filter{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .sfbtn{background:var(--white);border:1px solid var(--border);color:var(--muted);font-family:var(--sans);font-size:11px;font-weight:600;padding:5px 13px;border-radius:20px;cursor:pointer;}
 .sfbtn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
@@ -106,13 +107,6 @@ tfoot .tot-row td{background:var(--accent-l);font-family:var(--mono);font-size:1
 .btn-dl{background:#217346;color:#fff;border:none;font-family:var(--sans);font-size:13px;font-weight:700;padding:10px 22px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:8px;}
 .brand-field-example{display:none!important}
 tr.fila-auto td{background:#F8FAFC;color:#334155;padding:8px 10px;font-size:13px}
-.cierre{background:var(--white);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-top:12px}
-.cierre h3{font-size:13px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
-.cierre-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end}
-.cierre-grid label{display:block;font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
-.cierre-grid input,.cierre textarea{width:100%;border:1px solid var(--border);border-radius:6px;padding:7px 9px;font-size:14px;font-family:inherit}
-.cierre-val{font-size:16px;font-weight:700}
-.cierre-estado{margin-top:10px;font-size:12px;padding:8px 10px;border-radius:6px}
 </style>
   <link rel="stylesheet" href="brand/brand.css">
   <script src="brand/brand.js"></script>
@@ -192,15 +186,14 @@ tr.fila-auto td{background:#F8FAFC;color:#334155;padding:8px 10px;font-size:13px
         </div>
       </div>
       <table>
-        <colgroup><col style="width:100px"><col style="width:150px"><col style="width:170px"><col style="width:145px"><col style="width:135px"><col style="width:120px"><col style="width:130px"><col style="width:120px"><col style="width:120px"><col style="width:220px"><col style="width:60px"></colgroup>
-        <thead><tr><th style="width:115px">Fecha</th><th style="width:170px">Cliente</th><th style="width:140px">Tipo de Venta</th><th style="width:190px">Origen</th><th style="width:135px">Forma de Pago</th><th style="width:110px;text-align:right">Efectivo ($)</th><th style="width:115px;text-align:right">Transfer. ($)</th><th style="width:105px;text-align:right">Crédito ($)</th><th style="width:105px;text-align:right">Débito ($)</th><th>Observaciones</th><th style="width:60px;text-align:center">Acción</th></tr></thead>
+        <colgroup><col style="width:7%"><col style="width:13%"><col style="width:10%"><col style="width:11.5%"><col style="width:12.5%"><col style="width:7%"><col style="width:7%"><col style="width:7%"><col style="width:7%"><col style="width:11%"><col style="width:7%"></colgroup>
+        <thead><tr><th>Fecha</th><th>Cliente</th><th>Tipo de venta</th><th>Origen</th><th>Forma de pago</th><th style="text-align:right">Efectivo</th><th style="text-align:right">Transfer.</th><th style="text-align:right">Crédito</th><th style="text-align:right">Débito</th><th>Observaciones</th><th style="text-align:center"></th></tr></thead>
         <tbody id="tbody">
           <tr class="empty-row"><td colspan="11">Cargando registros...</td></tr>
         </tbody>
         <tfoot id="tfoot-dia"><tr class="tot-row"><td colspan="5">TOTAL DÍA</td><td class="tot-ef" id="tf-ef" style="text-align:right">$0</td><td class="tot-lc" id="tf-tr" style="text-align:right">$0</td><td class="tot-ef" id="tf-wpc" style="text-align:right;color:var(--amber)">$0</td><td class="tot-ef" id="tf-wpd" style="text-align:right;color:var(--amber)">$0</td><td colspan="2"></td></tr></tfoot>
       </table>
     </div>
-    <div class="cierre" id="cierre-dia"></div>
   </div>
 </div>
 
@@ -1428,7 +1421,6 @@ async function loadData() {
       localStorage.setItem('rendicion2026_v2', JSON.stringify(data));
   }
 
-  await cargarCierres();
   applyPrevRangeBounds();
   buildAccordion();
   selectDay(daysKey(t.getMonth(), t.getDate()), t.getMonth());
@@ -1514,7 +1506,7 @@ function selectDay(key,mi){
 }
 
 // =========================================================================
-// FILAS AUTOMÁTICAS Y CIERRE DE CAJA
+// FILAS AUTOMÁTICAS DE CAJA
 // =========================================================================
 function escCaja(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
@@ -1555,89 +1547,6 @@ async function eliminarPagoProduccion(anio, prodId, pagoId, btn){
   }
 }
 
-// CIERRE DEL DÍA (llave cierres_caja_v1: { "AAAA-MM-DD": {...} }).
-// Esperado en efectivo = fondo inicial + efectivo registrado del día.
-// Diferencia = contado − esperado. Si después del cierre cambia el efectivo
-// registrado, se avisa para revisar.
-let cierres = {}, cierresOk = false;
-async function cargarCierres(){
-  try { cierres = (await loadFromCloudStrict('cierres_caja_v1')) || {}; cierresOk = true; }
-  catch(e) { cierres = {}; cierresOk = false; console.warn('No se pudieron cargar los cierres de caja', e); }
-}
-function totalesDia(k){
-  const rows = rowsForDate(k);
-  return { ef: rows.reduce((s,r)=>s+(+r.ef||0),0), tr: rows.reduce((s,r)=>s+(+r.tr||0),0), wpc: rows.reduce((s,r)=>s+wpCred(r),0), wpd: rows.reduce((s,r)=>s+wpDeb(r),0) };
-}
-function valorCierre(id){ const el = document.getElementById(id); return el ? Math.round(+el.value || 0) : 0; }
-function signoMonto(n){ return (n > 0 ? '+' : n < 0 ? '−' : '') + fmt(Math.abs(n)); }
-function recalcularCierre(){
-  const t = totalesDia(curDate);
-  const esperado = valorCierre('ci-fondo') + t.ef;
-  const contadoEl = document.getElementById('ci-contado');
-  const dif = contadoEl && contadoEl.value !== '' ? valorCierre('ci-contado') - esperado : null;
-  const e = document.getElementById('ci-esperado'); if (e) e.textContent = fmt(esperado);
-  const d = document.getElementById('ci-dif');
-  if (d) { d.textContent = dif === null ? '—' : signoMonto(dif); d.style.color = dif === null ? '' : dif === 0 ? '#15803d' : 'var(--red)'; }
-}
-function renderCierre(){
-  const box = document.getElementById('cierre-dia');
-  if (!box || !curDate) return;
-  const t = totalesDia(curDate);
-  const c = cierres[curDate];
-  if (c && c.cerradoEn) {
-    const registradoAlCerrar = c.esperadoEf - (c.fondo || 0);
-    const cambio = t.ef !== registradoAlCerrar;
-    const dif = c.contado - c.esperadoEf;
-    box.innerHTML = '<h3>🔐 Cierre del día</h3>' +
-      '<div class="cierre-grid">' +
-        '<div><label>Fondo inicial</label><div class="cierre-val">' + fmt(c.fondo || 0) + '</div></div>' +
-        '<div><label>Efectivo esperado</label><div class="cierre-val">' + fmt(c.esperadoEf) + '</div></div>' +
-        '<div><label>Efectivo contado</label><div class="cierre-val">' + fmt(c.contado) + '</div></div>' +
-        '<div><label>Diferencia</label><div class="cierre-val" style="color:' + (dif === 0 ? '#15803d' : 'var(--red)') + '">' + signoMonto(dif) + '</div></div>' +
-        '<div><label>Transferencias / Webpay</label><div class="cierre-val" style="font-size:13px">' + fmt(c.tr) + ' / ' + fmt((c.wpc || 0) + (c.wpd || 0)) + '</div></div>' +
-      '</div>' +
-      (c.obs ? '<div style="font-size:12px;margin-top:8px">📝 ' + escCaja(c.obs) + '</div>' : '') +
-      '<div class="cierre-estado" style="background:#F0FDF4;color:#166534">Cerrada por <b>' + escCaja(c.por || '') + '</b> el ' + new Date(c.cerradoEn).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' }) + '.</div>' +
-      (cambio ? '<div class="cierre-estado" style="background:#FEF2F2;color:var(--red)">⚠️ El efectivo registrado cambió después del cierre (' + fmt(registradoAlCerrar) + ' → ' + fmt(t.ef) + '). Revisa y vuelve a cerrar.</div>' : '') +
-      '<div style="margin-top:10px"><button class="btn-new" style="background:#fff;color:#1C1917;border:1px solid var(--border)" onclick="reabrirCaja()">Reabrir y corregir</button></div>';
-    return;
-  }
-  // Conserva lo que se estaba escribiendo si la tarjeta se redibuja (p. ej. al cambiar una fila).
-  const borrador = box.dataset.fecha === curDate && document.getElementById('ci-contado') ? { fondo: document.getElementById('ci-fondo').value, contado: document.getElementById('ci-contado').value, obs: document.getElementById('ci-obs').value } : null;
-  const previo = borrador ? { fondo: borrador.fondo, contado: borrador.contado === '' ? null : borrador.contado, obs: borrador.obs } : (c || {});
-  box.dataset.fecha = curDate;
-  box.innerHTML = '<h3>🔓 Cierre del día</h3>' +
-    '<div class="cierre-grid">' +
-      '<div><label>Fondo inicial (sencillo)</label><input type="number" id="ci-fondo" min="0" value="' + (previo.fondo || '') + '" oninput="recalcularCierre()"></div>' +
-      '<div><label>Efectivo registrado</label><div class="cierre-val">' + fmt(t.ef) + '</div></div>' +
-      '<div><label>Efectivo esperado</label><div class="cierre-val" id="ci-esperado">' + fmt(t.ef) + '</div></div>' +
-      '<div><label>Efectivo contado</label><input type="number" id="ci-contado" min="0" value="' + (previo.contado != null ? previo.contado : '') + '" oninput="recalcularCierre()"></div>' +
-      '<div><label>Diferencia</label><div class="cierre-val" id="ci-dif">—</div></div>' +
-    '</div>' +
-    '<div style="font-size:12px;color:var(--muted);margin:8px 0">Transferencias ' + fmt(t.tr) + ' · Webpay crédito ' + fmt(t.wpc) + ' · Webpay débito ' + fmt(t.wpd) + ' (compáralos con la cartola y el reporte de Transbank).</div>' +
-    '<textarea id="ci-obs" rows="2" title="Observaciones del cierre (opcional)">' + escCaja(previo.obs || '') + '</textarea>' +
-    '<div style="margin-top:10px"><button class="btn-new" onclick="cerrarCaja()">Cerrar caja del día</button></div>';
-  recalcularCierre();
-}
-async function cerrarCaja(){
-  if (!cierresOk) { alert('No se pudieron cargar los cierres desde la nube. Recarga la página (F5) antes de cerrar la caja.'); return; }
-  const contadoEl = document.getElementById('ci-contado');
-  if (!contadoEl || contadoEl.value === '') { alert('Ingresa el efectivo contado en caja.'); return; }
-  const t = totalesDia(curDate), fondo = valorCierre('ci-fondo'), contado = valorCierre('ci-contado');
-  const esperadoEf = fondo + t.ef, dif = contado - esperadoEf;
-  if (dif !== 0 && !confirm('Hay una diferencia de ' + signoMonto(dif) + ' entre lo contado y lo esperado. ¿Cerrar igual? (anota el motivo en observaciones)')) return;
-  let sess = {}; try { sess = JSON.parse(localStorage.getItem('cimagen_session')) || {}; } catch(e) {}
-  cierres[curDate] = { fondo, contado, esperadoEf, tr: t.tr, wpc: t.wpc, wpd: t.wpd, obs: (document.getElementById('ci-obs').value || '').trim(), por: sess.name || sess.email || '', cerradoEn: new Date().toISOString() };
-  if (!(await saveToCloud('cierres_caja_v1', cierres))) { delete cierres[curDate].cerradoEn; alert('No se pudo guardar el cierre. Revisa tu conexión e inténtalo de nuevo.'); }
-  renderCierre();
-}
-async function reabrirCaja(){
-  if (!confirm('¿Reabrir el cierre de este día para corregirlo?')) return;
-  if (cierres[curDate]) delete cierres[curDate].cerradoEn;
-  await saveToCloud('cierres_caja_v1', cierres);
-  renderCierre();
-}
-
 function renderContent(){ 
   if(!curDate) return; 
   const [,m,d]=curDate.split('-'); 
@@ -1661,13 +1570,13 @@ function renderTable(){
         tr.className = 'fila-auto';
         tr.title = 'Registro automático desde ' + origenAuto + '. Para corregirlo, edítalo en ese módulo.';
         const v = x => x ? fmt(+x) : '';
-        tr.innerHTML = `<td style="color:var(--muted);font-size:11px">${curDate}</td><td>${escCaja(row.cliente || '')}</td><td>${escCaja(row.tipo || '')}</td><td>${origenLabel(row.origen)}</td><td>${escCaja(row.pago || '')}</td>
+        tr.innerHTML = `<td style="color:var(--muted);font-size:11px;padding-left:6px">${fechaCorta(curDate)}</td><td>${escCaja(row.cliente || '')}</td><td>${escCaja(row.tipo || '')}</td><td>${origenLabel(row.origen)}</td><td>${escCaja(row.pago || '')}</td>
           <td style="text-align:right">${v(row.ef)}</td><td style="text-align:right">${v(row.tr)}</td><td style="text-align:right">${v(row.wpCredito)}</td><td style="text-align:right">${v(row.wpDebito)}</td>
           <td style="font-size:11px">${escCaja(row.obs || '')}</td><td style="text-align:center;white-space:nowrap"><a href="${modulo}" title="Abrir ${origenAuto}" style="text-decoration:none">🔒</a>${row.pagoRef ? ` <button class="btn-del" title="Eliminar este pago (también se quita de la producción)" onclick="eliminarPagoProduccion('${escCaja(row.pagoRef.anio)}','${escCaja(row.pagoRef.prodId)}','${escCaja(row.pagoRef.pagoId)}',this)">🗑️</button>` : ''}</td>`;
         tbody.appendChild(tr);
         return;
       }
-      tr.innerHTML=`<td><input type="date" value="${curDate}" readonly style="color:var(--muted)"></td>
+      tr.innerHTML=`<td style="color:var(--muted);font-size:11px;padding-left:6px">${fechaCorta(curDate)}</td>
         <td><input type="text" placeholder="Nombre del cliente..." value="${row.cliente||''}" oninput="upd('${curDate}',${ri},'cliente',this.value)"></td>
         <td><select onchange="upd('${curDate}',${ri},'tipo',this.value)">${TIPOS.map(t=>`<option value="${t}" ${row.tipo===t?'selected':''}>${t}</option>`).join('')}</select></td>
         <td><select onchange="upd('${curDate}',${ri},'origen',this.value)"><option value="Empresa" ${row.origen==='Empresa'?'selected':''}>Otros</option><option value="Local" ${row.origen==='Local'?'selected':''}>Sala de venta</option></select></td>
@@ -1683,7 +1592,7 @@ function renderTable(){
   } updateTotals();
 }
 
-function updateCards(){ const rows=rowsForDate(curDate); document.getElementById('cc-n').textContent=rows.length; document.getElementById('cc-ef').textContent=fmt(rows.reduce((s,r)=>s+(+r.ef||0),0)); document.getElementById('cc-tr').textContent=fmt(rows.reduce((s,r)=>s+(+r.tr||0),0)); document.getElementById('cc-wpc').textContent=fmt(rows.reduce((s,r)=>s+wpCred(r),0)); document.getElementById('cc-wpd').textContent=fmt(rows.reduce((s,r)=>s+wpDeb(r),0)); renderCierre(); }
+function updateCards(){ const rows=rowsForDate(curDate); document.getElementById('cc-n').textContent=rows.length; document.getElementById('cc-ef').textContent=fmt(rows.reduce((s,r)=>s+(+r.ef||0),0)); document.getElementById('cc-tr').textContent=fmt(rows.reduce((s,r)=>s+(+r.tr||0),0)); document.getElementById('cc-wpc').textContent=fmt(rows.reduce((s,r)=>s+wpCred(r),0)); document.getElementById('cc-wpd').textContent=fmt(rows.reduce((s,r)=>s+wpDeb(r),0)); }
 function updateTotals(){ const rows=rowsForDate(curDate); document.getElementById('tf-ef').textContent=fmt(rows.reduce((s,r)=>s+(+r.ef||0),0)); document.getElementById('tf-tr').textContent=fmt(rows.reduce((s,r)=>s+(+r.tr||0),0)); document.getElementById('tf-wpc').textContent=fmt(rows.reduce((s,r)=>s+wpCred(r),0)); document.getElementById('tf-wpd').textContent=fmt(rows.reduce((s,r)=>s+wpDeb(r),0)); }
 
 function addRow() { 
