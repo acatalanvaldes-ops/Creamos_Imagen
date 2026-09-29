@@ -36,6 +36,15 @@ input,select,button,textarea{font-family:inherit;outline:none}
 .fila{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
 .fila .fld{flex:1;min-width:150px}
 .nota{font-size:12px;color:var(--muted);line-height:1.5}
+.tt-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:16px}
+.tt-kpi{background:var(--dark);border-radius:12px;padding:12px 14px;color:#fff}
+.tt-kpi .l{font-size:9px;color:var(--gold);text-transform:uppercase;font-weight:700;letter-spacing:.4px}
+.tt-kpi .v{font-size:20px;font-weight:800;margin-top:4px}
+.tt-kpi .s{font-size:11px;color:#aaa;margin-top:2px}
+.tt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
+.tt-barra{height:8px;border-radius:4px;background:var(--gold)}
+.tt-reco li{margin:0 0 8px 18px;font-size:13px;line-height:1.5}
+.tt-pasos li{margin:0 0 8px 18px;font-size:13px;line-height:1.55}
 .aviso{border-radius:8px;padding:10px 14px;font-size:12px;line-height:1.5;margin-bottom:14px;background:#FEF3E2;border:1px solid #FDE68A;color:var(--amber)}
 .badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap}
 .b-idea{background:#F3F4F6;color:#4B5563}.b-diseno{background:#EDE9FE;color:var(--purple)}.b-lista{background:#DBEAFE;color:var(--blue)}.b-publicada{background:#D1FAE5;color:var(--teal)}
@@ -110,6 +119,7 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);font-size:13
     <button class="tab" onclick="verPanel('publicaciones', this)">📝 Publicaciones</button>
     <button class="tab" onclick="verPanel('grupos', this)">🎤 Grupos</button>
     <button class="tab" onclick="verPanel('sugerencias', this)">💡 Sugerencias <span id="n-sug"></span></button>
+    <button class="tab" id="tab-tiktok" onclick="verPanel('tiktok', this)">📊 TikTok</button>
   </div>
 </div>
 
@@ -195,6 +205,11 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);font-size:13
       <button class="act-btn primary" id="gr-inicial-btn" onclick="cargarIniciales()">Cargar BTS, Stray Kids, TWICE, BLACKPINK, SEVENTEEN, ATEEZ, ENHYPEN, TXT, NewJeans y aespa</button>
     </div>
     <div class="grupos" id="gr-lista"></div>
+  </div>
+
+  <!-- TIKTOK -->
+  <div class="panel" id="p-tiktok">
+    <div id="tt-contenido"><div class="nota">Cargando…</div></div>
   </div>
 
   <!-- SUGERENCIAS -->
@@ -520,7 +535,163 @@ function verPanel(id, btn){
   $('p-' + id).classList.add('on'); btn.classList.add('on');
   renderTodo();
 }
-function renderTodo(){ renderProximos(); renderConciertos(); renderCalendario(); renderPublicaciones(); renderGrupos(); renderSugerencias(); }
+function renderTodo(){ renderProximos(); renderConciertos(); renderCalendario(); renderPublicaciones(); renderGrupos(); renderSugerencias(); renderTiktok(); }
+
+// ------------------------------------------------------------------ TikTok
+// Estadísticas de la cuenta (Display API). El servidor guarda las claves y
+// el acceso; aquí solo se muestran y se analizan para decidir qué publicar.
+let TT = { estado: null, datos: null, cargando: false, error: '', periodo: '90' };
+const fmtN = n => Math.round(n || 0).toLocaleString('es-CL');
+const pct = x => (x * 100).toFixed(1).replace('.', ',') + '%';
+const normTxt = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const ttPartes = seg => {
+  const p = {}; new Intl.DateTimeFormat('es-CL', { timeZone: 'America/Santiago', weekday: 'long', hour: '2-digit', minute: '2-digit', hour12: false, year: 'numeric', month: '2-digit', day: '2-digit' })
+    .formatToParts(new Date(seg * 1000)).forEach(x => p[x.type] = x.value);
+  return { dia: p.weekday, hora: +p.hour % 24, min: p.minute, fecha: p.year + '-' + p.month + '-' + p.day };
+};
+async function ttGet(accion, extra){
+  const res = await pedir(API_URL + '?accion=' + accion + '&token=' + encodeURIComponent(CLOUD_TOKEN) + (extra || ''), null, 120000);
+  const j = await res.json(); if (j.estado === 'error') throw new Error(j.detalle || 'Error'); return j;
+}
+async function ttPost(cuerpo){
+  const res = await pedir(API_URL, { method: 'POST', body: JSON.stringify(Object.assign({ token: CLOUD_TOKEN }, cuerpo)) }, 60000);
+  const j = await res.json(); if (j.estado === 'error') throw new Error(j.detalle || 'Error'); return j;
+}
+async function ttIniciar(){
+  // Vuelta desde TikTok con ?code=…&state=…
+  const q = new URLSearchParams(location.search);
+  if (q.get('code') && q.get('state')) {
+    history.replaceState(null, '', location.pathname);
+    try { await ttPost({ accion: 'tiktokConectar', code: q.get('code'), state: q.get('state') }); }
+    catch(e) { TT.error = e.message; }
+    verPanel('tiktok', $('tab-tiktok'));
+  } else if (q.get('error')) {
+    history.replaceState(null, '', location.pathname);
+    TT.error = 'TikTok no autorizó la conexión (' + q.get('error') + ').';
+  }
+  try { TT.estado = await ttGet('tiktokEstado'); } catch(e) { TT.estado = { error: e.message }; }
+  renderTiktok();
+}
+async function ttConectar(){
+  try { const j = await ttGet('tiktokUrl'); location.href = j.url; } catch(e) { alert('No se pudo iniciar la conexión: ' + e.message); }
+}
+async function ttDesconectar(){
+  if (!confirm('¿Desconectar la cuenta de TikTok? Las estadísticas ya guardadas se conservan.')) return;
+  try { await ttPost({ accion: 'tiktokDesconectar' }); TT.datos = null; TT.estado = await ttGet('tiktokEstado'); renderTiktok(); } catch(e) { alert(e.message); }
+}
+async function ttCargar(forzar){
+  if (TT.cargando) return; TT.cargando = true; TT.error = ''; renderTiktok();
+  try { TT.datos = await ttGet('tiktokDatos', forzar ? '&forzar=1' : ''); }
+  catch(e) { TT.error = e.message === 'NO_CONECTADO' ? 'La cuenta de TikTok no está conectada.' : e.message; }
+  TT.cargando = false; renderTiktok();
+}
+function ttPeriodo(v){ TT.periodo = v; renderTiktok(); }
+
+// Grupo(s) de un video: por nombre del grupo, fandom o integrantes en el texto.
+function gruposDeVideo(texto){
+  const tx = ' ' + normTxt(texto).replace(/[^a-z0-9#@ ]/g, ' ') + ' ';
+  return (DB.grupos || []).filter(g => {
+    const nombres = [g.nombre, g.fandom].concat((g.miembros || []).map(m => m.nombre)).filter(n => n && n.length >= 3);
+    return nombres.some(n => { const k = normTxt(n).replace(/[^a-z0-9 ]/g, ' ').trim(); return k && (tx.includes(' ' + k + ' ') || tx.includes('#' + k.replace(/ /g, ''))); });
+  }).map(g => g.nombre);
+}
+function agrupar(videos, claveFn){
+  const m = {};
+  videos.forEach(v => [].concat(claveFn(v)).forEach(k => { if (k === null || k === undefined || k === '') return; (m[k] = m[k] || { k, n: 0, vistas: 0, inter: 0 }); m[k].n++; m[k].vistas += v.vistas; m[k].inter += v.likes + v.comentarios + v.compartidos; }));
+  return Object.values(m).map(x => Object.assign(x, { prom: x.vistas / x.n, eng: x.vistas ? x.inter / x.vistas : 0 }));
+}
+function tablaGrupo(titulo, filas, promGeneral, etiqueta, minimo){
+  const lista = filas.filter(x => x.n >= (minimo || 1)).sort((a, b) => b.prom - a.prom).slice(0, 10);
+  const max = Math.max(1, ...lista.map(x => x.prom));
+  return `<div class="card"><div class="card-title"><span>${titulo}</span></div>${lista.length ? `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>${etiqueta}</th><th>Videos</th><th>Vistas promedio</th><th>vs. promedio</th><th>Engagement</th></tr></thead><tbody>${lista.map(x => `<tr><td><b>${esc(x.k)}</b><div class="tt-barra" style="width:${Math.max(4, x.prom / max * 100)}%;margin-top:4px"></div></td><td>${x.n}</td><td>${fmtN(x.prom)}</td><td style="color:${x.prom >= promGeneral ? 'var(--teal)' : 'var(--red)'};font-weight:700">${promGeneral ? (x.prom / promGeneral).toFixed(1).replace('.', ',') + '×' : '—'}</td><td>${pct(x.eng)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="nota">Aún no hay suficientes videos para comparar.</div>'}</div>`;
+}
+function crecimiento(historial, dias){
+  const fechas = Object.keys(historial || {}).sort(); if (!fechas.length) return null;
+  const ult = fechas[fechas.length - 1], limite = sumarDias(ult, -dias);
+  const base = fechas.filter(f => f <= limite).pop();
+  return base ? historial[ult].seguidores - historial[base].seguidores : null;
+}
+function renderTiktok(){
+  const box = $('tt-contenido'); if (!box) return;
+  const est = TT.estado;
+  if (!est) { box.innerHTML = '<div class="nota">Cargando…</div>'; return; }
+  const aviso = TT.error ? `<div class="aviso">${esc(TT.error)}</div>` : '';
+  if (est.error) { box.innerHTML = `<div class="aviso">${/SIN_PERMISO/.test(est.error) ? 'No tienes el módulo Marketing asignado.' : 'No se pudo consultar TikTok: ' + esc(est.error)}</div>`; return; }
+  if (!est.configurado) {
+    box.innerHTML = aviso + `<div class="card"><div class="card-title"><span>Conectar las estadísticas de TikTok</span></div>
+      <div class="nota" style="margin-bottom:10px">Falta crear la app de TikTok (una sola vez). Pasos, con la cuenta de TikTok de la empresa:</div>
+      <ol class="tt-pasos">
+        <li>Entra a <b>developers.tiktok.com</b>, inicia sesión y crea una app (tipo <b>Web</b>) llamada, por ejemplo, "Creamos Imagen Portal".</li>
+        <li>Agrega el producto <b>Login Kit</b> y el de estadísticas (<b>Display API</b>), con los permisos <b>user.info.basic</b>, <b>user.info.stats</b> y <b>video.list</b>.</li>
+        <li>En <b>Redirect URI</b> escribe exactamente: <code>${esc(est.redirect)}</code></li>
+        <li>Mientras TikTok no revise la app, usa el modo <b>Sandbox</b> y agrega la cuenta de TikTok de Creamos Imagen como <b>usuario de prueba</b> (target user).</li>
+        <li>Copia el <b>Client key</b> y el <b>Client secret</b> y entrégalos a quien administra el portal para guardarlos en el servidor (propiedades <b>TIKTOK_CLIENT_KEY</b> y <b>TIKTOK_CLIENT_SECRET</b>). Nunca los pegues en una página ni en un correo.</li>
+        <li>Vuelve aquí y presiona <b>Conectar cuenta de TikTok</b>.</li>
+      </ol></div>`;
+    return;
+  }
+  if (!est.conectado) {
+    box.innerHTML = aviso + `<div class="card"><div class="card-title"><span>Conectar la cuenta de TikTok</span></div>
+      <div class="nota" style="margin-bottom:12px">Se abrirá TikTok para que la cuenta de Creamos Imagen autorice leer sus estadísticas (perfil, seguidores y videos). No se puede publicar ni borrar nada desde el portal.</div>
+      <button class="act-btn primary" onclick="ttConectar()">Conectar cuenta de TikTok</button></div>`;
+    return;
+  }
+  if (!TT.datos && !TT.cargando && !TT.error) { ttCargar(false); }
+  const d = TT.datos;
+  const barra = `<div class="card"><div class="card-title"><span>${d && d.cuenta.display_name ? '📊 ' + esc(d.cuenta.display_name) : '📊 TikTok'}</span>
+      <span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <select onchange="ttPeriodo(this.value)" style="padding:7px 9px;border-radius:6px;border:1px solid var(--border)">${[['30','Últimos 30 días'],['90','Últimos 90 días'],['365','Último año'],['todo','Todos los videos']].map(o => `<option value="${o[0]}" ${TT.periodo === o[0] ? 'selected' : ''}>${o[1]}</option>`).join('')}</select>
+        <button class="act-btn" onclick="ttCargar(true)" ${TT.cargando ? 'disabled' : ''}>${TT.cargando ? 'Actualizando…' : '🔄 Actualizar'}</button>
+        <button class="act-btn danger" onclick="ttDesconectar()">Desconectar</button></span></div>
+      <div class="nota">Conectada por ${esc(est.por || '—')}${d ? ' · datos del ' + new Date(d.actualizado).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' }) : ''}. Solo se leen los videos públicos. El historial de seguidores se arma con cada actualización (una foto por día).</div></div>`;
+  if (!d) { box.innerHTML = aviso + barra + (TT.cargando ? '<div class="nota">Trayendo estadísticas desde TikTok…</div>' : ''); return; }
+
+  const hoy = hoyChile();
+  const desde = TT.periodo === 'todo' ? '0000' : sumarDias(hoy, -Number(TT.periodo));
+  const vids = d.videos.map(v => Object.assign({}, v, ttPartes(v.fecha))).filter(v => v.fecha >= desde);
+  const totV = vids.reduce((s, v) => s + v.vistas, 0), totI = vids.reduce((s, v) => s + v.likes + v.comentarios + v.compartidos, 0);
+  const prom = vids.length ? totV / vids.length : 0;
+  const g7 = crecimiento(d.historial, 7), g30 = crecimiento(d.historial, 30);
+  const signo = n => n === null ? 'sin historial aún' : (n >= 0 ? '+' : '') + fmtN(n);
+  const kpis = `<div class="tt-kpis">
+    <div class="tt-kpi"><div class="l">Seguidores</div><div class="v">${fmtN(d.cuenta.follower_count)}</div><div class="s">7 días: ${signo(g7)} · 30 días: ${signo(g30)}</div></div>
+    <div class="tt-kpi"><div class="l">Videos del período</div><div class="v">${vids.length}</div><div class="s">${fmtN(d.cuenta.video_count)} en total</div></div>
+    <div class="tt-kpi"><div class="l">Vistas del período</div><div class="v">${fmtN(totV)}</div><div class="s">promedio ${fmtN(prom)} por video</div></div>
+    <div class="tt-kpi"><div class="l">Engagement</div><div class="v">${totV ? pct(totI / totV) : '—'}</div><div class="s">likes + comentarios + compartidos / vistas</div></div>
+    <div class="tt-kpi"><div class="l">Likes totales</div><div class="v">${fmtN(d.cuenta.likes_count)}</div><div class="s">de la cuenta</div></div></div>`;
+
+  // Análisis para decidir
+  const porGrupo = agrupar(vids, v => { const g = gruposDeVideo(v.texto); return g.length ? g : 'Sin grupo identificado'; });
+  const DIAS = ['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
+  const porDia = agrupar(vids, v => v.dia).sort((a, b) => DIAS.indexOf(a.k) - DIAS.indexOf(b.k));
+  const bloque = h => h < 9 ? '00–09 h' : h < 12 ? '09–12 h' : h < 15 ? '12–15 h' : h < 18 ? '15–18 h' : h < 21 ? '18–21 h' : '21–24 h';
+  const porHora = agrupar(vids, v => bloque(v.hora));
+  const tramo = s => s < 15 ? 'Menos de 15 s' : s < 30 ? '15 a 30 s' : s < 60 ? '30 a 60 s' : 'Más de 60 s';
+  const porDur = agrupar(vids, v => tramo(v.duracion));
+  const porTag = agrupar(vids, v => (String(v.texto).match(/#[\p{L}\p{N}_]+/gu) || []).map(x => x.toLowerCase()));
+
+  const mejor = (lista, min) => lista.filter(x => x.n >= (min || 2)).sort((a, b) => b.prom - a.prom)[0];
+  const reco = [];
+  const bg = mejor(porGrupo.filter(x => x.k !== 'Sin grupo identificado'));
+  if (bg && prom) reco.push(`Los videos de <b>${esc(bg.k)}</b> promedian <b>${fmtN(bg.prom)}</b> vistas (${(bg.prom / prom).toFixed(1).replace('.', ',')}× el promedio). Prioriza sus fechas del calendario.`);
+  const bd = mejor(porDia); if (bd) reco.push(`El mejor día para publicar ha sido el <b>${bd.k}</b> (${fmtN(bd.prom)} vistas promedio).`);
+  const bh = mejor(porHora); if (bh) reco.push(`El mejor horario ha sido <b>${bh.k}</b> (hora de Chile).`);
+  const bdu = mejor(porDur); if (bdu) reco.push(`Los videos de <b>${bdu.k.toLowerCase()}</b> son los que más se ven.`);
+  const bt = mejor(porTag); if (bt) reco.push(`El hashtag con más vistas promedio es <b>${esc(bt.k)}</b> (${bt.n} videos).`);
+  const top = vids.slice().sort((a, b) => b.vistas - a.vistas)[0];
+  if (top) reco.push(`Tu video más visto del período: "${esc(String(top.texto).slice(0, 80) || 'sin texto')}" con <b>${fmtN(top.vistas)}</b> vistas: repite su formato.`);
+  const recoHtml = `<div class="card"><div class="card-title"><span>💡 Qué conviene publicar</span></div>${reco.length ? '<ul class="tt-reco">' + reco.map(r => '<li>' + r + '</li>').join('') + '</ul><div class="nota">Se calcula con los videos del período elegido; mientras más videos haya, más confiable es. Las comparaciones exigen al menos 2 videos por grupo.</div>' : '<div class="nota">Aún no hay videos en este período.</div>'}</div>`;
+
+  const tabla = `<div class="card"><div class="card-title"><span>Videos del período (${vids.length})</span></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Fecha</th><th>Video</th><th>Grupo</th><th>Vistas</th><th>Likes</th><th>Coment.</th><th>Compart.</th><th>Engagement</th></tr></thead><tbody>${vids.slice().sort((a, b) => b.fecha.localeCompare(a.fecha)).map(v => `<tr>
+      <td style="white-space:nowrap">${fCorta(v.fecha)}<div class="nota">${v.dia.slice(0, 3)} ${String(v.hora).padStart(2, '0')}:${v.min}</div></td>
+      <td style="max-width:360px">${v.url ? '<a href="' + esc(v.url) + '" target="_blank" rel="noopener">' : ''}${esc(String(v.texto).slice(0, 110) || '(sin texto)')}${v.url ? '</a>' : ''}<div class="nota">${v.duracion} s</div></td>
+      <td>${esc(gruposDeVideo(v.texto).join(', ') || '—')}</td><td><b>${fmtN(v.vistas)}</b></td><td>${fmtN(v.likes)}</td><td>${fmtN(v.comentarios)}</td><td>${fmtN(v.compartidos)}</td><td>${v.vistas ? pct((v.likes + v.comentarios + v.compartidos) / v.vistas) : '—'}</td></tr>`).join('') || '<tr><td colspan="8" class="nota">Sin videos en el período.</td></tr>'}</tbody></table></div></div>`;
+
+  box.innerHTML = aviso + barra + kpis + recoHtml +
+    tablaGrupo('Por grupo K-pop', porGrupo, prom, 'Grupo', 1) +
+    '<div class="tt-grid">' + tablaGrupo('Por día de publicación', porDia, prom, 'Día') + tablaGrupo('Por horario (Chile)', porHora, prom, 'Horario') + '</div>' +
+    '<div class="tt-grid">' + tablaGrupo('Por duración', porDur, prom, 'Duración') + tablaGrupo('Hashtags (2+ videos)', porTag, prom, 'Hashtag', 2) + '</div>' + tabla;
+}
 
 function tarjetaEvento(e, hoy){
   const falta = diasEntre(hoy, e.fecha);
@@ -917,6 +1088,7 @@ function sugerirDesdeConcierto(id){
   renderTodo();
   if (cargaOk) { cargarConciertos(false); actualizarVencidos(); }
   else $('tm-lista').innerHTML = '';
+  ttIniciar();
 })();
 </script>
 </body>

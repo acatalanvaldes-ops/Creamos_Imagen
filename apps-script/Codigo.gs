@@ -504,6 +504,9 @@ function accionGet(p) {
   if (p.accion === "portal") return accionPortal(p.token, p.trabajadorId);
   if (p.accion === "portalDocs") return accionPortalDocs(p.token, p.trabajadorId);
   if (p.accion === "marketingConciertos") return accionMarketingConciertos(p);
+  if (p.accion === "tiktokEstado") return accionTiktokEstado(p);
+  if (p.accion === "tiktokUrl") return accionTiktokUrl(p);
+  if (p.accion === "tiktokDatos") return accionTiktokDatos(p);
   if (p.accion === "bitacora") return accionBitacora(p);
   if (p.accion === "config") {
     const u = usuarioDe(p.token);
@@ -516,6 +519,8 @@ function accionGet(p) {
 function accionPost(b) {
   if (b.accion === "login") return accionLogin(b.credential);
   if (b.accion === "loginMicrosoft") return accionLoginMicrosoft(b);
+  if (b.accion === "tiktokConectar") return accionTiktokConectar(b);
+  if (b.accion === "tiktokDesconectar") return accionTiktokDesconectar(b);
   if (b.accion === "pagoProduccion" || b.accion === "anularPagoProduccion") return accionPagoProduccion(b);
   if (b.action === "listarMarcaciones" || b.action === "registrarMarcacion") return manejarMarcaciones(b);
   if (b.accion === "solicitarVac") return accionSolicitarVac(b);
@@ -950,6 +955,158 @@ function tmEventos(key, keyword) {
       artistas: ((e._embedded && e._embedded.attractions) || []).map(function (a) { return a.name; })
     };
   });
+}
+
+// ------------------------------------------------------------------
+// TikTok: estadísticas de la cuenta (Login Kit + Display API v2)
+// ------------------------------------------------------------------
+// Claves en propiedades del script (nunca en las páginas):
+//   TIKTOK_CLIENT_KEY, TIKTOK_CLIENT_SECRET  → app de developers.tiktok.com
+//   TIKTOK_TOKEN  → { access, refresh, expira, refreshExpira, openId, por, en }
+// La cuenta de la empresa autoriza una vez (permisos user.info.basic,
+// user.info.stats y video.list); el acceso se renueva solo con el refresh.
+// Cada consulta guarda en marketing_tiktok_v1 la foto del día (seguidores,
+// likes, videos) para ver el crecimiento, y la lista de videos con sus cifras.
+const TT_REDIRECT = "https://creamosimagen.vercel.app/marketing.html";
+const TT_SCOPES = "user.info.basic,user.info.stats,video.list";
+const TT_KEY_DATOS = "marketing_tiktok_v1";
+const TT_CACHE = "tiktok_datos_v1";
+
+function usuarioMarketing(token) {
+  const u = usuarioDe(token);
+  if (!u || u.legado) return { err: u ? "SIN_PERMISO" : motivoRechazo(token) };
+  if (!u.isAdmin && (u.modules || []).indexOf("marketing") === -1) return { err: "SIN_PERMISO" };
+  return { u: u };
+}
+function ttClaves() {
+  const pr = PropertiesService.getScriptProperties();
+  return { key: String(pr.getProperty("TIKTOK_CLIENT_KEY") || "").trim(), secret: String(pr.getProperty("TIKTOK_CLIENT_SECRET") || "").trim() };
+}
+function ttToken() { try { return JSON.parse(PropertiesService.getScriptProperties().getProperty("TIKTOK_TOKEN") || "null"); } catch (e) { return null; } }
+function ttGuardarToken(j, previo, email) {
+  const ahora = Date.now();
+  const tk = {
+    access: j.access_token, refresh: j.refresh_token || (previo && previo.refresh),
+    expira: ahora + (Number(j.expires_in) || 86400) * 1000 - 60000,
+    refreshExpira: j.refresh_expires_in ? ahora + Number(j.refresh_expires_in) * 1000 : (previo && previo.refreshExpira) || null,
+    openId: j.open_id || (previo && previo.openId) || "", por: (previo && previo.por) || email || "", en: (previo && previo.en) || hoyChileGS()
+  };
+  PropertiesService.getScriptProperties().setProperty("TIKTOK_TOKEN", JSON.stringify(tk));
+  return tk;
+}
+function ttPedirToken(params) {
+  const c = ttClaves();
+  const cuerpo = Object.keys(params).map(function (k) { return encodeURIComponent(k) + "=" + encodeURIComponent(params[k]); }).join("&");
+  const r = UrlFetchApp.fetch("https://open.tiktokapis.com/v2/oauth/token/", {
+    method: "post", contentType: "application/x-www-form-urlencoded", muteHttpExceptions: true,
+    payload: "client_key=" + encodeURIComponent(c.key) + "&client_secret=" + encodeURIComponent(c.secret) + "&" + cuerpo
+  });
+  let j = {};
+  try { j = JSON.parse(r.getContentText()); } catch (e) {}
+  if (!j.access_token) throw new Error("TikTok rechazó la autorización: " + (j.error_description || j.error || ("HTTP " + r.getResponseCode())));
+  return j;
+}
+// Token vigente (lo renueva si venció).
+function ttAcceso() {
+  let tk = ttToken();
+  if (!tk || !tk.access) throw new Error("NO_CONECTADO");
+  if (Date.now() < tk.expira) return tk.access;
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    tk = ttToken();
+    if (Date.now() < tk.expira) return tk.access;
+    return ttGuardarToken(ttPedirToken({ grant_type: "refresh_token", refresh_token: tk.refresh }), tk).access;
+  } finally { lock.releaseLock(); }
+}
+function ttApi(url, metodo, cuerpo) {
+  const opts = { method: metodo || "get", muteHttpExceptions: true, headers: { Authorization: "Bearer " + ttAcceso() } };
+  if (cuerpo) { opts.contentType = "application/json"; opts.payload = JSON.stringify(cuerpo); }
+  const r = UrlFetchApp.fetch(url, opts);
+  let j = {};
+  try { j = JSON.parse(r.getContentText()); } catch (e) {}
+  const err = j.error || {};
+  if (r.getResponseCode() >= 400 || (err.code && err.code !== "ok")) throw new Error("TikTok: " + (err.message || err.code || ("HTTP " + r.getResponseCode())));
+  return j.data || {};
+}
+
+function accionTiktokEstado(p) {
+  const a = usuarioMarketing(p.token); if (a.err) return error(a.err);
+  const c = ttClaves(), tk = ttToken();
+  let cuenta = null;
+  try { const d = leerJSON(TT_KEY_DATOS); cuenta = d && d.cuenta ? { nombre: d.cuenta.display_name, avatar: d.cuenta.avatar_url } : null; } catch (e) {}
+  return respuesta({ estado: "éxito", configurado: !!(c.key && c.secret), conectado: !!(tk && tk.access), por: tk ? tk.por : "", desde: tk ? tk.en : "", cuenta: cuenta, redirect: TT_REDIRECT });
+}
+function accionTiktokUrl(p) {
+  const a = usuarioMarketing(p.token); if (a.err) return error(a.err);
+  const c = ttClaves();
+  if (!c.key) return error("Falta configurar TIKTOK_CLIENT_KEY en las propiedades del script.");
+  const state = Utilities.getUuid().replace(/-/g, "");
+  CacheService.getScriptCache().put("tt_state:" + state, a.u.email, 600);
+  const url = "https://www.tiktok.com/v2/auth/authorize/?client_key=" + encodeURIComponent(c.key) + "&scope=" + encodeURIComponent(TT_SCOPES) +
+    "&response_type=code&redirect_uri=" + encodeURIComponent(TT_REDIRECT) + "&state=" + state;
+  return respuesta({ estado: "éxito", url: url });
+}
+function accionTiktokConectar(b) {
+  const a = usuarioMarketing(b.token); if (a.err) return error(a.err);
+  const cache = CacheService.getScriptCache();
+  const dueño = cache.get("tt_state:" + String(b.state || ""));
+  if (!dueño || dueño !== a.u.email) return error("La autorización de TikTok venció o no corresponde a tu sesión. Vuelve a presionar Conectar.");
+  cache.remove("tt_state:" + b.state);
+  try {
+    const j = ttPedirToken({ code: String(b.code || ""), grant_type: "authorization_code", redirect_uri: TT_REDIRECT });
+    ttGuardarToken(j, null, a.u.email);
+  } catch (e) { return error(e.message); }
+  cache.remove(TT_CACHE);
+  registrarBitacora(a.u.email, "tiktok conectado", "Cuenta de TikTok autorizada para estadísticas");
+  return respuesta({ estado: "éxito" });
+}
+function accionTiktokDesconectar(b) {
+  const a = usuarioMarketing(b.token); if (a.err) return error(a.err);
+  PropertiesService.getScriptProperties().deleteProperty("TIKTOK_TOKEN");
+  CacheService.getScriptCache().remove(TT_CACHE);
+  registrarBitacora(a.u.email, "tiktok desconectado", "");
+  return respuesta({ estado: "éxito" });
+}
+// Cuenta + todos los videos (hasta 500) con sus cifras; guarda la foto del día.
+function accionTiktokDatos(p) {
+  const a = usuarioMarketing(p.token); if (a.err) return error(a.err);
+  const cache = CacheService.getScriptCache();
+  if (p.forzar !== "1") { const c = cache.get(TT_CACHE); if (c) return respuesta(JSON.parse(c)); }
+  let cuenta, videos = [];
+  try {
+    cuenta = (ttApi("https://open.tiktokapis.com/v2/user/info/?fields=open_id,display_name,avatar_url,follower_count,following_count,likes_count,video_count").user) || {};
+    const campos = "id,title,video_description,create_time,cover_image_url,share_url,duration,view_count,like_count,comment_count,share_count";
+    let cursor = null;
+    for (let i = 0; i < 25; i++) {
+      const d = ttApi("https://open.tiktokapis.com/v2/video/list/?fields=" + campos, "post", cursor ? { max_count: 20, cursor: cursor } : { max_count: 20 });
+      videos = videos.concat(d.videos || []);
+      if (!d.has_more || !d.cursor) break;
+      cursor = d.cursor;
+    }
+  } catch (e) {
+    if (e.message === "NO_CONECTADO") return error("NO_CONECTADO");
+    return error(e.message);
+  }
+  const hoy = hoyChileGS();
+  let guardado = {};
+  try { guardado = leerJSON(TT_KEY_DATOS) || {}; } catch (e) {}
+  const historial = guardado.historial || {};
+  historial[hoy] = {
+    seguidores: Number(cuenta.follower_count) || 0, likes: Number(cuenta.likes_count) || 0, videos: Number(cuenta.video_count) || videos.length,
+    vistas: videos.reduce(function (s, v) { return s + (Number(v.view_count) || 0); }, 0)
+  };
+  const lista = videos.map(function (v) {
+    return { id: String(v.id), fecha: Number(v.create_time) || 0, texto: String(v.video_description || v.title || "").slice(0, 400), portada: v.cover_image_url || "", url: v.share_url || "",
+      duracion: Number(v.duration) || 0, vistas: Number(v.view_count) || 0, likes: Number(v.like_count) || 0, comentarios: Number(v.comment_count) || 0, compartidos: Number(v.share_count) || 0 };
+  });
+  const datos = { cuenta: { display_name: cuenta.display_name || "", avatar_url: cuenta.avatar_url || "", follower_count: Number(cuenta.follower_count) || 0,
+      following_count: Number(cuenta.following_count) || 0, likes_count: Number(cuenta.likes_count) || 0, video_count: Number(cuenta.video_count) || 0 },
+    historial: historial, videos: lista, actualizado: new Date().toISOString() };
+  escribirValor(TT_KEY_DATOS, JSON.stringify(datos));
+  const salida = Object.assign({ estado: "éxito" }, datos);
+  try { cache.put(TT_CACHE, JSON.stringify(salida), 3600); } catch (e) {}
+  return respuesta(salida);
 }
 
 function accionMarketingConciertos(p) {
