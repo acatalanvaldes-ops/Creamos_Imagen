@@ -308,6 +308,10 @@ var NO_SUBIDAS_KEY = STORAGE_KEY + "_no_subidas";
 var idsEnNube = null;          // Set de ids confirmados en la nube
 var _syncTimer = null, _syncEnCurso = false, _syncPendiente = false, _syncReintento = null;
 var hayCambiosSinSubir = false;
+// Ventas creadas o editadas en ESTA página desde la última subida. Solo esas
+// pueden reemplazar a la versión de la nube; el resto se toma de la nube,
+// para que una página abierta hace rato no pise lo que otro equipo corrigió.
+var editadasAqui = new Set();
 
 function leerIdsNube() {
   try { var a = JSON.parse(localStorage.getItem(SYNC_IDS_KEY)); return Array.isArray(a) ? new Set(a) : null; } catch(e) { return null; }
@@ -363,20 +367,34 @@ async function sincronizarNube() {
     // 1. Leer lo que hay AHORA en la nube (puede haber ventas de otro equipo).
     var nube = await loadFromCloudSharded();
     var ventasNube = (nube && nube.ventas) ? nube.ventas : [];
-    // 2. Fusionar: las ventas de este equipo mandan (incluye ediciones); de la
-    //    nube se agregan las que este equipo no conoce. Las que este equipo ya
-    //    había visto en la nube y ya no tiene, las borró aquí: no se reagregan.
+    // 2. Fusionar por id:
+    //    - las ventas creadas o editadas en esta página mandan;
+    //    - las demás se toman de la nube (pueden haberse corregido en otro equipo);
+    //    - de la nube se agregan las que este equipo no conoce;
+    //    - las que este equipo ya había visto en la nube y ya no tiene, las
+    //      borró aquí: no se reagregan.
+    var enviadas = new Set(editadasAqui);
+    var nubePorId = new Map(ventasNube.map(function(v){ return [v.id, v]; }));
+    var actualizadas = 0;
+    var propias = state.ventas.map(function(v){
+      var n = nubePorId.get(v.id);
+      if (n && !enviadas.has(v.id) && JSON.stringify(n) !== JSON.stringify(v)) { actualizadas++; return n; }
+      return v;
+    });
     var locales = new Set(state.ventas.map(function(v){ return v.id; }));
     var nuevasDeOtros = ventasNube.filter(function(v){
       return !locales.has(v.id) && !(idsEnNube && idsEnNube.has(v.id));
     });
-    var fusion = state.ventas.concat(nuevasDeOtros);
+    var fusion = propias.concat(nuevasDeOtros);
     // 3. Subir la fusión.
     ok = await saveToCloudSharded(fusion, state.comDefPct, state.filtroMes);
     if (ok) {
       recordarIdsNube(fusion);
-      if (nuevasDeOtros.length) {
-        state.ventas = state.ventas.concat(nuevasDeOtros);
+      enviadas.forEach(function(id){ editadasAqui.delete(id); });
+      if (nuevasDeOtros.length || actualizadas) {
+        // Se conservan las ediciones hechas mientras se subía.
+        var enCurso = new Map(state.ventas.filter(function(v){ return editadasAqui.has(v.id); }).map(function(v){ return [v.id, v]; }));
+        state.ventas = fusion.map(function(v){ return enCurso.get(v.id) || v; });
         render();
       }
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ ventas: state.ventas, comDefPct: state.comDefPct, filtroMes: state.filtroMes })); } catch(e) {}
@@ -1005,6 +1023,7 @@ function submitForm() {
   } else {
     state.ventas = state.ventas.concat([entry]);
   }
+  editadasAqui.add(entry.id);
   guardarDatos();
   setState({showForm:false, editId:null});
 }
@@ -1296,6 +1315,7 @@ async function initApp() {
           '\n\n¿Subirlas ahora a la nube?\n\nAceptar = subirlas.\nCancelar = no subirlas (quedan respaldadas en este equipo).');
         if (subir) {
           state.ventas = ventasNube.concat(noSubidas);
+          noSubidas.forEach(function(v){ editadasAqui.add(v.id); });
           guardarDatos(); // fusiona con la nube y sube
         } else {
           // Respaldo aparte, para que no se pierdan al sobrescribir la copia local.
