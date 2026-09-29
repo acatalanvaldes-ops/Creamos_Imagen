@@ -662,7 +662,7 @@ function buildForm(form, editId) {
     '<div><div style="font-size:13px;font-weight:600;color:var(--purple)">Requiere factura?</div>'+
     '<div style="font-size:11px;color:var(--muted);margin-top:2px">Factura electronica</div></div>'+
     '<button class="toggle '+(form.factura?'on':'')+' fac-toggle" data-field="factura" data-val="'+(form.factura?'false':'true')+'" onclick="ufldv(this)"></button></div>'+
-    '<div class="span2" style="font-size:11px;color:var(--muted);line-height:1.5">'+(form.fecha >= '2026-09-27' ? '✓ Al guardar, esta venta se anota sola en Caja (no la registres de nuevo allá).' : 'Las ventas con fecha anterior al 27-09-2026 no pasan solas a Caja.')+'</div>'+
+    '<div class="span2" style="font-size:11px;color:var(--muted);line-height:1.5">Esta venta no pasa sola a Caja: anota el cobro en Rendición de caja.</div>'+
     comBox +
     '</div>'+
     '<div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end">'+

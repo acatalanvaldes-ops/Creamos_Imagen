@@ -20,11 +20,12 @@ input,select,button{font-family:inherit;outline:none}
 .selector-bar label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;margin-right:6px}
 .selector-bar select{background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--dark);font-weight:600}
 .period-label{margin-left:auto;font-family:'DM Serif Display',serif;font-size:18px;color:var(--gold)}
-.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:14px;margin-bottom:24px}
-.kpi-card{background:var(--dark);border-radius:12px;padding:18px}
-.kpi-label{font-size:10px;color:var(--gold);text-transform:uppercase;letter-spacing:0.6px;font-weight:700;margin-bottom:8px}
-.kpi-val{font-size:22px;font-weight:800;color:#fff}
-.kpi-sub{font-size:11px;color:#999;margin-top:4px}
+.kpi-grid{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:10px;margin-bottom:24px}
+.kpi-card{background:var(--dark);border-radius:12px;padding:12px 12px;min-width:0}
+.kpi-label{font-size:9px;color:var(--gold);text-transform:uppercase;letter-spacing:0.4px;font-weight:700;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi-val{font-size:17px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi-sub{font-size:10px;color:#999;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:900px){.kpi-grid{grid-auto-flow:row;grid-template-columns:repeat(2,minmax(0,1fr))}}
 .kpi-val.neg{color:#F87171}
 .kpi-val.pos{color:#5EEAD4}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
@@ -104,7 +105,8 @@ dialog.indicator-info{max-width:520px;border:1px solid var(--border);border-radi
   <div id="dashContent" style="display:none">
 
     <div class="kpi-grid">
-      <div class="kpi-card"><div class="kpi-label">Ventas Totales</div><div class="kpi-val" id="kpi-ventas">$ 0</div><div class="kpi-sub" id="kpi-ventas-sub"></div></div>
+      <div class="kpi-card"><div class="kpi-label">Ventas Totales (netas)</div><div class="kpi-val" id="kpi-ventas">$ 0</div><div class="kpi-sub" id="kpi-ventas-sub"></div></div>
+      <div class="kpi-card"><div class="kpi-label">Ventas Otros (netas)</div><div class="kpi-val" id="kpi-otros">$ 0</div><div class="kpi-sub" id="kpi-otros-sub"></div></div>
       <div class="kpi-card"><div class="kpi-label">Ingresos (Rendición)</div><div class="kpi-val" id="kpi-ingresos">$ 0</div><div class="kpi-sub" id="kpi-ingresos-sub"></div></div>
       <div class="kpi-card"><div class="kpi-label">Resultado del Período</div><div class="kpi-val" id="kpi-resultado">$ 0</div><div class="kpi-sub" id="kpi-resultado-sub"></div></div>
       <div class="kpi-card"><div class="kpi-label">Producciones Realizadas</div><div class="kpi-val" id="kpi-producciones">0</div><div class="kpi-sub" id="kpi-producciones-sub"></div></div>
@@ -330,6 +332,9 @@ function activarPopupsIndicadores(){
   document.querySelectorAll('.note:not([data-popup-ready])').forEach(note=>{const detail=note.textContent.trim();note.dataset.popupReady='1';note.innerHTML='';const btn=document.createElement('button');btn.type='button';btn.textContent='ⓘ Ver explicación';btn.addEventListener('click',()=>{document.getElementById('indicator-info-text').textContent=detail;dlg.showModal()});note.appendChild(btn)});
 }
 
+// Otros (empresa) registra el monto con IVA: el neto es monto ÷ 1,19.
+function netoEmpresa(v) { return Math.round((+v.montoBase || 0) / 1.19); }
+
 function escapeHtml(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -339,27 +344,31 @@ function renderVentas(r) {
   const vLocal = ventasLocal.filter(v => enRango(v.fecha, r));
   const vEmpresa = ventasEmpresa.filter(v => enRango(v.fecha, r));
   const totalLocal = vLocal.reduce((s, v) => s + (v.montoBase || 0), 0);
-  const totalEmpresa = vEmpresa.reduce((s, v) => s + (v.montoBase || 0), 0);
+  const totalEmpresa = vEmpresa.reduce((s, v) => s + netoEmpresa(v), 0);
   const totalGeneral = totalLocal + totalEmpresa;
 
   document.getElementById('kpi-ventas').textContent = fmt(totalGeneral);
   document.getElementById('kpi-ventas-sub').textContent = vLocal.length + vEmpresa.length + ' ventas registradas';
+  document.getElementById('kpi-otros').textContent = fmt(totalEmpresa);
+  document.getElementById('kpi-otros-sub').textContent = vEmpresa.length + ' ventas · sin IVA';
 
   // Top productos combinados
   const porProducto = {};
-  [...vLocal, ...vEmpresa].forEach(v => { porProducto[v.producto] = (porProducto[v.producto] || 0) + (v.montoBase || 0); });
+  vLocal.forEach(v => { porProducto[v.producto] = (porProducto[v.producto] || 0) + (v.montoBase || 0); });
+  vEmpresa.forEach(v => { porProducto[v.producto] = (porProducto[v.producto] || 0) + netoEmpresa(v); });
   const topProductos = Object.entries(porProducto).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
   let html = `
     <div class="dr-row"><span>Ventas Sala de venta (Vendedores)</span><span>${fmt(totalLocal)} · ${vLocal.length} ventas</span></div>
     <div class="dr-row"><span>Ventas Otros (Marcelo)</span><span>${fmt(totalEmpresa)} · ${vEmpresa.length} ventas</span></div>
-    <div class="dr-row tot"><span>Total Vendido</span><span>${fmt(totalGeneral)}</span></div>
+    <div class="dr-row tot"><span>Total Vendido (neto)</span><span>${fmt(totalGeneral)}</span></div>
   `;
   if (topProductos.length) {
     html += `<div style="margin-top:14px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Top productos</div>`;
     html += topProductos.map(([p, m]) => `<div class="dr-row"><span>${p}</span><span>${fmt(m)}</span></div>`).join('');
   }
-  document.getElementById('ventasDetalle').innerHTML = html || '<div class="empty-note">Sin ventas en el período.</div>';
+  html += `<div class="note">Todas las ventas de este cuadro son netas, es decir, sin IVA. Sala de venta: las ventas se registran netas, porque son la base para calcular las comisiones de los vendedores. Otros (empresa): el monto registrado incluye IVA, así que aquí se divide por 1,19 para llevarlo a neto. Los "Top productos" también se muestran en neto. Por eso estas cifras no coinciden con lo cobrado en la Rendición de caja, que incluye IVA y recargos.</div>`;
+  document.getElementById('ventasDetalle').innerHTML = html;
 }
 
 // ===== COSTOS VS INGRESOS =====
@@ -485,7 +494,7 @@ function renderPorDisenador(r, producciones) {
         <div class="dis-tooltip">${nombreSeguro}: <strong>${valor} prendas</strong> · ${pct.toFixed(1)}% del período</div>
       </div>
     `;
-  }).join('') + `<div class="note">Prendas producidas en el período, agrupadas por el diseñador asignado a cada producción en el Calendario (campo "Diseñador"). Independiente de la Dotación de Costos: aquí se ve quién produjo realmente, con o sin cargo asignado.</div>`;
+  }).join('') + `<div class="note">Prendas producidas en el período, agrupadas por el diseñador asignado a cada producción en el Calendario (campo "Diseñador"). Independiente de la Dotación de Costos: aquí se ve quién produjo realmente, con o sin cargo asignado. Alejandro Velozo es el único diseñador que realiza lienzos, por lo que todas las producciones de lienzo se le asignan a él; al comparar la carga entre diseñadores, considera que el lienzo es un trabajo que solo él hace.</div>`;
 }
 
 // ===== RETORNO SALA DE VENTAS (LOCAL) =====

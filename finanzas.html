@@ -73,7 +73,7 @@ table.er tr:not(.sub):not(.res):not(.sec) td:first-child{padding-left:18px;backg
       <div class="card-title"><span>Estado de resultados mensual</span></div>
       <div class="tbl-wrap"><table class="er" id="er-tbl"></table></div>
       <div class="nota" style="margin-top:10px">
-        <b>Ingresos netos (sin IVA)</b>: solo las ventas de Sala de venta y de Ventas empresa (Otros), por la fecha de la venta. Las producciones no suman aparte.
+        <b>Ingresos netos (sin IVA)</b>: solo las ventas de Sala de venta (registradas netas) y de Ventas empresa (Otros, registradas con IVA y llevadas a neto ÷ 1,19), por la fecha de la venta. Las producciones no suman aparte.
         <b>Compras</b>: facturas de Proveedores por su fecha (neto). <b>Comisiones</b>: las de Sala de venta.
         <b>Remuneraciones y gastos fijos</b>: los valores mensuales actuales de Costos (nómina con leyes sociales, arriendo, servicios…), aplicados a cada mes con ventas registradas (los meses anteriores a usar el sistema no tienen datos y no se cargan); en gris, los meses que aún no terminan.
         <b>Gastos fijos mes a mes</b>: haz clic en la celda de un mes (arriendo, servicios básicos, etc.) para anotar el monto real de ese mes; queda en <b style="color:#1E40AF">azul</b> y también se usa en el flujo de caja. Déjalo vacío para volver al valor de Costos.
@@ -106,7 +106,7 @@ table.er tr:not(.sub):not(.res):not(.sec) td:first-child{padding-left:18px;backg
       <div class="card-title"><span>IVA mensual (apoyo para el F29)</span></div>
       <div class="tbl-wrap"><table class="er" id="iva-tbl"></table></div>
       <div class="nota" style="margin-top:10px">
-        <b>Débito</b>: 19% de las ventas netas de Sala de venta y Ventas empresa (Otros), por la fecha de la venta.
+        <b>Débito</b>: 19% de las ventas netas de Sala de venta y Ventas empresa (Otros; en Otros equivale al IVA incluido en el monto registrado), por la fecha de la venta.
         <b>Crédito</b>: IVA de las facturas de compra registradas en Proveedores, por su fecha (las compras antiguas sin IVA registrado no suman crédito).
         Si el crédito supera al débito, la diferencia pasa como <b>remanente</b> al mes siguiente. <b>PPM</b>: tasa del F29 (código 115) sobre las ventas netas.
         Los meses con <b>F29 declarado</b> usan las cifras reales del SII (y su remanente), y la fila "Débito según el portal" permite compararlas. Los demás meses son estimaciones para revisar con el contador.
@@ -239,7 +239,8 @@ function comision(v){ return Math.round((+v.montoBase || 0) * (+v.comision || D.
 function porMes(anio, filas){ const m = new Array(12).fill(0); filas.forEach(([f, x]) => { if (f && f.slice(0, 4) === String(anio)) m[+f.slice(5, 7) - 1] += x; }); return m; }
 async function resultadosAnio(anio){
   const sala = porMes(anio, D.sala.map(v => [v.fecha, +v.montoBase || 0]));
-  const otros = porMes(anio, D.otros.map(v => [v.fecha, +v.montoBase || 0]));
+  // Otros (empresa) registra el monto con IVA: se lleva a neto (÷ 1,19).
+  const otros = porMes(anio, D.otros.map(v => [v.fecha, (+v.montoBase || 0) / 1.19]));
   const compras = porMes(anio, D.compras.map(c => [c.fecha, netoCompra(c)]));
   const credito = porMes(anio, D.compras.filter(c => c.iva != null).map(c => [c.fecha, +c.iva || 0]));
   const comis = porMes(anio, D.sala.map(v => [v.fecha, comision(v)]));
@@ -440,7 +441,9 @@ async function renderFlujo(){
   });
   if ($('fl-ventas').checked) {
     const desde = sumarDias(lunes, -56);
-    const ultimas = D.sala.concat(D.otros).filter(v => v.fecha >= desde && v.fecha < lunes).reduce((s, v) => s + (+v.montoBase || 0) * 1.19, 0);
+    // Con IVA: Sala de venta es neta (× 1,19); Otros ya viene con IVA.
+    const enRango = v => v.fecha >= desde && v.fecha < lunes;
+    const ultimas = D.sala.filter(enRango).reduce((s, v) => s + (+v.montoBase || 0) * 1.19, 0) + D.otros.filter(enRango).reduce((s, v) => s + (+v.montoBase || 0), 0);
     semanas.forEach(s => s.ventas = Math.round(ultimas / 8));
   }
   D.compras.forEach(c => {

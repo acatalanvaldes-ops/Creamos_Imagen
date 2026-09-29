@@ -473,7 +473,7 @@ function doPost(e) {
     const version = escribirValor(payload.key, valor);
     if (combinar) PropertiesService.getScriptProperties().setProperty("vermanual:" + payload.key, version);
     registrarBitacora(usuario.email, fusion ? "guardar (mezcla)" : "guardar", payload.key, antes, valor);
-    // Ventas de Otros → filas automáticas en Caja (Sala de venta no pasa a Caja).
+    // Ventas → Caja: desactivado (ORIGEN_VENTAS vacío); se conserva por si se reactiva.
     if (ORIGEN_VENTAS[llaveBase(payload.key)]) {
       try { espejarVentas(llaveBase(payload.key), usuario.email); } catch (e) { registrarBitacora(usuario.email, "error espejo ventas", String(e)); }
     }
@@ -577,21 +577,26 @@ const MEDIOS_PAGO = { "Efectivo": "ef", "Transferencia": "tr", "Webpay crédito"
 // borran junto con la venta. Las ventas anteriores a esa fecha ya estaban
 // anotadas a mano en Caja y no se tocan. En Caja, estas filas (y las de pagos
 // de producciones, pagoRef) se muestran bloqueadas: se corrigen en su módulo.
-// Sala de venta (sublipro_v2) NO pasa a Caja: registra ventas netas para
-// calcular comisiones; la Caja del local se anota a mano.
+// Ninguna venta pasa sola a Caja (decisión de la empresa): Sala de venta
+// registra ventas netas para comisiones y Otros se anota a mano en Caja.
+// Solo los pagos de producciones siguen llegando solos (pagoRef).
 const ESPEJO_VENTAS_DESDE = "2026-09-27";
-const ORIGEN_VENTAS = { "creamos_imagen_v1": { id: "otros", origen: "Empresa", nombre: "Otros" } };
+const ORIGEN_VENTAS = {};
 
-// Una sola vez: las filas que Sala de venta alcanzó a copiar en Caja (27 y
-// 28-09-2026) pasan a ser filas manuales (editables en Caja) en vez de
-// borrarse, para no perder el registro de esos días.
+// Una sola vez por origen: las filas que las ventas alcanzaron a copiar en
+// Caja pasan a ser filas manuales (editables en Caja) en vez de borrarse,
+// para no perder el registro de esos días.
 function soltarFilasSalaDeCaja() {
+  soltarFilasVentasDeCaja("sala", "caja_sin_sala_v1", "Sala de venta");
+  soltarFilasVentasDeCaja("otros", "caja_sin_otros_v1", "Otros");
+}
+function soltarFilasVentasDeCaja(origen, marca, nombreOrigen) {
   const props = PropertiesService.getScriptProperties();
-  if (props.getProperty("caja_sin_sala_v1")) return;
+  if (props.getProperty(marca)) return;
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
-    if (props.getProperty("caja_sin_sala_v1")) return;
+    if (props.getProperty(marca)) return;
     const antes = leerValor(KEY_CAJA);
     let caja;
     try { caja = JSON.parse(antes || "{}") || {}; } catch (e) { return; }
@@ -599,7 +604,7 @@ function soltarFilasSalaDeCaja() {
     Object.keys(caja).forEach(function (f) {
       if (!Array.isArray(caja[f])) return;
       caja[f] = caja[f].map(function (r) {
-        if (!(r && r.ventaRef && r.ventaRef.origen === "sala")) return r;
+        if (!(r && r.ventaRef && r.ventaRef.origen === origen)) return r;
         n++;
         const m = Object.assign({}, r);
         delete m.ventaRef;
@@ -610,9 +615,9 @@ function soltarFilasSalaDeCaja() {
     if (n) {
       const texto = JSON.stringify(caja);
       escribirValor(KEY_CAJA, texto);
-      registrarBitacora("sistema", "caja sin Sala de venta", n + " fila(s) copiadas desde Sala de venta pasan a manuales", antes, texto);
+      registrarBitacora("sistema", "caja sin " + nombreOrigen, n + " fila(s) copiadas desde " + nombreOrigen + " pasan a manuales", antes, texto);
     }
-    props.setProperty("caja_sin_sala_v1", "1");
+    props.setProperty(marca, "1");
   } finally { lock.releaseLock(); }
 }
 const COM_WEBPAY_PCT = 2; // recargo Webpay que paga el cliente (igual que en los módulos de ventas)
