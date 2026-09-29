@@ -540,7 +540,44 @@ function renderTodo(){ renderProximos(); renderConciertos(); renderCalendario();
 // ------------------------------------------------------------------ TikTok
 // Estadísticas de la cuenta (Display API). El servidor guarda las claves y
 // el acceso; aquí solo se muestran y se analizan para decidir qué publicar.
-let TT = { estado: null, datos: null, cargando: false, error: '', periodo: '90' };
+let TT = { estado: null, datos: null, cargando: false, error: '', periodo: '90', demo: false, datosReales: null };
+
+// Vista de ejemplo con datos ficticios (para ver cómo se verá antes de conectar).
+function datosDemo(){
+  const hoy = hoyChile();
+  const seg = (dias, hh, mm) => Math.floor(Date.parse(sumarDias(hoy, -dias) + 'T' + String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0') + ':00-03:00') / 1000);
+  const nombres = (DB.grupos || []).map(g => g.nombre);
+  const g = i => nombres[i] || ['BTS', 'Stray Kids', 'TWICE', 'NewJeans'][i];
+  const tag = s => '#' + normTxt(s).replace(/[^a-z0-9]/g, '');
+  const v = (id, dias, hh, mm, texto, dur, vistas, likes, com, comp) => ({ id: 'demo' + id, fecha: seg(dias, hh, mm), texto, duracion: dur, vistas, likes, comentarios: com, compartidos: comp, url: '' });
+  const videos = [
+    v(1, 2, 19, 40, `Feliz cumpleaños 🎂 ¡llegaron los nuevos pañuelos de ${g(0)}! ${tag(g(0))} #kpopchile`, 22, 18400, 1650, 120, 210),
+    v(2, 5, 20, 15, `Así estampamos las poleras de ${g(0)} en el taller ${tag(g(0))} #sublimacion`, 28, 12900, 980, 64, 95),
+    v(3, 9, 12, 5, `Nuevo stock ${g(1)} para el concierto ${tag(g(1))} #kpopchile`, 41, 6100, 410, 22, 30),
+    v(4, 12, 18, 50, `Unboxing banderas de ${g(2)} ${tag(g(2))}`, 18, 9800, 760, 48, 71),
+    v(5, 16, 10, 30, 'Tour por la tienda en Recoleta #creamosimagen', 65, 2100, 120, 9, 6),
+    v(6, 19, 20, 5, `Aniversario de debut de ${g(1)} 🎉 descuento todo el día ${tag(g(1))}`, 25, 7400, 530, 40, 52),
+    v(7, 23, 13, 0, `Lienzos personalizados de ${g(3)} ${tag(g(3))} #lienzo`, 35, 5300, 380, 18, 25),
+    v(8, 27, 19, 20, `Pack de ${g(0)} para regalar ${tag(g(0))}`, 20, 15200, 1210, 88, 140),
+    v(9, 31, 16, 10, 'Proceso de sublimación paso a paso #sublimacion', 72, 1800, 95, 6, 4),
+    v(10, 36, 20, 30, `Poleras ${g(2)} recién salidas ${tag(g(2))}`, 24, 8700, 640, 35, 58),
+    v(11, 42, 11, 45, `Llegó el merch de ${g(3)} ${tag(g(3))}`, 48, 4200, 290, 14, 17),
+    v(12, 50, 19, 55, `Concierto de ${g(1)} en Chile: ¿ya tienes tu bandera? ${tag(g(1))} #kpopchile`, 27, 11300, 880, 70, 120),
+    v(13, 58, 21, 10, 'Preguntas frecuentes: envíos y retiro #creamosimagen', 55, 1500, 70, 12, 3),
+    v(14, 66, 18, 35, `Mantas de ${g(0)} ${tag(g(0))}`, 30, 10100, 790, 51, 83)
+  ];
+  const historial = {};
+  historial[sumarDias(hoy, -35)] = { seguidores: 2150, likes: 52000, videos: 11, vistas: 0 };
+  historial[sumarDias(hoy, -8)] = { seguidores: 2390, likes: 59100, videos: 13, vistas: 0 };
+  historial[hoy] = { seguidores: 2480, likes: 61200, videos: 14, vistas: 0 };
+  return { cuenta: { display_name: 'creamosimagen', follower_count: 2480, following_count: 150, likes_count: 61200, video_count: 14 }, historial, videos, actualizado: new Date().toISOString() };
+}
+function ttDemo(on){
+  if (on && !TT.demo) { TT.datosReales = TT.datos; TT.datos = datosDemo(); TT.demo = true; }
+  else if (!on && TT.demo) { TT.datos = TT.datosReales; TT.datosReales = null; TT.demo = false; }
+  renderTiktok();
+}
+const BOTON_DEMO = '<button class="act-btn" style="margin-left:8px" onclick="ttDemo(true)">👀 Ver ejemplo</button>';
 const fmtN = n => Math.round(n || 0).toLocaleString('es-CL');
 const pct = x => (x * 100).toFixed(1).replace('.', ',') + '%';
 const normTxt = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -570,6 +607,7 @@ async function ttIniciar(){
     TT.error = 'TikTok no autorizó la conexión (' + q.get('error') + ').';
   }
   try { TT.estado = await ttGet('tiktokEstado'); } catch(e) { TT.estado = { error: e.message }; }
+  if (q.get('demo') === 'tiktok') { verPanel('tiktok', $('tab-tiktok')); ttDemo(true); return; }
   renderTiktok();
 }
 async function ttConectar(){
@@ -616,9 +654,9 @@ function renderTiktok(){
   const est = TT.estado;
   if (!est) { box.innerHTML = '<div class="nota">Cargando…</div>'; return; }
   const aviso = TT.error ? `<div class="aviso">${esc(TT.error)}</div>` : '';
-  if (est.error) { box.innerHTML = `<div class="aviso">${/SIN_PERMISO/.test(est.error) ? 'No tienes el módulo Marketing asignado.' : 'No se pudo consultar TikTok: ' + esc(est.error)}</div>`; return; }
-  if (!est.configurado) {
-    box.innerHTML = aviso + `<div class="card"><div class="card-title"><span>Conectar las estadísticas de TikTok</span></div>
+  if (est.error && !TT.demo) { box.innerHTML = `<div class="aviso">${/SIN_PERMISO/.test(est.error) ? 'No tienes el módulo Marketing asignado.' : 'No se pudo consultar TikTok: ' + esc(est.error)}</div>`; return; }
+  if (!est.configurado && !TT.demo) {
+    box.innerHTML = aviso + `<div class="card"><div class="card-title"><span>Conectar las estadísticas de TikTok</span><span>${BOTON_DEMO}</span></div>
       <div class="nota" style="margin-bottom:10px">Falta crear la app de TikTok (una sola vez). Pasos, con la cuenta de TikTok de la empresa:</div>
       <ol class="tt-pasos">
         <li>Entra a <b>developers.tiktok.com</b>, inicia sesión y crea una app (tipo <b>Web</b>) llamada, por ejemplo, "Creamos Imagen Portal".</li>
@@ -630,20 +668,20 @@ function renderTiktok(){
       </ol></div>`;
     return;
   }
-  if (!est.conectado) {
-    box.innerHTML = aviso + `<div class="card"><div class="card-title"><span>Conectar la cuenta de TikTok</span></div>
+  if (!est.conectado && !TT.demo) {
+    box.innerHTML = aviso + `<div class="card"><div class="card-title"><span>Conectar la cuenta de TikTok</span><span>${BOTON_DEMO}</span></div>
       <div class="nota" style="margin-bottom:12px">Se abrirá TikTok para que la cuenta de Creamos Imagen autorice leer sus estadísticas (perfil, seguidores y videos). No se puede publicar ni borrar nada desde el portal.</div>
       <button class="act-btn primary" onclick="ttConectar()">Conectar cuenta de TikTok</button></div>`;
     return;
   }
-  if (!TT.datos && !TT.cargando && !TT.error) { ttCargar(false); }
+  if (!TT.datos && !TT.cargando && !TT.error && !TT.demo) { ttCargar(false); }
   const d = TT.datos;
   const barra = `<div class="card"><div class="card-title"><span>${d && d.cuenta.display_name ? '📊 ' + esc(d.cuenta.display_name) : '📊 TikTok'}</span>
       <span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <select onchange="ttPeriodo(this.value)" style="padding:7px 9px;border-radius:6px;border:1px solid var(--border)">${[['30','Últimos 30 días'],['90','Últimos 90 días'],['365','Último año'],['todo','Todos los videos']].map(o => `<option value="${o[0]}" ${TT.periodo === o[0] ? 'selected' : ''}>${o[1]}</option>`).join('')}</select>
-        <button class="act-btn" onclick="ttCargar(true)" ${TT.cargando ? 'disabled' : ''}>${TT.cargando ? 'Actualizando…' : '🔄 Actualizar'}</button>
-        <button class="act-btn danger" onclick="ttDesconectar()">Desconectar</button></span></div>
-      <div class="nota">Conectada por ${esc(est.por || '—')}${d ? ' · datos del ' + new Date(d.actualizado).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' }) : ''}. Solo se leen los videos públicos. El historial de seguidores se arma con cada actualización (una foto por día).</div></div>`;
+        ${TT.demo ? '<button class="act-btn primary" onclick="ttDemo(false)">Salir del ejemplo</button>' : `<button class="act-btn" onclick="ttCargar(true)" ${TT.cargando ? 'disabled' : ''}>${TT.cargando ? 'Actualizando…' : '🔄 Actualizar'}</button>
+        <button class="act-btn danger" onclick="ttDesconectar()">Desconectar</button>`}</span></div>
+      ${TT.demo ? '<div class="aviso" style="margin:0">👀 <b>Vista de ejemplo con datos ficticios.</b> Así se verán las estadísticas cuando la cuenta de TikTok esté conectada.</div>' : `<div class="nota">Conectada por ${esc(est.por || '—')}${d ? ' · datos del ' + new Date(d.actualizado).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' }) : ''}. Solo se leen los videos públicos. El historial de seguidores se arma con cada actualización (una foto por día).</div>`}</div>`;
   if (!d) { box.innerHTML = aviso + barra + (TT.cargando ? '<div class="nota">Trayendo estadísticas desde TikTok…</div>' : ''); return; }
 
   const hoy = hoyChile();
