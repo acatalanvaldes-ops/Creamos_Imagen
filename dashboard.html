@@ -105,8 +105,7 @@ dialog.indicator-info{max-width:520px;border:1px solid var(--border);border-radi
   <div id="dashContent" style="display:none">
 
     <div class="kpi-grid">
-      <div class="kpi-card"><div class="kpi-label">Ventas Totales (netas)</div><div class="kpi-val" id="kpi-ventas">$ 0</div><div class="kpi-sub" id="kpi-ventas-sub"></div></div>
-      <div class="kpi-card"><div class="kpi-label">Ventas Otros (netas)</div><div class="kpi-val" id="kpi-otros">$ 0</div><div class="kpi-sub" id="kpi-otros-sub"></div></div>
+      <div class="kpi-card"><div class="kpi-label">Ventas Otros</div><div class="kpi-val" id="kpi-otros">$ 0</div><div class="kpi-val" id="kpi-otros-iva" style="font-size:13px;color:#D6D3D1;margin-top:2px">$ 0</div><div class="kpi-sub" id="kpi-otros-sub"></div></div>
       <div class="kpi-card"><div class="kpi-label">Ingresos (Rendición)</div><div class="kpi-val" id="kpi-ingresos">$ 0</div><div class="kpi-sub" id="kpi-ingresos-sub"></div></div>
       <div class="kpi-card"><div class="kpi-label">Resultado del Período</div><div class="kpi-val" id="kpi-resultado">$ 0</div><div class="kpi-sub" id="kpi-resultado-sub"></div></div>
       <div class="kpi-card"><div class="kpi-label">Producciones Realizadas</div><div class="kpi-val" id="kpi-producciones">0</div><div class="kpi-sub" id="kpi-producciones-sub"></div></div>
@@ -347,10 +346,10 @@ function renderVentas(r) {
   const totalEmpresa = vEmpresa.reduce((s, v) => s + netoEmpresa(v), 0);
   const totalGeneral = totalLocal + totalEmpresa;
 
-  document.getElementById('kpi-ventas').textContent = fmt(totalGeneral);
-  document.getElementById('kpi-ventas-sub').textContent = vLocal.length + vEmpresa.length + ' ventas registradas';
-  document.getElementById('kpi-otros').textContent = fmt(totalEmpresa);
-  document.getElementById('kpi-otros-sub').textContent = vEmpresa.length + ' ventas · sin IVA';
+  const totalEmpresaIva = vEmpresa.reduce((s, v) => s + (+v.montoBase || 0), 0);
+  document.getElementById('kpi-otros').textContent = fmt(totalEmpresa) + ' neto';
+  document.getElementById('kpi-otros-iva').textContent = fmt(totalEmpresaIva) + ' con IVA';
+  document.getElementById('kpi-otros-sub').textContent = vEmpresa.length + ' ventas en el período';
 
   // Top productos combinados
   const porProducto = {};
