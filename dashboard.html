@@ -105,6 +105,7 @@ dialog.indicator-info{max-width:520px;border:1px solid var(--border);border-radi
   <div id="dashContent" style="display:none">
 
     <div class="kpi-grid">
+      <div class="kpi-card"><div class="kpi-label">Local vs. Empresa</div><div class="kpi-val" id="kpi-mix">-</div><div class="kpi-sub" id="kpi-mix-sub"></div></div>
       <div class="kpi-card"><div class="kpi-label">Ingresos (Rendición)</div><div class="kpi-val" id="kpi-ingresos">$ 0</div><div class="kpi-sub" id="kpi-ingresos-sub"></div></div>
       <div class="kpi-card"><div class="kpi-label">Resultado del Período</div><div class="kpi-val" id="kpi-resultado">$ 0</div><div class="kpi-sub" id="kpi-resultado-sub"></div></div>
       <div class="kpi-card"><div class="kpi-label">Producciones Realizadas</div><div class="kpi-val" id="kpi-producciones">0</div><div class="kpi-sub" id="kpi-producciones-sub"></div></div>
@@ -344,6 +345,10 @@ function renderVentas(r) {
   const totalLocal = vLocal.reduce((s, v) => s + (v.montoBase || 0), 0);
   const totalEmpresa = vEmpresa.reduce((s, v) => s + netoEmpresa(v), 0);
   const totalGeneral = totalLocal + totalEmpresa;
+  const pctLocal = totalGeneral > 0 ? Math.round(totalLocal / totalGeneral * 100) : 0;
+  const pctEmpresa = totalGeneral > 0 ? 100 - pctLocal : 0;
+  document.getElementById('kpi-mix').textContent = totalGeneral > 0 ? pctLocal + '% / ' + pctEmpresa + '%' : '-';
+  document.getElementById('kpi-mix-sub').textContent = totalGeneral > 0 ? 'Local / Empresa · ventas netas' : 'Sin ventas en el período';
 
 
   // Top productos combinados
@@ -357,11 +362,21 @@ function renderVentas(r) {
     <div class="dr-row"><span>Ventas Otros (Marcelo)</span><span>${fmt(totalEmpresa)} · ${vEmpresa.length} ventas</span></div>
     <div class="dr-row tot"><span>Total Vendido (neto)</span><span>${fmt(totalGeneral)}</span></div>
   `;
+  // Participación del local (Sala de venta) y de la empresa (Otros) en las ventas netas.
+  if (totalGeneral > 0) {
+    html += `<div style="margin-top:12px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Participación en las ventas netas</div>
+      <div style="display:flex;height:22px;border-radius:6px;overflow:hidden;font-size:11px;font-weight:700;color:#fff">
+        <div style="width:${pctLocal}%;background:#0D7A6B;display:flex;align-items:center;justify-content:center;white-space:nowrap">${pctLocal >= 12 ? 'Local ' + pctLocal + '%' : ''}</div>
+        <div style="width:${pctEmpresa}%;background:#C8973A;display:flex;align-items:center;justify-content:center;white-space:nowrap">${pctEmpresa >= 12 ? 'Empresa ' + pctEmpresa + '%' : ''}</div>
+      </div>
+      <div class="dr-row"><span>Local (Sala de venta)</span><span>${pctLocal}%</span></div>
+      <div class="dr-row"><span>Empresa (Otros)</span><span>${pctEmpresa}%</span></div>`;
+  }
   if (topProductos.length) {
     html += `<div style="margin-top:14px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Top productos</div>`;
     html += topProductos.map(([p, m]) => `<div class="dr-row"><span>${p}</span><span>${fmt(m)}</span></div>`).join('');
   }
-  html += `<div class="note">Todas las ventas de este cuadro son netas, es decir, sin IVA. Sala de venta: las ventas se registran netas, porque son la base para calcular las comisiones de los vendedores. Otros (empresa): el monto registrado incluye IVA, así que aquí se divide por 1,19 para llevarlo a neto. Los "Top productos" también se muestran en neto. Por eso estas cifras no coinciden con lo cobrado en la Rendición de caja, que incluye IVA y recargos.</div>`;
+  html += `<div class="note">Todas las ventas de este cuadro son netas, es decir, sin IVA. Sala de venta: las ventas se registran netas, porque son la base para calcular las comisiones de los vendedores. Otros (empresa): el monto registrado incluye IVA, así que aquí se divide por 1,19 para llevarlo a neto. Los "Top productos" también se muestran en neto, y la participación Local vs. Empresa (tarjeta superior y barra) se calcula sobre estas ventas netas del período. Por eso estas cifras no coinciden con lo cobrado en la Rendición de caja, que incluye IVA y recargos.</div>`;
   document.getElementById('ventasDetalle').innerHTML = html;
 }
 
