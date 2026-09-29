@@ -285,7 +285,8 @@ function goXl(el){ state.xlTab=el.getAttribute('data-xl'); render(); }
 function buildKpiStrip(filt, tV, filtroMes, meses) {
   var kpis = [
     {l:"N° Ventas",v:""+filt.length,u:"registros",c:"#1E40AF"},
-    {l:"Total Ventas",v:fmt(tV),u:"monto neto",c:"#166534"}
+    {l:"Ventas netas",v:fmt(Math.round(tV/1.19)),u:"sin IVA (÷ 1,19)",c:"#166534"},
+    {l:"Ventas con IVA",v:fmt(tV),u:"monto registrado",c:"#0F766E"}
   ];
   var kHtml = kpis.map(function(k){
     return '<div class="kpi"><div class="kpi-l">'+k.l+'</div><div class="kpi-v" style="color:'+k.c+'">'+k.v+'</div><div class="kpi-u">'+k.u+'</div></div>';
@@ -309,8 +310,10 @@ function buildKpiStrip(filt, tV, filtroMes, meses) {
 
 function buildTotalBox(tV, count, tFact) {
   return '<div class="total-box">'+
-    '<div class="tb-col"><div class="tb-lbl">Ingreso Total (Neto)</div><div class="tb-val" style="color:#5EEAD4;font-size:24px">'+fmt(tV)+'</div>'+
+    '<div class="tb-col"><div class="tb-lbl">Ingreso Total Neto (sin IVA)</div><div class="tb-val" style="color:#5EEAD4;font-size:24px">'+fmt(Math.round(tV/1.19))+'</div>'+
     '<div style="font-size:10px;color:#aaa;margin-top:2px">'+count+' ventas ingresadas - '+tFact+' con factura</div></div>'+
+    '<div class="tb-col" style="margin-left:40px"><div class="tb-lbl">Ingreso Total con IVA</div><div class="tb-val" style="color:#fff;font-size:24px">'+fmt(tV)+'</div>'+
+    '<div style="font-size:10px;color:#aaa;margin-top:2px">monto registrado en las ventas</div></div>'+
     '</div>';
 }
 
