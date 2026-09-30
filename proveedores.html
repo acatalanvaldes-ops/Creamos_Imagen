@@ -36,6 +36,11 @@ input,select,button{font-family:inherit;outline:none}
 .c-row strong{color:var(--dark);min-width:65px}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity 0.2s;overflow-y:auto}
 .modal-bg.open{opacity:1;pointer-events:all}
+.rcv-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:8px}
+.rcv-kpis div{background:#F7F5F0;border:1px solid #E7E2D9;border-radius:8px;padding:10px 12px}
+.rcv-kpis b{display:block;font-size:22px}
+.rcv-kpis span{font-size:11px;color:#78716C}
+.rcv-aviso{background:#FEF3E2;border:1px solid #FDE68A;color:#92400E;border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.5;margin-bottom:10px}
 .modal{background:#fff;border-radius:14px;padding:30px;width:100%;max-width:640px;box-shadow:0 24px 60px rgba(0,0,0,.2);max-height:92vh;overflow-y:auto;transform:translateY(20px);transition:transform 0.2s;margin:auto}
 .modal-bg.open .modal{transform:translateY(0)}
 .modal h2{font-family:'DM Serif Display',serif;font-size:24px;margin-bottom:20px;color:var(--gold)}
@@ -145,7 +150,7 @@ table.tbl tr:last-child td{border-bottom:none}
 
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
       <h2 style="font-family:'DM Serif Display',serif;font-size:20px">Registro de Compras</h2>
-      <button class="act-btn primary" onclick="abrirFormCompra()">+ Registrar Compra</button>
+      <span style="display:flex;gap:8px;flex-wrap:wrap"><button class="act-btn" onclick="abrirImportarRCV()" title="Cargar el Registro de Compras descargado desde sii.cl">📥 Importar RCV del SII</button><button class="act-btn primary" onclick="abrirFormCompra()">+ Registrar Compra</button></span>
     </div>
     <div id="pendientesResumen" class="pend-resumen"></div>
     <div id="comprasTableWrap"></div>
@@ -157,6 +162,23 @@ table.tbl tr:last-child td{border-bottom:none}
 </div>
 
 <!-- Modal Ficha Proveedor -->
+<div class="modal-bg" id="modalRCV">
+  <div class="modal" style="max-width:760px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <h2 style="font-family:'DM Serif Display',serif;font-size:20px">Importar Registro de Compras (SII)</h2>
+      <button class="icon-btn" onclick="cerrarImportarRCV()">✕</button>
+    </div>
+    <div style="font-size:12px;color:#78716C;line-height:1.55;margin-bottom:12px">En sii.cl → Registro de Compras y Ventas → Compras → descarga el detalle del mes ("RCV_COMPRA_REGISTRO_…csv"). Puedes seleccionar varios meses a la vez. Se crean los proveedores que falten (por RUT) y las facturas que no estén ingresadas (mismo RUT y folio); las que ya existen se omiten.</div>
+    <input type="file" id="rcv-archivos" accept=".csv,text/csv" multiple onchange="rcvArchivos(this)" style="margin-bottom:12px">
+    <label style="display:flex;gap:8px;align-items:center;font-size:13px;margin-bottom:12px"><input type="checkbox" id="rcv-pagadas" checked> Registrarlas como pagadas en la fecha de cada documento (desmárcalo si alguna sigue pendiente)</label>
+    <div id="rcv-resumen"></div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+      <button class="act-btn" onclick="cerrarImportarRCV()">Cancelar</button>
+      <button class="act-btn primary" id="rcv-importar" onclick="rcvImportar()" disabled>Importar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="modalForm">
   <div class="modal">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
@@ -822,5 +844,6 @@ window.onload = async function () {
 };
 </script>
 <script src="proveedores-erp.js"></script>
+<script src="proveedores-rcv.js"></script>
 </body>
 </html>

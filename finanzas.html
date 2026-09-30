@@ -74,7 +74,7 @@ table.er tr:not(.sub):not(.res):not(.sec) td:first-child{padding-left:18px;backg
       <div class="tbl-wrap"><table class="er" id="er-tbl"></table></div>
       <div class="nota" style="margin-top:10px">
         <b>Ingresos netos (sin IVA)</b>: solo las ventas de Sala de venta (registradas netas) y de Ventas empresa (Otros, registradas con IVA y llevadas a neto ÷ 1,19), por la fecha de la venta. Las producciones no suman aparte.
-        <b>Compras</b>: facturas de Proveedores por su fecha (neto). <b>Comisiones</b>: las de Sala de venta.
+        <b>Compras</b>: facturas de insumos de Proveedores por su fecha (neto). El arriendo y los servicios facturados (importados del RCV) reemplazan el monto estimado de Costos en su mes; seguros, peajes y combustible van en "Otros gastos facturados". <b>Comisiones</b>: las de Sala de venta.
         <b>Remuneraciones y gastos fijos</b>: los valores mensuales actuales de Costos (nómina con leyes sociales, arriendo, servicios…), aplicados a cada mes con ventas registradas (los meses anteriores a usar el sistema no tienen datos y no se cargan); en gris, los meses que aún no terminan.
         <b>Gastos fijos mes a mes</b>: haz clic en la celda de un mes (arriendo, servicios básicos, etc.) para anotar el monto real de ese mes; queda en <b style="color:#1E40AF">azul</b> y también se usa en el flujo de caja. Déjalo vacío para volver al valor de Costos.
         Es una vista de gestión: para el balance tributario, confírmalo con tu contador.
@@ -206,10 +206,25 @@ function gastosFijos(){
   const g = (D.costos && D.costos.config && D.costos.config.gastos) || {};
   const claves = Object.keys(g);
   Object.values(D.cfg.gastosMes || {}).forEach(m => Object.keys(m).forEach(k => { if (!claves.includes(k)) claves.push(k); }));
+  ['arriendo', 'servicios'].forEach(k => { if (!claves.includes(k) && D.compras.some(c => c.categoria === k)) claves.push(k); });
   return claves.map(k => ({ clave: k, nombre: NOMBRE_GASTO[k] || k, monto: +g[k] || 0 }));
 }
 const ymDe = (anio, i) => anio + '-' + String(i + 1).padStart(2, '0');
-function gastoReal(clave, ym){ const m = (D.cfg.gastosMes || {})[ym]; return m && m[clave] != null ? +m[clave] : null; }
+// Categorías de compras (importadas del RCV): insumos = costo directo;
+// arriendo y servicios reemplazan el gasto fijo estimado de ese mes;
+// seguros, peajes y combustible van en "Otros gastos facturados".
+const esInsumo = c => !c.categoria || c.categoria === 'insumos';
+const CAT_OTROS_GASTOS = ['seguros', 'peajes', 'combustible'];
+function gastoFacturado(clave, ym){
+  const lista = D.compras.filter(c => c.categoria === clave && String(c.fecha || '').slice(0, 7) === ym);
+  return lista.length ? lista.reduce((s, c) => s + netoCompra(c), 0) : null;
+}
+// Monto real de un gasto fijo en un mes: el anotado a mano manda; si no, el facturado (RCV).
+function gastoReal(clave, ym){
+  const m = (D.cfg.gastosMes || {})[ym];
+  if (m && m[clave] != null) return +m[clave];
+  return (clave === 'arriendo' || clave === 'servicios') ? gastoFacturado(clave, ym) : null;
+}
 function gastosDelMes(ym){ return gastosFijos().reduce((s, g) => { const r = gastoReal(g.clave, ym); return s + (r !== null ? r : g.monto); }, 0); }
 async function editarGastoMes(clave, anio, i){
   const ym = ymDe(anio, i), g = gastosFijos().find(x => x.clave === clave);
@@ -241,10 +256,11 @@ async function resultadosAnio(anio){
   const sala = porMes(anio, D.sala.map(v => [v.fecha, +v.montoBase || 0]));
   // Otros (empresa) registra el monto con IVA: se lleva a neto (÷ 1,19).
   const otros = porMes(anio, D.otros.map(v => [v.fecha, (+v.montoBase || 0) / 1.19]));
-  const compras = porMes(anio, D.compras.map(c => [c.fecha, netoCompra(c)]));
+  const compras = porMes(anio, D.compras.filter(esInsumo).map(c => [c.fecha, netoCompra(c)]));
+  const otrosFact = porMes(anio, D.compras.filter(c => CAT_OTROS_GASTOS.includes(c.categoria)).map(c => [c.fecha, netoCompra(c)]));
   const credito = porMes(anio, D.compras.filter(c => c.iva != null).map(c => [c.fecha, +c.iva || 0]));
   const comis = porMes(anio, D.sala.map(v => [v.fecha, comision(v)]));
-  return { sala, otros, compras, credito, comis };
+  return { sala, otros, compras, credito, comis, otrosFact };
 }
 const f29De = (anio, i) => (D.cfg.f29 || {})[anio + '-' + String(i + 1).padStart(2, '0')] || null;
 const tasaPpm = () => D.cfg.tasaPpm != null ? +D.cfg.tasaPpm : 1;
@@ -304,7 +320,7 @@ async function renderResultados(){
   const bruto = MESES.map((_, i) => ingresos[i] - directos[i]);
   const remuArr = MESES.map((_, i) => remu * aplica(i));
   const gastosArr = gastos.map(g => MESES.map((_, i) => { const r = gastoReal(g.clave, ymDe(anio, i)); return r !== null ? r : g.monto * aplica(i); }));
-  const operacional = MESES.map((_, i) => bruto[i] - remuArr[i] - gastosArr.reduce((s, a) => s + a[i], 0));
+  const operacional = MESES.map((_, i) => bruto[i] - remuArr[i] - gastosArr.reduce((s, a) => s + a[i], 0) - r.otrosFact[i]);
   filas.push({ sec: 'Ingresos netos' });
   fila('Sala de venta', r.sala); fila('Otros (ventas empresa)', r.otros);
   fila('Total ingresos', ingresos, 'sub');
@@ -314,6 +330,7 @@ async function renderResultados(){
   filas.push({ sec: 'Gastos operacionales' });
   fila('Remuneraciones (costo empresa)', remuArr);
   gastos.forEach((g, k) => { fila(g.nombre, gastosArr[k]); filas[filas.length - 1].editar = g.clave; });
+  if (r.otrosFact.some(x => x)) fila('Otros gastos facturados (seguros, peajes, combustible)', r.otrosFact);
   fila('Resultado operacional', operacional, 'res');
   const pct = MESES.map((_, i) => ingresos[i] ? Math.round(operacional[i] / ingresos[i] * 100) : null);
   $('er-tbl').innerHTML = `<tr><th>${anio}</th>${MESES.map(m => `<th>${m}</th>`).join('')}<th>Total</th></tr>` +

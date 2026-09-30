@@ -406,6 +406,8 @@ function renderCostos(r) {
   // compras antiguas sin dato de pago se muestran aparte, sin restarlas.
   let pagosProv = 0, nPagos = 0, pendientesProv = 0, nPend = 0, sinDatoProv = 0, nSinDato = 0;
   compras.forEach(c => {
+    // Arriendo y servicios facturados ya están en "Otros Gastos Fijos" (Costos): no se cuentan dos veces.
+    if (c.categoria === 'arriendo' || c.categoria === 'servicios') return;
     const monto = compraMontoTotalDash(c);
     // Compras con pagos detallados (Por pagar): cada pago cuenta en su fecha,
     // y lo que falta pagar de una compra del período queda como pendiente.
