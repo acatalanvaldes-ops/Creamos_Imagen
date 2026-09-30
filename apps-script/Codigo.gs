@@ -526,6 +526,7 @@ function accionPost(b) {
   if (b.action === "listarMarcaciones" || b.action === "registrarMarcacion") return manejarMarcaciones(b);
   if (b.accion === "solicitarVac") return accionSolicitarVac(b);
   if (b.accion === "firmarVac") return accionFirmarVac(b);
+  if (b.accion === "anularFirmaVac") return accionAnularFirmaVac(b);
   if (b.accion === "cancelarVac") return accionCancelarVac(b);
   if (b.accion === "config") {
     const u = usuarioDe(b.token);
@@ -1403,6 +1404,31 @@ function accionFirmarVac(b) {
     escribirValor(KEY_FIRMAS_VAC, texto);
     registrarBitacora(firmante.email, "firma certificado vacaciones", rol + " · vacación " + id + " (" + reg.datos.fechaInicio + " al " + reg.datos.fechaFin + ")", antes, texto);
     return respuesta({ estado: "éxito", firma: reg });
+  } finally { lock.releaseLock(); }
+}
+
+// Anular firmas de un certificado (RRHH o administradores), por ejemplo si se
+// firmó por error: "trabajador" quita solo la del trabajador (vuelve a quedar
+// pendiente de su firma); "todas" quita ambas (vuelve a quedar sin firmar).
+function accionAnularFirmaVac(b) {
+  const u = usuarioDe(b.token);
+  if (!u || u.legado) return error(u ? "SIN_PERMISO" : motivoRechazo(b.token));
+  if (!u.isAdmin && (u.modules || []).indexOf("rrhh") === -1) return error("SIN_PERMISO");
+  const id = String(b.vacId || ""), que = b.que === "todas" ? "todas" : "trabajador";
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(20000);
+    const antes = leerValor(KEY_FIRMAS_VAC);
+    let todas = {};
+    try { todas = JSON.parse(antes || "{}") || {}; } catch (e) {}
+    const reg = todas[id];
+    if (!reg) return error("Ese certificado no tiene firmas.");
+    if (que === "todas") delete todas[id];
+    else { delete reg.trabajador; delete reg.codigo; todas[id] = reg; }
+    const texto = JSON.stringify(todas);
+    escribirValor(KEY_FIRMAS_VAC, texto);
+    registrarBitacora(u.email, "anular firma certificado vacaciones", (que === "todas" ? "ambas firmas" : "firma del trabajador") + " · vacación " + id + (b.motivo ? " · " + String(b.motivo).slice(0, 150) : ""), antes, texto);
+    return respuesta({ estado: "éxito", firma: todas[id] || null });
   } finally { lock.releaseLock(); }
 }
 

@@ -1001,6 +1001,23 @@ async function firmarEmpleador(v, silencioso){
     FIRMAS_VAC[String(v.id)] = j.firma; vaRender();
   } catch(e){ alert('Las vacaciones quedaron aprobadas, pero no se pudo firmar el certificado: ' + e.message + '\nPuedes firmarlo después con el botón ✍️ de la tabla.'); }
 }
+async function vaAnularFirma(id){
+  const f = FIRMAS_VAC[String(id)]; if(!f) return;
+  let que = 'todas';
+  if(f.trabajador){
+    const soloTrab = confirm('¿Anular solo la FIRMA DEL TRABAJADOR?\n\nAceptar = se quita solo la del trabajador (deberá volver a firmar desde Mi Portal).\nCancelar = elegir anular AMBAS firmas.');
+    if(soloTrab) que = 'trabajador';
+    else if(!confirm('¿Anular AMBAS firmas (empleador y trabajador)? El certificado quedará sin firmar; luego puedes volver a firmarlo con ✍️.')) return;
+  } else if(!confirm('¿Anular la firma del EMPLEADOR? El certificado quedará sin firmar; luego puedes volver a firmarlo con ✍️.')) return;
+  const motivo = prompt('Motivo (queda en la bitácora):', 'Firmado por error') || '';
+  try {
+    const res = await fetchConTimeout(API_URL, { method:'POST', body: JSON.stringify({ accion:'anularFirmaVac', vacId:String(id), que, motivo, token:CLOUD_TOKEN }) });
+    const j = await res.json(); if(j.estado === 'error') throw new Error(j.detalle || 'Error del servidor');
+    if(j.firma) FIRMAS_VAC[String(id)] = j.firma; else delete FIRMAS_VAC[String(id)];
+    vaRender();
+    alert(que === 'trabajador' ? 'Listo: se anuló la firma del trabajador.' : 'Listo: se anularon las firmas del certificado.');
+  } catch(e){ alert('No se pudo anular: ' + e.message); }
+}
 function vaCertificado(id){
   const v = DB.vac.find(x=>x.id===id); if(!v) return;
   const t = getT(v.trabajadorId), s = t ? vaSaldo(t) : null;
@@ -1010,7 +1027,7 @@ function vaCeldaCertificado(v){
   if(v.estado !== 'Aprobada') return '';
   const f = FIRMAS_VAC[String(v.id)], est = CertificadoVacaciones.estado(f);
   const etq = est === 'completo' ? '<span class="badge bdg-act">Firmado por ambos</span>' : est === 'falta_trabajador' ? '<span class="badge bdg-pen">Falta firma del trabajador</span>' : '<span class="badge bdg-err">Falta firma del empleador</span>';
-  return `<div style="margin-top:4px">${etq}</div><div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap">${est === 'sin_empleador' ? `<button class="act-btn small" onclick="firmarEmpleador(DB.vac.find(x=>x.id===${v.id}))">✍️ Firmar</button>` : ''}<button class="act-btn small" onclick="vaCertificado(${v.id})" title="Descargar comprobante de feriado">📄 Certificado</button></div>`;
+  return `<div style="margin-top:4px">${etq}</div><div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap">${est === 'sin_empleador' ? `<button class="act-btn small" onclick="firmarEmpleador(DB.vac.find(x=>x.id===${v.id}))">✍️ Firmar</button>` : ''}<button class="act-btn small" onclick="vaCertificado(${v.id})" title="Descargar comprobante de feriado">📄 Certificado</button>${est !== 'sin_empleador' ? `<button class="act-btn small" style="color:var(--red)" onclick="vaAnularFirma(${v.id})" title="Anular firmas (por ejemplo, si se firmó por error)">↺ Anular firma</button>` : ''}</div>`;
 }
 function vaOpenRej(id, portal){ editId.vacRej=id; editId.vacRejPortal=!!portal; $('mod-vac-mot').value='';$('mod-vac').style.display='flex'; }
 function vaConfirmReject(){
