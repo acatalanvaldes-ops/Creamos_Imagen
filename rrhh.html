@@ -63,6 +63,7 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
 <script src="cargando.js"></script>
 <script src="hora-chile.js"></script>
 <script src="vacaciones-saldo.js"></script>
+<script src="certificado-vacaciones.js"></script>
 <script src="permisos-legales.js"></script>
 <script src="feriados-chile.js"></script>
 <script>
@@ -629,6 +630,7 @@ async function init() {
   popSel(); renderAll();
   sincronizarMarcacionesAsistencia();
   await vaCargarSolicitudes();
+  await cargarFirmasVac(); vaRender();
 }
 
 function showTab(id, btn) {
@@ -938,6 +940,7 @@ async function vaResolverPortal(id, estado, motivoRechazo){
   if(esPermiso){ reg.tipo = tipo; if(s.causal) reg.causal = s.causal; }
   if(estado === 'Rechazada') reg.motivoRechazo = motivoRechazo || '';
   DB[lista_].push(reg); sync(lista_);
+  if(estado === 'Aprobada' && !esPermiso) firmarEmpleador(reg, true);
   const resto = lista.filter(x => x.id !== id);
   const ok = await saveCloudRaw(KEY_SOL_VAC, resto);
   SOL_VAC = ok ? resto : lista.filter(x => x.id !== id);
@@ -982,7 +985,33 @@ function vaSave() {
   DB.vac.push({id:Date.now(),trabajadorId:tid,fechaInicio:fi,fechaFin:ff,dias:d,motivo:$('va-mot').value,estado:"Pendiente"});
   sync('vac'); ['tra','ini','fin','mot'].forEach(k=>$(`va-${k}`).value=''); vaPrev(); renderAll();
 }
-function vaSt(id, st){ const v=DB.vac.find(x=>x.id===id); if(v){v.estado=st; sync('vac'); renderAll();} }
+function vaSt(id, st){ const v=DB.vac.find(x=>x.id===id); if(v){v.estado=st; sync('vac'); renderAll(); if(st==='Aprobada') firmarEmpleador(v, true);} }
+
+// ---- Certificado de feriado: firma del empleador y descarga ----
+const KEY_FIRMAS_VAC = 'rrhh_firmas_vac_v1';
+let FIRMAS_VAC = {};
+async function cargarFirmasVac(){ try { const v = await fetchClaveNube(KEY_FIRMAS_VAC); FIRMAS_VAC = v && typeof v === 'object' ? v : {}; } catch(e){ console.warn('No se pudieron leer las firmas de vacaciones', e); } }
+function nombreSesionRRHH(){ try { const s = JSON.parse(localStorage.getItem('cimagen_session')) || {}; return s.name || s.email || ''; } catch(e){ return ''; } }
+async function firmarEmpleador(v, silencioso){
+  if(!v || v.estado !== 'Aprobada') return;
+  if(!silencioso && !confirm('Firmar como empleador el comprobante de feriado de ' + getTName(v.trabajadorId) + ' (' + fDate(v.fechaInicio) + ' al ' + fDate(v.fechaFin) + ', ' + fmtDias(v.dias) + ' días hábiles)?\n\nLa firma queda registrada con tu cuenta, la fecha y la hora.')) return;
+  try {
+    const res = await fetchConTimeout(API_URL, { method:'POST', body: JSON.stringify({ accion:'firmarVac', rol:'empleador', vacId:String(v.id), nombre:nombreSesionRRHH(), datos:{ trabajadorId:String(v.trabajadorId), fechaInicio:v.fechaInicio, fechaFin:v.fechaFin, dias:v.dias }, token:CLOUD_TOKEN }) });
+    const j = await res.json(); if(j.estado === 'error') throw new Error(j.detalle || 'Error del servidor');
+    FIRMAS_VAC[String(v.id)] = j.firma; vaRender();
+  } catch(e){ alert('Las vacaciones quedaron aprobadas, pero no se pudo firmar el certificado: ' + e.message + '\nPuedes firmarlo después con el botón ✍️ de la tabla.'); }
+}
+function vaCertificado(id){
+  const v = DB.vac.find(x=>x.id===id); if(!v) return;
+  const t = getT(v.trabajadorId), s = t ? vaSaldo(t) : null;
+  CertificadoVacaciones.generar(v, t, FIRMAS_VAC[String(v.id)], s ? s.disponibles : null);
+}
+function vaCeldaCertificado(v){
+  if(v.estado !== 'Aprobada') return '';
+  const f = FIRMAS_VAC[String(v.id)], est = CertificadoVacaciones.estado(f);
+  const etq = est === 'completo' ? '<span class="badge bdg-act">Firmado por ambos</span>' : est === 'falta_trabajador' ? '<span class="badge bdg-pen">Falta firma del trabajador</span>' : '<span class="badge bdg-err">Falta firma del empleador</span>';
+  return `<div style="margin-top:4px">${etq}</div><div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap">${est === 'sin_empleador' ? `<button class="act-btn small" onclick="firmarEmpleador(DB.vac.find(x=>x.id===${v.id}))">✍️ Firmar</button>` : ''}<button class="act-btn small" onclick="vaCertificado(${v.id})" title="Descargar comprobante de feriado">📄 Certificado</button></div>`;
+}
 function vaOpenRej(id, portal){ editId.vacRej=id; editId.vacRejPortal=!!portal; $('mod-vac-mot').value='';$('mod-vac').style.display='flex'; }
 function vaConfirmReject(){
   if(editId.vacRejPortal){ const id=editId.vacRej; editId.vacRejPortal=false; $('mod-vac').style.display='none'; vaResolverPortal(id,'Rechazada',$('mod-vac-mot').value); return; }
@@ -996,7 +1025,7 @@ function vaRender() {
   }).sort((a,b)=>b.id-a.id).map(v=>{
     let btn = v.estado==="Pendiente"?`<button class="act-btn small bdg-act" onclick="vaSt(${v.id},'Aprobada')">✓</button> <button class="act-btn small bdg-err" onclick="vaOpenRej(${v.id})">✗</button>`:`<button class="act-btn small" style="color:red" onclick="vaDel(${v.id})">🗑</button>`;
     let bdg = v.estado==="Aprobada"?"bdg-act":v.estado==="Rechazada"?"bdg-err":"bdg-pen";
-    return `<tr><td><b>${getTName(v.trabajadorId)}</b></td><td>${fDate(v.fechaInicio)}</td><td>${fDate(v.fechaFin)}</td><td>${v.dias}</td><td><span class="badge ${bdg}">${v.estado}</span></td><td>${btn}</td></tr>`;
+    return `<tr><td><b>${getTName(v.trabajadorId)}</b></td><td>${fDate(v.fechaInicio)}</td><td>${fDate(v.fechaFin)}</td><td>${v.dias}</td><td><span class="badge ${bdg}">${v.estado}</span>${vaCeldaCertificado(v)}</td><td>${btn}</td></tr>`;
   }).join('');
   tb.innerHTML = h||`<tr><td colspan="6" align="center">Sin datos</td></tr>`;
   $('k-va-pen').textContent=p+SOL_VAC.length; $('k-va-apr').textContent=a;

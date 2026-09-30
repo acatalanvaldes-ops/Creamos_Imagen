@@ -524,6 +524,7 @@ function accionPost(b) {
   if (b.accion === "pagoProduccion" || b.accion === "anularPagoProduccion") return accionPagoProduccion(b);
   if (b.action === "listarMarcaciones" || b.action === "registrarMarcacion") return manejarMarcaciones(b);
   if (b.accion === "solicitarVac") return accionSolicitarVac(b);
+  if (b.accion === "firmarVac") return accionFirmarVac(b);
   if (b.accion === "cancelarVac") return accionCancelarVac(b);
   if (b.accion === "config") {
     const u = usuarioDe(b.token);
@@ -1270,6 +1271,11 @@ function accionPortal(token, trabajadorId) {
     estado: "éxito", trabajador: r.t, propio: r.propio, supervisa: r.supervisa,
     liq: secciones.liq, vac: secciones.vac, perm: secciones.perm, asis: secciones.asis, lic: secciones.lic, sol: sol, fallas: fallas
   };
+  try {
+    const todas = leerJSON(KEY_FIRMAS_VAC) || {};
+    out.firmasVac = {};
+    (secciones.vac || []).forEach(function (v) { if (todas[String(v.id)]) out.firmasVac[String(v.id)] = todas[String(v.id)]; });
+  } catch (e) { out.firmasVac = {}; }
   if (r.supervisa) {
     out.trabajadores = r.trabs.map(function (t) { return { id: t.id, nombre: nombre(t), estado: t.estado || "", email: t.email || "" }; });
   }
@@ -1285,6 +1291,74 @@ function accionPortalDocs(token, trabajadorId) {
 
 const FECHA_RE = /^\d{4}-\d{2}-\d{2}$/;
 function hoyChileGS() { return Utilities.formatDate(new Date(), "America/Santiago", "yyyy-MM-dd"); }
+
+// ------------------------------------------------------------------
+// Certificado (comprobante) de feriado: firmas electrónicas simples
+// ------------------------------------------------------------------
+// Llave rrhh_firmas_vac_v1 = { "<id vacación>": { datos, empleador, trabajador, codigo } }
+//   datos:      foto de lo aprobado (trabajador, fechas, días) al firmar el empleador;
+//   empleador:  { nombre, email, en } quien aprobó en RRHH (admin o módulo RRHH);
+//   trabajador: { nombre, email, en } el propio trabajador desde Mi Portal;
+//   codigo:     verificación (SHA-256) cuando están las dos firmas.
+// Se guarda aparte de rrhh_vacaciones_v1 para que un guardado de RRHH no borre firmas.
+const KEY_FIRMAS_VAC = "rrhh_firmas_vac_v1";
+function ahoraChileISO() { return Utilities.formatDate(new Date(), "America/Santiago", "yyyy-MM-dd'T'HH:mm:ss"); }
+function codigoFirmaVac(id, reg) {
+  const base = [id, reg.datos.trabajadorId, reg.datos.fechaInicio, reg.datos.fechaFin, reg.datos.dias, reg.empleador.email, reg.empleador.en, reg.trabajador.email, reg.trabajador.en].join("|");
+  return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, base, Utilities.Charset.UTF_8)
+    .map(function (b) { return ("0" + (b & 255).toString(16)).slice(-2); }).join("").slice(0, 16).toUpperCase();
+}
+function accionFirmarVac(b) {
+  const id = String(b.vacId || "");
+  if (!id) return error("Falta la vacación a firmar.");
+  const rol = b.rol === "empleador" ? "empleador" : "trabajador";
+  let firmante, trabajadorId;
+  if (rol === "empleador") {
+    const u = usuarioDe(b.token);
+    if (!u || u.legado) return error(u ? "SIN_PERMISO" : motivoRechazo(b.token));
+    if (!u.isAdmin && (u.modules || []).indexOf("rrhh") === -1) return error("SIN_PERMISO");
+    const d = b.datos || {};
+    if (!FECHA_RE.test(String(d.fechaInicio || "")) || !FECHA_RE.test(String(d.fechaFin || "")) || !d.trabajadorId) return error("Datos de la vacación inválidos.");
+    firmante = { nombre: String(b.nombre || "").trim().slice(0, 80) || u.email, email: u.email, en: ahoraChileISO() };
+    trabajadorId = String(d.trabajadorId);
+  } else {
+    const r = resolverPortal(b.token, null);
+    if (r.err) return error(r.err);
+    if (!r.propio) return error("SIN_PERMISO");
+    const vac = leerRRHH(RRHH.vac).find(function (v) { return String(v.id) === id; });
+    if (!vac || !mismoId(vac.trabajadorId, r.t.id)) return error("Esa vacación no es tuya o ya no existe.");
+    if (vac.estado !== "Aprobada") return error("Solo se firman vacaciones aprobadas.");
+    firmante = { nombre: nombre(r.t), email: r.email, en: ahoraChileISO() };
+    trabajadorId = String(r.t.id);
+  }
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(20000);
+    const antes = leerValor(KEY_FIRMAS_VAC);
+    let todas = {};
+    try { todas = JSON.parse(antes || "{}") || {}; } catch (e) {}
+    const reg = todas[id] || {};
+    if (rol === "empleador") {
+      if (reg.empleador) return respuesta({ estado: "éxito", firma: reg });
+      const d = b.datos;
+      reg.datos = { trabajadorId: trabajadorId, fechaInicio: d.fechaInicio, fechaFin: d.fechaFin, dias: Number(d.dias) || 0 };
+      reg.empleador = firmante;
+    } else {
+      if (!reg.empleador) return error("El certificado aún no está firmado por el empleador. Avisa a Recursos Humanos.");
+      if (reg.trabajador) return respuesta({ estado: "éxito", firma: reg });
+      const vac = leerRRHH(RRHH.vac).find(function (v) { return String(v.id) === id; });
+      if (vac.fechaInicio !== reg.datos.fechaInicio || vac.fechaFin !== reg.datos.fechaFin || String(reg.datos.trabajadorId) !== trabajadorId)
+        return error("Las fechas de estas vacaciones cambiaron después de aprobarse. Pide a Recursos Humanos que vuelva a firmar el certificado.");
+      reg.trabajador = firmante;
+      reg.codigo = codigoFirmaVac(id, reg);
+    }
+    todas[id] = reg;
+    const texto = JSON.stringify(todas);
+    escribirValor(KEY_FIRMAS_VAC, texto);
+    registrarBitacora(firmante.email, "firma certificado vacaciones", rol + " · vacación " + id + " (" + reg.datos.fechaInicio + " al " + reg.datos.fechaFin + ")", antes, texto);
+    return respuesta({ estado: "éxito", firma: reg });
+  } finally { lock.releaseLock(); }
+}
 
 function accionSolicitarVac(b) {
   const r = resolverPortal(b.token, null);

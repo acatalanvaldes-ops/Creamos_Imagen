@@ -153,6 +153,8 @@ table.tbl td.vacio{text-align:center;padding:28px;color:var(--muted)}
 <script src="feriados-chile.js"></script>
 <script src="permisos-legales.js"></script>
 <script src="vacaciones-saldo.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="certificado-vacaciones.js"></script>
 <script>
 // Mi Portal usa la misma sesión (Google o Microsoft) del menú principal (index.html).
 // Sin sesión válida se vuelve al menú para iniciar sesión.
@@ -551,7 +553,7 @@ async function cargarPortal(trabajadorId){
   }
 
   TRABS = Array.isArray(r.trabajadores) ? r.trabajadores : [];
-  misDatos = { liq:r.liq||[], vac:r.vac||[], perm:r.perm||[], asis:r.asis||[], lic:r.lic||[], sol:r.sol||[], doc:null };
+  misDatos = { liq:r.liq||[], vac:r.vac||[], perm:r.perm||[], asis:r.asis||[], lic:r.lic||[], sol:r.sol||[], doc:null, firmasVac:r.firmasVac||{} };
   ['liq','vac','perm','asis','lic','sol'].forEach(k => { TODO[k] = misDatos[k]; cargaOk[k] = !(r.fallas||[]).includes(k); });
   const fallidas = (r.fallas||[]).map(k=>({liq:'liquidaciones',vac:'vacaciones',perm:'permisos',asis:'asistencia',lic:'licencias',sol:'solicitudes pendientes'}[k]||k));
   if (fallidas.length) {
@@ -726,8 +728,40 @@ function renderVacaciones(){
         ${badgeEstado(v.estado)}
         ${v.motivoRechazo ? `<div style="font-size:10px;color:var(--red);margin-top:4px">${esc(v.motivoRechazo)}</div>` : ''}
         ${v.portal && esPropio ? `<div style="margin-top:6px"><button class="act-btn small danger" onclick="cancelarSolicitud(${Number(v.id)})">Cancelar</button></div>` : ''}
+        ${botonesCertificado(v)}
       </td>
     </tr>`).join('');
+}
+
+// Certificado de feriado: vacaciones aprobadas (no permisos).
+function esVacacionAprobada(v){ return v && v.estado === 'Aprobada' && !v.portal && !v.tipo && misDatos.vac.includes(v); }
+function botonesCertificado(v){
+  if (!esVacacionAprobada(v)) return '';
+  const f = (misDatos.firmasVac || {})[String(v.id)], est = CertificadoVacaciones.estado(f);
+  if (est === 'sin_empleador') return '<div style="font-size:10px;color:var(--muted);margin-top:6px">Certificado: en preparación por RRHH</div>';
+  if (est === 'falta_trabajador') return esPropio
+    ? `<div style="margin-top:6px;display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap"><button class="act-btn small primary" onclick="firmarCertificado(${Number(v.id)})">✍️ Firmar certificado</button><button class="act-btn small" onclick="descargarCertificado(${Number(v.id)})">📄 Ver</button></div>`
+    : `<div style="margin-top:6px"><button class="act-btn small" onclick="descargarCertificado(${Number(v.id)})">📄 Certificado (falta firma)</button></div>`;
+  return `<div style="margin-top:6px"><button class="act-btn small" onclick="descargarCertificado(${Number(v.id)})">📄 Certificado firmado</button></div>`;
+}
+function descargarCertificado(id){
+  const v = misDatos.vac.find(x => Number(x.id) === Number(id)); if (!v) return;
+  const s = saldoVacaciones();
+  CertificadoVacaciones.generar(v, miFicha, (misDatos.firmasVac || {})[String(v.id)], s.disponibles);
+}
+async function firmarCertificado(id){
+  const v = misDatos.vac.find(x => Number(x.id) === Number(id)); if (!v) return;
+  const f = (misDatos.firmasVac || {})[String(v.id)] || {};
+  const d = f.datos || v;
+  if (!confirm('Vas a firmar electrónicamente el comprobante de tus vacaciones:\n\n• Desde el ' + fDate(d.fechaInicio) + ' hasta el ' + fDate(d.fechaFin) + '\n• ' + fmtDias(d.dias) + ' días hábiles\n• Aprobado por ' + (f.empleador ? f.empleador.nombre : 'RRHH') + '\n\nTu firma queda registrada con tu cuenta, la fecha y la hora. ¿Firmar?')) return;
+  try {
+    const res = await fetchConTimeout(API_URL, { method:'POST', body: JSON.stringify({ accion:'firmarVac', rol:'trabajador', vacId: String(v.id), token: SESION.token || CLOUD_TOKEN }) });
+    const j = await res.json();
+    if (j.estado === 'error') throw new Error(j.detalle || 'Error del servidor');
+    misDatos.firmasVac[String(v.id)] = j.firma;
+    renderVacaciones();
+    if (confirm('¡Listo! El certificado quedó firmado por ambas partes. ¿Descargarlo ahora?')) descargarCertificado(v.id);
+  } catch(e) { alert('No se pudo firmar: ' + e.message); }
 }
 
 function renderAsistencia(){
