@@ -522,6 +522,7 @@ function accionPost(b) {
   if (b.accion === "tiktokConectar") return accionTiktokConectar(b);
   if (b.accion === "tiktokDesconectar") return accionTiktokDesconectar(b);
   if (b.accion === "pagoProduccion" || b.accion === "anularPagoProduccion") return accionPagoProduccion(b);
+  if (b.accion === "cajaGuardar") return accionCajaGuardar(b);
   if (b.action === "listarMarcaciones" || b.action === "registrarMarcacion") return manejarMarcaciones(b);
   if (b.accion === "solicitarVac") return accionSolicitarVac(b);
   if (b.accion === "firmarVac") return accionFirmarVac(b);
@@ -645,6 +646,51 @@ const TIPO_CAJA = { "Camisetas": "Camiseta", "Camisetas estampadas": "Camiseta",
   "Impresión": "Impresión", "Sublimación": "Sublimación" };
 
 function esFilaAutomatica(r) { return !!(r && (r.ventaRef || r.pagoRef)); }
+
+// Caja por días: la página manda SOLO los días que cambió, cada uno con la
+// foto (base) de sus filas manuales tal como las leyó. Si el día no cambió
+// en la nube desde entonces, se reemplazan sus filas manuales; si cambió
+// (otro equipo lo editó), no se pisa: se devuelve la versión de la nube para
+// que la página junte ambas y vuelva a guardar. Los demás días no se tocan,
+// así que dos equipos pueden trabajar en días distintos sin conflicto.
+function accionCajaGuardar(b) {
+  const u = usuarioDe(b.token);
+  if (!u) return error(motivoRechazo(b.token));
+  if (!puede(u, KEY_CAJA, true)) return error("SIN_PERMISO");
+  const dias = b.dias || {};
+  const fechas = Object.keys(dias).filter(function (f) { return /^\d{4}-\d{2}-\d{2}$/.test(f); });
+  if (!fechas.length) return respuesta({ estado: "éxito", aplicados: [], conflictos: {} });
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(20000);
+    const antes = leerValor(KEY_CAJA);
+    let caja = {};
+    try { caja = JSON.parse(antes || "{}") || {}; } catch (e) { return error("No se pudo leer Caja."); }
+    const aplicados = [], conflictos = {}, detalle = [];
+    fechas.forEach(function (f) {
+      const d = dias[f] || {};
+      const actual = Array.isArray(caja[f]) ? caja[f] : [];
+      const manualesActuales = actual.filter(function (r) { return !esFilaAutomatica(r); });
+      const automaticas = actual.filter(esFilaAutomatica);
+      if (d.base !== undefined && d.base !== null && String(d.base) !== JSON.stringify(manualesActuales)) {
+        conflictos[f] = actual;
+        return;
+      }
+      const nuevas = (Array.isArray(d.filas) ? d.filas : []).filter(function (r) { return r && typeof r === "object" && !esFilaAutomatica(r); });
+      caja[f] = nuevas.concat(automaticas);
+      aplicados.push(f);
+      if (nuevas.length !== manualesActuales.length) detalle.push(f + ": " + manualesActuales.length + "→" + nuevas.length);
+    });
+    let version = versionDe(KEY_CAJA);
+    if (aplicados.length) {
+      const texto = JSON.stringify(caja);
+      version = escribirValor(KEY_CAJA, texto);
+      PropertiesService.getScriptProperties().setProperty("vermanual:" + KEY_CAJA, version);
+      registrarBitacora(u.email, "caja por días", "Días: " + aplicados.join(", ") + (detalle.length ? " · filas " + detalle.join(", ") : ""), antes, texto);
+    }
+    return respuesta({ estado: "éxito", aplicados: aplicados, conflictos: conflictos, version: version });
+  } finally { lock.releaseLock(); }
+}
 
 function leerVentas(key) {
   const principal = leerJSON(key);

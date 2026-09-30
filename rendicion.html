@@ -1323,20 +1323,73 @@ function saveData(){
   _saveDebounceTimer = setTimeout(dispararGuardadoNube, 500);
 }
 
+// ------------------------------------------------------------------
+// GUARDADO POR DÍAS
+// BASE[fecha] = filas manuales del día tal como están en la nube (texto).
+// Solo se envían los días cuyo contenido difiere de su BASE. El servidor
+// reemplaza ese día si nadie más lo cambió; si otro equipo lo cambió,
+// devuelve su versión y aquí se juntan ambas (sin perder filas) y se
+// vuelve a guardar. Si el envío falla, los días siguen pendientes y se
+// reintenta solo: nunca se descartan cambios en silencio.
+// ------------------------------------------------------------------
+const BASE = {};
+const esAutoCaja = r => !!(r && (r.ventaRef || r.pagoRef));
+const manualesDe = arr => (Array.isArray(arr) ? arr : []).filter(r => !esAutoCaja(r));
+const textoManual = f => JSON.stringify(manualesDe(data[f]));
+function diasPendientes(){ return Object.keys(data).filter(f => /^\d{4}-\d{2}-\d{2}$/.test(f) && textoManual(f) !== (BASE[f] !== undefined ? BASE[f] : '[]')); }
+function fijarBase(obj){ Object.keys(obj || {}).forEach(f => { BASE[f] = JSON.stringify(manualesDe(obj[f])); }); }
+let _reintento = null;
+function estadoGuardado(st, txt){
+  let el = document.getElementById('caja-guardado');
+  if (!el) { el = document.createElement('div'); el.id = 'caja-guardado'; el.style.cssText = 'position:fixed;bottom:14px;right:14px;z-index:9000;padding:8px 13px;border-radius:8px;font-size:12px;font-weight:700;box-shadow:0 4px 12px rgba(0,0,0,.15);border:1.5px solid'; document.body.appendChild(el); }
+  const est = { ok: ['#ECFDF5', '#0D7A6B', '#0D7A6B', '✓ Guardado en la nube'], guardando: ['#fff', '#E7E2D9', '#78716C', '⏳ Guardando…'], error: ['#FEF2F2', '#C0392B', '#C0392B', '⚠ Cambios sin guardar: se reintentará solo. No cierres esta página.'] }[st];
+  el.style.background = est[0]; el.style.borderColor = est[1]; el.style.color = est[2]; el.textContent = txt || est[3]; el.style.display = 'block';
+  clearTimeout(el._t); if (st === 'ok') el._t = setTimeout(() => { el.style.display = 'none'; }, 2500);
+}
 async function dispararGuardadoNube(){
   _saveDebounceTimer = null;
   if (_cloudSaveInFlight) { _cloudSaveQueued = true; return; }
+  const dias = diasPendientes();
+  if (!dias.length) return;
   _cloudSaveInFlight = true;
+  clearTimeout(_reintento);
+  estadoGuardado('guardando');
+  const enviados = {}, cuerpo = {};
+  dias.forEach(f => { enviados[f] = textoManual(f); cuerpo[f] = { filas: JSON.parse(enviados[f]), base: BASE[f] !== undefined ? BASE[f] : '[]' }; });
+  let ok = false;
   try {
-    await saveToCloud('rendicion2026_v2', data);
+    const res = await fetchConTimeout(API_URL, { method: 'POST', body: JSON.stringify({ accion: 'cajaGuardar', dias: cuerpo, token: CLOUD_TOKEN }) });
+    const j = await res.json();
+    if (j.estado === 'error') throw new Error(j.detalle || 'Error del servidor');
+    (j.aplicados || []).forEach(f => { BASE[f] = enviados[f]; });
+    const conf = j.conflictos || {};
+    const diasConf = Object.keys(conf);
+    if (diasConf.length) {
+      // Otro equipo cambió esos días: se juntan sus filas con las de aquí.
+      diasConf.forEach(f => {
+        const nube = conf[f] || [], nubeMan = manualesDe(nube);
+        const vistas = new Set(nubeMan.map(r => JSON.stringify(r)));
+        const propias = manualesDe(data[f]).filter(r => !vistas.has(JSON.stringify(r)));
+        data[f] = nubeMan.concat(propias).concat(nube.filter(esAutoCaja));
+        BASE[f] = JSON.stringify(nubeMan);
+      });
+      try { localStorage.setItem('rendicion2026_v2', JSON.stringify(data)); } catch(e) {}
+      renderContent(); refreshAccordion(); renderSumm();
+      alert('Otro equipo también modificó la Caja de: ' + diasConf.map(f => f.split('-').reverse().join('-')).join(', ') + '.\n\nSe juntaron sus registros con los de este equipo (no se perdió nada). Revisa que no haya filas repetidas en esos días.');
+      _cloudSaveQueued = true;
+    }
+    ok = true;
+  } catch (e) {
+    console.error('No se pudo guardar Caja', e);
+    if (/SIN_PERMISO/.test(e.message)) alert('No tienes permiso para modificar la Caja.');
   } finally {
     _cloudSaveInFlight = false;
-    if (_cloudSaveQueued) {
-      _cloudSaveQueued = false;
-      dispararGuardadoNube();
-    }
+    if (ok && !diasPendientes().length) estadoGuardado('ok');
+    if (!ok) { estadoGuardado('error'); _reintento = setTimeout(dispararGuardadoNube, 8000); }
+    if (_cloudSaveQueued || (ok && diasPendientes().length)) { _cloudSaveQueued = false; setTimeout(dispararGuardadoNube, 300); }
   }
 }
+window.addEventListener('beforeunload', function (e) { if (rendicionCargaOk && diasPendientes().length) { e.preventDefault(); e.returnValue = ''; } });
 
 // Si la persona cierra la pestaña o cambia de app justo después de escribir
 // un monto, no hay por qué esperar los 500ms del debounce: se adelanta el
@@ -1369,11 +1422,13 @@ async function loadData() {
     const cloudData = await loadFromCloudStrict('rendicion2026_v2');
     rendicionCargaOk = true;
     if (cloudData && Object.keys(cloudData).length > 0) {
+      fijarBase(cloudData);
       // La nube manda en conflictos; recupera del respaldo local las fechas
       // ausentes para preservar jornadas que no alcanzaron a sincronizarse.
       const rawLocal = localStorage.getItem('rendicion2026_v2');
       if (rawLocal) {
         const localData = JSON.parse(rawLocal);
+        rescatarFilasLocales(localData, cloudData);
         Object.keys(localData).forEach(k => {
           if (!Object.prototype.hasOwnProperty.call(cloudData, k)) cloudData[k] = localData[k];
         });
@@ -1425,6 +1480,31 @@ async function loadData() {
   buildAccordion();
   selectDay(daysKey(t.getMonth(), t.getDate()), t.getMonth());
   renderSumm();
+}
+
+// Registros de los últimos 10 días que están en este equipo pero no en la
+// nube (por ejemplo, porque un guardado anterior no llegó): se ofrecen para
+// recuperarlos. Si se rechazan, quedan respaldados aparte.
+function rescatarFilasLocales(localData, cloudData){
+  const hoy = hoyChile(), limite = new Date(Date.parse(hoy + 'T12:00:00Z') - 10 * 86400000).toISOString().slice(0, 10);
+  const conMonto = r => r && ((+r.ef || 0) + (+r.tr || 0) + (+r.wpCredito || +r.wp || 0) + (+r.wpDebito || 0) > 0 || String(r.cliente || '').trim());
+  const rescate = {};
+  Object.keys(localData || {}).forEach(f => {
+    if (f < limite || f > hoy || !Object.prototype.hasOwnProperty.call(cloudData, f)) return;
+    const enNube = new Set(manualesDe(cloudData[f]).map(r => JSON.stringify(r)));
+    const faltan = manualesDe(localData[f]).filter(r => conMonto(r) && !enNube.has(JSON.stringify(r)));
+    if (faltan.length) rescate[f] = faltan;
+  });
+  const dias = Object.keys(rescate).sort();
+  if (!dias.length) return;
+  const monto = r => (+r.ef || 0) + (+r.tr || 0) + (+r.wpCredito || +r.wp || 0) + (+r.wpDebito || 0);
+  const detalle = dias.map(f => '• ' + f.split('-').reverse().join('-') + ': ' + rescate[f].length + ' registro(s) por ' + fmt(rescate[f].reduce((s, r) => s + monto(r), 0))).join('\n');
+  if (confirm('Este equipo tiene registros de Caja que NO están en la nube (no alcanzaron a guardarse):\n\n' + detalle + '\n\n¿Recuperarlos ahora?\n\nAceptar = agregarlos a la Caja de esos días.\nCancelar = no agregarlos (quedan respaldados en este equipo).')) {
+    dias.forEach(f => { cloudData[f] = manualesDe(cloudData[f]).concat(rescate[f]).concat((cloudData[f] || []).filter(esAutoCaja)); });
+    setTimeout(saveData, 0);
+  } else {
+    try { const prev = JSON.parse(localStorage.getItem('rendicion_rescate_v1') || '{}'); dias.forEach(f => { prev[f] = (prev[f] || []).concat(rescate[f]); }); localStorage.setItem('rendicion_rescate_v1', JSON.stringify(prev)); } catch(e) {}
+  }
 }
 
 function changeYear(y) {
@@ -1524,8 +1604,9 @@ async function recargarCajaSilenciosa(){
   try {
     const nube = await loadFromCloudStrict('rendicion2026_v2');
     if (!nube || _cloudSaveInFlight || _cloudSaveQueued || _saveDebounceTimer) { setTimeout(recargarCajaSilenciosa, 500); return; }
-    Object.keys(data).forEach(k => { if (!(k in nube)) delete data[k]; });
-    Object.keys(nube).forEach(k => { data[k] = nube[k]; });
+    const pendientes = new Set(diasPendientes());
+    Object.keys(data).forEach(k => { if (!(k in nube) && !pendientes.has(k)) delete data[k]; });
+    Object.keys(nube).forEach(k => { if (!pendientes.has(k)) { data[k] = nube[k]; BASE[k] = JSON.stringify(manualesDe(nube[k])); } });
     try { localStorage.setItem('rendicion2026_v2', JSON.stringify(data)); } catch(e) {}
     renderContent(); refreshAccordion(); renderSumm();
   } catch(e) { console.warn('No se pudo recargar Caja', e); }
