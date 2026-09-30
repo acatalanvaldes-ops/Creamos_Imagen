@@ -20,7 +20,7 @@
 
   function categoria(d) {
     const nom = d.razon.toUpperCase();
-    if (d.tipo === '34' && normRut(d.rut) === '9478381K') return 'arriendo';
+    if (normRut(d.rut) === '9478381K') return 'arriendo'; // Salim Rabi: arriendo del local (facturas exentas y sus notas de crédito)
     if (/CONCESIONARIA|AUTOPISTA|RUTA 5|RUTA DEL|COSTANERA|VESPUCIO/.test(nom)) return 'peajes';
     if (/HDI SEGUROS|SEGUROS/.test(nom)) return 'seguros';
     if (/ENEL|GTD|WOM|RED GLOBAL|AGUAS ANDINAS|METROGAS|ENTEL|MOVISTAR|CLARO/.test(nom)) return 'servicios';
