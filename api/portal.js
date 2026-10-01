@@ -12,6 +12,12 @@ module.exports = async function portalProxy(req, res) {
     const requestUrl = new URL(req.url, "https://portal.local");
     const targetUrl = new URL(APPS_SCRIPT_URL);
     targetUrl.search = requestUrl.search;
+    // Las páginas mandan la sesión en la cabecera X-Portal-Token (no en la URL,
+    // para que no quede en historiales ni registros); Apps Script la recibe aquí.
+    const tokenCabecera = req.headers["x-portal-token"];
+    if (typeof tokenCabecera === "string" && tokenCabecera && !targetUrl.searchParams.has("token")) {
+      targetUrl.searchParams.set("token", tokenCabecera.slice(0, 2000));
+    }
 
     const options = { method: req.method, redirect: "follow" };
     if (req.method === "POST") {

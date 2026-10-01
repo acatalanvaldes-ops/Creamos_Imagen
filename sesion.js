@@ -97,7 +97,23 @@
       }
     }
     var keyGet = metodo === 'GET' && esApi(url) ? llaveDeGet(url) : null;
-    return fetchOriginal.apply(this, arguments).then(function (res) {
+    var args = arguments;
+    // El token de sesión no viaja en la URL (quedaría en el historial y en los
+    // registros de Vercel): se manda en la cabecera X-Portal-Token y el proxy
+    // (api/portal.js) lo entrega a Apps Script.
+    if (metodo === 'GET' && esApi(url)) {
+      try {
+        var u2 = new URL(String(url), location.href);
+        var tk = u2.searchParams.get('token');
+        if (tk) {
+          u2.searchParams.delete('token');
+          var h = new Headers((opts && opts.headers) || {});
+          h.set('X-Portal-Token', tk);
+          args = [u2.pathname + u2.search, Object.assign({}, opts, { headers: h })];
+        }
+      } catch (e) {}
+    }
+    return fetchOriginal.apply(this, args).then(function (res) {
       // Con llave se espera a registrar la versión antes de entregar la respuesta.
       if (keyGet) return revisar(url, res, keyGet).then(function () { return res; });
       revisar(url, res, null);

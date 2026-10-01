@@ -195,7 +195,7 @@ function contarRegistros(texto) {
 }
 function registrarBitacora(email, accion, detalle, antes, despues) {
   try {
-    hojaBitacora().appendRow([new Date(), email || "", accion, detalle || "",
+    hojaBitacora().appendRow([new Date(), neutralizarTexto(email || ""), neutralizarTexto(accion || ""), neutralizarTexto(detalle || ""),
       antes === undefined ? "" : String(antes || "").length, despues === undefined ? "" : String(despues || "").length,
       antes === undefined ? "" : contarRegistros(antes), despues === undefined ? "" : contarRegistros(despues)]);
   } catch (e) { console.error("No se pudo escribir la bitácora", e); }
@@ -233,6 +233,43 @@ function leerRRHH(key) {
     texto += b.parte;
   }
   return texto ? JSON.parse(texto) : [];
+}
+
+// ------------------------------------------------------------------
+// Neutralizar texto (defensa contra inyección de HTML/JS, "XSS")
+// ------------------------------------------------------------------
+// Todo texto que se guarda pasa por aquí: los caracteres que permiten
+// inyectar HTML o romper un atributo / string de JavaScript se cambian por
+// equivalentes tipográficos que se ven casi igual. Así, aunque una página
+// muestre un dato sin escapar, ningún usuario puede guardar código que se
+// ejecute en el navegador de otro (por ejemplo, para robar la sesión de un
+// administrador). Se aplica a valores y nombres de propiedades.
+const SUSTITUTOS_SEGUROS = { "<": "‹", ">": "›", "\"": "”", "'": "’", "`": "´" };
+function neutralizarTexto(s) { return String(s).replace(/[<>"'`]/g, function (c) { return SUSTITUTOS_SEGUROS[c]; }); }
+function neutralizar(v, prof) {
+  prof = prof || 0;
+  if (prof > 40) return v;
+  if (typeof v === "string") return neutralizarTexto(v);
+  if (Array.isArray(v)) return v.map(function (x) { return neutralizar(x, prof + 1); });
+  if (v && typeof v === "object") {
+    const out = {};
+    Object.keys(v).forEach(function (k) {
+      // RRHH y Marketing guardan su JSON como texto partido en bloques ("parte"):
+      // ahí se cambian solo < > ' ` (nunca son estructura JSON); las comillas
+      // dobles se dejan para no romper el JSON al volver a unir los bloques.
+      if (k === "parte" && typeof v[k] === "string") { out[k] = v[k].replace(/[<>'`]/g, function (c) { return SUSTITUTOS_SEGUROS[c]; }); return; }
+      out[neutralizarTexto(k)] = neutralizar(v[k], prof + 1);
+    });
+    return out;
+  }
+  return v;
+}
+// Valor guardado como texto JSON: se neutraliza su contenido. Si no es JSON,
+// se neutraliza el texto completo.
+function neutralizarValor(texto) {
+  if (texto === null || texto === undefined) return texto;
+  try { return JSON.stringify(neutralizar(JSON.parse(texto))); }
+  catch (e) { return neutralizarTexto(texto); }
 }
 
 // ------------------------------------------------------------------
@@ -464,6 +501,7 @@ function doPost(e) {
     } else if (desactualizada) {
       return respuesta({ estado: "error", detalle: "CONFLICTO", version: versionDe(payload.key) });
     }
+    valor = neutralizarValor(valor);
     const antes = leerValor(payload.key);
     const version = escribirValor(payload.key, valor);
     if (combinar) PropertiesService.getScriptProperties().setProperty("vermanual:" + payload.key, version);
@@ -662,7 +700,7 @@ function accionCajaGuardar(b) {
     const antes = leerValor(KEY_CAJA);
     let caja = {};
     try { caja = JSON.parse(antes || "{}") || {}; } catch (e) { return error("No se pudo leer Caja."); }
-    const aplicados = [], conflictos = {}, detalle = [];
+    const aplicados = [], conflictos = {}, detalle = [], guardadas = {};
     fechas.forEach(function (f) {
       const d = dias[f] || {};
       const actual = Array.isArray(caja[f]) ? caja[f] : [];
@@ -672,9 +710,10 @@ function accionCajaGuardar(b) {
         conflictos[f] = actual;
         return;
       }
-      const nuevas = (Array.isArray(d.filas) ? d.filas : []).filter(function (r) { return r && typeof r === "object" && !esFilaAutomatica(r); });
+      const nuevas = neutralizar((Array.isArray(d.filas) ? d.filas : []).filter(function (r) { return r && typeof r === "object" && !esFilaAutomatica(r); }));
       caja[f] = nuevas.concat(automaticas);
       aplicados.push(f);
+      guardadas[f] = nuevas;
       if (nuevas.length !== manualesActuales.length) detalle.push(f + ": " + manualesActuales.length + "→" + nuevas.length);
     });
     let version = versionDe(KEY_CAJA);
@@ -684,7 +723,7 @@ function accionCajaGuardar(b) {
       PropertiesService.getScriptProperties().setProperty("vermanual:" + KEY_CAJA, version);
       registrarBitacora(u.email, "caja por días", "Días: " + aplicados.join(", ") + (detalle.length ? " · filas " + detalle.join(", ") : ""), antes, texto);
     }
-    return respuesta({ estado: "éxito", aplicados: aplicados, conflictos: conflictos, version: version });
+    return respuesta({ estado: "éxito", aplicados: aplicados, conflictos: conflictos, guardadas: guardadas, version: version });
   } finally { lock.releaseLock(); }
 }
 
@@ -945,7 +984,7 @@ function accionPagoProduccion(b) {
       if (monto <= 0) return error("El monto debe ser mayor a cero.");
       if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return error("Fecha inválida.");
       if (!MEDIOS_PAGO[b.medio]) return error("Medio de pago inválido.");
-      pago = { id: Utilities.getUuid(), fecha: fecha, monto: monto, medio: b.medio, obs: String(b.obs || "").slice(0, 150), registradoPor: u.email, registrado: hoyChileGS() };
+      pago = { id: Utilities.getUuid(), fecha: fecha, monto: monto, medio: b.medio, obs: neutralizarTexto(String(b.obs || "").slice(0, 150)), registradoPor: u.email, registrado: hoyChileGS() };
       p.pagos.push(pago);
       p.abono = (Number(p.abono) || 0) + monto;
       const fila = { cliente: p.name || "", tipo: p.tipo === "Sublimación" ? "Sublimación" : "Otros", origen: "Empresa",
@@ -1361,7 +1400,7 @@ function accionFirmarVac(b) {
     if (!u.isAdmin && (u.modules || []).indexOf("rrhh") === -1) return error("SIN_PERMISO");
     const d = b.datos || {};
     if (!FECHA_RE.test(String(d.fechaInicio || "")) || !FECHA_RE.test(String(d.fechaFin || "")) || !d.trabajadorId) return error("Datos de la vacación inválidos.");
-    firmante = { nombre: String(b.nombre || "").trim().slice(0, 80) || u.email, email: u.email, en: ahoraChileISO() };
+    firmante = { nombre: neutralizarTexto(String(b.nombre || "").trim().slice(0, 80) || u.email), email: u.email, en: ahoraChileISO() };
     trabajadorId = String(d.trabajadorId);
   } else {
     const r = resolverPortal(b.token, null);
@@ -1437,7 +1476,7 @@ function accionSolicitarVac(b) {
   if (TIPOS_SOLICITUD.indexOf(tipo) === -1) return error("TIPO_INVALIDO");
   const causal = tipo === "permiso_con_goce" ? String(b.causal || "") : "";
   if (tipo === "permiso_con_goce" && !PERMISOS_CAUSALES.hasOwnProperty(causal)) return error("CAUSAL_INVALIDA");
-  const motivo = String(b.motivo || "").trim().slice(0, 200);
+  const motivo = neutralizarTexto(String(b.motivo || "").trim().slice(0, 200));
   if (tipo === "permiso_sin_goce" && !motivo) return error("FALTA_MOTIVO");
   const desde = PERMISOS_CAUSALES[causal] === true
     ? Utilities.formatDate(new Date(Date.now() - 30 * 86400000), "America/Santiago", "yyyy-MM-dd")
