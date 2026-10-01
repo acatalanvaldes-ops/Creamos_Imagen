@@ -16,11 +16,9 @@
 //  - Mi Portal (trabajador.html) no lee llaves de RRHH: usa accion=portal,
 //    que devuelve solo los datos del trabajador cuyo email coincide con la
 //    sesión, y accion=solicitarVac / cancelarVac para sus solicitudes.
-//  - MODO TRANSICIÓN: mientras la propiedad MODO_ESTRICTO no sea "si", el
-//    token antiguo (APP_TOKEN, publicado en el repositorio) sigue dando
-//    acceso total, para que las páginas en caché no se rompan durante el
-//    cambio. Un administrador lo activa desde Accesos (accion=config) o
-//    ejecutando activarModoEstricto() en el editor.
+//  - El token antiguo compartido (que estaba publicado en el repositorio)
+//    ya NO da acceso: solo valen las sesiones firmadas. (Revisión de
+//    seguridad 30-09-2026: el modo transición seguía activo en producción.)
 //
 // RENDIMIENTO (versión anterior, se mantiene)
 //  - Se lee solo la columna A para ubicar la fila y luego una celda.
@@ -31,7 +29,6 @@
 const SHEET_ID = "1H1I_00xY-HdqVCrDNei35FIl2EOx7tAWA3iOP3hJ8IE";
 const SHEET_NAME = "Hoja 1"; // Debe ser el nombre de la pestaña donde están los datos
 const SHEET_MARCACIONES = "Marcaciones";
-const APP_TOKEN = "b5bd161b4ef581c6114b7bb4"; // token antiguo: solo vale en modo transición
 const GOOGLE_CLIENT_ID = "207433225749-76s4184pif80ge7gfr0nt39qa80b82ij.apps.googleusercontent.com";
 const SUPER_ADMIN_EMAIL = "a.catalan.valdes@gmail.com";
 const ACL_KEY = "accesos_ci_v1";
@@ -308,7 +305,6 @@ function perfil(email) {
 function usuarioDe(token) {
   const email = leerToken(token);
   if (email) return permisosDe(email);
-  if (token === APP_TOKEN && !modoEstricto()) return USUARIO_LEGADO;
   return null;
 }
 
@@ -327,7 +323,6 @@ function puede(usuario, key, escribir) {
 
 function motivoRechazo(token) {
   if (!token) return "NO_AUTORIZADO";
-  if (token === APP_TOKEN) return "NO_AUTORIZADO"; // token antiguo en modo estricto
   return String(token).indexOf(".") > -1 ? "SESION_EXPIRADA" : "NO_AUTORIZADO";
 }
 
