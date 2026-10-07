@@ -1,4 +1,7 @@
 {
+  "functions": {
+    "api/descriptor.js": { "maxDuration": 120 }
+  },
   "headers": [
     {
       "source": "/(.*)",

@@ -2,3 +2,6 @@
 # Recuperación local: contiene respaldos de datos empresariales
 /recuperacion-cache*.json
 /informe-recuperacion.json
+
+# Dependencias de las funciones de Vercel (se instalan al desplegar)
+node_modules/

@@ -52,6 +52,27 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
 .total{font-weight:800;font-size:16px;margin-top:10px;padding-top:10px;border-top:2px solid var(--border);display:flex;justify-content:space-between;color:var(--gold)}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none;align-items:center;justify-content:center;padding:16px;}
 .modal{background:#fff;border-radius:12px;padding:24px;width:100%;max-width:500px;}
+/* Organigrama: árbol con líneas de conexión, con desplazamiento horizontal si es ancho */
+.org-wrap{overflow-x:auto;padding:8px 0 4px}
+.org-arbol ul{padding-top:18px;position:relative;display:flex;justify-content:center;list-style:none}
+.org-arbol>ul{padding-top:0}
+.org-arbol li{position:relative;padding:18px 6px 0;text-align:center;list-style:none}
+.org-arbol li::before,.org-arbol li::after{content:'';position:absolute;top:0;right:50%;width:50%;height:18px;border-top:2px solid var(--border)}
+.org-arbol li::after{right:auto;left:50%;border-left:2px solid var(--border)}
+.org-arbol li:only-child::before,.org-arbol li:only-child::after{display:none}
+.org-arbol li:only-child{padding-top:0}
+.org-arbol li:first-child::before,.org-arbol li:last-child::after{border:0 none}
+.org-arbol li:last-child::before{border-right:2px solid var(--border);border-radius:0 6px 0 0}
+.org-arbol li:first-child::after{border-radius:6px 0 0 0}
+.org-arbol ul ul::before{content:'';position:absolute;top:0;left:50%;border-left:2px solid var(--border);height:18px}
+.org-arbol>ul>li{padding-top:0}
+.org-arbol>ul>li::before,.org-arbol>ul>li::after{display:none}
+.org-nodo{display:inline-block;min-width:150px;max-width:210px;background:#fff;border:1.5px solid var(--border);border-top:4px solid var(--gold);border-radius:8px;padding:8px 10px;cursor:pointer;text-align:center}
+.org-nodo:hover{border-color:var(--gold);box-shadow:0 4px 12px rgba(0,0,0,.06)}
+.org-nodo .n-car{font-weight:800;font-size:12px;color:var(--dark)}
+.org-nodo .n-are{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+.org-nodo .n-ocu{font-size:11px;color:var(--teal);margin-top:6px;line-height:1.35}
+.org-nodo .n-ocu.vac{color:var(--amber)}
 </style>
   <link rel="stylesheet" href="brand/brand.css">
   <script src="brand/brand.js"></script>
@@ -95,6 +116,7 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
     <button class="ttab" onclick="showTab('p-prev',this)">Previred</button>
     <button class="ttab" onclick="showTab('p-fini',this)">Finiquitos</button>
     <button class="ttab" onclick="showTab('p-doc',this)">Documentos</button>
+    <button class="ttab" onclick="showTab('p-org',this)">Organigrama y Cargos</button>
     <button class="ttab" onclick="showTab('p-rep',this)">Reportes</button>
   </div>
 </div>
@@ -117,8 +139,8 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
         <div class="fld"><label>Segundo nombre</label><input id="tr-nom2"></div>
         <div class="fld"><label>Primer apellido</label><input id="tr-ape1"></div>
         <div class="fld"><label>Segundo apellido</label><input id="tr-ape2"></div>
-        <div class="fld"><label>Cargo</label><input id="tr-car"></div>
-        <div class="fld"><label>Área</label><input id="tr-are"></div>
+        <div class="fld"><label>Cargo</label><input id="tr-car" list="dl-cargos"></div>
+        <div class="fld"><label>Área</label><input id="tr-are" list="dl-areas"></div>
         <div class="fld"><label>Jefatura</label><input id="tr-jef"></div>
         <div class="fld"><label>Teléfono</label><div style="display:flex;gap:6px"><select id="tr-tel-cod" style="width:82px"><option>+56</option></select><input id="tr-tel" inputmode="tel"></div></div>
         <div class="fld"><label>Email (acceso a Mi Portal)</label><input id="tr-ema" type="email" placeholder="correo Gmail o Hotmail del trabajador" title="El trabajador entra a Mi Portal con este mismo correo (Google o Microsoft)"></div>
@@ -425,6 +447,46 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
     </div>
   </div>
 
+  <!-- ================= ORGANIGRAMA Y CARGOS ================= -->
+  <div id="p-org" class="panel">
+    <div class="kpis">
+      <div class="kpi"><div class="kpi-label">Cargos definidos</div><div class="kpi-value" id="k-cg-tot">0</div></div>
+      <div class="kpi"><div class="kpi-label">Con descriptor</div><div class="kpi-value" id="k-cg-des" style="color:var(--teal)">0</div></div>
+      <div class="kpi"><div class="kpi-label">Cargos vacantes</div><div class="kpi-value" id="k-cg-vac" style="color:var(--amber)">0</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title" id="cg-title">Nuevo Cargo</div>
+      <div class="grid-form">
+        <div class="fld"><label>Nombre del cargo</label><input id="cg-nom" maxlength="120" placeholder="Ej: Operador de Sublimación"></div>
+        <div class="fld"><label>Área</label><input id="cg-are" list="dl-areas" maxlength="120" placeholder="Ej: Producción"></div>
+        <div class="fld"><label>Reporta a</label><select id="cg-rep"></select></div>
+        <div class="fld"><label>Jornada (opcional)</label><input id="cg-jor" maxlength="120" placeholder="Ej: 42 horas, lunes a viernes"></div>
+      </div>
+      <div class="fld" style="margin-top:12px"><label>Funciones del cargo (con tus palabras, una por línea)</label>
+        <textarea id="cg-fun" rows="6" maxlength="6000" placeholder="Ej:&#10;Imprimir los diseños en papel de sublimación&#10;Planchar las prendas y revisar que queden bien&#10;Avisar cuando falten insumos&#10;Mantener limpio el taller"></textarea></div>
+      <div class="fld" style="margin-top:8px"><label>Observaciones para la IA (opcional)</label>
+        <textarea id="cg-not" rows="2" maxlength="2000" placeholder="Ej: no requiere estudios técnicos; trabaja con calandra y plancha térmica; atiende clientes en sala"></textarea></div>
+      <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+        <button class="act-btn primary" id="cg-btn" onclick="cgSave()">Guardar Cargo</button>
+        <button class="act-btn" id="cg-btn-c" style="display:none" onclick="cgCancel()">Cancelar</button>
+        <button class="act-btn" style="margin-left:auto" onclick="cgImportar()" title="Crea un cargo por cada cargo escrito en las fichas de trabajadores activos">⇩ Importar cargos desde Trabajadores</button>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.5">Guarda el cargo y luego usa <b>🤖 Descriptor con IA</b>: la IA redacta el descriptor completo (objetivo, funciones, requisitos, competencias, indicadores y riesgos) a partir de las funciones que escribiste. Después puedes revisarlo, corregirlo e imprimirlo. A la IA solo se envía la información del cargo, nunca datos de trabajadores.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Cargos</div>
+      <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Cargo</th><th>Área</th><th>Reporta a</th><th>Ocupantes</th><th>Descriptor</th><th>Acciones</th></tr></thead><tbody id="cg-tbl"></tbody></table></div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <span>Organigrama</span>
+        <button class="act-btn small" onclick="orgImprimir()">🖨 Imprimir / PDF</button>
+      </div>
+      <div id="org-aviso"></div>
+      <div class="org-wrap"><div id="org-arbol" class="org-arbol"></div></div>
+    </div>
+  </div>
+
   <!-- ================= REPORTES ================= -->
   <div id="p-rep" class="panel">
     <div class="card" style="padding:12px 20px">
@@ -450,6 +512,46 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
 </div>
 
 <!-- MODAL RECHAZO VACACIONES -->
+<datalist id="dl-areas"></datalist>
+<datalist id="dl-cargos"></datalist>
+<div class="modal-bg" id="mod-desc">
+  <div class="modal" style="max-width:860px;max-height:92vh;overflow-y:auto">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+      <span id="dsc-titulo">Descriptor de Cargo</span>
+      <button class="act-btn small" onclick="dscCerrar()">✕</button>
+    </div>
+    <div id="dsc-meta" style="font-size:11px;color:var(--muted);margin-bottom:12px"></div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:12px">En las listas, escribe un elemento por línea. Donde se indica <b>Título: detalle</b>, separa con dos puntos.</div>
+    <div class="fld"><label>Objetivo del cargo</label><textarea id="dsc-obj" rows="3"></textarea></div>
+    <div class="fld" style="margin-top:10px"><label>Funciones principales (Función: detalle)</label><textarea id="dsc-fun" rows="7"></textarea></div>
+    <div class="fld" style="margin-top:10px"><label>Responsabilidades</label><textarea id="dsc-res" rows="4"></textarea></div>
+    <div class="fld" style="margin-top:10px"><label>Nivel de autoridad (decisiones que puede tomar)</label><textarea id="dsc-aut" rows="3"></textarea></div>
+    <div class="grid-form" style="margin-top:10px;align-items:start">
+      <div class="fld"><label>Formación</label><textarea id="dsc-for" rows="2"></textarea></div>
+      <div class="fld"><label>Experiencia</label><textarea id="dsc-exp" rows="2"></textarea></div>
+    </div>
+    <div class="grid-form" style="margin-top:10px;align-items:start">
+      <div class="fld"><label>Conocimientos requeridos</label><textarea id="dsc-con" rows="4"></textarea></div>
+      <div class="fld"><label>Deseables</label><textarea id="dsc-des" rows="4"></textarea></div>
+    </div>
+    <div class="fld" style="margin-top:10px"><label>Competencias (Competencia: descripción)</label><textarea id="dsc-com" rows="5"></textarea></div>
+    <div class="fld" style="margin-top:10px"><label>Indicadores de desempeño</label><textarea id="dsc-ind" rows="4"></textarea></div>
+    <div class="grid-form" style="margin-top:10px;align-items:start">
+      <div class="fld"><label>Relaciones internas</label><textarea id="dsc-rin" rows="3"></textarea></div>
+      <div class="fld"><label>Relaciones externas</label><textarea id="dsc-rex" rows="3"></textarea></div>
+    </div>
+    <div class="grid-form" style="margin-top:10px;align-items:start">
+      <div class="fld"><label>Jornada</label><input id="dsc-jor"></div>
+      <div class="fld"><label>Lugar de trabajo</label><input id="dsc-lug"></div>
+    </div>
+    <div class="fld" style="margin-top:10px"><label>Riesgos del puesto (Riesgo: medida preventiva)</label><textarea id="dsc-rie" rows="5"></textarea></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap">
+      <button class="act-btn" onclick="cgGenerar(orgDescId)">🤖 Regenerar con IA</button>
+      <button class="act-btn" onclick="dscImprimir()">🖨 Imprimir / PDF</button>
+      <button class="act-btn primary" onclick="dscGuardar()">Guardar Descriptor</button>
+    </div>
+  </div>
+</div>
 <div class="modal-bg" id="mod-vac">
   <div class="modal">
     <div class="card-title">Rechazar Vacaciones</div>
@@ -467,8 +569,8 @@ const money = v => "$" + Math.round(Number(v||0)).toLocaleString("es-CL");
 const fmt = money; // alias: algunas plantillas (liquidación/finiquito) usan fmt()
 const fDate = iso => { if(!iso)return'-'; const [y,m,d]=iso.split('-'); return `${d}/${m}/${y}`; };
 
-let DB = { trab:[], asis:[], vac:[], perm:[], lic:[], liq:[], lib:[], prev:[], fini:[], doc:[] };
-const KEYS = { trab:"rrhh_trabajadores_v1", asis:"rrhh_asistencia_v1", vac:"rrhh_vacaciones_v1", perm:"rrhh_permisos_v1", lic:"rrhh_licencias_v1", liq:"rrhh_liquidaciones_v1", lib:"rrhh_libro_rem_v1", prev:"rrhh_previred_v1", fini:"rrhh_finiquitos_v1", doc:"rrhh_documentos_v1" };
+let DB = { trab:[], asis:[], vac:[], perm:[], lic:[], liq:[], lib:[], prev:[], fini:[], doc:[], carg:[] };
+const KEYS = { trab:"rrhh_trabajadores_v1", asis:"rrhh_asistencia_v1", vac:"rrhh_vacaciones_v1", perm:"rrhh_permisos_v1", lic:"rrhh_licencias_v1", liq:"rrhh_liquidaciones_v1", lib:"rrhh_libro_rem_v1", prev:"rrhh_previred_v1", fini:"rrhh_finiquitos_v1", doc:"rrhh_documentos_v1", carg:"rrhh_cargos_v1" };
 const CFG = { AFP:10, SAL:7, AFC:0.6, C_AFP:{UNO:0.46, MODELO:0.58, PLANVITAL:1.16, HABITAT:1.27, CAPITAL:1.44, CUPRUM:1.44, PROVIDA:1.45} };
 let indicadoresPrevired = null;
 async function cargarIndicadoresPrevired() {
@@ -576,7 +678,7 @@ async function loadCloudSharded(key) {
   throw new Error('Formato de datos no reconocido para ' + key);
 }
 
-const cargaOk = { trab:false, asis:false, vac:false, perm:false, lic:false, liq:false, lib:false, prev:false, fini:false, doc:false };
+const cargaOk = { trab:false, asis:false, vac:false, perm:false, lic:false, liq:false, lib:false, prev:false, fini:false, doc:false, carg:false };
 
 function sync(keyId) {
   const k = KEYS[keyId];
@@ -651,7 +753,7 @@ function popSel() {
   if(!$('rp-per').value)$('rp-per').value = mesChile();
 }
 
-function renderAll() { trRender(); asRender(); vaRender(); lmRender(); lqRender(); lrRender(); prRender(); fqRender(); doRender(); rpRender(); }
+function renderAll() { trRender(); asRender(); vaRender(); lmRender(); lqRender(); lrRender(); prRender(); fqRender(); doRender(); cgRender(); orgRender(); rpRender(); }
 
 // ================= TRABAJADORES =================
 function fmtRut(el) { let v=el.value.replace(/\D/g,""); el.value=v.replace(/\B(?=(\d{3})+(?!\d))/g,"."); $('tr-rut-dv').value=v?dvRut(v):''; }
@@ -1703,6 +1805,277 @@ function doDL(id){ const d=DB.doc.find(x=>x.id===id); if(!d)return; const a=docu
 function doRender(){
   const tb=$('do-tbl'); const q=$('do-bus').value.toLowerCase();
   tb.innerHTML = DB.doc.filter(d=>!q||getTName(d.trabajadorId).toLowerCase().includes(q)||d.nombre.toLowerCase().includes(q)).sort((a,b)=>b.id-a.id).map(d=>`<tr><td><b>${getTName(d.trabajadorId)}</b></td><td><span class="badge bdg-inact">${d.categoria}</span></td><td>${d.nombre}</td><td>${fDate(hoyChile(new Date(d.id)))}</td><td><button class="act-btn small" onclick="doDL(${d.id})">⬇</button> <button class="act-btn small" style="color:red" onclick="doDel(${d.id})">🗑</button></td></tr>`).join('') || `<tr><td colspan="5" align="center">Sin datos</td></tr>`;
+}
+
+// ================= ORGANIGRAMA Y CARGOS =================
+// Cada cargo: { id, nombre, area, reportaA (id de otro cargo o ''), jornada,
+// funciones (texto libre), notas, descriptor, descriptorFecha, descriptorIA,
+// descriptorDesactualizado }. Los trabajadores se asocian a un cargo por el
+// nombre escrito en su ficha (campo Cargo), sin distinguir mayúsculas ni tildes.
+let orgEditId = null, orgDescId = null;
+const normCargo = s => String(s||'').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+function cgGet(id){ return DB.carg.find(c=>String(c.id)===String(id)); }
+function cgHijos(id){ return DB.carg.filter(c=>String(c.reportaA||'')===String(id)); }
+function cgDescendientes(id){
+  const out=new Set(), pila=[String(id)];
+  while(pila.length){ const x=pila.pop(); DB.carg.forEach(c=>{ if(String(c.reportaA||'')===x && !out.has(String(c.id))){ out.add(String(c.id)); pila.push(String(c.id)); } }); }
+  return out;
+}
+function cgOcupantes(c){ return DB.trab.filter(t=>t.estado!=='Inactivo' && normCargo(t.cargo)===normCargo(c.nombre)); }
+function cgNombreJefe(c){ const j=c.reportaA?cgGet(c.reportaA):null; return j?j.nombre:''; }
+
+function cgPopRep(){
+  const sel=$('cg-rep'); if(!sel) return;
+  const val=orgEditId ? (cgGet(orgEditId)||{}).reportaA||'' : sel.value;
+  // No se puede reportar a sí mismo ni a un cargo que depende de él (crearía un ciclo).
+  const prohibidos=orgEditId ? cgDescendientes(orgEditId) : new Set();
+  if(orgEditId) prohibidos.add(String(orgEditId));
+  sel.innerHTML='<option value="">— Nadie (cargo superior) —</option>'+DB.carg.filter(c=>!prohibidos.has(String(c.id))).sort((a,b)=>a.nombre.localeCompare(b.nombre,'es')).map(c=>`<option value="${escH(c.id)}">${escH(c.nombre)}</option>`).join('');
+  sel.value=val&&!prohibidos.has(String(val))?String(val):'';
+}
+function cgPopListas(){
+  const areas=new Set(); DB.trab.forEach(t=>{ if(t.area) areas.add(t.area); }); DB.carg.forEach(c=>{ if(c.area) areas.add(c.area); });
+  if($('dl-areas')) $('dl-areas').innerHTML=[...areas].sort((a,b)=>a.localeCompare(b,'es')).map(a=>`<option value="${escH(a)}">`).join('');
+  if($('dl-cargos')) $('dl-cargos').innerHTML=DB.carg.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,'es')).map(c=>`<option value="${escH(c.nombre)}">`).join('');
+}
+
+function cgSave(){
+  if(!cargaOk.carg){ alert('No se pudo confirmar la carga de los cargos desde la nube. Recarga la página (F5) antes de editar.'); return; }
+  const nombre=$('cg-nom').value.trim().replace(/\s+/g,' ');
+  if(!nombre){ alert('Escribe el nombre del cargo.'); return; }
+  if(DB.carg.some(c=>String(c.id)!==String(orgEditId)&&normCargo(c.nombre)===normCargo(nombre))){ alert('Ya existe un cargo con ese nombre.'); return; }
+  const datos={ nombre, area:$('cg-are').value.trim(), reportaA:$('cg-rep').value||'', jornada:$('cg-jor').value.trim(), funciones:$('cg-fun').value.trim(), notas:$('cg-not').value.trim() };
+  if(orgEditId){
+    const c=cgGet(orgEditId); if(!c) return;
+    const anterior=c.nombre;
+    const cambioBase = c.funciones!==datos.funciones || c.nombre!==datos.nombre || (c.area||'')!==datos.area;
+    if(c.descriptor && cambioBase) c.descriptorDesactualizado=true;
+    Object.assign(c, datos);
+    // Si se renombró el cargo, se ofrece actualizar las fichas que usaban el nombre anterior.
+    if(normCargo(anterior)!==normCargo(nombre)){
+      const afectados=DB.trab.filter(t=>normCargo(t.cargo)===normCargo(anterior));
+      if(afectados.length && confirm(`${afectados.length} trabajador(es) tienen el cargo "${anterior}" en su ficha. ¿Cambiarlo a "${nombre}"?`)){
+        afectados.forEach(t=>{ t.cargo=nombre; }); sync('trab');
+      }
+    }
+  } else {
+    DB.carg.push(Object.assign({ id:Date.now() }, datos));
+  }
+  sync('carg'); cgCancel(); renderAll();
+}
+function cgEdit(id){
+  const c=cgGet(id); if(!c) return; orgEditId=c.id;
+  $('cg-nom').value=c.nombre||''; $('cg-are').value=c.area||''; $('cg-jor').value=c.jornada||''; $('cg-fun').value=c.funciones||''; $('cg-not').value=c.notas||'';
+  cgPopRep();
+  $('cg-title').textContent='Editar Cargo'; $('cg-btn').textContent='Actualizar'; $('cg-btn-c').style.display='inline-flex';
+  $('cg-nom').scrollIntoView({behavior:'smooth',block:'center'});
+}
+function cgCancel(){
+  orgEditId=null; ['nom','are','jor','fun','not'].forEach(k=>$('cg-'+k).value='');
+  $('cg-title').textContent='Nuevo Cargo'; $('cg-btn').textContent='Guardar Cargo'; $('cg-btn-c').style.display='none'; cgPopRep(); $('cg-rep').value='';
+}
+function cgDel(id){
+  const c=cgGet(id); if(!c) return;
+  const hijos=cgHijos(id);
+  if(!confirm(`¿Eliminar el cargo "${c.nombre}"?`+(hijos.length?`\n\nLos ${hijos.length} cargo(s) que le reportan pasarán a reportar a ${cgNombreJefe(c)||'nadie (cargo superior)'}.`:'')+'\n\nLas fichas de los trabajadores no se modifican.')) return;
+  hijos.forEach(h=>{ h.reportaA=c.reportaA||''; });
+  DB.carg=DB.carg.filter(x=>String(x.id)!==String(id));
+  sync('carg'); if(String(orgEditId)===String(id)) cgCancel(); renderAll();
+}
+function cgImportar(){
+  if(!cargaOk.carg){ alert('No se pudo confirmar la carga de los cargos desde la nube. Recarga la página (F5).'); return; }
+  const nuevos=new Map();
+  DB.trab.filter(t=>t.estado!=='Inactivo'&&t.cargo&&t.cargo.trim()).forEach(t=>{
+    const k=normCargo(t.cargo);
+    if(DB.carg.some(c=>normCargo(c.nombre)===k)||nuevos.has(k)) return;
+    nuevos.set(k,{ id:Date.now()+nuevos.size, nombre:t.cargo.trim().replace(/\s+/g,' '), area:t.area||'', reportaA:'', jornada:'', funciones:'', notas:'' });
+  });
+  if(!nuevos.size){ alert('Todos los cargos de las fichas de trabajadores activos ya están creados.'); return; }
+  DB.carg.push(...nuevos.values()); sync('carg'); renderAll();
+  alert(`Se crearon ${nuevos.size} cargo(s). Ahora indica a quién reporta cada uno y escribe sus funciones (✏️).`);
+}
+
+function cgRender(){
+  const tb=$('cg-tbl'); if(!tb) return;
+  cgPopRep(); cgPopListas();
+  const lista=DB.carg.slice().sort((a,b)=>(a.area||'').localeCompare(b.area||'','es')||a.nombre.localeCompare(b.nombre,'es'));
+  tb.innerHTML=lista.map(c=>{
+    const ocu=cgOcupantes(c);
+    let est;
+    if(!c.descriptor) est='<span class="badge bdg-pen">Pendiente</span>';
+    else if(c.descriptorDesactualizado) est=`<span class="badge bdg-err" title="Cambiaste las funciones después de generarlo">Desactualizado</span>`;
+    else est=`<span class="badge bdg-act">${c.descriptorIA?'IA · ':''}${fDate(c.descriptorFecha)}</span>`;
+    return `<tr><td><b>${escH(c.nombre)}</b></td><td>${escH(c.area||'-')}</td><td>${escH(cgNombreJefe(c)||'—')}</td>`+
+      `<td>${ocu.length?ocu.map(t=>escH(t.nombres+' '+(t.apellidos||''))).join('<br>'):'<span style="color:var(--amber)">Vacante</span>'}</td><td>${est}</td>`+
+      `<td style="white-space:nowrap"><button class="act-btn small" onclick="cgEdit(${JSON.stringify(c.id)})" title="Editar cargo">✏</button> `+
+      `<button class="act-btn small" onclick="cgGenerar(${JSON.stringify(c.id)})" title="Redactar el descriptor con IA">🤖 Descriptor con IA</button> `+
+      `<button class="act-btn small" onclick="dscAbrir(${JSON.stringify(c.id)})" title="Ver, editar o imprimir el descriptor">📄</button> `+
+      `<button class="act-btn small" style="color:var(--red)" onclick="cgDel(${JSON.stringify(c.id)})" title="Eliminar cargo">🗑</button></td></tr>`;
+  }).join('') || `<tr><td colspan="6" align="center">Sin cargos. Crea el primero arriba o usa "Importar cargos desde Trabajadores".</td></tr>`;
+  $('k-cg-tot').textContent=DB.carg.length;
+  $('k-cg-des').textContent=DB.carg.filter(c=>c.descriptor).length;
+  $('k-cg-vac').textContent=DB.carg.filter(c=>!cgOcupantes(c).length).length;
+}
+
+// ---------- Organigrama ----------
+function orgRaices(){ return DB.carg.filter(c=>!c.reportaA||!cgGet(c.reportaA)); }
+function orgNodoHtml(c, visitados){
+  if(visitados.has(String(c.id))) return ''; // protección ante ciclos en datos antiguos
+  visitados.add(String(c.id));
+  const ocu=cgOcupantes(c);
+  const hijos=cgHijos(c.id).sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
+  const hijosHtml=hijos.map(h=>orgNodoHtml(h, visitados)).filter(Boolean).join('');
+  return `<li><div class="org-nodo" onclick="dscAbrir(${JSON.stringify(c.id)})" title="Ver descriptor del cargo"><div class="n-car">${escH(c.nombre)}</div>${c.area?`<div class="n-are">${escH(c.area)}</div>`:''}`+
+    `<div class="n-ocu${ocu.length?'':' vac'}">${ocu.length?ocu.map(t=>escH(t.nombres+' '+(t.apellidos||''))).join('<br>'):'Vacante'}</div></div>`+
+    (hijosHtml?`<ul>${hijosHtml}</ul>`:'')+`</li>`;
+}
+function orgArbolHtml(){
+  const visitados=new Set();
+  const raices=orgRaices().sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
+  return raices.length?`<ul>${raices.map(r=>orgNodoHtml(r, visitados)).join('')}</ul>`:'';
+}
+function orgRender(){
+  const cont=$('org-arbol'); if(!cont) return;
+  cont.innerHTML=orgArbolHtml()||'<div style="color:var(--muted);font-size:12px;text-align:center;padding:20px">El organigrama aparece al crear cargos e indicar a quién reporta cada uno.</div>';
+  // Trabajadores activos cuyo cargo no existe en el organigrama
+  const sinCargo=DB.trab.filter(t=>t.estado!=='Inactivo'&&!DB.carg.some(c=>normCargo(c.nombre)===normCargo(t.cargo)));
+  $('org-aviso').innerHTML=sinCargo.length?`<div style="background:#FEF3E2;border:1px solid #FDE68A;color:var(--amber);border-radius:8px;padding:8px 12px;font-size:12px;margin-bottom:12px">⚠️ ${sinCargo.length} trabajador(es) activos no aparecen porque su cargo no está creado: ${sinCargo.map(t=>escH(t.nombres+' '+(t.apellidos||''))+' ('+escH(t.cargo||'sin cargo')+')').join(', ')}. Usa "Importar cargos desde Trabajadores" o corrige el cargo en su ficha.</div>`:'';
+}
+function orgImprimir(){
+  const arbol=orgArbolHtml();
+  if(!arbol){ alert('Todavía no hay cargos para el organigrama.'); return; }
+  const v=window.open('','_blank'); if(!v){ alert('El navegador bloqueó la ventana. Permite las ventanas emergentes e inténtalo de nuevo.'); return; }
+  v.document.write(`<html><head><title>Organigrama - Creamos Imagen</title><style>
+    @page{size:letter landscape;margin:12mm} body{font-family:Arial,sans-serif;color:#141414}
+    .org-arbol ul{padding-top:18px;position:relative;display:flex;justify-content:center;margin:0;padding-left:0}
+    .org-arbol>ul{padding-top:0}
+    .org-arbol li{position:relative;padding:18px 5px 0;text-align:center;list-style:none}
+    .org-arbol li::before,.org-arbol li::after{content:'';position:absolute;top:0;right:50%;width:50%;height:18px;border-top:2px solid #999}
+    .org-arbol li::after{right:auto;left:50%;border-left:2px solid #999}
+    .org-arbol li:only-child::before,.org-arbol li:only-child::after{display:none}
+    .org-arbol li:only-child{padding-top:0}
+    .org-arbol li:first-child::before,.org-arbol li:last-child::after{border:0 none}
+    .org-arbol li:last-child::before{border-right:2px solid #999}
+    .org-arbol ul ul::before{content:'';position:absolute;top:0;left:50%;border-left:2px solid #999;height:18px}
+    .org-arbol>ul>li{padding-top:0} .org-arbol>ul>li::before,.org-arbol>ul>li::after{display:none}
+    .org-nodo{display:inline-block;min-width:120px;max-width:180px;border:1.5px solid #999;border-top:4px solid #F1AF13;border-radius:6px;padding:6px 8px;background:#fff}
+    .n-car{font-weight:bold;font-size:11px} .n-are{font-size:9px;color:#666;text-transform:uppercase;margin-top:2px}
+    .n-ocu{font-size:10px;color:#0D7A6B;margin-top:4px} .n-ocu.vac{color:#B45309}
+    h1{font-size:18px;margin:4px 0 2px} .sub{font-size:11px;color:#666;margin-bottom:18px}
+  </style></head><body>
+    <img src="${window.CREAMOS_BRAND.logoBlack}" alt="Creamos Imagen" style="width:155px;height:42px;object-fit:contain;object-position:left center">
+    <h1>Organigrama</h1><div class="sub">Creamos Imagen Ltda. · Actualizado al ${fDate(hoyChile())}</div>
+    <div class="org-wrap"><div class="org-arbol">${arbol}</div></div></body></html>`);
+  v.document.close(); setTimeout(()=>v.print(), 400);
+}
+
+// ---------- Descriptor: generación con IA ----------
+const DSC_ERRORES = {
+  IA_NO_CONFIGURADA:'La IA todavía no está configurada en el servidor. Falta agregar la clave ANTHROPIC_API_KEY en la configuración del proyecto en Vercel.',
+  SIN_PERMISO:'Tu usuario no tiene acceso a Recursos Humanos.',
+  FALTAN_DATOS:'Para usar la IA, el cargo necesita nombre y funciones (al menos una línea).',
+  IA_OCUPADA:'La IA está con mucha demanda en este momento. Espera un minuto e inténtalo de nuevo.',
+  IA_RECHAZO:'La IA no pudo redactar este descriptor. Revisa el texto de las funciones e inténtalo de nuevo.',
+  IA_INCOMPLETA:'La respuesta de la IA quedó incompleta. Inténtalo de nuevo.'
+};
+async function cgGenerar(id){
+  const c=cgGet(id); if(!c) return;
+  if(!cargaOk.carg){ alert('No se pudo confirmar la carga de los cargos desde la nube. Recarga la página (F5).'); return; }
+  if(!c.funciones||c.funciones.trim().length<10){ alert('Primero escribe las funciones del cargo (✏️ Editar) para que la IA tenga con qué trabajar.'); cgEdit(id); return; }
+  if(c.descriptor&&!confirm('Este cargo ya tiene un descriptor. La IA redactará uno nuevo a partir de las funciones actuales y reemplazará el anterior (incluidas tus correcciones). ¿Continuar?')) return;
+  const ctrl=new AbortController(); const timer=setTimeout(()=>ctrl.abort(), 150000);
+  mostrarCargando('🤖 La IA está redactando el descriptor de "'+c.nombre+'"… puede tardar hasta un minuto');
+  try{
+    const res=await fetch('/api/descriptor',{ method:'POST', signal:ctrl.signal,
+      headers:{ 'Content-Type':'application/json', 'X-Portal-Token':CLOUD_TOKEN },
+      body:JSON.stringify({ nombre:c.nombre, area:c.area||'', reportaA:cgNombreJefe(c), subordinados:cgHijos(c.id).map(h=>h.nombre), jornada:c.jornada||'', funciones:c.funciones, notas:c.notas||'' }) });
+    let j=null; try{ j=await res.json(); }catch(e){}
+    if(j&&(j.detalle==='SESION_EXPIRADA'||j.detalle==='NO_AUTORIZADO')){ alert('Tu sesión expiró. Vuelve a iniciar sesión.'); location.href='index.html'; return; }
+    if(!res.ok||!j||j.estado!=='éxito'||!j.descriptor) throw new Error((j&&j.detalle)||('HTTP '+res.status));
+    c.descriptor=j.descriptor; c.descriptorFecha=hoyChile(); c.descriptorIA=true; c.descriptorDesactualizado=false;
+    sync('carg'); renderAll(); dscAbrir(c.id);
+  }catch(e){
+    alert(DSC_ERRORES[e.message] || (e.name==='AbortError'?'La IA tardó demasiado en responder. Inténtalo de nuevo.':'No se pudo generar el descriptor. Revisa tu conexión e inténtalo de nuevo.'));
+  }finally{ clearTimeout(timer); ocultarCargando(); }
+}
+
+// ---------- Descriptor: ver, editar, imprimir ----------
+const dscLineas = a => (a||[]).join('\n');
+const dscPares = (a,k1,k2) => (a||[]).map(x=>x[k2]?`${x[k1]}: ${x[k2]}`:x[k1]).join('\n');
+const dscLista = t => String(t||'').split('\n').map(s=>s.replace(/^\s*[-•*]\s*/,'').trim()).filter(Boolean);
+const dscParesDe = (t,k1,k2) => dscLista(t).map(l=>{ const i=l.indexOf(':'); return i>0?{[k1]:l.slice(0,i).trim(),[k2]:l.slice(i+1).trim()}:{[k1]:l,[k2]:''}; });
+function dscVacio(){ return { objetivo:'', funciones:[], responsabilidades:[], autoridad:[], requisitos:{formacion:'',experiencia:'',conocimientos:[],deseables:[]}, competencias:[], indicadores:[], relaciones:{internas:[],externas:[]}, condiciones:{jornada:'',lugar:''}, riesgos:[] }; }
+function dscAbrir(id){
+  const c=cgGet(id); if(!c) return; orgDescId=c.id;
+  const d=Object.assign(dscVacio(), c.descriptor||{});
+  d.requisitos=Object.assign(dscVacio().requisitos, d.requisitos||{}); d.relaciones=Object.assign(dscVacio().relaciones, d.relaciones||{}); d.condiciones=Object.assign(dscVacio().condiciones, d.condiciones||{});
+  $('dsc-titulo').textContent='Descriptor: '+c.nombre;
+  $('dsc-meta').innerHTML=[c.area?'Área: <b>'+escH(c.area)+'</b>':'', 'Reporta a: <b>'+escH(cgNombreJefe(c)||'—')+'</b>',
+    c.descriptor?(c.descriptorIA?'Redactado con IA':'Redactado a mano')+' · actualizado '+fDate(c.descriptorFecha):'<span style="color:var(--amber)">Sin descriptor: usa 🤖 o complétalo a mano</span>',
+    c.descriptorDesactualizado?'<span style="color:var(--red)">⚠️ Las funciones cambiaron después de redactarlo</span>':''].filter(Boolean).join(' · ');
+  $('dsc-obj').value=d.objetivo||''; $('dsc-fun').value=dscPares(d.funciones,'funcion','detalle'); $('dsc-res').value=dscLineas(d.responsabilidades); $('dsc-aut').value=dscLineas(d.autoridad);
+  $('dsc-for').value=d.requisitos.formacion||''; $('dsc-exp').value=d.requisitos.experiencia||''; $('dsc-con').value=dscLineas(d.requisitos.conocimientos); $('dsc-des').value=dscLineas(d.requisitos.deseables);
+  $('dsc-com').value=dscPares(d.competencias,'nombre','descripcion'); $('dsc-ind').value=dscLineas(d.indicadores);
+  $('dsc-rin').value=dscLineas(d.relaciones.internas); $('dsc-rex').value=dscLineas(d.relaciones.externas);
+  $('dsc-jor').value=d.condiciones.jornada||c.jornada||''; $('dsc-lug').value=d.condiciones.lugar||''; $('dsc-rie').value=dscPares(d.riesgos,'riesgo','medida');
+  $('mod-desc').style.display='flex';
+}
+function dscLeerForm(){
+  return { objetivo:$('dsc-obj').value.trim(), funciones:dscParesDe($('dsc-fun').value,'funcion','detalle'), responsabilidades:dscLista($('dsc-res').value), autoridad:dscLista($('dsc-aut').value),
+    requisitos:{ formacion:$('dsc-for').value.trim(), experiencia:$('dsc-exp').value.trim(), conocimientos:dscLista($('dsc-con').value), deseables:dscLista($('dsc-des').value) },
+    competencias:dscParesDe($('dsc-com').value,'nombre','descripcion'), indicadores:dscLista($('dsc-ind').value),
+    relaciones:{ internas:dscLista($('dsc-rin').value), externas:dscLista($('dsc-rex').value) },
+    condiciones:{ jornada:$('dsc-jor').value.trim(), lugar:$('dsc-lug').value.trim() }, riesgos:dscParesDe($('dsc-rie').value,'riesgo','medida') };
+}
+function dscGuardar(){
+  const c=cgGet(orgDescId); if(!c) return;
+  if(!cargaOk.carg){ alert('No se pudo confirmar la carga de los cargos desde la nube. Recarga la página (F5).'); return; }
+  const d=dscLeerForm();
+  if(!d.objetivo&&!d.funciones.length){ alert('El descriptor está vacío. Escribe al menos el objetivo o las funciones.'); return; }
+  const antes=JSON.stringify(c.descriptor||null);
+  if(antes!==JSON.stringify(d)){ c.descriptor=d; c.descriptorFecha=hoyChile(); if(antes==='null') c.descriptorIA=false; }
+  c.descriptorDesactualizado=false;
+  sync('carg'); renderAll(); dscCerrar();
+}
+function dscCerrar(){ $('mod-desc').style.display='none'; orgDescId=null; }
+function dscImprimir(){
+  const c=cgGet(orgDescId); if(!c) return;
+  const d=dscLeerForm();
+  const lista=a=>a.length?`<ul>${a.map(x=>`<li>${escH(x)}</li>`).join('')}</ul>`:'<p class="vacio">—</p>';
+  const pares=(a,k1,k2)=>a.length?`<ul>${a.map(x=>`<li><b>${escH(x[k1])}</b>${x[k2]?': '+escH(x[k2]):''}</li>`).join('')}</ul>`:'<p class="vacio">—</p>';
+  const subs=cgHijos(c.id).map(h=>h.nombre);
+  const v=window.open('','_blank'); if(!v){ alert('El navegador bloqueó la ventana. Permite las ventanas emergentes e inténtalo de nuevo.'); return; }
+  v.document.write(`<html><head><title>Descriptor de Cargo - ${escH(c.nombre)}</title><style>
+    @page{size:letter portrait;margin:15mm} body{font-family:Arial,sans-serif;font-size:11px;color:#222;line-height:1.45}
+    h1{font-size:18px;margin:6px 0 2px} .sub{color:#666;margin-bottom:14px}
+    table.cab{width:100%;border-collapse:collapse;margin-bottom:14px} table.cab td{border:1px solid #ddd;padding:6px 8px;vertical-align:top} table.cab td.l{background:#F7F6F2;font-weight:bold;width:22%}
+    h2{font-size:12px;text-transform:uppercase;letter-spacing:.5px;background:#F1AF13;color:#141414;padding:5px 8px;margin:14px 0 6px;page-break-after:avoid}
+    ul{margin:0 0 4px 18px;padding:0} li{margin-bottom:3px} p{margin:0 0 4px} .vacio{color:#999}
+    .dos{display:flex;gap:18px} .dos>div{flex:1}
+    .firmas{display:flex;justify-content:space-between;margin-top:70px;page-break-inside:avoid} .firmas div{width:42%;border-top:1px solid #000;text-align:center;padding-top:6px;font-weight:bold}
+  </style></head><body>
+    <img src="${window.CREAMOS_BRAND.logoBlack}" alt="Creamos Imagen" style="width:155px;height:42px;object-fit:contain;object-position:left center">
+    <h1>Descriptor de Cargo</h1><div class="sub">Creamos Imagen Ltda. · Versión del ${fDate(c.descriptorFecha||hoyChile())}</div>
+    <table class="cab">
+      <tr><td class="l">Cargo</td><td><b>${escH(c.nombre)}</b></td><td class="l">Área</td><td>${escH(c.area||'—')}</td></tr>
+      <tr><td class="l">Reporta a</td><td>${escH(cgNombreJefe(c)||'—')}</td><td class="l">Cargos a cargo</td><td>${escH(subs.join(', ')||'Ninguno')}</td></tr>
+      <tr><td class="l">Jornada</td><td>${escH(d.condiciones.jornada||'—')}</td><td class="l">Lugar de trabajo</td><td>${escH(d.condiciones.lugar||'—')}</td></tr>
+    </table>
+    <h2>Objetivo del cargo</h2><p>${escH(d.objetivo||'—')}</p>
+    <h2>Funciones principales</h2>${pares(d.funciones,'funcion','detalle')}
+    <h2>Responsabilidades</h2>${lista(d.responsabilidades)}
+    <h2>Nivel de autoridad</h2>${lista(d.autoridad)}
+    <h2>Requisitos del cargo</h2>
+    <p><b>Formación:</b> ${escH(d.requisitos.formacion||'—')}</p><p><b>Experiencia:</b> ${escH(d.requisitos.experiencia||'—')}</p>
+    <div class="dos"><div><p><b>Conocimientos</b></p>${lista(d.requisitos.conocimientos)}</div><div><p><b>Deseables</b></p>${lista(d.requisitos.deseables)}</div></div>
+    <h2>Competencias</h2>${pares(d.competencias,'nombre','descripcion')}
+    <h2>Indicadores de desempeño</h2>${lista(d.indicadores)}
+    <h2>Relaciones del cargo</h2>
+    <div class="dos"><div><p><b>Internas</b></p>${lista(d.relaciones.internas)}</div><div><p><b>Externas</b></p>${lista(d.relaciones.externas)}</div></div>
+    <h2>Riesgos del puesto y medidas preventivas</h2>${pares(d.riesgos,'riesgo','medida')}
+    <div class="firmas"><div>Elaborado por<br><span style="font-weight:normal">Creamos Imagen Ltda.</span></div><div>Recibí conforme<br><span style="font-weight:normal">Nombre, RUT y firma del trabajador</span></div></div>
+  </body></html>`);
+  v.document.close(); setTimeout(()=>v.print(), 400);
 }
 
 // ================= REPORTES =================

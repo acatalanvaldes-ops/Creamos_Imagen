@@ -1,0 +1,8 @@
+{
+  "name": "creamos-imagen",
+  "private": true,
+  "description": "Dependencias de las funciones de servidor (carpeta api/) en Vercel",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0"
+  }
+}
