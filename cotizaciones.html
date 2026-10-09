@@ -29,6 +29,10 @@ input,select,button,textarea{font-family:inherit;outline:none}
 .act-btn:disabled:hover{border-color:var(--border);color:var(--dark)}
 .act-btn.small{padding:5px 10px;font-size:11px}
 .card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:20px}
+.buscador-cot{display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:8px 14px;margin-bottom:12px}
+.buscador-cot:focus-within{border-color:var(--gold)}
+.buscador-cot input{flex:1;min-width:0;border:none;background:transparent;font-size:15px;color:var(--dark);font-family:inherit;outline:none}
+.buscador-cot #buscarCotInfo{font-size:12px;color:var(--muted);white-space:nowrap}
 .card-title{font-size:13px;font-weight:700;color:var(--dark);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;border-bottom:2px solid var(--bg);padding-bottom:8px;}
 .fld{margin-bottom:14px;}
 .fld label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;}
@@ -196,6 +200,11 @@ table.tbl input:focus,table.tbl select:focus{border-bottom:2px solid var(--gold)
 
   <!-- COTIZACIONES ENVIADAS -->
   <div id="view-enviadas" style="display:none">
+    <div class="buscador-cot">
+      <span aria-hidden="true">🔍</span>
+      <input type="search" id="buscarCot" placeholder="Buscar por cliente o N° de cotización…" oninput="filaDetalleAbierta = null; renderCotizacionesTable()" autocomplete="off">
+      <span id="buscarCotInfo"></span>
+    </div>
     <div class="pill-filters">
       <button class="pill on" data-f="todas" onclick="setFiltroEstado('todas',this)">Todas</button>
       <button class="pill" data-f="pendiente" onclick="setFiltroEstado('pendiente',this)">Pendientes</button>
@@ -981,6 +990,21 @@ function toggleDetalle(id) {
   renderCotizacionesTable();
 }
 
+const normBusqueda = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+function coincideBusquedaCot(c, texto) {
+  const q = normBusqueda(texto);
+  if (!q) return true;
+  // "N° 12", "Nº12" o "#12": se busca exactamente esa cotización.
+  const exacto = q.match(/^(?:n\s*[°º.]?|#)\s*(\d+)$/);
+  if (exacto) return Number(c.correlativo || 0) === Number(exacto[1]);
+  if (normBusqueda(c.cliente).includes(q) || normBusqueda(c.clienteRut).replace(/[.\s]/g, '').includes(q.replace(/[.\s]/g, ''))) return true;
+  // Solo dígitos: coincide con el N° (con o sin ceros a la izquierda), también parcial mientras se escribe
+  if (/^\d+$/.test(q)) return Number(c.correlativo || 0) === Number(q) || fmtCorrelativo(c.correlativo).includes(q);
+  return false;
+}
+// Al buscar un número, la cotización con ese N° exacto va primero.
+function esNumeroExacto(c, texto) { const q = normBusqueda(texto).replace(/\D/g, ''); return !!q && Number(c.correlativo || 0) === Number(q); }
+
 function renderCotizacionesTable() {
   const wrap = document.getElementById('cotizacionesTableWrap');
   let lista = cotizaciones.slice().sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
@@ -988,8 +1012,20 @@ function renderCotizacionesTable() {
   if (filtroEstadoActual === 'contactar') lista = lista.filter(porContactar).sort((a, b) => (a.seguimiento || '').localeCompare(b.seguimiento || ''));
   else if (filtroEstadoActual !== 'todas') lista = lista.filter(c => estadoVisible(c) === filtroEstadoActual);
 
+  // Buscador: por nombre del cliente (sin importar mayúsculas ni tildes) o por
+  // N° de cotización ("12", "0012" y "N° 12" encuentran la 0012).
+  const busqueda = (document.getElementById('buscarCot') || {}).value || '';
+  const info = document.getElementById('buscarCotInfo');
+  if (busqueda.trim()) {
+    lista = lista.filter(c => coincideBusquedaCot(c, busqueda));
+    lista.sort((a, b) => esNumeroExacto(b, busqueda) - esNumeroExacto(a, busqueda));
+    if (info) info.textContent = lista.length + (lista.length === 1 ? ' resultado' : ' resultados');
+  } else if (info) info.textContent = '';
+
   if (lista.length === 0) {
-    wrap.innerHTML = '<div class="empty-state">No hay cotizaciones para mostrar.</div>';
+    wrap.innerHTML = busqueda.trim()
+      ? `<div class="empty-state">No hay cotizaciones que coincidan con "${escAttr(busqueda.trim())}"${filtroEstadoActual !== 'todas' ? ' en este filtro de estado' : ''}.</div>`
+      : '<div class="empty-state">No hay cotizaciones para mostrar.</div>';
     return;
   }
 
