@@ -296,6 +296,9 @@ async function iniciarSesionEnServidor(cuerpo, proveedor) {
     return;
   }
   var sess = resultado.sesion;
+  // Se recuerda con qué cuenta se entró: así "Enviar por correo" usa Gmail o
+  // Outlook según corresponda (ver correo.js).
+  sess.proveedor = proveedor;
   if (!sess.isAdmin && (!sess.modules || sess.modules.length === 0) && !sess.esTrabajador) {
     showDenied();
     return;

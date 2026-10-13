@@ -29,6 +29,15 @@ input,select,button,textarea{font-family:inherit;outline:none}
 .act-btn:disabled:hover{border-color:var(--border);color:var(--dark)}
 .act-btn.small{padding:5px 10px;font-size:11px}
 .card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:20px}
+.correo-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;display:none;align-items:center;justify-content:center;padding:16px}
+.correo-modal{background:#fff;border-radius:14px;padding:22px;width:100%;max-width:620px;max-height:92vh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,.25)}
+.correo-modal h3{font-size:16px;margin-bottom:4px}
+.correo-modal .sub{font-size:12px;color:var(--muted);margin-bottom:14px}
+.correo-modal .fld{margin-bottom:10px}
+.correo-modal textarea{min-height:170px;resize:vertical;font-weight:500;line-height:1.45}
+.correo-adj{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px dashed var(--border);border-radius:8px;padding:8px 12px;font-size:13px;margin-bottom:12px}
+.correo-err{background:#FEF2F2;border:1px solid #FECACA;color:#991B1B;border-radius:8px;padding:8px 12px;font-size:12px;margin-bottom:10px;display:none}
+.envios-cot{font-size:11px;color:var(--teal);margin-top:6px}
 .buscador-cot{display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:8px 14px;margin-bottom:12px}
 .buscador-cot:focus-within{border-color:var(--gold)}
 .buscador-cot input{flex:1;min-width:0;border:none;background:transparent;font-size:15px;color:var(--dark);font-family:inherit;outline:none}
@@ -94,6 +103,8 @@ table.tbl input:focus,table.tbl select:focus{border-bottom:2px solid var(--gold)
 </head>
 <body>
 <script src="sesion.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="correo.js"></script>
 <script src="cargando.js"></script>
 <script src="hora-chile.js"></script>
 <script>
@@ -1056,6 +1067,7 @@ function renderCotizacionesTable() {
             `<div><label>Vence</label><span style="font-size:13px">${fmtFecha(venceEl(c))}</span></div>` +
             `<div><label>Próximo contacto</label><input type="date" value="${c.seguimiento || ''}" onchange="setSeguimiento(${c.id}, 'seguimiento', this.value)"></div>` +
             `<div style="flex:1;min-width:220px"><label>Notas de seguimiento</label><input style="width:100%" maxlength="300" value="${escAttr(c.notasSeguimiento || '')}" placeholder="Ej: llamé el lunes, pide rebaja por 100 unidades" onchange="setSeguimiento(${c.id}, 'notasSeguimiento', this.value.trim())"></div>` +
+            (c.envios && c.envios.length ? `<div style="flex-basis:100%"><label>Enviada por correo</label><span style="font-size:12px">${c.envios.slice().reverse().map(e => '✉️ ' + escAttr(fechaHoraEnvio(e.fecha)) + ' a ' + escAttr(e.para.join(', ')) + (e.cc && e.cc.length ? ' (cc ' + escAttr(e.cc.join(', ')) + ')' : '') + ' desde ' + escAttr(e.desde)).join('<br>')}</span></div>` : '') +
             (c.estado === 'rechazada' && c.motivoRechazo ? `<div><label>Motivo de rechazo</label><span style="font-size:13px;color:var(--red)">${escAttr(c.motivoRechazo)}</span></div>` : '') +
           `</div>` +
           `</div><div class="detail-actions">` +
@@ -1063,12 +1075,103 @@ function renderCotizacionesTable() {
               ? `<a class="act-btn small" href="calendario.html" onclick="event.stopPropagation()">🏭 En producción: OP ${produccionesPorCot[c.id].orden || ''}</a>`
               : (c.estado !== 'rechazada' ? `<button class="act-btn small" onclick="event.stopPropagation(); crearProduccion(${c.id})" title="Marca la cotización como aceptada y abre Producciones con los datos cargados">🏭 Crear producción</button>` : '')) +
             `<button class="act-btn primary small" onclick="event.stopPropagation(); exportCotizacionPDF(${c.id})">📄 Descargar PDF</button>` +
+            `<button class="act-btn primary small" onclick="event.stopPropagation(); abrirEnvioCorreo(${c.id})" title="Envía la cotización en PDF desde tu casilla de correo">✉️ Enviar por correo</button>` +
             `<button class="act-btn small" onclick="event.stopPropagation(); editarCotizacion(${c.id})">✏️ Editar</button>` +
             `<button class="act-btn small" style="color:var(--red)" onclick="event.stopPropagation(); eliminarCotizacion(${c.id})">🗑️ Eliminar</button>` +
           `</div></td></tr>`;
       }
       return filas;
     }).join('') + `</tbody></table></div>`;
+}
+
+// ===== ENVÍO POR CORREO =====
+// Se envía desde la casilla de la sesión (Gmail u Outlook) con correo.js.
+let correoCotId = null;
+
+function fechaHoraEnvio(iso) {
+  try { return new Date(iso).toLocaleString('es-CL', { timeZone: 'America/Santiago', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+  catch (e) { return iso || ''; }
+}
+function correoDelCliente(c) {
+  if (c.clienteEmail) return c.clienteEmail;
+  const cl = clientesData.find(x => String(x.id) === String(c.clienteId));
+  return (cl && cl.email) || '';
+}
+function nombreSesion() {
+  try { const s = JSON.parse(localStorage.getItem('cimagen_session')) || {}; return s.name && s.name !== s.email ? s.name : ''; } catch (e) { return ''; }
+}
+function mostrarErrorCorreo(texto) {
+  const el = document.getElementById('correoErr');
+  el.textContent = texto || '';
+  el.style.display = texto ? 'block' : 'none';
+}
+
+function abrirEnvioCorreo(id) {
+  const c = cotizaciones.find(x => x.id === id);
+  if (!c) return;
+  correoCotId = id;
+  const cfg = tarifario.configPdf || CONFIG_PDF_DEFAULT;
+  const empresa = cfg.empresa || 'Creamos Imagen';
+  const desde = CorreoSesion.correoSesion();
+  const prov = CorreoSesion.proveedor();
+  document.getElementById('correoDesde').textContent = prov
+    ? 'Se enviará desde tu casilla: ' + desde + ' (' + (prov === 'Google' ? 'Gmail' : 'Outlook') + ')'
+    : 'Tu casilla: ' + desde;
+  mostrarErrorCorreo(prov ? '' : CorreoSesion.MENSAJES.PROVEEDOR_DESCONOCIDO);
+  document.getElementById('correoBtn').disabled = !prov;
+  document.getElementById('correoPara').value = correoDelCliente(c);
+  document.getElementById('correoCc').value = '';
+  document.getElementById('correoAsunto').value = 'Cotización N° ' + fmtCorrelativo(c.correlativo) + ' - ' + empresa;
+  const firma = [nombreSesion(), empresa].filter(Boolean).join('\n');
+  document.getElementById('correoTexto').value =
+    'Estimado/a ' + (c.cliente || 'cliente') + ':\n\n' +
+    'Junto con saludar, adjuntamos la cotización N° ' + fmtCorrelativo(c.correlativo) + ' por un total de ' + fmt(c.montoTotal) +
+    ' (IVA incluido), vigente hasta el ' + fmtFecha(venceEl(c)) + '.\n\n' +
+    'Quedamos atentos a cualquier consulta.\n\nSaludos cordiales,\n' + firma;
+  document.getElementById('correoAdjunto').textContent = 'Cotizacion_' + (c.cliente || 'cliente').replace(/[^a-zA-Z0-9]+/g, '_') + '_' + c.fecha + '.pdf';
+  document.getElementById('modCorreo').style.display = 'flex';
+  setTimeout(() => document.getElementById(document.getElementById('correoPara').value ? 'correoTexto' : 'correoPara').focus(), 50);
+}
+
+function cerrarEnvioCorreo() {
+  document.getElementById('modCorreo').style.display = 'none';
+  correoCotId = null;
+}
+
+async function enviarCotizacionCorreo() {
+  const c = cotizaciones.find(x => x.id === correoCotId);
+  if (!c) return;
+  const para = CorreoSesion.separar(document.getElementById('correoPara').value);
+  const cc = CorreoSesion.separar(document.getElementById('correoCc').value);
+  const asunto = document.getElementById('correoAsunto').value.trim();
+  const texto = document.getElementById('correoTexto').value.trim();
+  if (!para.validos.length) { mostrarErrorCorreo('Escribe al menos un destinatario en "Para".'); return; }
+  const malos = para.invalidos.concat(cc.invalidos);
+  if (malos.length) { mostrarErrorCorreo('Revisa estas direcciones, no parecen correos válidos: ' + malos.join(', ')); return; }
+  if (!asunto) { mostrarErrorCorreo('Escribe el asunto del correo.'); return; }
+  mostrarErrorCorreo('');
+  const btn = document.getElementById('correoBtn');
+  btn.disabled = true; btn.textContent = 'Autorizando…';
+  try {
+    // 1) Permiso primero, mientras el clic está "fresco" (si no, el navegador bloquea la ventana).
+    await CorreoSesion.autorizar();
+    // 2) PDF y envío.
+    btn.textContent = 'Enviando…';
+    const pdf = await generarPdfCotizacion(c.id);
+    if (!pdf) throw new Error('PDF');
+    const base64 = pdf.doc.output('datauristring').split(',')[1];
+    const r = await CorreoSesion.enviar({ para: para.validos, cc: cc.validos, asunto, texto, adjuntos: [{ nombre: pdf.nombreArchivo, tipo: 'application/pdf', base64 }] });
+    c.envios = (c.envios || []).concat([{ fecha: new Date().toISOString(), para: para.validos, cc: cc.validos, desde: r.desde, proveedor: r.proveedor }]);
+    guardarCotizacionesLocal();
+    cerrarEnvioCorreo();
+    renderCotizacionesTable();
+    alert('Cotización N° ' + fmtCorrelativo(c.correlativo) + ' enviada a ' + para.validos.join(', ') + '.\nLa encontrarás en "Enviados" de tu casilla.');
+  } catch (e) {
+    console.error('No se pudo enviar el correo', e, e && e.detalle);
+    mostrarErrorCorreo(e && e.message === 'PDF' ? 'No se pudo generar el PDF de la cotización.' : (CorreoSesion.MENSAJES[e && e.message] || 'No se pudo enviar el correo. Revisa tu conexión e inténtalo de nuevo.'));
+  } finally {
+    btn.disabled = false; btn.textContent = 'Enviar';
+  }
 }
 
 // ===== COMPARAR COTIZADO VS COSTO REAL =====
@@ -1111,9 +1214,16 @@ function renderComparar() {
 // ===== EXPORTAR PDF DE COTIZACIÓN =====
 
 async function exportCotizacionPDF(id) {
+  const r = await generarPdfCotizacion(id);
+  if (r) r.doc.save(r.nombreArchivo);
+}
+
+// Arma el PDF de la cotización (lo usan "Descargar PDF" y "Enviar por correo").
+// Devuelve { doc, nombreArchivo }, o null si no se pudo generar.
+async function generarPdfCotizacion(id) {
   const c = cotizaciones.find(x => x.id === id);
-  if (!c) return;
-  if (typeof window.jspdf === 'undefined') { alert('No se pudo cargar el generador de PDF. Verifica tu conexión a internet e inténtalo nuevamente.'); return; }
+  if (!c) return null;
+  if (typeof window.jspdf === 'undefined') { alert('No se pudo cargar el generador de PDF. Verifica tu conexión a internet e inténtalo nuevamente.'); return null; }
 
   const cfg = tarifario.configPdf || CONFIG_PDF_DEFAULT;
   const { jsPDF } = window.jspdf;
@@ -1252,7 +1362,7 @@ async function exportCotizacionPDF(id) {
   doc.rect(marginX - 4, boxY, pageWidth - (marginX - 4) * 2, by - boxY);
 
   const nombreArchivo = 'Cotizacion_' + (c.cliente || 'cliente').replace(/[^a-zA-Z0-9]+/g, '_') + '_' + c.fecha + '.pdf';
-  doc.save(nombreArchivo);
+  return { doc, nombreArchivo };
 }
 
 window.onload = function () {
@@ -1311,5 +1421,21 @@ async function cargarCotizador() {
   cargarVinculosProduccion();
 }
 </script>
+<div class="correo-bg" id="modCorreo" onclick="if(event.target===this) cerrarEnvioCorreo()">
+  <div class="correo-modal" role="dialog" aria-labelledby="correoTitulo">
+    <h3 id="correoTitulo">✉️ Enviar cotización por correo</h3>
+    <div class="sub" id="correoDesde"></div>
+    <div class="correo-err" id="correoErr"></div>
+    <div class="fld"><label>Para</label><input type="text" id="correoPara" placeholder="correo@cliente.cl (varios: sepáralos con coma)" autocomplete="off"></div>
+    <div class="fld"><label>Con copia (opcional)</label><input type="text" id="correoCc" placeholder="Opcional" autocomplete="off"></div>
+    <div class="fld"><label>Asunto</label><input type="text" id="correoAsunto" maxlength="200"></div>
+    <div class="fld"><label>Mensaje</label><textarea id="correoTexto" maxlength="5000"></textarea></div>
+    <div class="correo-adj">📎 <span id="correoAdjunto"></span></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
+      <button class="act-btn" onclick="cerrarEnvioCorreo()">Cancelar</button>
+      <button class="act-btn primary" id="correoBtn" onclick="enviarCotizacionCorreo()">Enviar</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Autorizando envío de correo - Creamos Imagen</title>
+</head>
+<body style="font-family:Arial,sans-serif;text-align:center;padding:40px;color:#333">
+<p id="msg">Completando la autorización…</p>
+<script>
+// Vuelta de la autorización de Microsoft para enviar correos (ver correo.js).
+// Deja el resultado en localStorage para la pestaña que la pidió y se cierra.
+// No guarda tokens: el "code" de un solo uso solo sirve junto con el
+// verificador PKCE que tiene en memoria la pestaña original.
+(function () {
+  var p = new URLSearchParams(location.search);
+  var r = { state: p.get("state") || "", code: p.get("code") || "", error: p.get("error") || "", descripcion: p.get("error_description") || "" };
+  try { localStorage.setItem("cimagen_ms_correo_res", JSON.stringify(r)); } catch (e) {}
+  history.replaceState(null, "", "correo-ms.html");
+  document.getElementById("msg").textContent = r.error ? "No se completó la autorización. Puedes cerrar esta ventana." : "Listo. Puedes cerrar esta ventana.";
+  setTimeout(function () { window.close(); }, 300);
+})();
+</script>
+</body>
+</html>
