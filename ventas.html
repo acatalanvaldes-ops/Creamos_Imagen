@@ -31,6 +31,24 @@ input,select,button{font-family:inherit;outline:none}
 .kpi-v{font-size:16px;font-weight:700;line-height:1.15}
 .kpi-u{font-size:9px;color:#aaa}
 .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.imp-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:400;display:none;align-items:center;justify-content:center;padding:16px}
+.imp-modal{background:#fff;color:#1C1917;border-radius:14px;padding:20px;width:100%;max-width:940px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.3)}
+.imp-modal h3{font-size:16px;margin:0 0 4px}
+.imp-nota{font-size:12px;color:#78716C;margin-bottom:12px;line-height:1.45}
+.imp-filtros{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:12px;font-size:12px}
+.imp-filtros label{display:flex;flex-direction:column;gap:3px;font-weight:600;color:#57534E}
+.imp-filtros label.chk{flex-direction:row;align-items:center;gap:6px;font-weight:500}
+.imp-filtros input[type=date]{border:1.5px solid #E7E2D9;border-radius:8px;padding:6px 8px;font-size:13px}
+.imp-res{overflow:auto;flex:1;min-height:120px;border:1px solid #E7E2D9;border-radius:10px}
+.imp-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.imp-tbl th{position:sticky;top:0;background:#1C1917;color:#C8973A;text-align:left;padding:7px 8px;font-size:10px;text-transform:uppercase}
+.imp-tbl td{padding:6px 8px;border-bottom:1px solid #F0EAE0}
+.imp-tbl .r{text-align:right}
+.imp-tbl tr.gris td{color:#A8A29E}
+.imp-b{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;white-space:nowrap}
+.imp-b.ok{background:#DCFCE7;color:#166534}.imp-b.ya{background:#F3F4F6;color:#6B7280}.imp-b.dup{background:#FEF3E2;color:#B45309}
+.imp-vacio{padding:30px;text-align:center;color:#78716C;font-size:13px}
+.imp-pie{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:12px;font-size:12px}
 .act-btn{background:#fff;border:1.5px solid var(--border);color:var(--dark);padding:7px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
 .act-btn:hover{border-color:var(--gold);color:var(--gold)}
 .act-btn.primary{background:var(--gold);border-color:var(--gold);color:#fff}
@@ -180,6 +198,149 @@ async function loadFromCloud(key) {
 // confirmar el estado de la nube", y evitar sobreescribir datos reales con un
 // guardado hecho tras una carga fallida (el mismo problema que borró el
 // historial de ventas real).
+// ============================================================
+// IMPORTAR VENTAS DESDE LA CAJA (Rendición de caja -> Sala de venta)
+// ============================================================
+// Convierte las filas de la Caja de un rango de fechas en ventas de esta
+// sala, en valores NETOS (sin IVA): neto = total / 1,19. En Webpay, si la
+// caja registró el monto con el recargo de tarjeta (2%), primero se descuenta
+// ese recargo, porque aquí la comisión Webpay se calcula aparte.
+// Cada columna con monto de una fila (efectivo, transferencia, Webpay crédito
+// o débito) pasa a ser una venta con su forma de pago. Las ventas importadas
+// guardan "origenCaja" (firma de la fila) para no traspasarlas dos veces.
+var CAJA_TIPO_A_PRODUCTO = { "Camiseta": "Camisetas" };
+var CAJA_COLUMNAS = [
+  { col: "ef", formaPago: "Efectivo" },
+  { col: "tr", formaPago: "Transferencia" },
+  { col: "wpCredito", formaPago: "Webpay", tipoWebpay: "Crédito" },
+  { col: "wpDebito", formaPago: "Webpay", tipoWebpay: "Débito" }
+];
+var importCaja = { filas: [], cargando: false };
+
+function puedeLeerCaja() {
+  try { var s = JSON.parse(localStorage.getItem('cimagen_session')) || {}; return !!(s.isAdmin || (s.modules || []).indexOf('rendicion') !== -1); }
+  catch (e) { return false; }
+}
+function escImp(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function normImp(s) { return String(s || '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' '); }
+function montoCaja(r, col) {
+  if (col === 'wpCredito') return +(r.wpCredito != null && r.wpCredito !== '' ? r.wpCredito : r.wp) || 0;
+  return +r[col] || 0;
+}
+function netoDeCaja(total, esWebpay, conRecargo) {
+  var t = +total || 0;
+  if (esWebpay && conRecargo) t = t / (1 + COM_WP_PCT / 100);
+  return Math.round(t / IVA);
+}
+function productoDeCaja(tipo) {
+  var p = CAJA_TIPO_A_PRODUCTO[tipo] || tipo || 'Otros';
+  return PRODUCTOS.indexOf(p) !== -1 ? p : 'Otros';
+}
+
+function abrirImportCaja() {
+  if (!puedeLeerCaja()) { alert('Para traspasar ventas desde la Caja necesitas acceso al módulo Caja.'); return; }
+  if (!cargaVentasOk) { alert('No se pudo confirmar la conexión con la nube al abrir esta página. Recarga (F5) antes de importar.'); return; }
+  document.getElementById('imp-desde').value = document.getElementById('imp-desde').value || '2026-10-01';
+  document.getElementById('imp-hasta').value = hoyChile();
+  importCaja.filas = [];
+  renderImportCaja();
+  document.getElementById('modImportCaja').style.display = 'flex';
+}
+function cerrarImportCaja() { document.getElementById('modImportCaja').style.display = 'none'; }
+
+async function buscarEnCaja() {
+  var desde = document.getElementById('imp-desde').value, hasta = document.getElementById('imp-hasta').value;
+  if (!desde || !hasta || hasta < desde) { alert('Revisa el rango de fechas.'); return; }
+  var incluirOtros = document.getElementById('imp-otros').checked;
+  var conRecargo = document.getElementById('imp-recargo').checked;
+  importCaja.cargando = true; renderImportCaja();
+  var caja;
+  try { caja = await loadFromCloudStrict('rendicion2026_v2') || {}; }
+  catch (e) { importCaja.cargando = false; renderImportCaja(); alert('No se pudo leer la Caja desde la nube. Inténtalo de nuevo.'); return; }
+  importCaja.cargando = false;
+  var importadas = new Set(state.ventas.filter(function (v) { return v.origenCaja; }).map(function (v) { return v.origenCaja; }));
+  var filas = [];
+  Object.keys(caja).filter(function (f) { return /^\d{4}-\d{2}-\d{2}$/.test(f) && f >= desde && f <= hasta; }).sort().forEach(function (fecha) {
+    var repetidas = {};
+    (Array.isArray(caja[fecha]) ? caja[fecha] : []).forEach(function (r) {
+      if (!r) return;
+      var origen = r.origen || 'Local';
+      if (origen !== 'Local' && !(incluirOtros && origen === 'Empresa')) return;
+      CAJA_COLUMNAS.forEach(function (c) {
+        var total = montoCaja(r, c.col);
+        if (total <= 0) return;
+        var cliente = String(r.cliente || '').trim() || 'PARTICULAR';
+        var base = ['caja', fecha, normImp(cliente), r.tipo || '', c.col, total].join('|');
+        repetidas[base] = (repetidas[base] || 0) + 1;
+        var firma = base + '#' + repetidas[base];
+        var neto = netoDeCaja(total, c.formaPago === 'Webpay', conRecargo);
+        var ya = importadas.has(firma);
+        // Posible duplicado: una venta ingresada a mano el mismo día, al mismo cliente y por un neto parecido.
+        var dup = !ya && state.ventas.some(function (v) {
+          return !v.origenCaja && v.fecha === fecha && normImp(v.cliente) === normImp(cliente) && Math.abs((+v.montoBase || 0) - neto) <= Math.max(50, neto * 0.02);
+        });
+        filas.push({ fecha: fecha, cliente: cliente, tipo: r.tipo || '', producto: productoDeCaja(r.tipo), origen: origen, formaPago: c.formaPago, tipoWebpay: c.tipoWebpay,
+          total: total, neto: neto, obs: r.obs || '', firma: firma, ya: ya, dup: dup, sel: !ya && !dup });
+      });
+    });
+  });
+  importCaja.filas = filas;
+  renderImportCaja();
+}
+
+function renderImportCaja() {
+  var cont = document.getElementById('imp-resultado');
+  if (importCaja.cargando) { cont.innerHTML = '<div class="imp-vacio">⏳ Leyendo la Caja…</div>'; return; }
+  var f = importCaja.filas;
+  if (!f.length) {
+    cont.innerHTML = '<div class="imp-vacio">Elige el rango y presiona <b>Buscar en Caja</b>.</div>';
+    document.getElementById('imp-btn').disabled = true;
+    document.getElementById('imp-resumen').textContent = '';
+    return;
+  }
+  cont.innerHTML = '<table class="imp-tbl"><thead><tr><th></th><th>Fecha</th><th>Cliente</th><th>Producto</th><th>Pago</th><th class="r">Total Caja</th><th class="r">Neto</th><th>Estado</th></tr></thead><tbody>' +
+    f.map(function (x, i) {
+      var est = x.ya ? '<span class="imp-b ya">Ya traspasada</span>' : x.dup ? '<span class="imp-b dup" title="Hay una venta parecida ingresada a mano ese día. Márcala solo si no es la misma.">¿Duplicada?</span>' : '<span class="imp-b ok">Nueva</span>';
+      return '<tr class="' + (x.ya ? 'gris' : '') + '"><td><input type="checkbox" ' + (x.sel ? 'checked ' : '') + (x.ya ? 'disabled ' : '') + 'onchange="importCaja.filas[' + i + '].sel=this.checked;resumenImportCaja()"></td>' +
+        '<td>' + fDate(x.fecha) + '</td><td>' + escImp(x.cliente) + (x.origen === 'Empresa' ? ' <small>(Otros)</small>' : '') + '</td>' +
+        '<td>' + escImp(x.producto) + (x.producto !== x.tipo && x.tipo ? ' <small>(' + escImp(x.tipo) + ')</small>' : '') + '</td>' +
+        '<td>' + escImp(x.formaPago + (x.tipoWebpay ? ' ' + x.tipoWebpay.toLowerCase() : '')) + '</td>' +
+        '<td class="r">' + fmt(x.total) + '</td><td class="r"><b>' + fmt(x.neto) + '</b></td><td>' + est + '</td></tr>';
+    }).join('') + '</tbody></table>';
+  resumenImportCaja();
+}
+function resumenImportCaja() {
+  var sel = importCaja.filas.filter(function (x) { return x.sel && !x.ya; });
+  var ya = importCaja.filas.filter(function (x) { return x.ya; }).length;
+  var dup = importCaja.filas.filter(function (x) { return x.dup; }).length;
+  document.getElementById('imp-resumen').innerHTML = '<b>' + sel.length + '</b> venta(s) seleccionada(s) · Total Caja ' + fmt(sel.reduce(function (s, x) { return s + x.total; }, 0)) +
+    ' · <b>Neto a traspasar ' + fmt(sel.reduce(function (s, x) { return s + x.neto; }, 0)) + '</b>' +
+    (ya ? ' · ' + ya + ' ya traspasada(s)' : '') + (dup ? ' · ' + dup + ' posible(s) duplicado(s) sin marcar' : '');
+  var btn = document.getElementById('imp-btn');
+  btn.disabled = !sel.length;
+  btn.textContent = sel.length ? 'Traspasar ' + sel.length + ' venta(s)' : 'Traspasar';
+}
+
+function traspasarCaja() {
+  var sel = importCaja.filas.filter(function (x) { return x.sel && !x.ya; });
+  if (!sel.length) return;
+  var neto = sel.reduce(function (s, x) { return s + x.neto; }, 0);
+  if (!confirm('Se agregarán ' + sel.length + ' venta(s) a la Sala de venta por un total neto de ' + fmt(neto) + '.\n\nLa Caja no se modifica. ¿Continuar?')) return;
+  var base = Date.now();
+  var nuevas = sel.map(function (x, i) {
+    var v = { id: base + i, fecha: x.fecha, cliente: x.cliente, producto: x.producto, formaPago: x.formaPago, montoBase: x.neto,
+      comision: state.comDefPct, factura: false, origenCaja: x.firma };
+    if (x.tipoWebpay) v.tipoWebpay = x.tipoWebpay;
+    return v;
+  });
+  nuevas.forEach(function (v) { editadasAqui.add(v.id); });
+  state.ventas = state.ventas.concat(nuevas);
+  guardarDatos();
+  cerrarImportCaja();
+  render();
+  alert(nuevas.length + ' venta(s) traspasada(s) desde la Caja, por ' + fmt(neto) + ' neto.');
+}
+
 async function loadFromCloudStrict(key) {
   let ultimoError;
   for (let intento = 0; intento < CLOUD_INTENTOS; intento++) {
@@ -259,7 +420,7 @@ async function loadFromCloudSharded() {
 // ============================================================
 // CONSTANTES
 // ============================================================
-var PRODUCTOS   = ["Bandanas","Banderas","Banner","Bolsas","Camisetas","Conjuntos","Cortinas","Cuadros","Estampados","Lienzo","Mantas","Morral","Pañuelos","Primera Bajada","Segunda Bajada","Sublimación"];
+var PRODUCTOS   = ["Adhesivo","Bandanas","Banderas","Banner","Bolsas","Camisetas","Conjuntos","Cortinas","Cuadros","Estampados","Impresión","Impresión Polerones","Lienzo","Mantas","Morral","Pañoletas","Pañuelos","Papel","Primera Bajada","Segunda Bajada","Sublimación","Otros"]; // orden alfabético, "Otros" al final
 var FORMAS_PAGO = ["Efectivo","Transferencia","Webpay"];
 var WEBPAY      = "Webpay";
 var COM_WP_PCT  = 2;
@@ -594,6 +755,7 @@ function buildKpiStrip(filt, tV, tC, cp, filtroMes, meses) {
   return '<div class="kpi-strip"><div class="kpis">'+kHtml+'</div><div class="actions">'+
     '<select class="month-sel" onchange="setState({filtroMes:this.value})"><option value="" '+(filtroMes?'':'selected')+'>Todos los meses</option>'+optHtml+'</select>'+
     rangoHtml+
+    (puedeLeerCaja() ? '<button class="act-btn" onclick="abrirImportCaja()" title="Traspasa a esta sala las ventas registradas en la Caja, en valores netos">⇩ Importar desde Caja</button>' : '')+
     '<button class="act-btn primary" onclick="openForm()">+ Nueva Venta</button>'+
     '</div></div>';
 }
@@ -1351,5 +1513,23 @@ async function initApp() {
 
 initApp().finally(ocultarCargando);
 </script>
+<div class="imp-bg" id="modImportCaja" onclick="if(event.target===this) cerrarImportCaja()">
+  <div class="imp-modal" role="dialog" aria-labelledby="impTitulo">
+    <h3 id="impTitulo">⇩ Importar ventas desde la Caja</h3>
+    <div class="imp-nota">Se toman las ventas registradas en <b>Caja (Rendición)</b> en el rango elegido y se agregan a esta sala en <b>valores netos</b> (total ÷ 1,19). Cada forma de pago de una fila pasa a ser una venta. Revisa la lista antes de traspasar: las que ya se traspasaron no se repiten, y las que se parecen a una venta ingresada a mano quedan sin marcar. La Caja no se modifica.</div>
+    <div class="imp-filtros">
+      <label>Desde<input type="date" id="imp-desde"></label>
+      <label>Hasta<input type="date" id="imp-hasta"></label>
+      <label class="chk"><input type="checkbox" id="imp-recargo" checked> Webpay en la Caja incluye el recargo de tarjeta (2%)</label>
+      <label class="chk"><input type="checkbox" id="imp-otros"> Incluir también las filas de origen "Otros"</label>
+      <button class="act-btn" onclick="buscarEnCaja()">🔍 Buscar en Caja</button>
+    </div>
+    <div class="imp-res" id="imp-resultado"></div>
+    <div class="imp-pie">
+      <span id="imp-resumen"></span>
+      <span style="display:flex;gap:8px"><button class="act-btn" onclick="cerrarImportCaja()">Cancelar</button><button class="act-btn primary" id="imp-btn" onclick="traspasarCaja()" disabled>Traspasar</button></span>
+    </div>
+  </div>
+</div>
 </body>
 </html>
