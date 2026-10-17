@@ -81,7 +81,7 @@ section{padding:80px 0}
 .foto{aspect-ratio:4/3;display:grid;place-items:center;position:relative;overflow:hidden}
 .foto img{width:100%;height:100%;object-fit:cover}
 .foto.galeria{cursor:pointer;background:#fff}
-.foto.galeria img{position:absolute;inset:0;opacity:0;transition:opacity .35s}
+.foto.galeria img{position:absolute;inset:0;opacity:0;transition:opacity .35s;object-fit:contain}
 .foto.galeria img.on{opacity:1}
 .puntos{position:absolute;bottom:10px;left:0;right:0;display:flex;justify-content:center;gap:6px;z-index:2}
 .puntos i{width:7px;height:7px;border-radius:50%;background:rgba(20,20,20,.25)}
@@ -282,7 +282,8 @@ function pintarProductos() {
   $("#grilla").innerHTML = lista.map(p => {
     const fotos = fotosDe(p);
     const imagenes = fotos.length > 1
-      ? fotos.map((f, i) => `<img src="${esc(f)}" alt="${esc(p.nombre)} · foto ${i + 1}" loading="lazy" class="${i ? "" : "on"}">`).join("") +
+      // Solo la primera foto se descarga al abrir; el resto, al usar el visor.
+      ? fotos.map((f, i) => `<img ${i ? "data-src" : "src"}="${esc(f)}" alt="${esc(p.nombre)} · foto ${i + 1}" loading="lazy" class="${i ? "" : "on"}">`).join("") +
         `<span class="puntos">${fotos.map((_, i) => `<i class="${i ? "" : "on"}"></i>`).join("")}</span>`
       : fotos.length ? `<img src="${esc(fotos[0])}" alt="${esc(p.nombre)}" loading="lazy">` : `<span class="marca">CI</span>`;
     return `
@@ -309,12 +310,15 @@ function pintarProductos() {
 function activarGaleria(caja) {
   const imgs = [...caja.querySelectorAll("img")], puntos = [...caja.querySelectorAll(".puntos i")];
   let i = 0, timer = null;
+  const cargar = () => imgs.forEach(im => { if (im.dataset.src) { im.src = im.dataset.src; im.removeAttribute("data-src"); } });
+  caja.addEventListener("mouseenter", cargar, { once: true });
+  caja.addEventListener("touchstart", cargar, { once: true, passive: true });
   const ir = n => { i = (n + imgs.length) % imgs.length; imgs.forEach((im, k) => im.classList.toggle("on", k === i)); puntos.forEach((pt, k) => pt.classList.toggle("on", k === i)); };
   if (window.matchMedia("(hover: hover)").matches) {
     caja.addEventListener("mouseenter", () => { clearInterval(timer); ir(i + 1); timer = setInterval(() => ir(i + 1), 1100); });
     caja.addEventListener("mouseleave", () => { clearInterval(timer); timer = null; ir(0); });
   }
-  caja.addEventListener("click", () => { if (!timer) ir(i + 1); });
+  caja.addEventListener("click", () => { cargar(); if (!timer) ir(i + 1); });
 }
 
 $("#anio").textContent = new Date().getFullYear();

@@ -35,7 +35,8 @@
         fotos: ["assets/sitio/panoleta-1.jpg", "assets/sitio/panoleta-2.jpg", "assets/sitio/panoleta-3.jpg", "assets/sitio/panoleta-4.jpg"], color: "#F2C4CE", texto: "Formato grande para conciertos y colección." },
       { id: "p8", visible: true, nombre: "Camisetas K-pop", categoria: "Personalizado", foto: "", precio: "",
         fotos: ["assets/sitio/camiseta-kpop-1.jpg", "assets/sitio/camiseta-kpop-2.jpg", "assets/sitio/camiseta-kpop-3.jpg"], color: "#E6E2D9", texto: "Camisetas sublimadas con diseños de tus grupos favoritos." },
-      { id: "p9", visible: true, nombre: "Mantas personalizadas", categoria: "Personalizado", foto: "", precio: "", color: "#F7D57A", texto: "Mantas sublimadas con diseños de tus grupos favoritos." }
+      { id: "p9", visible: true, nombre: "Mantas personalizadas", categoria: "Personalizado", foto: "", precio: "",
+        fotos: Array.from({ length: 12 }, (_, i) => "assets/sitio/manta-" + (i + 1) + ".jpg"), color: "#F7D57A", texto: "Mantas sublimadas con diseños de tus grupos favoritos." }
     ],
     comprar: {
       etiqueta: "Cómo comprar",
