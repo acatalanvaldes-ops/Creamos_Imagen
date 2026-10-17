@@ -80,6 +80,12 @@ section{padding:80px 0}
 .producto:hover{box-shadow:0 14px 30px rgba(20,20,20,.08);transform:translateY(-3px)}
 .foto{aspect-ratio:4/3;display:grid;place-items:center;position:relative;overflow:hidden}
 .foto img{width:100%;height:100%;object-fit:cover}
+.foto.galeria{cursor:pointer;background:#fff}
+.foto.galeria img{position:absolute;inset:0;opacity:0;transition:opacity .35s}
+.foto.galeria img.on{opacity:1}
+.puntos{position:absolute;bottom:10px;left:0;right:0;display:flex;justify-content:center;gap:6px;z-index:2}
+.puntos i{width:7px;height:7px;border-radius:50%;background:rgba(20,20,20,.25)}
+.puntos i.on{background:var(--negro)}
 .foto .marca{font-family:'DM Serif Display',serif;font-size:30px;color:rgba(20,20,20,.75)}
 .foto .cat{position:absolute;top:12px;left:12px;background:var(--negro);color:var(--oro);font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px}
 .info{padding:18px 18px 20px;display:flex;flex-direction:column;gap:8px;flex:1}
@@ -213,7 +219,7 @@ footer a{color:var(--oro)}
 
 <script src="sitio-contenido.js"></script>
 <script>
-const { esc, colorSeguro, urlSegura, fotoSegura, soloDigitos } = SitioUtil;
+const { esc, colorSeguro, urlSegura, fotosDe, soloDigitos } = SitioUtil;
 const $ = s => document.querySelector(s);
 let S = contenidoSitio(null);
 let filtro = "Todos";
@@ -274,11 +280,15 @@ function pintarFiltros() {
 function pintarProductos() {
   const lista = productosVisibles().filter(p => filtro === "Todos" || p.categoria === filtro);
   $("#grilla").innerHTML = lista.map(p => {
-    const foto = fotoSegura(p.foto);
+    const fotos = fotosDe(p);
+    const imagenes = fotos.length > 1
+      ? fotos.map((f, i) => `<img src="${esc(f)}" alt="${esc(p.nombre)} · foto ${i + 1}" loading="lazy" class="${i ? "" : "on"}">`).join("") +
+        `<span class="puntos">${fotos.map((_, i) => `<i class="${i ? "" : "on"}"></i>`).join("")}</span>`
+      : fotos.length ? `<img src="${esc(fotos[0])}" alt="${esc(p.nombre)}" loading="lazy">` : `<span class="marca">CI</span>`;
     return `
     <article class="producto">
-      <div class="foto" style="background:${colorSeguro(p.color)}">
-        ${foto ? `<img src="${esc(foto)}" alt="${esc(p.nombre)}" loading="lazy">` : `<span class="marca">CI</span>`}
+      <div class="foto${fotos.length > 1 ? " galeria" : ""}" style="${fotos.length > 1 ? "" : "background:" + colorSeguro(p.color)}"${fotos.length > 1 ? ' title="Pasa el mouse o toca para ver más fotos"' : ""}>
+        ${imagenes}
         ${p.categoria ? `<span class="cat">${esc(p.categoria)}</span>` : ""}
       </div>
       <div class="info">
@@ -291,6 +301,20 @@ function pintarProductos() {
       </div>
     </article>`;
   }).join("");
+  $("#grilla").querySelectorAll(".foto.galeria").forEach(activarGaleria);
+}
+
+// Visor de varias fotos: al pasar el mouse avanzan solas; al salir vuelve a
+// la primera. En pantallas táctiles, cada toque muestra la siguiente.
+function activarGaleria(caja) {
+  const imgs = [...caja.querySelectorAll("img")], puntos = [...caja.querySelectorAll(".puntos i")];
+  let i = 0, timer = null;
+  const ir = n => { i = (n + imgs.length) % imgs.length; imgs.forEach((im, k) => im.classList.toggle("on", k === i)); puntos.forEach((pt, k) => pt.classList.toggle("on", k === i)); };
+  if (window.matchMedia("(hover: hover)").matches) {
+    caja.addEventListener("mouseenter", () => { clearInterval(timer); ir(i + 1); timer = setInterval(() => ir(i + 1), 1100); });
+    caja.addEventListener("mouseleave", () => { clearInterval(timer); timer = null; ir(0); });
+  }
+  caja.addEventListener("click", () => { if (!timer) ir(i + 1); });
 }
 
 $("#anio").textContent = new Date().getFullYear();

@@ -30,7 +30,8 @@
       { id: "p2", visible: true, nombre: "Conjuntos deportivos", categoria: "Deportivo", foto: "", precio: "", color: "#BCD0CA", texto: "Camiseta y short a juego con el diseño y los colores de tu equipo." },
       { id: "p3", visible: true, nombre: "Camisetas de arquero", categoria: "Deportivo", foto: "", precio: "", color: "#DA8C68", texto: "Manga larga, diseño diferenciado del resto del equipo." },
       { id: "p4", visible: true, nombre: "Pañuelos 45×45 cm", categoria: "Personalizado", foto: "", precio: "", color: "#C9B6E4", texto: "Pañuelos sublimados con diseños de tus grupos favoritos." },
-      { id: "p5", visible: true, nombre: "Pañoletas 70×70 cm", categoria: "Personalizado", foto: "", precio: "", color: "#F2C4CE", texto: "Formato grande para conciertos y colección." },
+      { id: "p5", visible: true, nombre: "Pañoletas 70×70 cm", categoria: "Personalizado", foto: "", precio: "",
+        fotos: ["assets/sitio/panoleta-1.jpg", "assets/sitio/panoleta-2.jpg", "assets/sitio/panoleta-3.jpg", "assets/sitio/panoleta-4.jpg"], color: "#F2C4CE", texto: "Formato grande para conciertos y colección." },
       { id: "p8", visible: true, nombre: "Camisetas K-pop", categoria: "Personalizado", foto: "", precio: "", color: "#E6E2D9", texto: "Camisetas sublimadas con diseños de tus grupos favoritos." },
       { id: "p9", visible: true, nombre: "Mantas personalizadas", categoria: "Personalizado", foto: "", precio: "", color: "#F7D57A", texto: "Mantas sublimadas con diseños de tus grupos favoritos." }
     ],
@@ -75,10 +76,14 @@
   const esc = t => String(t == null ? "" : t).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const colorSeguro = c => /^#[0-9a-fA-F]{3,8}$/.test(String(c || "")) ? c : "#E6E2D9";
   const urlSegura = u => { u = String(u || "").trim(); return /^https:\/\/[^\s"'<>]+$/i.test(u) ? u : ""; };
-  const fotoSegura = u => { u = String(u || "").trim(); return /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(u) || /^https:\/\/[^\s"'<>]+$/i.test(u) ? u : ""; };
+  // Fotos permitidas: subidas desde el editor (data:), enlaces https o
+  // archivos del propio sitio en assets/sitio/.
+  const fotoSegura = u => { u = String(u || "").trim(); return /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(u) || /^https:\/\/[^\s"'<>]+$/i.test(u) || /^assets\/sitio\/[\w.-]+\.(jpe?g|png|webp)$/i.test(u) ? u : ""; };
+  // Todas las fotos de un producto (lista "fotos" + la foto única antigua "foto").
+  const fotosDe = p => [].concat(Array.isArray(p && p.fotos) ? p.fotos : [], p && p.foto ? [p.foto] : []).map(fotoSegura).filter(Boolean);
   const soloDigitos = s => String(s || "").replace(/\D/g, "");
 
   global.SITIO_BASE = SITIO_BASE;
   global.contenidoSitio = contenidoSitio;
-  global.SitioUtil = { esc, colorSeguro, urlSegura, fotoSegura, soloDigitos, copia };
+  global.SitioUtil = { esc, colorSeguro, urlSegura, fotoSegura, fotosDe, soloDigitos, copia };
 })(window);

@@ -87,6 +87,7 @@ const campo = (ruta, etiqueta, tipo, ph) => `<div class="fld"><label>${esc(etiqu
   : `<input data-ruta="${ruta}" type="${tipo || "text"}" value="${esc(obtener(ruta))}" placeholder="${esc(ph || "")}">`}</div>`;
 
 function render(){
+  normalizarFotos();
   const cats = [...new Set(S.productos.map(p => p.categoria).filter(Boolean))];
   $("editor").innerHTML = `
   <div class="card"><h2>Aviso superior (promociones)</h2>
@@ -110,7 +111,7 @@ function render(){
   <div class="card"><h2>Productos (${S.productos.length}) <button class="btn small" onclick="agregarProducto()">+ Agregar producto</button></h2>
     <datalist id="cats">${cats.map(c => `<option value="${esc(c)}">`).join("")}</datalist>
     ${S.productos.map((p, i) => {
-      const foto = fotoSegura(p.foto);
+      const fotos = p.fotos || [];
       return `<div class="item ${p.visible === false ? "oculto" : ""}">
       <div class="item-cab"><b>${esc(p.nombre || "Producto sin nombre")}</b>
         <label style="font-size:12px;display:flex;gap:5px;align-items:center"><input type="checkbox" ${p.visible !== false ? "checked" : ""} onchange="S.productos[${i}].visible=this.checked;marcar();render()"> Visible</label>
@@ -118,8 +119,10 @@ function render(){
         <button class="btn small" ${i === S.productos.length - 1 ? "disabled" : ""} onclick="mover(${i},1)" title="Bajar">↓</button>
         <button class="btn small danger" onclick="quitar('productos',${i})">🗑</button></div>
       <div class="fila">
-        <div><div class="foto-prev" style="background:${colorSeguro(p.color)}">${foto ? `<img src="${esc(foto)}" alt="">` : "CI"}</div>
-          <div style="display:flex;gap:4px;margin-top:6px"><label class="btn small" style="cursor:pointer">📷 Foto<input type="file" accept="image/*" hidden onchange="subirFoto(${i},this)"></label>${foto ? `<button class="btn small danger" onclick="S.productos[${i}].foto='';marcar();render()">✕</button>` : ""}</div></div>
+        <div style="max-width:270px">
+          <div style="display:flex;gap:6px;flex-wrap:wrap">${fotos.length ? fotos.map((f, k) => `<div style="position:relative"><div class="foto-prev" style="width:80px;height:60px;background:#fff"><img src="${esc(fotoSegura(f))}" alt=""></div><button class="btn small danger" style="position:absolute;top:-6px;right:-6px;padding:1px 6px" title="Quitar foto" onclick="quitarFoto(${i},${k})">✕</button></div>`).join("") : `<div class="foto-prev" style="background:${colorSeguro(p.color)}">CI</div>`}</div>
+          <label class="btn small" style="cursor:pointer;display:inline-block;margin-top:6px">📷 Agregar fotos<input type="file" accept="image/*" multiple hidden onchange="subirFotos(${i},this)"></label>
+          ${fotos.length > 1 ? `<div class="nota" style="margin-top:4px">${fotos.length} fotos: en el sitio cambian al pasar el mouse.</div>` : ""}</div>
         <div style="flex:1;min-width:240px">
           <div class="fila">${campo("productos." + i + ".nombre", "Nombre")}<div class="fld"><label>Categoría</label><input list="cats" data-ruta="productos.${i}.categoria" value="${esc(p.categoria)}"></div></div>
           <div class="fila">${campo("productos." + i + ".precio", "Precio", "text", "Vacío = A cotizar. Ej: Desde $12.990")}<div class="fld" style="max-width:130px"><label>Color de fondo</label><input type="color" data-ruta="productos.${i}.color" value="${esc(colorSeguro(p.color))}" style="height:37px;padding:2px"></div></div>
@@ -149,22 +152,33 @@ const NUEVOS = { "datos": () => ({ valor: "", texto: "" }), "comprar.pasos": () 
 function agregar(ruta){ obtener(ruta).push(NUEVOS[ruta]()); marcar(); render(); }
 function quitar(ruta, i){ const l = obtener(ruta); if (!confirm("¿Quitar este elemento?")) return; l.splice(i, 1); marcar(); render(); }
 function mover(i, d){ const l = S.productos, x = l.splice(i, 1)[0]; l.splice(i + d, 0, x); marcar(); render(); }
-function agregarProducto(){ S.productos.push({ id: "p" + Date.now().toString(36), visible: true, nombre: "", categoria: "", foto: "", precio: "", color: "#E6E2D9", texto: "" }); marcar(); render(); }
+function agregarProducto(){ S.productos.push({ id: "p" + Date.now().toString(36), visible: true, nombre: "", categoria: "", foto: "", fotos: [], precio: "", color: "#E6E2D9", texto: "" }); marcar(); render(); }
 
-// Foto: se reduce a 900 px de ancho máximo en JPEG para no pesar en la página.
-function subirFoto(i, input){
-  const f = input.files && input.files[0]; if (!f) return;
-  const img = new Image(), url = URL.createObjectURL(f);
-  img.onload = () => {
-    const max = 900, k = Math.min(1, max / Math.max(img.width, img.height));
-    const c = document.createElement("canvas"); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
-    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-    URL.revokeObjectURL(url);
-    S.productos[i].foto = c.toDataURL("image/jpeg", 0.72); marcar(); render();
-  };
-  img.onerror = () => { URL.revokeObjectURL(url); alert("No se pudo leer esa imagen. Usa JPG o PNG."); };
-  img.src = url;
+// Fotos: cada una se reduce a 800 px en JPEG (fondo blanco) para no pesar en la página.
+function reducirFoto(f){
+  return new Promise((ok, mal) => {
+    const img = new Image(), url = URL.createObjectURL(f);
+    img.onload = () => {
+      const k = Math.min(1, 800 / Math.max(img.width, img.height));
+      const c = document.createElement("canvas"); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url); ok(c.toDataURL("image/jpeg", 0.75));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); mal(new Error(f.name)); };
+    img.src = url;
+  });
 }
+async function subirFotos(i, input){
+  const archivos = [...(input.files || [])]; if (!archivos.length) return;
+  for (const f of archivos) {
+    try { S.productos[i].fotos.push(await reducirFoto(f)); }
+    catch (e) { alert("No se pudo leer la imagen " + e.message + ". Usa JPG o PNG."); }
+  }
+  marcar(); render();
+}
+function quitarFoto(i, k){ if (!confirm("¿Quitar esta foto?")) return; S.productos[i].fotos.splice(k, 1); marcar(); render(); }
+// Normaliza: cada producto con lista "fotos" (la foto única antigua pasa a la lista).
+function normalizarFotos(){ S.productos.forEach(p => { p.fotos = Array.isArray(p.fotos) ? p.fotos.filter(f => fotoSegura(f)) : []; if (p.foto) { if (fotoSegura(p.foto)) p.fotos.unshift(p.foto); p.foto = ""; } }); }
 
 async function cargar(){
   try {
