@@ -23,7 +23,7 @@ button:hover,.btn:hover,.act-btn:hover{filter:brightness(.94)}
 .brand-lockup~.tabs{margin-left:auto}
 @media print{.topbar,.brand-name,.topbar-brand{print-color-adjust:exact;-webkit-print-color-adjust:exact}.brand-name::before,.topbar-brand::before{background-image:url('logo-horizontal.svg')}}
 
-.container::before{content:'';display:block;width:170px;height:62px;margin:0 auto 20px;background:url('brand/logo-horizontal.svg') center/contain no-repeat}
+.container::before{content:'';display:block;width:170px;height:62px;margin:0 auto 20px;background:url('logo-horizontal.svg') center/contain no-repeat}
 @media(max-width:640px){.brand-name::before,.topbar-brand::before{width:84px;height:29px;margin-right:7px}.container::before{width:145px;height:54px}}
 @media print{.topbar{border-bottom:2px solid #F1AF13!important}.act-btn,.primary{background-color:#141414!important;color:#fff!important}}
 

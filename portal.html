@@ -1,0 +1,514 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal Creamos Imagen</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#141414">
+<link rel="apple-touch-icon" href="/brand/app-icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mi Portal">
+<script src="/app-instalable.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f3f4f6;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 24px 0;
+    }
+    .container {
+      background: white;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+      text-align: center;
+      max-width: 600px;
+      width: 90%;
+    }
+    h1 { color: #1f2937; font-size: 28px; margin-bottom: 8px; font-weight: 700; }
+    p { color: #6b7280; margin-bottom: 32px; font-size: 15px; }
+
+    .userbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin: -16px 0 24px;
+      padding: 10px 14px;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      text-align: left;
+    }
+    .userbar .who { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .userbar img { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; }
+    .userbar .who-text { min-width: 0; }
+    .userbar .who-name { font-size: 13px; font-weight: 700; color: #1f2937; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+    .userbar .who-email { font-size: 11px; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+    .userbar .actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .userbar a.admin-link { font-size: 12px; font-weight: 700; color: #0D7A6B; text-decoration: none; }
+    .userbar a.admin-link:hover { text-decoration: underline; }
+    .userbar button.logout-link { font-size: 12px; font-weight: 600; color: #6b7280; background: none; border: none; cursor: pointer; padding: 0; font-family: inherit; }
+    .userbar button.logout-link:hover { color: #dc2626; text-decoration: underline; }
+
+    .grid-menu {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 16px;
+    }
+
+    .menu-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 14px;
+      background-color: #ffffff;
+      color: #374151;
+      text-decoration: none;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.2s ease;
+      box-sizing: border-box;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .menu-btn::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+      background: transparent;
+      transition: background 0.2s;
+    }
+
+    .menu-btn .icon {
+      width: 72px;
+      height: 72px;
+      margin-bottom: 12px;
+      display: block;
+      object-fit: cover;
+      border-radius: 12px;
+      background: #f8f7f4;
+      transition: transform 0.2s;
+    }
+
+    .menu-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 15px rgba(0,0,0,0.08);
+      border-color: #d1d5db;
+    }
+
+    .menu-btn:hover .icon {
+      transform: scale(1.1);
+    }
+
+    /* Colores por módulo (borde superior y hover de texto) */
+    .menu-btn.caja::before { background-color: #2c5f2e; }
+    .menu-btn.caja:hover { color: #2c5f2e; }
+
+    .menu-btn.clientes::before { background-color: #6D28D9; }
+    .menu-btn.clientes:hover { color: #6D28D9; }
+
+    .menu-btn.costos::before { background-color: #0D7A6B; }
+    .menu-btn.costos:hover { color: #0D7A6B; }
+
+    .menu-btn.cotizaciones::before { background-color: #BE185D; }
+    .menu-btn.cotizaciones:hover { color: #BE185D; }
+
+    .menu-btn.dashboard::before { background-color: #991B1B; }
+    .menu-btn.dashboard:hover { color: #991B1B; }
+
+    .menu-btn.producciones::before { background-color: #e8a020; }
+    .menu-btn.producciones:hover { color: #c45c1a; }
+
+    .menu-btn.proveedores::before { background-color: #92400E; }
+    .menu-btn.proveedores:hover { color: #92400E; }
+
+    .menu-btn.ventasci::before { background-color: #1e40af; }
+    .menu-btn.ventasci:hover { color: #1e40af; }
+
+    .menu-btn.ventas::before { background-color: #1f2937; }
+    .menu-btn.ventas:hover { color: #1f2937; }
+
+    .menu-btn.rrhh::before { background-color: #0E7490; }
+    .menu-btn.rrhh:hover { color: #0E7490; }
+
+    .menu-btn.finanzas::before { background-color: #15803D; }
+    .menu-btn.finanzas:hover { color: #15803D; }
+
+    .menu-btn.inventario::before { background-color: #0369A1; }
+    .menu-btn.inventario:hover { color: #0369A1; }
+
+    .menu-btn.marketing::before { background-color: #BE123C; }
+    .menu-btn.marketing:hover { color: #BE123C; }
+
+    .menu-btn.portal::before { background-color: #C8973A; }
+    .menu-btn.portal:hover { color: #B45309; }
+
+    .empty-access { color: #6b7280; font-size: 14px; padding: 30px 10px; }
+
+  </style>
+  <link rel="stylesheet" href="brand/brand.css">
+  <script src="brand/brand.js"></script>
+  <script src="brand/form-examples.js"></script>
+  <script src="brand/layout.js"></script>
+</head>
+<body>
+<div id="cimagen-gate" style="position:fixed;inset:0;z-index:999999;background:#111827;display:flex;align-items:center;justify-content:center;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;">
+  <div style="background:#fff;padding:36px 32px;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,0.3);max-width:340px;width:90%;text-align:center;">
+    <div style="font-size:32px;margin-bottom:8px;">🔒</div>
+    <h2 style="margin:0 0 6px;color:#1f2937;font-size:18px;">Creamos Imagen</h2>
+    <p id="cimagen-gate-msg" style="margin:0 0 20px;color:#6b7280;font-size:13px;">Inicia sesión con tu cuenta de Gmail o Hotmail para continuar</p>
+    <div id="cimagen-gate-btn-wrap" style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+      <div id="cimagen-gate-google"></div>
+      <button id="cimagen-gate-ms" type="button" style="display:none;align-items:center;gap:10px;height:40px;padding:0 18px;background:#fff;color:#3c4043;border:1px solid #dadce0;border-radius:20px;font:500 14px 'Segoe UI',Tahoma,sans-serif;cursor:pointer;">
+        <svg width="18" height="18" viewBox="0 0 21 21" aria-hidden="true"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
+        Iniciar sesión con Microsoft
+      </button>
+    </div>
+    <div id="cimagen-gate-denied" style="display:none;margin-top:8px;">
+      <div style="color:#dc2626;font-size:12.5px;margin-bottom:14px;">Tu cuenta no tiene acceso a ningún módulo todavía. Pide a Alejandra que te agregue. Si eres trabajador, pide que registren este mismo correo en tu ficha de Recursos Humanos.</div>
+      <button id="cimagen-gate-retry" style="padding:9px 16px;background:#f3f4f6;color:#374151;border:1px solid #d1d5db;border-radius:6px;font-weight:600;font-size:13px;cursor:pointer;">Probar con otra cuenta</button>
+    </div>
+  </div>
+</div>
+
+<script src="sesion.js"></script>
+<script>
+// ============================================================
+// AUTENTICACIÓN CON GOOGLE + CONTROL DE ACCESO POR MÓDULO
+// ============================================================
+var GOOGLE_CLIENT_ID = "207433225749-76s4184pif80ge7gfr0nt39qa80b82ij.apps.googleusercontent.com";
+var SESSION_KEY = "cimagen_session";
+var SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 horas
+var API_URL = "/api/portal";
+// Los permisos (administrador, módulos, si es trabajador) los calcula el
+// servidor al iniciar sesión, a partir de "Accesos" y de las fichas de RRHH.
+
+var MODULOS = [
+  { key: "rendicion",    label: "Caja",           icon: "assets/module-icons/caja.jpg",          href: "rendicion.html",    cls: "caja" },
+  { key: "clientes",     label: "Clientes",       icon: "assets/module-icons/clientes.jpg",      href: "clientes.html",     cls: "clientes" },
+  { key: "costos",       label: "Costos",         icon: "assets/module-icons/costos.jpg",        href: "costos.html",       cls: "costos" },
+  { key: "cotizaciones", label: "Cotizaciones",   icon: "assets/module-icons/cotizaciones.jpg",  href: "cotizaciones.html", cls: "cotizaciones" },
+  { key: "dashboard",    label: "Indicadores",    icon: "assets/module-icons/indicadores.jpg",   href: "dashboard.html",    cls: "dashboard" },
+  { key: "calendario",   label: "Producciones",   icon: "assets/module-icons/produccion.jpg",     href: "calendario.html",   cls: "producciones" },
+  { key: "proveedores",  label: "Proveedores",    icon: "assets/module-icons/proveedores.jpg",    href: "proveedores.html",  cls: "proveedores" },
+  { key: "ventasci",     label: "Otros",          icon: "assets/module-icons/empresa.jpg",        href: "ventasci.html",     cls: "ventasci", sub: "(Creamos Imagen)" },
+  { key: "ventas",       label: "Sala de venta",  icon: "assets/module-icons/sala-ventas.jpg",   href: "ventas.html",       cls: "ventas", sub: "(Vendedores)" },
+  { key: "rrhh",         label: "Recursos Humanos",icon: "assets/module-icons/rrhh.jpg",          href: "rrhh.html",         cls: "rrhh" },
+  { key: "finanzas",     label: "Finanzas",       icon: "assets/module-icons/finanzas.jpg",      href: "finanzas.html",     cls: "finanzas", sub: "(Resultados, flujo e IVA)" },
+  { key: "inventario",   label: "Inventario",     icon: "assets/module-icons/inventario.jpg",    href: "inventario.html",   cls: "inventario", sub: "(Stock y catálogo)" },
+  { key: "marketing",    label: "Marketing",      icon: "assets/module-icons/marketing.jpg",     href: "marketing.html",    cls: "marketing", sub: "(Calendario de contenidos)" },
+  // Solo administradores (no se asigna en Accesos): edita la página pública de inicio.
+  { key: "sitio",        label: "Sitio web",      icon: "assets/module-icons/empresa.jpg",       href: "sitio.html",        cls: "ventasci", sub: "(Página de inicio pública)" },
+  // Mi Portal no se asigna en "Accesos": lo ve quien tenga su correo
+  // registrado en la ficha de un trabajador Activo de Recursos Humanos.
+  { key: "trabajador",   label: "Mi Portal",      icon: "assets/module-icons/mi-portal.jpg",     href: "trabajador.html",   cls: "portal", sub: "(Trabajador)" }
+];
+// Envía el token de Google al servidor para verificarlo y obtener una sesión firmada.
+async function llamarServidor(cuerpo) {
+  var controller = new AbortController();
+  var timeout = setTimeout(function () { controller.abort(); }, 20000);
+  try {
+    var res = await fetch(API_URL, { method: "POST", body: JSON.stringify(cuerpo), signal: controller.signal, cache: "no-store" });
+    var body = await res.text();
+    if (!res.ok) throw new Error("El servicio respondió HTTP " + res.status + (body ? ": " + body.slice(0, 180) : "."));
+    try { return JSON.parse(body); }
+    catch (parseError) { throw new Error("El servicio devolvió una respuesta no JSON (HTTP " + res.status + ")."); }
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+// Una sesión sin "token" es de antes de las sesiones firmadas: hay que volver a entrar.
+function sessionValid(sess) {
+  return !!(sess && sess.email && sess.token && sess.ts && (Date.now() - sess.ts < SESSION_TTL_MS));
+}
+
+function isModuleAllowed(sess, moduleKey) {
+  if (!sessionValid(sess)) return false;
+  if (sess.isAdmin) return true;
+  if (moduleKey === "sitio") return false;
+  if (moduleKey === "trabajador") return !!(sess.esTrabajador || (sess.modules && sess.modules.indexOf("trabajador") !== -1));
+  return !!(sess.modules && sess.modules.indexOf(moduleKey) !== -1);
+}
+
+function saveSession(sess) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify(sess));
+}
+function readSession() {
+  try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch(e) { return null; }
+}
+function clearSession() {
+  localStorage.removeItem(SESSION_KEY);
+}
+
+async function handleCredentialResponse(response) {
+  if (!response || !response.credential) { showDenied(); return; }
+  await iniciarSesionEnServidor({ accion: "login", credential: response.credential }, "Google");
+}
+
+// Envía al servidor la prueba de identidad (Google o Microsoft) y, si la
+// acepta, guarda la sesión firmada y entra al menú.
+async function iniciarSesionEnServidor(cuerpo, proveedor) {
+  // El servidor verifica la cuenta y calcula los permisos; puede tardar unos
+  // segundos, así que se avisa en vez de dejar la pantalla quieta.
+  var msg = document.getElementById("cimagen-gate-msg");
+  var btnWrap = document.getElementById("cimagen-gate-btn-wrap");
+  if (msg) msg.textContent = "⏳ Verificando tus accesos…";
+  if (btnWrap) btnWrap.style.display = "none";
+  var resultado = null;
+  var errorRed = null;
+  try {
+    resultado = await llamarServidor(cuerpo);
+  } catch (e) {
+    errorRed = e;
+    console.error("Falló la llamada de inicio de sesión", e);
+  }
+  // La respuesta del servidor incluye una sesión firmada. Validamos el token
+  // emitido por el servidor; no dependemos de cómo se decodifique el texto
+  // acentuado del campo "estado" entre Apps Script y el navegador.
+  if (!resultado || !resultado.sesion || !resultado.sesion.token || !resultado.sesion.email) {
+    var detalle = resultado && String(resultado.detalle || "");
+    var diagnostico = errorRed && errorRed.message
+      ? errorRed.message
+      : resultado ? "Respuesta sin sesión válida (estado: " + String(resultado.estado || "vacío") + ")." : "el servidor no entregó datos";
+    if (msg) msg.textContent = detalle === "CREDENCIAL_INVALIDA"
+      ? "No se pudo verificar tu cuenta de " + proveedor + ". Inténtalo de nuevo."
+      : detalle.indexOf("script.external_request") !== -1
+        ? "El acceso requiere autorización del propietario del portal."
+        : detalle.toLowerCase().indexOf("spreadsheets") !== -1 || detalle.toLowerCase().indexOf("spreadsheetapp") !== -1
+          ? "Apps Script necesita autorización para acceder a la hoja de permisos. Ejecuta autorizarServicios desde el editor."
+          : detalle
+            ? "El servidor rechazó el inicio de sesión: " + detalle
+            : errorRed && errorRed.name === "AbortError"
+            ? "El servidor tardó demasiado en responder. Vuelve a intentarlo."
+              : "No se pudo conectar con el servidor. Diagnóstico portal: " + diagnostico;
+    if (btnWrap) btnWrap.style.display = "flex";
+    return;
+  }
+  var sess = resultado.sesion;
+  // Se recuerda con qué cuenta se entró: así "Enviar por correo" usa Gmail o
+  // Outlook según corresponda (ver correo.js).
+  sess.proveedor = proveedor;
+  if (!sess.isAdmin && (!sess.modules || sess.modules.length === 0) && !sess.esTrabajador) {
+    showDenied();
+    return;
+  }
+  saveSession(sess);
+  var query = new URLSearchParams(window.location.search);
+  if (query.get("return") === "trabajador") { window.location.replace("trabajador.html"); return; }
+  if (query.get("return") === "rrhh") { window.location.replace("rrhh.html"); return; }
+  // Un trabajador sin otros módulos entra directo a su portal.
+  if (soloPortal(sess)) { window.location.replace("trabajador.html"); return; }
+  enterApp(sess);
+}
+
+// ------------------------------------------------------------
+// Inicio de sesión con Microsoft (Hotmail, Outlook.com, Live)
+// ------------------------------------------------------------
+// Se va a la página de Microsoft y se vuelve a este mismo menú con un "code"
+// de un solo uso; el servidor lo canjea con Microsoft y entrega la sesión.
+// "state" (guardado en sessionStorage) asegura que la vuelta la inició este
+// navegador y recuerda a qué página volver después (?return=...).
+var MS_CLIENT_ID = "f7d2b2f8-80ef-46bd-827b-1cb6c9a65f99"; // Id. de aplicación (cliente) del registro en Azure
+var MS_STATE_KEY = "cimagen_ms_state";
+
+function msRedirectUri() {
+  return new URL("index.html", window.location.href).href; // URI registrada en Azure: index.html reenvía la respuesta a portal.html
+}
+
+function iniciarSesionMicrosoft() {
+  var state = Array.from(crypto.getRandomValues(new Uint8Array(16)), function(b){ return b.toString(16).padStart(2, "0"); }).join("");
+  var volver = new URLSearchParams(window.location.search).get("return") || "";
+  try { sessionStorage.setItem(MS_STATE_KEY, JSON.stringify({ state: state, volver: volver })); } catch (e) {}
+  var q = new URLSearchParams({
+    client_id: MS_CLIENT_ID,
+    response_type: "code",
+    redirect_uri: msRedirectUri(),
+    response_mode: "query",
+    scope: "openid email profile",
+    state: state,
+    prompt: "select_account"
+  });
+  window.location.href = "https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize?" + q.toString();
+}
+
+// Si se vuelve de Microsoft (?code=...&state=... o ?error=...), completa el
+// inicio de sesión. Devuelve true si la página venía de Microsoft.
+function volverDeMicrosoft() {
+  var params = new URLSearchParams(window.location.search);
+  var code = params.get("code"), errorMs = params.get("error");
+  if (!code && !errorMs) return false;
+  var guardado = null;
+  try { guardado = JSON.parse(sessionStorage.getItem(MS_STATE_KEY)); sessionStorage.removeItem(MS_STATE_KEY); } catch (e) {}
+  var volver = (guardado && guardado.volver) || "";
+  // Se limpia la dirección para que el code no quede en el historial.
+  history.replaceState(null, "", "portal.html" + (volver ? "?return=" + encodeURIComponent(volver) : ""));
+  if (errorMs || !guardado || guardado.state !== params.get("state")) {
+    var msg = document.getElementById("cimagen-gate-msg");
+    if (msg) msg.textContent = errorMs === "access_denied"
+      ? "Cancelaste el inicio de sesión con Microsoft."
+      : "No se pudo completar el inicio de sesión con Microsoft. Inténtalo de nuevo.";
+    return true;
+  }
+  iniciarSesionEnServidor({ accion: "loginMicrosoft", code: code, redirectUri: msRedirectUri() }, "Microsoft");
+  return true;
+}
+
+function soloPortal(sess) {
+  return !sess.isAdmin && !!sess.esTrabajador && (!sess.modules || sess.modules.length === 0);
+}
+
+// Actualiza permisos al abrir el menú para reflejar cambios de Accesos o RRHH.
+async function refrescarSesion(sess) {
+  try {
+    var res = await fetch(API_URL + "?accion=yo&token=" + encodeURIComponent(sess.token));
+    var datos = await res.json();
+    if (!datos || datos.estado !== "éxito") return;
+    var cambio = datos.isAdmin !== sess.isAdmin || !!datos.esTrabajador !== !!sess.esTrabajador ||
+      (datos.modules || []).join() !== (sess.modules || []).join();
+    if (!cambio) return;
+    sess.isAdmin = datos.isAdmin;
+    sess.modules = datos.modules || [];
+    sess.esTrabajador = !!datos.esTrabajador;
+  } catch (e) { return; }
+  saveSession(sess);
+  renderMenu(sess);
+}
+
+function showDenied() {
+  var msg = document.getElementById("cimagen-gate-msg");
+  var btnWrap = document.getElementById("cimagen-gate-btn-wrap");
+  var denied = document.getElementById("cimagen-gate-denied");
+  if (msg) msg.style.display = "none";
+  if (btnWrap) btnWrap.style.display = "none";
+  if (denied) denied.style.display = "block";
+}
+
+function signOut() {
+  clearSession();
+  try {
+    if (window.google && google.accounts && google.accounts.id) {
+      google.accounts.id.disableAutoSelect();
+    }
+  } catch (e) {}
+  window.location.reload();
+}
+
+function enterApp(sess) {
+  var gate = document.getElementById("cimagen-gate");
+  if (gate) gate.remove();
+  document.documentElement.style.overflow = "";
+  renderUserbar(sess);
+  renderMenu(sess);
+}
+
+function renderUserbar(sess) {
+  var container = document.querySelector(".container");
+  if (!container) return;
+  var bar = document.createElement("div");
+  bar.className = "userbar";
+  var avatar = sess.picture
+    ? '<img src="' + sess.picture + '" alt="">'
+    : '<div style="width:32px;height:32px;border-radius:50%;background:#0D7A6B;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;">' + (sess.name || sess.email).charAt(0).toUpperCase() + '</div>';
+  bar.innerHTML =
+    '<div class="who">' + avatar +
+      '<div class="who-text"><div class="who-name">' + (sess.name || sess.email) + '</div><div class="who-email">' + sess.email + '</div></div>' +
+    '</div>' +
+    '<div class="actions">' +
+      (sess.isAdmin ? '<a class="admin-link" href="accesos.html">⚙️ Accesos</a>' : '') +
+      '<button class="logout-link" id="cimagen-logout-btn">Cerrar sesión</button>' +
+    '</div>';
+  var h1 = container.querySelector("h1");
+  container.insertBefore(bar, h1);
+  var logoutBtn = document.getElementById("cimagen-logout-btn");
+  if (logoutBtn) logoutBtn.addEventListener("click", signOut);
+}
+
+function renderMenu(sess) {
+  var grid = document.querySelector(".grid-menu");
+  if (!grid) return;
+  var visibles = MODULOS.filter(function(m){ return isModuleAllowed(sess, m.key); });
+  if (visibles.length === 0) {
+    grid.innerHTML = '<div class="empty-access">No tienes acceso a ningún módulo todavía. Pide a Alejandra que te agregue desde "Accesos".</div>';
+    return;
+  }
+  grid.innerHTML = visibles.map(function(m){
+    return '<a href="' + m.href + '" class="menu-btn ' + m.cls + '">' +
+      '<img class="icon" src="' + m.icon + '" alt="Icono de ' + m.label + '" loading="lazy">' +
+      '<span style="text-align:center;">' + m.label + (m.sub ? '<br><small style="font-size:10px;color:#888;font-weight:normal;">' + m.sub + '</small>' : '') + '</span>' +
+    '</a>';
+  }).join('');
+}
+
+(function init(){
+  var existing = readSession();
+  var params = new URLSearchParams(window.location.search);
+  var forceReauth = params.get("reauth") === "1";
+  if (forceReauth) clearSession();
+  if (sessionValid(existing) && !forceReauth) {
+    document.addEventListener("DOMContentLoaded", function(){
+      enterApp(existing);
+      refrescarSesion(existing);
+    });
+    return;
+  }
+  clearSession(); // sesión vencida o de antes de las sesiones firmadas
+  document.documentElement.style.overflow = "hidden";
+  document.addEventListener("DOMContentLoaded", function(){
+    var retryBtn = document.getElementById("cimagen-gate-retry");
+    if (retryBtn) retryBtn.addEventListener("click", function(){
+      clearSession();
+      window.location.reload();
+    });
+    var msBtn = document.getElementById("cimagen-gate-ms");
+    if (msBtn && MS_CLIENT_ID) {
+      msBtn.style.display = "inline-flex";
+      msBtn.addEventListener("click", iniciarSesionMicrosoft);
+    }
+    volverDeMicrosoft();
+    function tryRenderButton(attemptsLeft){
+      if (window.google && google.accounts && google.accounts.id) {
+        google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: handleCredentialResponse
+        });
+        google.accounts.id.renderButton(
+          document.getElementById("cimagen-gate-google"),
+          { theme: "outline", size: "large", text: "signin_with", shape: "pill" }
+        );
+      } else if (attemptsLeft > 0) {
+        setTimeout(function(){ tryRenderButton(attemptsLeft - 1); }, 300);
+      } else {
+        var msg = document.getElementById("cimagen-gate-msg");
+        if (msg) msg.textContent = "No se pudo cargar el inicio de sesión de Google. Revisa tu conexión y recarga la página.";
+      }
+    }
+    tryRenderButton(20);
+  });
+})();
+</script>
+
+  <div class="container">
+    <h1>Portal Creamos Imagen</h1>
+    <p>Selecciona la aplicación a la que deseas ingresar:</p>
+    
+    <!-- El contenedor del menú lo llenará la función de arriba -->
+    <div class="grid-menu"></div>
+    
+  </div>
+</body>
+</html>
+

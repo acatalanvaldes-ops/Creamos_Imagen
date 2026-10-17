@@ -1,6 +1,6 @@
 // Sesión compartida por todas las páginas.
 //
-// Al iniciar sesión en el menú (index.html), el servidor verifica la cuenta
+// Al iniciar sesión en el menú (portal.html), el servidor verifica la cuenta
 // de Google y entrega una sesión firmada ("token") que vence en 24 horas.
 // Cada página la envía en sus peticiones (CLOUD_TOKEN = tokenSesion()), y el
 // servidor decide con ella qué datos puede leer o guardar esa persona.
@@ -26,10 +26,10 @@
 
   window.tokenSesion = function () { return valida ? sess.token : ''; };
 
-  var esMenu = /(^|\/)(index\.html)?$/i.test(location.pathname);
+  var esMenu = /(^|\/)portal\.html$/i.test(location.pathname);
   if (!valida && !esMenu) {
     borrar();
-    location.replace('index.html');
+    location.replace('portal.html');
     return;
   }
 
@@ -39,7 +39,7 @@
     avisado = true;
     borrar();
     alert('Tu sesión expiró o ya no es válida. Vuelve a iniciar sesión.');
-    location.href = 'index.html';
+    location.href = 'portal.html';
   }
 
   // VERSIONES: evita que un guardado pise los cambios de otra persona.

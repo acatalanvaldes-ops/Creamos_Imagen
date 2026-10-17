@@ -1,511 +1,310 @@
-﻿<!DOCTYPE html>
-<html lang="es">
+<!doctype html>
+<html lang="es-CL">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Portal Creamos Imagen</title>
-<link rel="manifest" href="/manifest.json">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+  // El inicio de sesión del portal vive en portal.html. Microsoft vuelve a
+  // index.html (dirección registrada en Azure) y los enlaces antiguos de
+  // "volver a iniciar sesión" también: se reenvían al portal.
+  (function () {
+    var q = location.search;
+    if (/[?&](code|error|reauth|return)=/.test(q)) location.replace("portal.html" + q + location.hash);
+  })();
+</script>
+<title>Creamos Imagen · Sublimación y vestuario deportivo</title>
+<meta name="description" content="Creamos Imagen: camisetas y conjuntos deportivos sublimados, línea K-pop y artículos personalizados. Tienda en Recoleta, Santiago.">
 <meta name="theme-color" content="#141414">
-<link rel="apple-touch-icon" href="/brand/app-icon-180.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Mi Portal">
-<script src="/app-instalable.js"></script>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #f3f4f6;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      margin: 0;
-      padding: 24px 0;
-    }
-    .container {
-      background: white;
-      padding: 40px;
-      border-radius: 16px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-      text-align: center;
-      max-width: 600px;
-      width: 90%;
-    }
-    h1 { color: #1f2937; font-size: 28px; margin-bottom: 8px; font-weight: 700; }
-    p { color: #6b7280; margin-bottom: 32px; font-size: 15px; }
+<meta property="og:title" content="Creamos Imagen · Sublimación y vestuario deportivo">
+<meta property="og:description" content="Camisetas y conjuntos deportivos sublimados, línea K-pop y artículos personalizados. Tienda en Recoleta, Santiago.">
+<meta property="og:image" content="https://creamosimagen.vercel.app/brand/app-icon-512.png">
+<link rel="icon" href="brand/app-icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+:root{
+  --negro:#141414;--oro:#F1AF13;--crema:#F7F6F2;--blanco:#fff;
+  --salvia:#BCD0CA;--terracota:#DA8C68;--gris:#6F6B63;--borde:#E6E2D9;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',Arial,sans-serif;background:var(--crema);color:var(--negro);line-height:1.55}
+a{color:inherit}
+img{max-width:100%;display:block}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+#contenido{transition:opacity .25s}
+#contenido.cargando{opacity:0}
 
-    .userbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      margin: -16px 0 24px;
-      padding: 10px 14px;
-      background: #f9fafb;
-      border: 1px solid #e5e7eb;
-      border-radius: 10px;
-      text-align: left;
-    }
-    .userbar .who { display: flex; align-items: center; gap: 10px; min-width: 0; }
-    .userbar img { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; }
-    .userbar .who-text { min-width: 0; }
-    .userbar .who-name { font-size: 13px; font-weight: 700; color: #1f2937; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
-    .userbar .who-email { font-size: 11px; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
-    .userbar .actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-    .userbar a.admin-link { font-size: 12px; font-weight: 700; color: #0D7A6B; text-decoration: none; }
-    .userbar a.admin-link:hover { text-decoration: underline; }
-    .userbar button.logout-link { font-size: 12px; font-weight: 600; color: #6b7280; background: none; border: none; cursor: pointer; padding: 0; font-family: inherit; }
-    .userbar button.logout-link:hover { color: #dc2626; text-decoration: underline; }
+/* Aviso / promoción */
+.aviso{background:var(--oro);color:var(--negro);text-align:center;font-weight:700;font-size:14px;padding:9px 16px}
 
-    .grid-menu {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 16px;
-    }
+/* Encabezado */
+header{position:sticky;top:0;z-index:20;background:var(--negro);border-bottom:3px solid var(--oro)}
+.nav{display:flex;align-items:center;gap:24px;height:68px;position:relative}
+.nav .logo img{height:40px;width:auto}
+.nav ul{display:flex;gap:22px;list-style:none;margin-left:auto}
+.nav ul a{color:#ddd;text-decoration:none;font-size:15px;font-weight:500}
+.nav ul a:hover{color:var(--oro)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border-radius:999px;font-weight:700;font-size:15px;text-decoration:none;border:2px solid transparent;transition:transform .15s,filter .15s;cursor:pointer}
+.btn:hover{transform:translateY(-1px);filter:brightness(.96)}
+.btn-oro{background:var(--oro);color:var(--negro)}
+.btn-borde{border-color:var(--oro);color:var(--oro)}
+.menu-movil{display:none;background:none;border:0;color:#fff;font-size:26px;cursor:pointer}
 
-    .menu-btn {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 20px 14px;
-      background-color: #ffffff;
-      color: #374151;
-      text-decoration: none;
-      border-radius: 12px;
-      font-weight: 600;
-      font-size: 14px;
-      transition: all 0.2s ease;
-      box-sizing: border-box;
-      border: 1px solid #e5e7eb;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-      position: relative;
-      overflow: hidden;
-    }
+/* Portada */
+.hero{background:var(--negro);color:var(--blanco);padding:80px 0 90px;overflow:hidden;position:relative}
+.hero::after{content:"";position:absolute;right:-120px;top:-80px;width:480px;height:480px;border-radius:50%;background:radial-gradient(circle,var(--oro) 0%,transparent 65%);opacity:.18}
+.hero .wrap{display:grid;grid-template-columns:1.2fr 1fr;gap:48px;align-items:center;position:relative;z-index:1}
+.etiqueta{display:inline-block;color:var(--oro);font-weight:700;font-size:13px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px}
+.hero h1{font-family:'DM Serif Display',Georgia,serif;font-weight:400;font-size:clamp(38px,5.5vw,62px);line-height:1.05;margin-bottom:20px}
+.hero h1 em{color:var(--oro);font-style:normal}
+.hero p{color:#cfcfcf;font-size:18px;max-width:520px;margin-bottom:30px}
+.acciones{display:flex;gap:12px;flex-wrap:wrap}
+.datos{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.dato{background:#1f1f1f;border:1px solid #2c2c2c;border-radius:16px;padding:22px}
+.dato b{display:block;font-family:'DM Serif Display',serif;font-weight:400;font-size:38px;color:var(--oro);line-height:1}
+.dato span{color:#bbb;font-size:14px}
 
-    .menu-btn::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 4px;
-      background: transparent;
-      transition: background 0.2s;
-    }
+/* Secciones */
+section{padding:80px 0}
+.titulo{margin-bottom:36px}
+.titulo h2{font-family:'DM Serif Display',Georgia,serif;font-weight:400;font-size:clamp(30px,4vw,42px);line-height:1.1}
+.titulo p{color:var(--gris);margin-top:8px;max-width:600px}
 
-    .menu-btn .icon {
-      width: 72px;
-      height: 72px;
-      margin-bottom: 12px;
-      display: block;
-      object-fit: cover;
-      border-radius: 12px;
-      background: #f8f7f4;
-      transition: transform 0.2s;
-    }
+/* Filtros y catálogo */
+.filtros{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px}
+.filtros button{font:inherit;font-size:14px;font-weight:500;padding:8px 16px;border-radius:999px;border:1px solid var(--borde);background:var(--blanco);cursor:pointer}
+.filtros button.on{background:var(--negro);color:var(--oro);border-color:var(--negro)}
+.grilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:20px}
+.producto{background:var(--blanco);border:1px solid var(--borde);border-radius:18px;overflow:hidden;display:flex;flex-direction:column;transition:box-shadow .2s,transform .2s}
+.producto:hover{box-shadow:0 14px 30px rgba(20,20,20,.08);transform:translateY(-3px)}
+.foto{aspect-ratio:4/3;display:grid;place-items:center;position:relative;overflow:hidden}
+.foto img{width:100%;height:100%;object-fit:cover}
+.foto .marca{font-family:'DM Serif Display',serif;font-size:30px;color:rgba(20,20,20,.75)}
+.foto .cat{position:absolute;top:12px;left:12px;background:var(--negro);color:var(--oro);font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px}
+.info{padding:18px 18px 20px;display:flex;flex-direction:column;gap:8px;flex:1}
+.info h3{font-size:18px}
+.info p{color:var(--gris);font-size:14px;flex:1}
+.info .pie{display:flex;justify-content:space-between;align-items:center;margin-top:6px}
+.precio{font-weight:700}
+.info a{font-size:14px;font-weight:700;color:var(--negro);text-decoration:none;border-bottom:2px solid var(--oro)}
 
-    .menu-btn:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 8px 15px rgba(0,0,0,0.08);
-      border-color: #d1d5db;
-    }
+/* Cómo comprar */
+.comprar{background:var(--blanco);border-top:1px solid var(--borde);border-bottom:1px solid var(--borde)}
+.pasos{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;counter-reset:paso}
+.paso{padding:24px;border-radius:16px;background:var(--crema);counter-increment:paso}
+.paso::before{content:counter(paso,decimal-leading-zero);display:block;font-family:'DM Serif Display',serif;font-size:34px;color:var(--oro);margin-bottom:10px}
+.paso h3{font-size:17px;margin-bottom:6px}
+.paso p{color:var(--gris);font-size:14px}
+.pago{margin-top:28px;color:var(--gris);font-size:15px}
 
-    .menu-btn:hover .icon {
-      transform: scale(1.1);
-    }
+/* Tienda y contacto */
+.contacto .wrap{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:stretch}
+.tarjeta{background:var(--negro);color:var(--blanco);border-radius:22px;padding:36px}
+.tarjeta h3{font-family:'DM Serif Display',serif;font-weight:400;font-size:30px;margin-bottom:14px}
+.tarjeta p{color:#ccc;margin-bottom:10px}
+.tarjeta .acciones{margin-top:22px}
+.mapa{border-radius:22px;overflow:hidden;border:1px solid var(--borde);min-height:320px;background:var(--salvia)}
+.mapa iframe{width:100%;height:100%;min-height:320px;border:0}
 
-    /* Colores por módulo (borde superior y hover de texto) */
-    .menu-btn.caja::before { background-color: #2c5f2e; }
-    .menu-btn.caja:hover { color: #2c5f2e; }
+/* Pie */
+footer{background:var(--negro);color:#aaa;padding:36px 0;font-size:14px}
+footer .wrap{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}
+footer img{height:34px;width:auto}
+footer a{color:var(--oro)}
 
-    .menu-btn.clientes::before { background-color: #6D28D9; }
-    .menu-btn.clientes:hover { color: #6D28D9; }
-
-    .menu-btn.costos::before { background-color: #0D7A6B; }
-    .menu-btn.costos:hover { color: #0D7A6B; }
-
-    .menu-btn.cotizaciones::before { background-color: #BE185D; }
-    .menu-btn.cotizaciones:hover { color: #BE185D; }
-
-    .menu-btn.dashboard::before { background-color: #991B1B; }
-    .menu-btn.dashboard:hover { color: #991B1B; }
-
-    .menu-btn.producciones::before { background-color: #e8a020; }
-    .menu-btn.producciones:hover { color: #c45c1a; }
-
-    .menu-btn.proveedores::before { background-color: #92400E; }
-    .menu-btn.proveedores:hover { color: #92400E; }
-
-    .menu-btn.ventasci::before { background-color: #1e40af; }
-    .menu-btn.ventasci:hover { color: #1e40af; }
-
-    .menu-btn.ventas::before { background-color: #1f2937; }
-    .menu-btn.ventas:hover { color: #1f2937; }
-
-    .menu-btn.rrhh::before { background-color: #0E7490; }
-    .menu-btn.rrhh:hover { color: #0E7490; }
-
-    .menu-btn.finanzas::before { background-color: #15803D; }
-    .menu-btn.finanzas:hover { color: #15803D; }
-
-    .menu-btn.inventario::before { background-color: #0369A1; }
-    .menu-btn.inventario:hover { color: #0369A1; }
-
-    .menu-btn.marketing::before { background-color: #BE123C; }
-    .menu-btn.marketing:hover { color: #BE123C; }
-
-    .menu-btn.portal::before { background-color: #C8973A; }
-    .menu-btn.portal:hover { color: #B45309; }
-
-    .empty-access { color: #6b7280; font-size: 14px; padding: 30px 10px; }
-
-  </style>
-  <link rel="stylesheet" href="brand/brand.css">
-  <script src="brand/brand.js"></script>
-  <script src="brand/form-examples.js"></script>
-  <script src="brand/layout.js"></script>
+@media (max-width:860px){
+  .hero .wrap,.contacto .wrap{grid-template-columns:1fr}
+  .nav ul{display:none;position:absolute;top:71px;left:-20px;right:-20px;flex-direction:column;gap:0;background:var(--negro);padding:8px 20px 16px}
+  .nav ul.abierto{display:flex}
+  .nav ul a{display:block;padding:12px 0}
+  .menu-movil{display:block;margin-left:auto}
+}
+@media (max-width:520px){
+  .datos{grid-template-columns:1fr}
+  .nav .ingresar span{display:none}
+  section{padding:60px 0}
+  .hero{padding:56px 0 64px}
+}
+</style>
 </head>
 <body>
-<div id="cimagen-gate" style="position:fixed;inset:0;z-index:999999;background:#111827;display:flex;align-items:center;justify-content:center;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;">
-  <div style="background:#fff;padding:36px 32px;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,0.3);max-width:340px;width:90%;text-align:center;">
-    <div style="font-size:32px;margin-bottom:8px;">🔒</div>
-    <h2 style="margin:0 0 6px;color:#1f2937;font-size:18px;">Creamos Imagen</h2>
-    <p id="cimagen-gate-msg" style="margin:0 0 20px;color:#6b7280;font-size:13px;">Inicia sesión con tu cuenta de Gmail o Hotmail para continuar</p>
-    <div id="cimagen-gate-btn-wrap" style="display:flex;flex-direction:column;align-items:center;gap:10px;">
-      <div id="cimagen-gate-google"></div>
-      <button id="cimagen-gate-ms" type="button" style="display:none;align-items:center;gap:10px;height:40px;padding:0 18px;background:#fff;color:#3c4043;border:1px solid #dadce0;border-radius:20px;font:500 14px 'Segoe UI',Tahoma,sans-serif;cursor:pointer;">
-        <svg width="18" height="18" viewBox="0 0 21 21" aria-hidden="true"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
-        Iniciar sesión con Microsoft
-      </button>
+
+<div class="aviso" id="aviso" hidden></div>
+
+<header>
+  <nav class="wrap nav">
+    <a class="logo" href="#inicio"><img src="brand/logo-horizontal-white.svg" alt="Creamos Imagen"></a>
+    <ul id="menu">
+      <li><a href="#productos">Productos</a></li>
+      <li><a href="#como-comprar">Cómo comprar</a></li>
+      <li><a href="#contacto">Tienda y contacto</a></li>
+    </ul>
+    <button class="menu-movil" id="btn-menu" aria-label="Abrir menú">☰</button>
+    <a class="btn btn-borde ingresar" href="portal.html">🔒 <span>Ingresar</span></a>
+  </nav>
+</header>
+
+<main id="inicio">
+<div id="contenido" class="cargando">
+  <section class="hero">
+    <div class="wrap">
+      <div>
+        <span class="etiqueta" id="h-etiqueta"></span>
+        <h1><span id="h-titulo"></span> <em id="h-destacado"></em></h1>
+        <p id="h-bajada"></p>
+        <div class="acciones">
+          <a class="btn btn-oro" href="#productos" id="h-b1"></a>
+          <a class="btn btn-borde" id="h-b2" href="#contacto"></a>
+        </div>
+      </div>
+      <div class="datos" id="datos"></div>
     </div>
-    <div id="cimagen-gate-denied" style="display:none;margin-top:8px;">
-      <div style="color:#dc2626;font-size:12.5px;margin-bottom:14px;">Tu cuenta no tiene acceso a ningún módulo todavía. Pide a Alejandra que te agregue. Si eres trabajador, pide que registren este mismo correo en tu ficha de Recursos Humanos.</div>
-      <button id="cimagen-gate-retry" style="padding:9px 16px;background:#f3f4f6;color:#374151;border:1px solid #d1d5db;border-radius:6px;font-weight:600;font-size:13px;cursor:pointer;">Probar con otra cuenta</button>
+  </section>
+
+  <section id="productos">
+    <div class="wrap">
+      <div class="titulo">
+        <span class="etiqueta" id="c-etiqueta"></span>
+        <h2 id="c-titulo"></h2>
+        <p id="c-bajada"></p>
+      </div>
+      <div class="filtros" id="filtros"></div>
+      <div class="grilla" id="grilla"></div>
     </div>
-  </div>
+  </section>
+
+  <section class="comprar" id="como-comprar">
+    <div class="wrap">
+      <div class="titulo">
+        <span class="etiqueta" id="p-etiqueta"></span>
+        <h2 id="p-titulo"></h2>
+      </div>
+      <div class="pasos" id="pasos"></div>
+      <p class="pago" id="p-pago"></p>
+    </div>
+  </section>
+
+  <section class="contacto" id="contacto">
+    <div class="wrap">
+      <div class="tarjeta">
+        <span class="etiqueta">Tienda física</span>
+        <h3 id="t-titulo"></h3>
+        <p id="t-direccion"></p>
+        <p id="t-horario"></p>
+        <p id="t-correo"></p>
+        <div class="acciones" id="redes"></div>
+      </div>
+      <div class="mapa">
+        <iframe id="mapa" title="Mapa de la tienda" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+      </div>
+    </div>
+  </section>
 </div>
+</main>
 
-<script src="sesion.js"></script>
-<script>
-// ============================================================
-// AUTENTICACIÓN CON GOOGLE + CONTROL DE ACCESO POR MÓDULO
-// ============================================================
-var GOOGLE_CLIENT_ID = "207433225749-76s4184pif80ge7gfr0nt39qa80b82ij.apps.googleusercontent.com";
-var SESSION_KEY = "cimagen_session";
-var SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 horas
-var API_URL = "/api/portal";
-// Los permisos (administrador, módulos, si es trabajador) los calcula el
-// servidor al iniciar sesión, a partir de "Accesos" y de las fichas de RRHH.
-
-var MODULOS = [
-  { key: "rendicion",    label: "Caja",           icon: "assets/module-icons/caja.jpg",          href: "rendicion.html",    cls: "caja" },
-  { key: "clientes",     label: "Clientes",       icon: "assets/module-icons/clientes.jpg",      href: "clientes.html",     cls: "clientes" },
-  { key: "costos",       label: "Costos",         icon: "assets/module-icons/costos.jpg",        href: "costos.html",       cls: "costos" },
-  { key: "cotizaciones", label: "Cotizaciones",   icon: "assets/module-icons/cotizaciones.jpg",  href: "cotizaciones.html", cls: "cotizaciones" },
-  { key: "dashboard",    label: "Indicadores",    icon: "assets/module-icons/indicadores.jpg",   href: "dashboard.html",    cls: "dashboard" },
-  { key: "calendario",   label: "Producciones",   icon: "assets/module-icons/produccion.jpg",     href: "calendario.html",   cls: "producciones" },
-  { key: "proveedores",  label: "Proveedores",    icon: "assets/module-icons/proveedores.jpg",    href: "proveedores.html",  cls: "proveedores" },
-  { key: "ventasci",     label: "Otros",          icon: "assets/module-icons/empresa.jpg",        href: "ventasci.html",     cls: "ventasci", sub: "(Creamos Imagen)" },
-  { key: "ventas",       label: "Sala de venta",  icon: "assets/module-icons/sala-ventas.jpg",   href: "ventas.html",       cls: "ventas", sub: "(Vendedores)" },
-  { key: "rrhh",         label: "Recursos Humanos",icon: "assets/module-icons/rrhh.jpg",          href: "rrhh.html",         cls: "rrhh" },
-  { key: "finanzas",     label: "Finanzas",       icon: "assets/module-icons/finanzas.jpg",      href: "finanzas.html",     cls: "finanzas", sub: "(Resultados, flujo e IVA)" },
-  { key: "inventario",   label: "Inventario",     icon: "assets/module-icons/inventario.jpg",    href: "inventario.html",   cls: "inventario", sub: "(Stock y catálogo)" },
-  { key: "marketing",    label: "Marketing",      icon: "assets/module-icons/marketing.jpg",     href: "marketing.html",    cls: "marketing", sub: "(Calendario de contenidos)" },
-  // Mi Portal no se asigna en "Accesos": lo ve quien tenga su correo
-  // registrado en la ficha de un trabajador Activo de Recursos Humanos.
-  { key: "trabajador",   label: "Mi Portal",      icon: "assets/module-icons/mi-portal.jpg",     href: "trabajador.html",   cls: "portal", sub: "(Trabajador)" }
-];
-// Envía el token de Google al servidor para verificarlo y obtener una sesión firmada.
-async function llamarServidor(cuerpo) {
-  var controller = new AbortController();
-  var timeout = setTimeout(function () { controller.abort(); }, 20000);
-  try {
-    var res = await fetch(API_URL, { method: "POST", body: JSON.stringify(cuerpo), signal: controller.signal, cache: "no-store" });
-    var body = await res.text();
-    if (!res.ok) throw new Error("El servicio respondió HTTP " + res.status + (body ? ": " + body.slice(0, 180) : "."));
-    try { return JSON.parse(body); }
-    catch (parseError) { throw new Error("El servicio devolvió una respuesta no JSON (HTTP " + res.status + ")."); }
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-// Una sesión sin "token" es de antes de las sesiones firmadas: hay que volver a entrar.
-function sessionValid(sess) {
-  return !!(sess && sess.email && sess.token && sess.ts && (Date.now() - sess.ts < SESSION_TTL_MS));
-}
-
-function isModuleAllowed(sess, moduleKey) {
-  if (!sessionValid(sess)) return false;
-  if (sess.isAdmin) return true;
-  if (moduleKey === "trabajador") return !!(sess.esTrabajador || (sess.modules && sess.modules.indexOf("trabajador") !== -1));
-  return !!(sess.modules && sess.modules.indexOf(moduleKey) !== -1);
-}
-
-function saveSession(sess) {
-  localStorage.setItem(SESSION_KEY, JSON.stringify(sess));
-}
-function readSession() {
-  try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch(e) { return null; }
-}
-function clearSession() {
-  localStorage.removeItem(SESSION_KEY);
-}
-
-async function handleCredentialResponse(response) {
-  if (!response || !response.credential) { showDenied(); return; }
-  await iniciarSesionEnServidor({ accion: "login", credential: response.credential }, "Google");
-}
-
-// Envía al servidor la prueba de identidad (Google o Microsoft) y, si la
-// acepta, guarda la sesión firmada y entra al menú.
-async function iniciarSesionEnServidor(cuerpo, proveedor) {
-  // El servidor verifica la cuenta y calcula los permisos; puede tardar unos
-  // segundos, así que se avisa en vez de dejar la pantalla quieta.
-  var msg = document.getElementById("cimagen-gate-msg");
-  var btnWrap = document.getElementById("cimagen-gate-btn-wrap");
-  if (msg) msg.textContent = "⏳ Verificando tus accesos…";
-  if (btnWrap) btnWrap.style.display = "none";
-  var resultado = null;
-  var errorRed = null;
-  try {
-    resultado = await llamarServidor(cuerpo);
-  } catch (e) {
-    errorRed = e;
-    console.error("Falló la llamada de inicio de sesión", e);
-  }
-  // La respuesta del servidor incluye una sesión firmada. Validamos el token
-  // emitido por el servidor; no dependemos de cómo se decodifique el texto
-  // acentuado del campo "estado" entre Apps Script y el navegador.
-  if (!resultado || !resultado.sesion || !resultado.sesion.token || !resultado.sesion.email) {
-    var detalle = resultado && String(resultado.detalle || "");
-    var diagnostico = errorRed && errorRed.message
-      ? errorRed.message
-      : resultado ? "Respuesta sin sesión válida (estado: " + String(resultado.estado || "vacío") + ")." : "el servidor no entregó datos";
-    if (msg) msg.textContent = detalle === "CREDENCIAL_INVALIDA"
-      ? "No se pudo verificar tu cuenta de " + proveedor + ". Inténtalo de nuevo."
-      : detalle.indexOf("script.external_request") !== -1
-        ? "El acceso requiere autorización del propietario del portal."
-        : detalle.toLowerCase().indexOf("spreadsheets") !== -1 || detalle.toLowerCase().indexOf("spreadsheetapp") !== -1
-          ? "Apps Script necesita autorización para acceder a la hoja de permisos. Ejecuta autorizarServicios desde el editor."
-          : detalle
-            ? "El servidor rechazó el inicio de sesión: " + detalle
-            : errorRed && errorRed.name === "AbortError"
-            ? "El servidor tardó demasiado en responder. Vuelve a intentarlo."
-              : "No se pudo conectar con el servidor. Diagnóstico portal: " + diagnostico;
-    if (btnWrap) btnWrap.style.display = "flex";
-    return;
-  }
-  var sess = resultado.sesion;
-  // Se recuerda con qué cuenta se entró: así "Enviar por correo" usa Gmail o
-  // Outlook según corresponda (ver correo.js).
-  sess.proveedor = proveedor;
-  if (!sess.isAdmin && (!sess.modules || sess.modules.length === 0) && !sess.esTrabajador) {
-    showDenied();
-    return;
-  }
-  saveSession(sess);
-  var query = new URLSearchParams(window.location.search);
-  if (query.get("return") === "trabajador") { window.location.replace("trabajador.html"); return; }
-  if (query.get("return") === "rrhh") { window.location.replace("rrhh.html"); return; }
-  // Un trabajador sin otros módulos entra directo a su portal.
-  if (soloPortal(sess)) { window.location.replace("trabajador.html"); return; }
-  enterApp(sess);
-}
-
-// ------------------------------------------------------------
-// Inicio de sesión con Microsoft (Hotmail, Outlook.com, Live)
-// ------------------------------------------------------------
-// Se va a la página de Microsoft y se vuelve a este mismo menú con un "code"
-// de un solo uso; el servidor lo canjea con Microsoft y entrega la sesión.
-// "state" (guardado en sessionStorage) asegura que la vuelta la inició este
-// navegador y recuerda a qué página volver después (?return=...).
-var MS_CLIENT_ID = "f7d2b2f8-80ef-46bd-827b-1cb6c9a65f99"; // Id. de aplicación (cliente) del registro en Azure
-var MS_STATE_KEY = "cimagen_ms_state";
-
-function msRedirectUri() {
-  return new URL("index.html", window.location.href).href;
-}
-
-function iniciarSesionMicrosoft() {
-  var state = Array.from(crypto.getRandomValues(new Uint8Array(16)), function(b){ return b.toString(16).padStart(2, "0"); }).join("");
-  var volver = new URLSearchParams(window.location.search).get("return") || "";
-  try { sessionStorage.setItem(MS_STATE_KEY, JSON.stringify({ state: state, volver: volver })); } catch (e) {}
-  var q = new URLSearchParams({
-    client_id: MS_CLIENT_ID,
-    response_type: "code",
-    redirect_uri: msRedirectUri(),
-    response_mode: "query",
-    scope: "openid email profile",
-    state: state,
-    prompt: "select_account"
-  });
-  window.location.href = "https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize?" + q.toString();
-}
-
-// Si se vuelve de Microsoft (?code=...&state=... o ?error=...), completa el
-// inicio de sesión. Devuelve true si la página venía de Microsoft.
-function volverDeMicrosoft() {
-  var params = new URLSearchParams(window.location.search);
-  var code = params.get("code"), errorMs = params.get("error");
-  if (!code && !errorMs) return false;
-  var guardado = null;
-  try { guardado = JSON.parse(sessionStorage.getItem(MS_STATE_KEY)); sessionStorage.removeItem(MS_STATE_KEY); } catch (e) {}
-  var volver = (guardado && guardado.volver) || "";
-  // Se limpia la dirección para que el code no quede en el historial.
-  history.replaceState(null, "", "index.html" + (volver ? "?return=" + encodeURIComponent(volver) : ""));
-  if (errorMs || !guardado || guardado.state !== params.get("state")) {
-    var msg = document.getElementById("cimagen-gate-msg");
-    if (msg) msg.textContent = errorMs === "access_denied"
-      ? "Cancelaste el inicio de sesión con Microsoft."
-      : "No se pudo completar el inicio de sesión con Microsoft. Inténtalo de nuevo.";
-    return true;
-  }
-  iniciarSesionEnServidor({ accion: "loginMicrosoft", code: code, redirectUri: msRedirectUri() }, "Microsoft");
-  return true;
-}
-
-function soloPortal(sess) {
-  return !sess.isAdmin && !!sess.esTrabajador && (!sess.modules || sess.modules.length === 0);
-}
-
-// Actualiza permisos al abrir el menú para reflejar cambios de Accesos o RRHH.
-async function refrescarSesion(sess) {
-  try {
-    var res = await fetch(API_URL + "?accion=yo&token=" + encodeURIComponent(sess.token));
-    var datos = await res.json();
-    if (!datos || datos.estado !== "éxito") return;
-    var cambio = datos.isAdmin !== sess.isAdmin || !!datos.esTrabajador !== !!sess.esTrabajador ||
-      (datos.modules || []).join() !== (sess.modules || []).join();
-    if (!cambio) return;
-    sess.isAdmin = datos.isAdmin;
-    sess.modules = datos.modules || [];
-    sess.esTrabajador = !!datos.esTrabajador;
-  } catch (e) { return; }
-  saveSession(sess);
-  renderMenu(sess);
-}
-
-function showDenied() {
-  var msg = document.getElementById("cimagen-gate-msg");
-  var btnWrap = document.getElementById("cimagen-gate-btn-wrap");
-  var denied = document.getElementById("cimagen-gate-denied");
-  if (msg) msg.style.display = "none";
-  if (btnWrap) btnWrap.style.display = "none";
-  if (denied) denied.style.display = "block";
-}
-
-function signOut() {
-  clearSession();
-  try {
-    if (window.google && google.accounts && google.accounts.id) {
-      google.accounts.id.disableAutoSelect();
-    }
-  } catch (e) {}
-  window.location.reload();
-}
-
-function enterApp(sess) {
-  var gate = document.getElementById("cimagen-gate");
-  if (gate) gate.remove();
-  document.documentElement.style.overflow = "";
-  renderUserbar(sess);
-  renderMenu(sess);
-}
-
-function renderUserbar(sess) {
-  var container = document.querySelector(".container");
-  if (!container) return;
-  var bar = document.createElement("div");
-  bar.className = "userbar";
-  var avatar = sess.picture
-    ? '<img src="' + sess.picture + '" alt="">'
-    : '<div style="width:32px;height:32px;border-radius:50%;background:#0D7A6B;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;">' + (sess.name || sess.email).charAt(0).toUpperCase() + '</div>';
-  bar.innerHTML =
-    '<div class="who">' + avatar +
-      '<div class="who-text"><div class="who-name">' + (sess.name || sess.email) + '</div><div class="who-email">' + sess.email + '</div></div>' +
-    '</div>' +
-    '<div class="actions">' +
-      (sess.isAdmin ? '<a class="admin-link" href="accesos.html">⚙️ Accesos</a>' : '') +
-      '<button class="logout-link" id="cimagen-logout-btn">Cerrar sesión</button>' +
-    '</div>';
-  var h1 = container.querySelector("h1");
-  container.insertBefore(bar, h1);
-  var logoutBtn = document.getElementById("cimagen-logout-btn");
-  if (logoutBtn) logoutBtn.addEventListener("click", signOut);
-}
-
-function renderMenu(sess) {
-  var grid = document.querySelector(".grid-menu");
-  if (!grid) return;
-  var visibles = MODULOS.filter(function(m){ return isModuleAllowed(sess, m.key); });
-  if (visibles.length === 0) {
-    grid.innerHTML = '<div class="empty-access">No tienes acceso a ningún módulo todavía. Pide a Alejandra que te agregue desde "Accesos".</div>';
-    return;
-  }
-  grid.innerHTML = visibles.map(function(m){
-    return '<a href="' + m.href + '" class="menu-btn ' + m.cls + '">' +
-      '<img class="icon" src="' + m.icon + '" alt="Icono de ' + m.label + '" loading="lazy">' +
-      '<span style="text-align:center;">' + m.label + (m.sub ? '<br><small style="font-size:10px;color:#888;font-weight:normal;">' + m.sub + '</small>' : '') + '</span>' +
-    '</a>';
-  }).join('');
-}
-
-(function init(){
-  var existing = readSession();
-  var params = new URLSearchParams(window.location.search);
-  var forceReauth = params.get("reauth") === "1";
-  if (forceReauth) clearSession();
-  if (sessionValid(existing) && !forceReauth) {
-    document.addEventListener("DOMContentLoaded", function(){
-      enterApp(existing);
-      refrescarSesion(existing);
-    });
-    return;
-  }
-  clearSession(); // sesión vencida o de antes de las sesiones firmadas
-  document.documentElement.style.overflow = "hidden";
-  document.addEventListener("DOMContentLoaded", function(){
-    var retryBtn = document.getElementById("cimagen-gate-retry");
-    if (retryBtn) retryBtn.addEventListener("click", function(){
-      clearSession();
-      window.location.reload();
-    });
-    var msBtn = document.getElementById("cimagen-gate-ms");
-    if (msBtn && MS_CLIENT_ID) {
-      msBtn.style.display = "inline-flex";
-      msBtn.addEventListener("click", iniciarSesionMicrosoft);
-    }
-    volverDeMicrosoft();
-    function tryRenderButton(attemptsLeft){
-      if (window.google && google.accounts && google.accounts.id) {
-        google.accounts.id.initialize({
-          client_id: GOOGLE_CLIENT_ID,
-          callback: handleCredentialResponse
-        });
-        google.accounts.id.renderButton(
-          document.getElementById("cimagen-gate-google"),
-          { theme: "outline", size: "large", text: "signin_with", shape: "pill" }
-        );
-      } else if (attemptsLeft > 0) {
-        setTimeout(function(){ tryRenderButton(attemptsLeft - 1); }, 300);
-      } else {
-        var msg = document.getElementById("cimagen-gate-msg");
-        if (msg) msg.textContent = "No se pudo cargar el inicio de sesión de Google. Revisa tu conexión y recarga la página.";
-      }
-    }
-    tryRenderButton(20);
-  });
-})();
-</script>
-
-  <div class="container">
-    <h1>Portal Creamos Imagen</h1>
-    <p>Selecciona la aplicación a la que deseas ingresar:</p>
-    
-    <!-- El contenedor del menú lo llenará la función de arriba -->
-    <div class="grid-menu"></div>
-    
+<footer>
+  <div class="wrap">
+    <img src="brand/logo-horizontal-white.svg" alt="Creamos Imagen">
+    <span>© <span id="anio"></span> Creamos Imagen · <span id="f-direccion"></span></span>
+    <span><a href="privacidad.html">Privacidad</a> · <a href="portal.html">Acceso trabajadores →</a></span>
   </div>
+</footer>
+
+<script src="sitio-contenido.js"></script>
+<script>
+const { esc, colorSeguro, urlSegura, fotoSegura, soloDigitos } = SitioUtil;
+const $ = s => document.querySelector(s);
+let S = contenidoSitio(null);
+let filtro = "Todos";
+
+const linkWsp = msg => soloDigitos(S.contacto.whatsapp)
+  ? "https://wa.me/" + soloDigitos(S.contacto.whatsapp) + "?text=" + encodeURIComponent(msg)
+  : "#contacto";
+const abreFuera = () => soloDigitos(S.contacto.whatsapp) ? ' target="_blank" rel="noopener"' : "";
+const texto = (sel, t) => { const el = $(sel); if (el) el.textContent = t || ""; };
+
+function pintar() {
+  const a = S.aviso || {};
+  $("#aviso").hidden = !(a.activo && a.texto);
+  texto("#aviso", a.texto);
+
+  const p = S.portada;
+  texto("#h-etiqueta", p.etiqueta); texto("#h-titulo", p.titulo); texto("#h-destacado", p.destacado);
+  texto("#h-bajada", p.bajada); texto("#h-b1", p.botonPrincipal); texto("#h-b2", p.botonSecundario);
+  const b2 = $("#h-b2");
+  b2.href = linkWsp(S.contacto.mensajeWhatsapp);
+  if (soloDigitos(S.contacto.whatsapp)) { b2.target = "_blank"; b2.rel = "noopener"; } else { b2.removeAttribute("target"); }
+
+  $("#datos").innerHTML = (S.datos || []).filter(d => d.valor || d.texto).slice(0, 6)
+    .map(d => `<div class="dato"><b>${esc(d.valor)}</b><span>${esc(d.texto)}</span></div>`).join("");
+
+  texto("#c-etiqueta", S.catalogo.etiqueta); texto("#c-titulo", S.catalogo.titulo); texto("#c-bajada", S.catalogo.bajada);
+  pintarFiltros(); pintarProductos();
+
+  texto("#p-etiqueta", S.comprar.etiqueta); texto("#p-titulo", S.comprar.titulo); texto("#p-pago", S.comprar.pago);
+  $("#pasos").innerHTML = (S.comprar.pasos || []).filter(x => x.titulo || x.texto)
+    .map(x => `<div class="paso"><h3>${esc(x.titulo)}</h3><p>${esc(x.texto)}</p></div>`).join("");
+
+  const c = S.contacto;
+  texto("#t-titulo", c.titulo);
+  texto("#t-direccion", c.direccion ? "📍 " + c.direccion : "");
+  texto("#t-horario", c.horario ? "🕒 " + c.horario : "");
+  texto("#t-correo", c.correo ? "✉️ " + c.correo : "");
+  texto("#f-direccion", c.direccion);
+  const redes = [];
+  if (soloDigitos(c.whatsapp)) redes.push(`<a class="btn btn-oro" target="_blank" rel="noopener" href="${esc(linkWsp(c.mensajeWhatsapp))}">WhatsApp</a>`);
+  [["Instagram", c.instagram], ["TikTok", c.tiktok], ["Facebook", c.facebook]].forEach(([n, u]) => {
+    if (urlSegura(u)) redes.push(`<a class="btn btn-borde" target="_blank" rel="noopener" href="${esc(urlSegura(u))}">${n}</a>`);
+  });
+  const destino = encodeURIComponent(c.direccion || "Río de Janeiro 319, Recoleta, Chile");
+  redes.push(`<a class="btn btn-borde" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${destino}">Cómo llegar</a>`);
+  $("#redes").innerHTML = redes.join("");
+  const urlMapa = "https://maps.google.com/maps?q=" + destino + "&z=16&output=embed";
+  if ($("#mapa").getAttribute("src") !== urlMapa) $("#mapa").setAttribute("src", urlMapa);
+}
+
+function productosVisibles() { return (S.productos || []).filter(p => p.visible !== false && p.nombre); }
+function pintarFiltros() {
+  const cats = ["Todos", ...new Set(productosVisibles().map(p => p.categoria).filter(Boolean))];
+  if (!cats.includes(filtro)) filtro = "Todos";
+  $("#filtros").innerHTML = cats.length > 2 ? cats.map(c => `<button class="${c === filtro ? "on" : ""}" data-c="${esc(c)}">${esc(c)}</button>`).join("") : "";
+  $("#filtros").querySelectorAll("button").forEach(b => b.onclick = () => { filtro = b.dataset.c; pintarFiltros(); pintarProductos(); });
+}
+function pintarProductos() {
+  const lista = productosVisibles().filter(p => filtro === "Todos" || p.categoria === filtro);
+  $("#grilla").innerHTML = lista.map(p => {
+    const foto = fotoSegura(p.foto);
+    return `
+    <article class="producto">
+      <div class="foto" style="background:${colorSeguro(p.color)}">
+        ${foto ? `<img src="${esc(foto)}" alt="${esc(p.nombre)}" loading="lazy">` : `<span class="marca">CI</span>`}
+        ${p.categoria ? `<span class="cat">${esc(p.categoria)}</span>` : ""}
+      </div>
+      <div class="info">
+        <h3>${esc(p.nombre)}</h3>
+        <p>${esc(p.texto)}</p>
+        <div class="pie">
+          <span class="precio">${esc(p.precio || "A cotizar")}</span>
+          <a${abreFuera()} href="${esc(linkWsp("Hola, quiero cotizar: " + p.nombre))}">Cotizar →</a>
+        </div>
+      </div>
+    </article>`;
+  }).join("");
+}
+
+$("#anio").textContent = new Date().getFullYear();
+$("#btn-menu").onclick = () => $("#menu").classList.toggle("abierto");
+document.querySelectorAll("#menu a").forEach(a => a.onclick = () => $("#menu").classList.remove("abierto"));
+
+// Contenido editado en el portal (Sitio web). Si no responde a tiempo, se
+// muestra el contenido base para no dejar la página en blanco.
+pintar();
+const mostrar = () => $("#contenido").classList.remove("cargando");
+const tope = setTimeout(mostrar, 1800);
+fetch("/api/sitio").then(r => r.json()).then(j => {
+  if (j && j.estado === "éxito" && j.contenido) { S = contenidoSitio(j.contenido); pintar(); }
+}).catch(() => {}).finally(() => { clearTimeout(tope); mostrar(); });
+</script>
 </body>
 </html>
-

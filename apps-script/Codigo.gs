@@ -32,6 +32,9 @@ const SHEET_MARCACIONES = "Marcaciones";
 const GOOGLE_CLIENT_ID = "207433225749-76s4184pif80ge7gfr0nt39qa80b82ij.apps.googleusercontent.com";
 const SUPER_ADMIN_EMAIL = "a.catalan.valdes@gmail.com";
 const ACL_KEY = "accesos_ci_v1";
+// Contenido del sitio público (index.html). Sin regla en REGLAS: solo los
+// administradores lo guardan; cualquiera lo lee con accion=sitioPublico.
+const KEY_SITIO = "sitio_web_v1";
 const SESION_TTL_MS = 24 * 60 * 60 * 1000; // igual que en las páginas
 const MODULOS = ["rendicion", "clientes", "costos", "cotizaciones", "dashboard", "calendario", "proveedores", "ventasci", "ventas", "rrhh", "marketing", "inventario", "finanzas"];
 
@@ -536,6 +539,9 @@ function accionGet(p) {
   }
   if (p.accion === "portal") return accionPortal(p.token, p.trabajadorId);
   if (p.accion === "portalDocs") return accionPortalDocs(p.token, p.trabajadorId);
+  // Sitio web público: única lectura sin sesión. Entrega solo el contenido
+  // de la página de inicio (sitio_web_v1), que edita un administrador.
+  if (p.accion === "sitioPublico") return respuesta({ estado: "éxito", valor: leerValor(KEY_SITIO) });
   if (p.accion === "marketingConciertos") return accionMarketingConciertos(p);
   if (p.accion === "tiktokEstado") return accionTiktokEstado(p);
   if (p.accion === "tiktokUrl") return accionTiktokUrl(p);

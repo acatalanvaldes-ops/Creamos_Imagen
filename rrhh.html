@@ -97,13 +97,13 @@ table.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
   var valid = sess && sess.email && sess.ts && (Date.now() - sess.ts < SESSION_TTL_MS);
   var allowed = valid && (sess.isAdmin || (sess.modules && sess.modules.indexOf(MODULE_KEY) !== -1));
   if (!allowed) {
-    window.location.replace('index.html');
+    window.location.replace('portal.html');
   }
 })();
 </script>
 <div class="topbar">
   <div class="brand">
-    <a href="index.html" style="color:#fff;text-decoration:none;font-size:12px;background:rgba(255,255,255,.15);padding:4px 8px;border-radius:4px;">← Menú</a>
+    <a href="portal.html" style="color:#fff;text-decoration:none;font-size:12px;background:rgba(255,255,255,.15);padding:4px 8px;border-radius:4px;">← Menú</a>
     <div class="brand-name">RRHH <span>Suite</span></div>
   </div>
   <div class="tabs">
@@ -878,7 +878,7 @@ async function cargarMarcacionesPortalRRHH(){
     const data=await res.json(); if(!res.ok || data.estado==='error') throw new Error(data.detalle||'No se pudieron cargar las marcaciones.');
     window.marcacionesPortalRRHH=data.marcaciones||[];
     renderMarcacionesPortalRRHH();
-  } catch(e){ tb.innerHTML=`<tr><td colspan="4" align="center">${escH(e.message)} <a href="index.html?reauth=1&amp;return=rrhh">Volver a iniciar sesión</a></td></tr>`; }
+  } catch(e){ tb.innerHTML=`<tr><td colspan="4" align="center">${escH(e.message)} <a href="portal.html?reauth=1&amp;return=rrhh">Volver a iniciar sesión</a></td></tr>`; }
   finally { if(btn){btn.disabled=false;btn.textContent='Actualizar';} }
 }
 
@@ -1990,7 +1990,7 @@ async function cgGenerar(id){
       headers:{ 'Content-Type':'application/json', 'X-Portal-Token':CLOUD_TOKEN },
       body:JSON.stringify({ nombre:c.nombre, area:c.area||'', reportaA:cgNombreJefe(c), subordinados:cgHijos(c.id).map(h=>h.nombre), jornada:c.jornada||'', funciones:c.funciones, notas:c.notas||'' }) });
     let j=null; try{ j=await res.json(); }catch(e){}
-    if(j&&(j.detalle==='SESION_EXPIRADA'||j.detalle==='NO_AUTORIZADO')){ alert('Tu sesión expiró. Vuelve a iniciar sesión.'); location.href='index.html'; return; }
+    if(j&&(j.detalle==='SESION_EXPIRADA'||j.detalle==='NO_AUTORIZADO')){ alert('Tu sesión expiró. Vuelve a iniciar sesión.'); location.href='portal.html'; return; }
     if(!res.ok||!j||j.estado!=='éxito'||!j.descriptor) throw new Error((j&&j.detalle)||('HTTP '+res.status));
     c.descriptor=j.descriptor; c.descriptorFecha=hoyChile(); c.descriptorIA=true; c.descriptorDesactualizado=false;
     sync('carg'); renderAll(); dscAbrir(c.id);

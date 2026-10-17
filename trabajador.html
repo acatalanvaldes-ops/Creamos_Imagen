@@ -156,19 +156,19 @@ table.tbl td.vacio{text-align:center;padding:28px;color:var(--muted)}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="certificado-vacaciones.js"></script>
 <script>
-// Mi Portal usa la misma sesión (Google o Microsoft) del menú principal (index.html).
+// Mi Portal usa la misma sesión (Google o Microsoft) del menú principal (portal.html).
 // Sin sesión válida se vuelve al menú para iniciar sesión.
 (function(){
   var sess = null;
   try { sess = JSON.parse(localStorage.getItem('cimagen_session')); } catch(e){}
   var valid = sess && sess.email && sess.ts && (Date.now() - sess.ts < 24 * 60 * 60 * 1000);
-  if (!valid) window.location.replace('index.html');
+  if (!valid) window.location.replace('portal.html');
 })();
 </script>
 
 <div class="topbar">
   <div class="brand">
-    <a href="index.html" class="menu-link" id="menu-link">← Menú</a>
+    <a href="portal.html" class="menu-link" id="menu-link">← Menú</a>
     <div class="brand-name">Mi <span>Portal</span></div>
   </div>
   <div class="user-profile">
@@ -511,7 +511,7 @@ const mismoId = (a, b) => String(a) === String(b);
 function leerSesion(){ try { return JSON.parse(localStorage.getItem('cimagen_session')); } catch(e) { return null; } }
 function cerrarSesion(){
   try { localStorage.removeItem('cimagen_session'); } catch(e) {}
-  window.location.href = 'index.html';
+  window.location.href = 'portal.html';
 }
 
 // =========================================================================
@@ -547,7 +547,7 @@ async function cargarPortal(trabajadorId){
     if (e.message === 'CORREO_NO_REGISTRADO') mostrarEstado('🔎', 'Correo no registrado', 'El correo <b>' + email + '</b> no está registrado en la ficha de ningún trabajador. Pide a Recursos Humanos que agregue este mismo correo en tu ficha y vuelve a entrar.', botonSalir());
     else if (e.message === 'TRABAJADOR_INACTIVO') mostrarEstado('🔒', 'Acceso deshabilitado', 'Tu ficha figura como inactiva en Recursos Humanos. Si crees que es un error, contacta a administración.', botonSalir());
     else if (e.message === 'SIN_TRABAJADORES') mostrarEstado('📋', 'Sin trabajadores', 'Todavía no hay trabajadores registrados en Recursos Humanos.', '');
-    else if (e.message === 'SESION_EXPIRADA' || e.message === 'NO_AUTORIZADO') mostrarEstado('🔒', 'Sesión vencida', 'Vuelve a ingresar para consultar tu información.', '<a class="act-btn primary" href="index.html?reauth=1&amp;return=trabajador">Iniciar sesión</a>');
+    else if (e.message === 'SESION_EXPIRADA' || e.message === 'NO_AUTORIZADO') mostrarEstado('🔒', 'Sesión vencida', 'Vuelve a ingresar para consultar tu información.', '<a class="act-btn primary" href="portal.html?reauth=1&amp;return=trabajador">Iniciar sesión</a>');
     else mostrarEstado('⚠️', 'No se pudo conectar', 'No fue posible cargar tu ficha de RRHH. Revisa tu conexión y vuelve a intentarlo.', '<button class="act-btn primary" onclick="location.reload()">Reintentar</button>');
     return;
   }
@@ -848,7 +848,7 @@ async function registrarMarcacionPortal(tipo){
     await cargarMarcacionesPortal();
   } catch(error) {
     estado.textContent=error.message;
-    if (/iniciar sesión|iniciar sesi[oó]n/i.test(error.message)) estado.innerHTML=esc(error.message)+' <a href="index.html?reauth=1&amp;return=trabajador">Volver a iniciar sesión</a>';
+    if (/iniciar sesión|iniciar sesi[oó]n/i.test(error.message)) estado.innerHTML=esc(error.message)+' <a href="portal.html?reauth=1&amp;return=trabajador">Volver a iniciar sesión</a>';
   } finally { btns.forEach(b=>b.disabled=!esPropio); }
 }
 

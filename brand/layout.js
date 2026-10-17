@@ -2,10 +2,10 @@
   function arrangeHeader() {
     var header = document.querySelector('.topbar,.header');
     if (!header) return;
-    var links = Array.from(document.querySelectorAll('a[href="index.html"]'));
+    var links = Array.from(document.querySelectorAll('a[href="portal.html"]'));
     var back = links.find(function (a) { return /men[uú]|volver/i.test(a.textContent || ''); });
     if (header.dataset.brandLayout === 'ready') return;
-    if (!back) { back=document.createElement('a'); back.href='index.html'; }
+    if (!back) { back=document.createElement('a'); back.href='portal.html'; }
 
     var keepSelects = Array.from(header.querySelectorAll('.brand select,.topbar-brand select,.header-left h1 select'));
     var lockup = document.createElement('div');

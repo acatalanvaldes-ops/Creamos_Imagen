@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sitio web · Creamos Imagen</title>
+<link rel="icon" href="brand/app-icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--dark:#141414;--gold:#C8973A;--oro:#F1AF13;--bg:#F7F5F0;--border:#E7E2D9;--muted:#78716C;--red:#C0392B;--teal:#0D7A6B}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--dark);font-size:14px}
+.topbar{background:var(--dark);border-bottom:3px solid var(--oro);padding:12px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;position:sticky;top:0;z-index:10}
+.topbar a.volver{color:var(--oro);text-decoration:none;font-weight:700;border:1.5px solid var(--oro);padding:6px 12px;border-radius:8px;font-size:13px}
+.topbar h1{color:#fff;font-family:'DM Serif Display',serif;font-weight:400;font-size:22px}
+.topbar .acc{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:1.5px solid var(--border);background:#fff;color:var(--dark);padding:8px 14px;border-radius:8px;font:inherit;font-weight:700;cursor:pointer}
+.btn:hover{border-color:var(--gold);color:var(--gold)}
+.btn.primary{background:var(--oro);border-color:var(--oro);color:var(--dark)}
+.btn.danger{color:var(--red)}
+.btn.small{padding:5px 9px;font-size:12px}
+.wrap{max-width:980px;margin:0 auto;padding:20px 16px 80px}
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:16px}
+.card h2{font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:var(--gold);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.fila{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.fld{flex:1;min-width:180px}
+.fld label{display:block;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.fld input,.fld textarea,.fld select{width:100%;border:1px solid var(--border);border-radius:6px;padding:8px 10px;font:inherit;background:var(--bg)}
+.fld textarea{min-height:64px;resize:vertical}
+.fld input:focus,.fld textarea:focus{outline:none;border-color:var(--gold);background:#fff}
+.nota{font-size:12px;color:var(--muted);line-height:1.5}
+.item{border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;background:#FCFBF8}
+.item.oculto{opacity:.55}
+.item-cab{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.item-cab b{flex:1}
+.foto-prev{width:120px;height:90px;border-radius:8px;border:1px solid var(--border);display:grid;place-items:center;overflow:hidden;font-family:'DM Serif Display',serif;font-size:22px;color:rgba(20,20,20,.7)}
+.foto-prev img{width:100%;height:100%;object-fit:cover}
+.estado{position:fixed;bottom:14px;right:14px;padding:9px 14px;border-radius:8px;font-weight:700;font-size:13px;box-shadow:0 4px 12px rgba(0,0,0,.15);display:none;z-index:50}
+.aviso-carga{display:none;background:#FEF2F2;border:1px solid #FECACA;color:var(--red);border-radius:8px;padding:10px 14px;margin-bottom:14px}
+</style>
+</head>
+<body>
+<script src="cargando.js"></script>
+<script src="sesion.js"></script>
+
+<div class="topbar">
+  <a class="volver" href="portal.html">← Menú</a>
+  <h1>Sitio web</h1>
+  <div class="acc">
+    <a class="btn" href="/" target="_blank" rel="noopener">👁 Ver sitio</a>
+    <button class="btn danger" onclick="restaurar()">Restaurar contenido base</button>
+    <button class="btn primary" id="btn-guardar" onclick="guardar()">💾 Guardar cambios</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="aviso-carga" id="aviso-carga"></div>
+  <div class="card"><div class="nota">Aquí editas la página pública <b>creamosimagen.vercel.app</b>. Los cambios se ven en el sitio en aproximadamente <b>1 minuto</b> después de guardar. Solo los administradores pueden editarla. No uses logos ni fotos oficiales de artistas (K-pop): solo diseños propios.</div></div>
+  <div id="editor"></div>
+</div>
+<div class="estado" id="estado"></div>
+
+<script src="sitio-contenido.js"></script>
+<script>
+const API_URL = "/api/portal";
+const CLOUD_TOKEN = tokenSesion();
+const LLAVE = "sitio_web_v1";
+const { esc, colorSeguro, fotoSegura, copia } = SitioUtil;
+const $ = id => document.getElementById(id);
+let S = contenidoSitio(null);
+let cargaOk = false, cambios = false;
+
+function estado(txt, tipo){
+  const el = $("estado"); el.textContent = txt; el.style.display = "block";
+  el.style.background = tipo === "ok" ? "#ECFDF5" : tipo === "error" ? "#FEF2F2" : "#fff";
+  el.style.color = tipo === "ok" ? "var(--teal)" : tipo === "error" ? "var(--red)" : "var(--muted)";
+  clearTimeout(el._t); if (tipo === "ok") el._t = setTimeout(() => el.style.display = "none", 3000);
+}
+function marcar(){ cambios = true; $("btn-guardar").textContent = "💾 Guardar cambios •"; }
+window.addEventListener("beforeunload", e => { if (cambios) { e.preventDefault(); e.returnValue = ""; } });
+
+// Campo de texto ligado a una ruta del contenido (ej. "portada.titulo").
+function obtener(ruta){ return ruta.split(".").reduce((o, k) => o == null ? o : o[k], S); }
+function fijar(ruta, v){ const p = ruta.split("."); let o = S; p.slice(0, -1).forEach(k => o = o[k]); o[p[p.length - 1]] = v; marcar(); }
+const campo = (ruta, etiqueta, tipo, ph) => `<div class="fld"><label>${esc(etiqueta)}</label>${tipo === "area"
+  ? `<textarea data-ruta="${ruta}" placeholder="${esc(ph || "")}">${esc(obtener(ruta))}</textarea>`
+  : `<input data-ruta="${ruta}" type="${tipo || "text"}" value="${esc(obtener(ruta))}" placeholder="${esc(ph || "")}">`}</div>`;
+
+function render(){
+  const cats = [...new Set(S.productos.map(p => p.categoria).filter(Boolean))];
+  $("editor").innerHTML = `
+  <div class="card"><h2>Aviso superior (promociones)</h2>
+    <label style="display:flex;gap:8px;align-items:center;margin-bottom:10px"><input type="checkbox" id="aviso-activo" ${S.aviso.activo ? "checked" : ""}> Mostrar una franja dorada arriba de la página</label>
+    <div class="fila">${campo("aviso.texto", "Texto del aviso", "text", "Ej: ¡Cyber Day! 15% en camisetas de equipo hasta el domingo")}</div></div>
+
+  <div class="card"><h2>Portada</h2>
+    <div class="fila">${campo("portada.etiqueta", "Etiqueta pequeña")}</div>
+    <div class="fila">${campo("portada.titulo", "Título")}${campo("portada.destacado", "Parte destacada en dorado")}</div>
+    <div class="fila">${campo("portada.bajada", "Texto", "area")}</div>
+    <div class="fila">${campo("portada.botonPrincipal", "Botón principal")}${campo("portada.botonSecundario", "Botón WhatsApp")}</div></div>
+
+  <div class="card"><h2>Cifras destacadas <button class="btn small" onclick="agregar('datos')">+ Agregar</button></h2>
+    ${S.datos.map((d, i) => `<div class="fila">${campo("datos." + i + ".valor", "Cifra")}${campo("datos." + i + ".texto", "Descripción")}<div style="align-self:flex-end"><button class="btn small danger" onclick="quitar('datos',${i})">🗑</button></div></div>`).join("")}
+    <div class="nota">Se muestran hasta 6. Lo ideal son 4.</div></div>
+
+  <div class="card"><h2>Catálogo</h2>
+    <div class="fila">${campo("catalogo.etiqueta", "Etiqueta")}${campo("catalogo.titulo", "Título")}</div>
+    <div class="fila">${campo("catalogo.bajada", "Texto", "area")}</div></div>
+
+  <div class="card"><h2>Productos (${S.productos.length}) <button class="btn small" onclick="agregarProducto()">+ Agregar producto</button></h2>
+    <datalist id="cats">${cats.map(c => `<option value="${esc(c)}">`).join("")}</datalist>
+    ${S.productos.map((p, i) => {
+      const foto = fotoSegura(p.foto);
+      return `<div class="item ${p.visible === false ? "oculto" : ""}">
+      <div class="item-cab"><b>${esc(p.nombre || "Producto sin nombre")}</b>
+        <label style="font-size:12px;display:flex;gap:5px;align-items:center"><input type="checkbox" ${p.visible !== false ? "checked" : ""} onchange="S.productos[${i}].visible=this.checked;marcar();render()"> Visible</label>
+        <button class="btn small" ${i === 0 ? "disabled" : ""} onclick="mover(${i},-1)" title="Subir">↑</button>
+        <button class="btn small" ${i === S.productos.length - 1 ? "disabled" : ""} onclick="mover(${i},1)" title="Bajar">↓</button>
+        <button class="btn small danger" onclick="quitar('productos',${i})">🗑</button></div>
+      <div class="fila">
+        <div><div class="foto-prev" style="background:${colorSeguro(p.color)}">${foto ? `<img src="${esc(foto)}" alt="">` : "CI"}</div>
+          <div style="display:flex;gap:4px;margin-top:6px"><label class="btn small" style="cursor:pointer">📷 Foto<input type="file" accept="image/*" hidden onchange="subirFoto(${i},this)"></label>${foto ? `<button class="btn small danger" onclick="S.productos[${i}].foto='';marcar();render()">✕</button>` : ""}</div></div>
+        <div style="flex:1;min-width:240px">
+          <div class="fila">${campo("productos." + i + ".nombre", "Nombre")}<div class="fld"><label>Categoría</label><input list="cats" data-ruta="productos.${i}.categoria" value="${esc(p.categoria)}"></div></div>
+          <div class="fila">${campo("productos." + i + ".precio", "Precio", "text", "Vacío = A cotizar. Ej: Desde $12.990")}<div class="fld" style="max-width:130px"><label>Color de fondo</label><input type="color" data-ruta="productos.${i}.color" value="${esc(colorSeguro(p.color))}" style="height:37px;padding:2px"></div></div>
+          <div class="fila">${campo("productos." + i + ".texto", "Descripción", "area")}</div>
+        </div>
+      </div></div>`;
+    }).join("")}
+    <div class="nota">La foto se reduce automáticamente. Si no hay foto, se muestra el color de fondo con "CI".</div></div>
+
+  <div class="card"><h2>Cómo comprar <button class="btn small" onclick="agregar('comprar.pasos')">+ Agregar paso</button></h2>
+    <div class="fila">${campo("comprar.etiqueta", "Etiqueta")}${campo("comprar.titulo", "Título")}</div>
+    ${S.comprar.pasos.map((x, i) => `<div class="fila">${campo("comprar.pasos." + i + ".titulo", "Paso " + (i + 1))}${campo("comprar.pasos." + i + ".texto", "Descripción")}<div style="align-self:flex-end"><button class="btn small danger" onclick="quitar('comprar.pasos',${i})">🗑</button></div></div>`).join("")}
+    <div class="fila">${campo("comprar.pago", "Medios de pago")}</div></div>
+
+  <div class="card"><h2>Tienda y contacto</h2>
+    <div class="fila">${campo("contacto.titulo", "Título")}${campo("contacto.direccion", "Dirección (también ubica el mapa)")}</div>
+    <div class="fila">${campo("contacto.horario", "Horario")}${campo("contacto.correo", "Correo", "email")}</div>
+    <div class="fila">${campo("contacto.whatsapp", "WhatsApp (con código país, ej. 56912345678)", "tel")}${campo("contacto.mensajeWhatsapp", "Mensaje inicial de WhatsApp")}</div>
+    <div class="fila">${campo("contacto.instagram", "Instagram (https://…)", "url")}${campo("contacto.tiktok", "TikTok (https://…)", "url")}${campo("contacto.facebook", "Facebook (https://…)", "url")}</div>
+    <div class="nota">Sin WhatsApp, los botones "Cotizar" llevan a la sección de contacto. Los enlaces de redes deben empezar con https://</div></div>`;
+
+  document.querySelectorAll("[data-ruta]").forEach(el => el.addEventListener(el.type === "color" ? "change" : "input", () => { fijar(el.dataset.ruta, el.value); if (el.type === "color") render(); }));
+  $("aviso-activo").onchange = e => { S.aviso.activo = e.target.checked; marcar(); };
+}
+
+const NUEVOS = { "datos": () => ({ valor: "", texto: "" }), "comprar.pasos": () => ({ titulo: "", texto: "" }) };
+function agregar(ruta){ obtener(ruta).push(NUEVOS[ruta]()); marcar(); render(); }
+function quitar(ruta, i){ const l = obtener(ruta); if (!confirm("¿Quitar este elemento?")) return; l.splice(i, 1); marcar(); render(); }
+function mover(i, d){ const l = S.productos, x = l.splice(i, 1)[0]; l.splice(i + d, 0, x); marcar(); render(); }
+function agregarProducto(){ S.productos.push({ id: "p" + Date.now().toString(36), visible: true, nombre: "", categoria: "", foto: "", precio: "", color: "#E6E2D9", texto: "" }); marcar(); render(); }
+
+// Foto: se reduce a 900 px de ancho máximo en JPEG para no pesar en la página.
+function subirFoto(i, input){
+  const f = input.files && input.files[0]; if (!f) return;
+  const img = new Image(), url = URL.createObjectURL(f);
+  img.onload = () => {
+    const max = 900, k = Math.min(1, max / Math.max(img.width, img.height));
+    const c = document.createElement("canvas"); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    URL.revokeObjectURL(url);
+    S.productos[i].foto = c.toDataURL("image/jpeg", 0.72); marcar(); render();
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); alert("No se pudo leer esa imagen. Usa JPG o PNG."); };
+  img.src = url;
+}
+
+async function cargar(){
+  try {
+    const res = await fetch(API_URL + "?key=" + LLAVE + "&token=" + encodeURIComponent(CLOUD_TOKEN));
+    const j = await res.json();
+    if (j.estado === "error") throw new Error(j.detalle || "Error del servidor");
+    S = contenidoSitio(j.valor ? JSON.parse(j.valor) : null);
+    cargaOk = true;
+  } catch (e) {
+    $("aviso-carga").style.display = "block";
+    $("aviso-carga").textContent = /SIN_PERMISO/.test(e.message) ? "Solo los administradores pueden editar el sitio web." : "No se pudo cargar el contenido del sitio. Recarga la página (F5) antes de editar.";
+  }
+  if (typeof ocultarCargando === "function") ocultarCargando();
+  render();
+}
+
+async function guardar(){
+  if (!cargaOk) { alert("No se pudo cargar el contenido desde la nube. Recarga la página (F5) antes de guardar."); return; }
+  const texto = JSON.stringify(S);
+  if (texto.length > 1500000) { alert("El contenido es muy pesado (demasiadas fotos). Quita o reemplaza algunas fotos y vuelve a guardar."); return; }
+  estado("⏳ Guardando…");
+  try {
+    const res = await fetch(API_URL, { method: "POST", body: JSON.stringify({ key: LLAVE, value: texto, token: CLOUD_TOKEN }) });
+    const j = await res.json();
+    if (j.estado === "error") throw new Error(j.detalle || "Error del servidor");
+    cambios = false; $("btn-guardar").textContent = "💾 Guardar cambios";
+    estado("✓ Guardado. Se verá en el sitio en ~1 minuto.", "ok");
+  } catch (e) {
+    estado("⚠ No se guardó: " + e.message, "error");
+  }
+}
+
+function restaurar(){
+  if (!confirm("¿Volver al contenido base? Se pierden los textos, productos y fotos editados (al guardar).")) return;
+  S = contenidoSitio(null); marcar(); render();
+}
+
+cargar();
+</script>
+</body>
+</html>

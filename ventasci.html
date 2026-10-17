@@ -95,12 +95,12 @@ tfoot td{padding:11px 12px;font-weight:700;white-space:nowrap}
   var valid = sess && sess.email && sess.ts && (Date.now() - sess.ts < SESSION_TTL_MS);
   var allowed = valid && (sess.isAdmin || (sess.modules && sess.modules.indexOf(MODULE_KEY) !== -1));
   if (!allowed) {
-    window.location.replace('index.html');
+    window.location.replace('portal.html');
   }
 })();
 </script>
 
-<a href="index.html" style="position:fixed; top:14px; left:20px; background:#1C1917; color:#C8973A; padding:8px 14px; border-radius:6px; border:1px solid #C8973A; text-decoration:none; font-family:Arial, sans-serif; font-size:11px; font-weight:bold; box-shadow:0 4px 6px rgba(0,0,0,0.2); z-index:9999;">← Menú</a>
+<a href="portal.html" style="position:fixed; top:14px; left:20px; background:#1C1917; color:#C8973A; padding:8px 14px; border-radius:6px; border:1px solid #C8973A; text-decoration:none; font-family:Arial, sans-serif; font-size:11px; font-weight:bold; box-shadow:0 4px 6px rgba(0,0,0,0.2); z-index:9999;">← Menú</a>
 <div id="app"></div>
 <script>
 // ============================================================

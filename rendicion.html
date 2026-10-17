@@ -127,13 +127,13 @@ tr.fila-auto td{background:#F8FAFC;color:#334155;padding:8px 10px;font-size:13px
   var valid = sess && sess.email && sess.ts && (Date.now() - sess.ts < SESSION_TTL_MS);
   var allowed = valid && (sess.isAdmin || (sess.modules && sess.modules.indexOf(MODULE_KEY) !== -1));
   if (!allowed) {
-    window.location.replace('index.html');
+    window.location.replace('portal.html');
   }
 })();
 </script>
 
 <div class="topbar">
-  <a href="index.html" style="color:#fff; text-decoration:none; font-size:12px; font-weight:700; background:rgba(255,255,255,0.15); padding:6px 12px; border-radius:6px; transition:background 0.2s; font-family:var(--sans);" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">← Menú</a>
+  <a href="portal.html" style="color:#fff; text-decoration:none; font-size:12px; font-weight:700; background:rgba(255,255,255,0.15); padding:6px 12px; border-radius:6px; transition:background 0.2s; font-family:var(--sans);" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">← Menú</a>
   <div class="topbar-brand">
     📋 Rendición de Caja 
     <select class="yr-select" id="year-select" onchange="changeYear(this.value)">
