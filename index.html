@@ -263,7 +263,7 @@ function pintar() {
   [["Instagram", c.instagram], ["TikTok", c.tiktok], ["Facebook", c.facebook]].forEach(([n, u]) => {
     if (urlSegura(u)) redes.push(`<a class="btn btn-borde" target="_blank" rel="noopener" href="${esc(urlSegura(u))}">${n}</a>`);
   });
-  const destino = encodeURIComponent(c.direccion || "Río de Janeiro 319, Recoleta, Chile");
+  const destino = encodeURIComponent(c.mapa || c.direccion || "República de Corea 319, Recoleta, Santiago, Chile");
   redes.push(`<a class="btn btn-borde" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${destino}">Cómo llegar</a>`);
   $("#redes").innerHTML = redes.join("");
   const urlMapa = "https://maps.google.com/maps?q=" + destino + "&z=16&output=embed";

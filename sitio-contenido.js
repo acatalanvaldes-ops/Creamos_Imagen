@@ -52,6 +52,8 @@
     contacto: {
       titulo: "Visítanos en Recoleta",
       direccion: "Río de Janeiro 319, Recoleta, Santiago",
+      // Dirección que se busca en Google Maps (mapa y botón "Cómo llegar").
+      mapa: "República de Corea 319, Recoleta, Santiago, Chile",
       horario: "Lunes a viernes de 10:00 a 18:30 hrs · Sábados de 10:00 a 17:00 hrs",
       whatsapp: "56945411092",
       mensajeWhatsapp: "Hola Creamos Imagen, quiero cotizar.",
