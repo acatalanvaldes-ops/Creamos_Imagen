@@ -175,6 +175,7 @@ tr.fila-auto td{background:#F8FAFC;color:#334155;padding:8px 10px;font-size:13px
       <div class="card"><div class="card-lbl">Transferencia</div><div class="card-val b" id="cc-tr">$0</div></div>
       <div class="card"><div class="card-lbl">Webpay crédito</div><div class="card-val a" id="cc-wpc">$0</div></div>
       <div class="card"><div class="card-lbl">Webpay débito</div><div class="card-val a" id="cc-wpd">$0</div></div>
+      <div class="card" style="background:#141414;border-color:#141414"><div class="card-lbl" style="color:#F1AF13">Total general</div><div class="card-val" id="cc-total" style="color:#fff">$0</div></div>
     </div>
     <div class="tbl-wrap">
       <div class="tbl-bar">
@@ -570,7 +571,7 @@ function changeYear(y) {
   document.getElementById('cc-n').textContent = "0";
   document.getElementById('cc-ef').textContent = "$0";
   document.getElementById('cc-tr').textContent = "$0";
-  document.getElementById('cc-wpc').textContent = "$0"; document.getElementById('cc-wpd').textContent = "$0";
+  document.getElementById('cc-wpc').textContent = "$0"; document.getElementById('cc-wpd').textContent = "$0"; document.getElementById('cc-total').textContent = "$0";
   document.getElementById('tf-ef').textContent = "$0";
   document.getElementById('tf-tr').textContent = "$0";
   document.getElementById('tf-wpc').textContent = "$0"; document.getElementById('tf-wpd').textContent = "$0";
@@ -722,7 +723,7 @@ function renderTable(){
   } updateTotals();
 }
 
-function updateCards(){ const rows=rowsForDate(curDate); document.getElementById('cc-n').textContent=rows.length; document.getElementById('cc-ef').textContent=fmt(rows.reduce((s,r)=>s+(+r.ef||0),0)); document.getElementById('cc-tr').textContent=fmt(rows.reduce((s,r)=>s+(+r.tr||0),0)); document.getElementById('cc-wpc').textContent=fmt(rows.reduce((s,r)=>s+wpCred(r),0)); document.getElementById('cc-wpd').textContent=fmt(rows.reduce((s,r)=>s+wpDeb(r),0)); }
+function updateCards(){ const rows=rowsForDate(curDate); document.getElementById('cc-n').textContent=rows.length; document.getElementById('cc-ef').textContent=fmt(rows.reduce((s,r)=>s+(+r.ef||0),0)); document.getElementById('cc-tr').textContent=fmt(rows.reduce((s,r)=>s+(+r.tr||0),0)); document.getElementById('cc-wpc').textContent=fmt(rows.reduce((s,r)=>s+wpCred(r),0)); document.getElementById('cc-wpd').textContent=fmt(rows.reduce((s,r)=>s+wpDeb(r),0)); document.getElementById('cc-total').textContent=fmt(rows.reduce((s,r)=>s+(+r.ef||0)+(+r.tr||0)+wpCred(r)+wpDeb(r),0)); }
 function updateTotals(){ const rows=rowsForDate(curDate); document.getElementById('tf-ef').textContent=fmt(rows.reduce((s,r)=>s+(+r.ef||0),0)); document.getElementById('tf-tr').textContent=fmt(rows.reduce((s,r)=>s+(+r.tr||0),0)); document.getElementById('tf-wpc').textContent=fmt(rows.reduce((s,r)=>s+wpCred(r),0)); document.getElementById('tf-wpd').textContent=fmt(rows.reduce((s,r)=>s+wpDeb(r),0)); }
 
 function addRow() { 
