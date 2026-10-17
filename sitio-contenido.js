@@ -29,10 +29,10 @@
       { id: "p1", visible: true, nombre: "Camisetas deportivas", categoria: "Deportivo", foto: "", precio: "", color: "#F1AF13", texto: "Camisetas 100% sublimadas para fútbol, básquetbol y ligas. Nombre y número incluidos." },
       { id: "p2", visible: true, nombre: "Conjuntos deportivos", categoria: "Deportivo", foto: "", precio: "", color: "#BCD0CA", texto: "Camiseta y short a juego con el diseño y los colores de tu equipo." },
       { id: "p3", visible: true, nombre: "Camisetas de arquero", categoria: "Deportivo", foto: "", precio: "", color: "#DA8C68", texto: "Manga larga, diseño diferenciado del resto del equipo." },
-      { id: "p4", visible: true, nombre: "Pañuelos K-pop 45×45 cm", categoria: "K-pop", foto: "", precio: "", color: "#C9B6E4", texto: "Pañuelos sublimados con diseños de tus grupos favoritos." },
-      { id: "p5", visible: true, nombre: "Pañoletas K-pop 70×70 cm", categoria: "K-pop", foto: "", precio: "", color: "#F2C4CE", texto: "Formato grande para conciertos y colección." },
-      { id: "p6", visible: true, nombre: "Poleras personalizadas", categoria: "Personalizado", foto: "", precio: "", color: "#E6E2D9", texto: "Tu diseño, logo o frase en poleras para eventos, empresas o regalos." },
-      { id: "p7", visible: true, nombre: "Artículos publicitarios", categoria: "Personalizado", foto: "", precio: "", color: "#F7D57A", texto: "Productos sublimados con la imagen de tu marca o empresa." }
+      { id: "p4", visible: true, nombre: "Pañuelos 45×45 cm", categoria: "Personalizado", foto: "", precio: "", color: "#C9B6E4", texto: "Pañuelos sublimados con diseños de tus grupos favoritos." },
+      { id: "p5", visible: true, nombre: "Pañoletas 70×70 cm", categoria: "Personalizado", foto: "", precio: "", color: "#F2C4CE", texto: "Formato grande para conciertos y colección." },
+      { id: "p8", visible: true, nombre: "Camisetas K-pop", categoria: "Personalizado", foto: "", precio: "", color: "#E6E2D9", texto: "Camisetas sublimadas con diseños de tus grupos favoritos." },
+      { id: "p9", visible: true, nombre: "Mantas personalizadas", categoria: "Personalizado", foto: "", precio: "", color: "#F7D57A", texto: "Mantas sublimadas con diseños de tus grupos favoritos." }
     ],
     comprar: {
       etiqueta: "Cómo comprar",
