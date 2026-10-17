@@ -33,7 +33,8 @@
         fotos: ["assets/sitio/panuelo-1.jpg", "assets/sitio/panuelo-2.jpg", "assets/sitio/panuelo-3.jpg", "assets/sitio/panuelo-4.jpg", "assets/sitio/panuelo-5.jpg", "assets/sitio/panuelo-6.jpg"], color: "#C9B6E4", texto: "Pañuelos sublimados con diseños de tus grupos favoritos." },
       { id: "p5", visible: true, nombre: "Pañoletas 70×70 cm", categoria: "Personalizado", foto: "", precio: "",
         fotos: ["assets/sitio/panoleta-1.jpg", "assets/sitio/panoleta-2.jpg", "assets/sitio/panoleta-3.jpg", "assets/sitio/panoleta-4.jpg"], color: "#F2C4CE", texto: "Formato grande para conciertos y colección." },
-      { id: "p8", visible: true, nombre: "Camisetas K-pop", categoria: "Personalizado", foto: "", precio: "", color: "#E6E2D9", texto: "Camisetas sublimadas con diseños de tus grupos favoritos." },
+      { id: "p8", visible: true, nombre: "Camisetas K-pop", categoria: "Personalizado", foto: "", precio: "",
+        fotos: ["assets/sitio/camiseta-kpop-1.jpg", "assets/sitio/camiseta-kpop-2.jpg", "assets/sitio/camiseta-kpop-3.jpg"], color: "#E6E2D9", texto: "Camisetas sublimadas con diseños de tus grupos favoritos." },
       { id: "p9", visible: true, nombre: "Mantas personalizadas", categoria: "Personalizado", foto: "", precio: "", color: "#F7D57A", texto: "Mantas sublimadas con diseños de tus grupos favoritos." }
     ],
     comprar: {
