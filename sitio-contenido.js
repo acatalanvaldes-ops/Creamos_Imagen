@@ -49,7 +49,7 @@
       titulo: "Visítanos en Recoleta",
       direccion: "Río de Janeiro 319, Recoleta, Santiago",
       horario: "Lunes a viernes · consulta horario por WhatsApp",
-      whatsapp: "",
+      whatsapp: "56945411092",
       mensajeWhatsapp: "Hola Creamos Imagen, quiero cotizar.",
       correo: "contactocreamosimagen@gmail.com",
       instagram: "",
