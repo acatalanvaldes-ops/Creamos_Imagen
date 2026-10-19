@@ -46,7 +46,11 @@
       { id: "p9", visible: true,
         valor: ["Tela polar: suave, liviana y abrigadora.", "Dos medidas: 100 × 130 cm y 135 × 180 cm.", "Sublimación full color: impresión en alta definición, con colores intensos y duraderos.", "Bordes reforzados: terminación resistente que no se deshilacha con el uso ni con los lavados.", "Desde 1 unidad: diseño personalizado a tu gusto."],
         nombre: "Mantas personalizadas", categoria: "Personalizado", foto: "", precio: "",
-        fotos: Array.from({ length: 12 }, (_, i) => "assets/sitio/manta-" + (i + 1) + ".jpg"), color: "#F7D57A", texto: "Mantas sublimadas con diseños de tus grupos favoritos." }
+        fotos: Array.from({ length: 12 }, (_, i) => "assets/sitio/manta-" + (i + 1) + ".jpg"), color: "#F7D57A", texto: "Mantas sublimadas con diseños de tus grupos favoritos." },
+      { id: "p10", visible: true,
+        valor: ["Gran formato: desde 3 m de largo por 1,50 m de ancho.", "Tela bistretch: elástica en ambos sentidos, ideal para tensar y colgar.", "Totalmente personalizado: tu escudo, colores, frases y diseño a medida."],
+        nombre: "Lienzos", categoria: "Personalizado", foto: "", precio: "",
+        fotos: ["assets/sitio/lienzo-1.jpg", "assets/sitio/lienzo-2.jpg", "assets/sitio/lienzo-3.jpg", "assets/sitio/lienzo-4.jpg"], color: "#DA8C68", texto: "Lienzos de gran formato para clubes, hinchadas, eventos y celebraciones." }
     ],
     comprar: {
       etiqueta: "Cómo comprar",
