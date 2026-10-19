@@ -129,16 +129,12 @@ function render(){
           <div class="fila">${campo("productos." + i + ".nombre", "Nombre")}<div class="fld"><label>Categoría</label><input list="cats" data-ruta="productos.${i}.categoria" value="${esc(p.categoria)}"></div></div>
           <div class="fila">${campo("productos." + i + ".precio", "Precio", "text", "Vacío = A cotizar. Ej: Desde $12.990")}<div class="fld" style="max-width:130px"><label>Color de fondo</label><input type="color" data-ruta="productos.${i}.color" value="${esc(colorSeguro(p.color))}" style="height:37px;padding:2px"></div></div>
           <div class="fila">${campo("productos." + i + ".texto", "Descripción", "area")}</div>
-          <div class="fila">${campoLista("productos." + i + ".valor", "Lo que hace único este producto (opcional, una idea por línea; se destaca en el visor)", "Ej: Nombre y número de cada jugador incluidos.")}</div>
+          <div class="fila">${campoLista("productos." + i + ".valor", "Características (una por línea, formato Nombre: detalle; se muestran al hacer clic en la foto)", "Ej: Medida 45 × 45 cm: formato cuadrado para el cuello o el cabello.")}</div>
         </div>
       </div></div>`;
     }).join("")}
     <div class="nota">La foto se reduce automáticamente. Si no hay foto, se muestra el color de fondo con "CI".</div></div>
 
-  <div class="card"><h2>Por qué elegirnos (visor de productos)</h2>
-    <div class="nota" style="margin-bottom:10px">Al hacer clic en la foto de un producto se abre el visor en grande. Junto a la foto aparece esta lista: lo que diferencia a Creamos Imagen de la competencia. Si un producto tiene su propio texto, va primero y destacado.</div>
-    <div class="fila">${campo("propuesta.titulo", "Título")}</div>
-    <div class="fila">${campoLista("propuesta.lista", "Razones (una por línea)")}</div></div>
 
   <div class="card"><h2>Cómo comprar <button class="btn small" onclick="agregar('comprar.pasos')">+ Agregar paso</button></h2>
     <div class="fila">${campo("comprar.etiqueta", "Etiqueta")}${campo("comprar.titulo", "Título")}</div>

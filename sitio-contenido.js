@@ -25,31 +25,25 @@
       titulo: "Lo que hacemos",
       bajada: "Todo se fabrica a pedido. Elige un producto y te enviamos la cotización con precio, tallas y plazo."
     },
+    // Cada producto: "valor" = sus características (una por línea en el editor,
+    // "Nombre: detalle"); se muestran en el visor al hacer clic en la foto.
     productos: [
       { id: "p1", visible: true, valor: ["Nombre y número de cada jugador incluidos."],nombre: "Camisetas deportivas", categoria: "Deportivo", foto: "", precio: "", color: "#F1AF13", texto: "Camisetas 100% sublimadas para fútbol, básquetbol y ligas. Nombre y número incluidos." },
       { id: "p2", visible: true, nombre: "Conjuntos deportivos", categoria: "Deportivo", foto: "", precio: "", color: "#BCD0CA", texto: "Camiseta y short a juego con el diseño y los colores de tu equipo." },
       { id: "p3", visible: true, nombre: "Camisetas de arquero", categoria: "Deportivo", foto: "", precio: "", color: "#DA8C68", texto: "Manga larga, diseño diferenciado del resto del equipo." },
-      { id: "p4", visible: true, nombre: "Pañuelos 45×45 cm", categoria: "Personalizado", foto: "", precio: "",
+      { id: "p4", visible: true,
+        valor: ["Medida 45 × 45 cm: formato cuadrado para el cuello, el cabello o como accesorio corporativo.", "Satín de poliéster: tela liviana, suave y brillante, que mantiene los colores intensos.", "Costuras reforzadas: dobladillo resistente que no se deshilacha con el uso ni con los lavados.", "Sublimación full color: impresión en alta definición dentro de la fibra, sin perder suavidad.", "Desde 25 unidades: precio mayorista para empresas, eventos y merchandising."],
+        nombre: "Pañuelos 45×45 cm", categoria: "Personalizado", foto: "", precio: "",
         fotos: ["assets/sitio/panuelo-1.jpg", "assets/sitio/panuelo-2.jpg", "assets/sitio/panuelo-3.jpg", "assets/sitio/panuelo-4.jpg", "assets/sitio/panuelo-5.jpg", "assets/sitio/panuelo-6.jpg"], color: "#C9B6E4", texto: "Pañuelos sublimados con diseños de tus grupos favoritos." },
-      { id: "p5", visible: true, nombre: "Pañoletas 70×70 cm", categoria: "Personalizado", foto: "", precio: "",
+      { id: "p5", visible: true,
+        valor: ["Medida 70 × 70 cm: formato cuadrado grande para el cuello, el cabello o para lucir en conciertos.", "Satín de poliéster: tela liviana, suave y brillante, que mantiene los colores intensos.", "Costuras reforzadas: dobladillo resistente que no se deshilacha con el uso ni con los lavados.", "Sublimación full color: impresión en alta definición dentro de la fibra, sin perder suavidad.", "Desde 25 unidades: precio mayorista para empresas, eventos y merchandising."],
+        nombre: "Pañoletas 70×70 cm", categoria: "Personalizado", foto: "", precio: "",
         fotos: ["assets/sitio/panoleta-1.jpg", "assets/sitio/panoleta-2.jpg", "assets/sitio/panoleta-3.jpg", "assets/sitio/panoleta-4.jpg"], color: "#F2C4CE", texto: "Formato grande para conciertos y colección." },
       { id: "p8", visible: true, nombre: "Camisetas K-pop", categoria: "Personalizado", foto: "", precio: "",
         fotos: ["assets/sitio/camiseta-kpop-1.jpg", "assets/sitio/camiseta-kpop-2.jpg", "assets/sitio/camiseta-kpop-3.jpg"], color: "#E6E2D9", texto: "Camisetas sublimadas con diseños de tus grupos favoritos." },
       { id: "p9", visible: true, nombre: "Mantas personalizadas", categoria: "Personalizado", foto: "", precio: "",
         fotos: Array.from({ length: 12 }, (_, i) => "assets/sitio/manta-" + (i + 1) + ".jpg"), color: "#F7D57A", texto: "Mantas sublimadas con diseños de tus grupos favoritos." }
     ],
-    // Texto diferenciador del visor de productos. Cada producto puede tener
-    // el suyo ("valor"); si no tiene, se muestra esta lista general.
-    propuesta: {
-      titulo: "Por qué elegir Creamos Imagen",
-      lista: [
-        "15 años sublimando: sabemos cómo se verá tu diseño antes de producirlo.",
-        "Diseño a tu medida incluido: creamos o adaptamos tu idea, sin plantillas genéricas.",
-        "Colores que duran: la sublimación tiñe la tela, no se agrieta ni se despega con el lavado.",
-        "Fabricamos en Santiago: tu pedido sale de nuestro taller y lo retiras en la tienda de Recoleta.",
-        "Producción en 15 a 20 días y te avisamos apenas esté listo."
-      ]
-    },
     comprar: {
       etiqueta: "Cómo comprar",
       titulo: "De la idea a tu equipo en 4 pasos",

@@ -113,7 +113,7 @@ section{padding:80px 0}
 .v-valor ul{list-style:none;display:flex;flex-direction:column;gap:9px}
 .v-valor li{padding-left:22px;position:relative;font-size:13.5px;line-height:1.4}
 .v-valor li::before{content:"✦";position:absolute;left:0;color:var(--oro)}
-.v-valor li.propio{color:#fff;font-weight:700}
+.v-valor li b{color:#fff}
 .visor-info .pie{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:auto;padding-top:6px}
 .visor-info .precio{font-size:18px}
 body.visor-abierto{overflow:hidden}
@@ -412,11 +412,11 @@ function abrirVisor(n) {
   const fotos = fotosDe(p);
   texto("#v-cat", p.categoria); $("#v-cat").hidden = !p.categoria;
   texto("#v-nombre", p.nombre); texto("#v-texto", p.texto); texto("#v-precio", p.precio || "A cotizar");
-  const propios = (Array.isArray(p.valor) ? p.valor : []).filter(Boolean);
-  const generales = ((S.propuesta && S.propuesta.lista) || []).filter(Boolean);
-  texto("#v-valor-titulo", (S.propuesta && S.propuesta.titulo) || "Por qué elegir Creamos Imagen");
-  $("#v-valor").innerHTML = propios.map(t => `<li class="propio">${esc(t)}</li>`).join("") + generales.map(t => `<li>${esc(t)}</li>`).join("");
-  $(".v-valor").hidden = !(propios.length || generales.length);
+  // Características del producto: "Nombre: detalle" → nombre en negrita.
+  const carac = (Array.isArray(p.valor) ? p.valor : []).filter(Boolean);
+  texto("#v-valor-titulo", "Características");
+  $("#v-valor").innerHTML = carac.map(t => { const k = String(t).indexOf(":"); return k > 0 && k < 40 ? `<li><b>${esc(t.slice(0, k))}:</b>${esc(t.slice(k + 1))}</li>` : `<li>${esc(t)}</li>`; }).join("");
+  $(".v-valor").hidden = !carac.length;
   const c = $("#v-cotizar");
   c.href = linkWsp("Hola, quiero cotizar: " + p.nombre);
   if (soloDigitos(S.contacto.whatsapp)) { c.target = "_blank"; c.rel = "noopener"; } else { c.removeAttribute("target"); c.onclick = cerrarVisor; }
