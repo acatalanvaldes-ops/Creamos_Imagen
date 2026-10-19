@@ -172,9 +172,12 @@ footer a.colab:hover{color:#888}
 /* Contáctanos */
 .form-contacto{background:var(--blanco);border:1px solid var(--borde);border-radius:22px;padding:32px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-items:end}
 .form-contacto label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}
-.form-contacto input{width:100%;font:inherit;font-size:15px;padding:12px 14px;border:1.5px solid var(--borde);border-radius:12px;background:var(--crema)}
-.form-contacto input:focus{outline:none;border-color:var(--oro);background:#fff}
-.form-contacto input.mal{border-color:#C0392B;background:#FEF2F2}
+.form-contacto input,.form-contacto textarea{width:100%;font:inherit;font-size:15px;padding:12px 14px;border:1.5px solid var(--borde);border-radius:12px;background:var(--crema)}
+.form-contacto textarea{min-height:120px;resize:vertical;line-height:1.5}
+.form-contacto input:focus,.form-contacto textarea:focus{outline:none;border-color:var(--oro);background:#fff}
+.form-contacto input.mal,.form-contacto textarea.mal{border-color:#C0392B;background:#FEF2F2}
+.form-contacto .ancho{grid-column:1/-1}
+.form-contacto .cuenta{font-size:11px;color:var(--gris);text-align:right;margin-top:4px}
 .form-contacto .acciones-form{grid-column:1/-1;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
 .form-contacto .btn{border:0;font:inherit;font-weight:700}
 .form-contacto .btn[disabled]{opacity:.6;cursor:wait}
@@ -273,6 +276,7 @@ footer a.colab:hover{color:#888}
         <div><label for="fc-nombre">Nombre</label><input id="fc-nombre" name="nombre" autocomplete="name" maxlength="80" required placeholder="Tu nombre y apellido"></div>
         <div><label for="fc-rut">RUT</label><input id="fc-rut" name="rut" inputmode="text" maxlength="12" required placeholder="12.345.678-9"></div>
         <div><label for="fc-correo">Correo electrónico</label><input id="fc-correo" name="correo" type="email" autocomplete="email" maxlength="120" required placeholder="tucorreo@ejemplo.cl"></div>
+        <div class="ancho"><label for="fc-mensaje">¿Qué necesitas?</label><textarea id="fc-mensaje" name="mensaje" maxlength="1500" required placeholder="Ej: 20 camisetas de fútbol sublimadas con nombre y número para mi equipo, para fines de noviembre."></textarea><div class="cuenta" id="fc-cuenta">0 / 1.500</div></div>
         <div class="trampa" aria-hidden="true"><label for="fc-web">No completar</label><input id="fc-web" name="web" tabindex="-1" autocomplete="off"></div>
         <div class="acciones-form">
           <button class="btn btn-oro" type="submit" id="fc-enviar">Enviar</button>
@@ -520,24 +524,26 @@ function rutValido(rut) {
   const e = 11 - (suma % 11), ok = e === 11 ? "0" : e === 10 ? "K" : String(e);
   return dv === ok ? cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "-" + dv : null;
 }
+$("#fc-mensaje").addEventListener("input", e => { $("#fc-cuenta").textContent = e.target.value.length.toLocaleString("es-CL") + " / 1.500"; });
 $("#fc-rut").addEventListener("blur", e => { const f = rutValido(e.target.value); if (f) e.target.value = f; });
 $("#form-contacto").addEventListener("submit", async e => {
   e.preventDefault();
-  const nombre = $("#fc-nombre"), rut = $("#fc-rut"), correo = $("#fc-correo"), msg = $("#fc-msg"), btn = $("#fc-enviar");
+  const nombre = $("#fc-nombre"), rut = $("#fc-rut"), correo = $("#fc-correo"), mensaje = $("#fc-mensaje"), msg = $("#fc-msg"), btn = $("#fc-enviar");
   const errores = [];
-  [nombre, rut, correo].forEach(x => x.classList.remove("mal"));
+  [nombre, rut, correo, mensaje].forEach(x => x.classList.remove("mal"));
   if (nombre.value.trim().length < 2) { errores.push("tu nombre"); nombre.classList.add("mal"); }
   const rutF = rutValido(rut.value);
   if (!rutF) { errores.push("un RUT válido"); rut.classList.add("mal"); } else rut.value = rutF;
   if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(correo.value.trim())) { errores.push("un correo válido"); correo.classList.add("mal"); }
+  if (mensaje.value.trim().length < 5) { errores.push("lo que necesitas"); mensaje.classList.add("mal"); }
   const mostrarMsg = (t, ok) => { msg.hidden = false; msg.className = "msg-form " + (ok ? "ok" : "mal"); msg.textContent = t; };
   if (errores.length) { mostrarMsg("Revisa: " + errores.join(", ") + ".", false); return; }
   btn.disabled = true; btn.textContent = "Enviando…";
   try {
-    const r = await fetch("/api/contacto", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nombre: nombre.value.trim(), rut: rut.value, correo: correo.value.trim(), web: $("#fc-web").value }) });
+    const r = await fetch("/api/contacto", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nombre: nombre.value.trim(), rut: rut.value, correo: correo.value.trim(), mensaje: mensaje.value.trim(), web: $("#fc-web").value }) });
     const j = await r.json();
     if (j.estado !== "éxito") throw new Error(j.detalle || "No se pudo enviar.");
-    $("#form-contacto").reset();
+    $("#form-contacto").reset(); $("#fc-cuenta").textContent = "0 / 1.500";
     mostrarMsg("¡Gracias! Recibimos tus datos y te contactaremos pronto.", true);
   } catch (err) {
     mostrarMsg(err.message || "No se pudo enviar. Inténtalo de nuevo o escríbenos por WhatsApp.", false);

@@ -1317,10 +1317,13 @@ function accionContactoSitio(b) {
   if (String(b.web || "").trim()) return respuesta({ estado: "éxito" });
   const nombre = String(b.nombre || "").replace(/\s+/g, " ").trim();
   const correo = String(b.correo || "").trim().toLowerCase();
+  const mensaje = String(b.mensaje || "").replace(/\r\n?/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
   const rut = rutValido(b.rut);
   if (nombre.length < 2 || nombre.length > 80) return error("Escribe tu nombre.");
   if (!rut) return error("El RUT no es válido. Revisa el número y el dígito verificador.");
   if (correo.length > 120 || !/^[^\s@<>"']+@[^\s@<>"']+\.[a-z]{2,}$/i.test(correo)) return error("El correo no es válido.");
+  if (mensaje.length < 5) return error("Cuéntanos qué necesitas.");
+  if (mensaje.length > 1500) return error("El mensaje es muy largo (máximo 1.500 caracteres).");
   const cache = CacheService.getScriptCache();
   const hora = Utilities.formatDate(new Date(), "America/Santiago", "yyyyMMddHH");
   const huella = String(b.huella || "").replace(/[^a-f0-9]/gi, "").slice(0, 32);
@@ -1328,22 +1331,55 @@ function accionContactoSitio(b) {
   const total = Number(cache.get(kTotal) || 0), deEste = huella ? Number(cache.get(kHuella) || 0) : 0;
   if (total >= 60 || deEste >= 5) return error("Recibimos muchos mensajes en este momento. Inténtalo más tarde o escríbenos por WhatsApp.");
   const lock = LockService.getScriptLock();
+  let nuevo = null;
   try {
     lock.waitLock(20000);
     let lista = [];
     try { lista = JSON.parse(leerValor(KEY_CONTACTOS) || "[]") || []; } catch (e) { lista = []; }
     if (!Array.isArray(lista)) lista = [];
     const ahora = Date.now();
-    const repetido = lista.some(function (c) { return c.rut === rut && c.correo === correo && ahora - Number(c.ts || 0) < 30 * 60000; });
+    const repetido = lista.some(function (c) { return c.rut === rut && c.correo === correo && neutralizarTexto(mensaje) === c.mensaje && ahora - Number(c.ts || 0) < 30 * 60000; });
     if (!repetido) {
-      lista.push(neutralizar({ id: Utilities.getUuid(), ts: ahora, fecha: ahoraChileISO(), nombre: nombre, rut: rut, correo: correo, estado: "nuevo" }));
+      nuevo = neutralizar({ id: Utilities.getUuid(), ts: ahora, fecha: ahoraChileISO(), nombre: nombre, rut: rut, correo: correo, mensaje: mensaje, estado: "nuevo" });
+      lista.push(nuevo);
       if (lista.length > 2000) lista = lista.slice(lista.length - 2000);
       escribirValor(KEY_CONTACTOS, JSON.stringify(lista));
     }
   } finally { lock.releaseLock(); }
   cache.put(kTotal, String(total + 1), 3700);
   if (huella) cache.put(kHuella, String(deEste + 1), 3700);
+  // El aviso por correo nunca impide guardar el contacto: si falla, queda en el portal igual.
+  if (nuevo) { try { avisarContactoPorCorreo(nuevo); } catch (e) { console.error("aviso de contacto por correo", e); } }
   return respuesta({ estado: "éxito" });
+}
+
+// Aviso a ventas por cada contacto nuevo. Requiere el permiso de enviar
+// correos (script.send_mail en appsscript.json), que el dueño del script
+// autoriza una vez ejecutando autorizarCorreo() desde el editor.
+const CORREO_VENTAS = "ventasmayorsublipro@gmail.com";
+function avisarContactoPorCorreo(c) {
+  const h = s => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const fecha = c.fecha ? c.fecha.slice(8, 10) + "-" + c.fecha.slice(5, 7) + "-" + c.fecha.slice(0, 4) + " " + c.fecha.slice(11, 16) : "";
+  const fila = (k, v) => '<tr><td style="padding:6px 12px 6px 0;color:#6F6B63;font-weight:bold;vertical-align:top">' + k + '</td><td style="padding:6px 0">' + v + "</td></tr>";
+  MailApp.sendEmail({
+    to: CORREO_VENTAS,
+    replyTo: c.correo,
+    name: "Sitio web Creamos Imagen",
+    subject: "Nuevo contacto desde el sitio: " + c.nombre,
+    body: "Nuevo contacto desde creamosimagen.vercel.app\n\nNombre: " + c.nombre + "\nRUT: " + c.rut + "\nCorreo: " + c.correo + "\nFecha: " + fecha + "\n\nMensaje:\n" + c.mensaje + "\n\nResponde este correo para escribirle directamente al cliente.",
+    htmlBody: '<div style="font-family:Arial,sans-serif;font-size:14px;color:#141414;max-width:560px">' +
+      '<div style="background:#141414;color:#F1AF13;padding:14px 18px;border-radius:10px 10px 0 0;font-weight:bold">Nuevo contacto desde el sitio web</div>' +
+      '<div style="border:1px solid #E6E2D9;border-top:0;padding:16px 18px;border-radius:0 0 10px 10px">' +
+      '<table style="border-collapse:collapse;font-size:14px">' + fila("Nombre", h(c.nombre)) + fila("RUT", h(c.rut)) +
+      fila("Correo", '<a href="mailto:' + h(c.correo) + '">' + h(c.correo) + "</a>") + fila("Fecha", h(fecha)) + "</table>" +
+      '<div style="margin-top:12px;padding:12px 14px;background:#F7F6F2;border-left:4px solid #F1AF13;white-space:pre-wrap">' + h(c.mensaje) + "</div>" +
+      '<p style="color:#6F6B63;font-size:12px;margin-top:14px">Responde este correo para escribirle directamente al cliente. También queda en el portal: Sitio web → Contactos recibidos.</p></div></div>'
+  });
+}
+// Ejecutar UNA VEZ desde el editor de Apps Script (botón ▶) para autorizar
+// el envío de correos. Manda un correo de prueba a ventas.
+function autorizarCorreo() {
+  MailApp.sendEmail(CORREO_VENTAS, "Prueba: avisos de contacto del sitio web", "Los avisos del formulario Contáctanos de creamosimagen.vercel.app quedaron autorizados. Quedan " + MailApp.getRemainingDailyQuota() + " envíos disponibles hoy.");
 }
 
 function accionLoginMicrosoft(b) {

@@ -252,10 +252,10 @@ function renderContactos(){
       <span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label style="font-size:12px;text-transform:none;letter-spacing:0;color:var(--muted);display:flex;gap:5px;align-items:center"><input type="checkbox" ${verAtendidos ? "checked" : ""} onchange="verAtendidos=this.checked;renderContactos()"> Ver atendidos</label>
       <button class="btn small" onclick="cargarContactos()">🔄</button>${CONTACTOS.length ? '<button class="btn small" onclick="descargarContactos()">⬇ CSV</button>' : ""}</span></h2>
     ${lista.length ? `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">
-      <thead><tr style="text-align:left;color:var(--muted);font-size:11px;text-transform:uppercase"><th style="padding:6px">Fecha</th><th style="padding:6px">Nombre</th><th style="padding:6px">RUT</th><th style="padding:6px">Correo</th><th></th></tr></thead>
+      <thead><tr style="text-align:left;color:var(--muted);font-size:11px;text-transform:uppercase"><th style="padding:6px">Fecha</th><th style="padding:6px">Nombre</th><th style="padding:6px">RUT</th><th style="padding:6px">Correo y mensaje</th><th></th></tr></thead>
       <tbody>${lista.map(c => `<tr style="border-top:1px solid var(--border);${c.estado === "atendido" ? "opacity:.55" : ""}">
         <td style="padding:8px 6px;white-space:nowrap">${esc(fecha(c.fecha))}</td><td style="padding:8px 6px"><b>${esc(c.nombre)}</b></td><td style="padding:8px 6px;white-space:nowrap">${esc(c.rut)}</td>
-        <td style="padding:8px 6px"><a href="mailto:${esc(c.correo)}">${esc(c.correo)}</a></td>
+        <td style="padding:8px 6px"><a href="mailto:${esc(c.correo)}">${esc(c.correo)}</a>${c.mensaje ? `<div style="margin-top:4px;color:var(--dark);white-space:pre-wrap;max-width:460px;font-size:12.5px;line-height:1.45">${esc(c.mensaje)}</div>` : ""}</td>
         <td style="padding:8px 6px;white-space:nowrap;text-align:right">${c.estado === "atendido" ? `<button class="btn small" onclick="cambiarContacto('${esc(c.id)}','nuevo')">↺ Pendiente</button>` : `<button class="btn small" onclick="cambiarContacto('${esc(c.id)}','atendido')">✓ Atendido</button>`}
           <button class="btn small danger" onclick="cambiarContacto('${esc(c.id)}','borrar')">🗑</button></td></tr>`).join("")}</tbody></table></div>`
       : `<div class="nota">${CONTACTOS.length ? "No hay contactos pendientes. Marca \"Ver atendidos\" para verlos todos." : "Aún no llegan contactos desde el sitio."}</div>`}`;
@@ -273,7 +273,7 @@ async function cambiarContacto(id, accion){
 }
 function descargarContactos(){
   const celda = v => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
-  const filas = [["Fecha", "Nombre", "RUT", "Correo", "Estado"]].concat(CONTACTOS.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0)).map(c => [c.fecha, c.nombre, c.rut, c.correo, c.estado]));
+  const filas = [["Fecha", "Nombre", "RUT", "Correo", "Mensaje", "Estado"]].concat(CONTACTOS.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0)).map(c => [c.fecha, c.nombre, c.rut, c.correo, c.mensaje || "", c.estado]));
   const blob = new Blob(["﻿" + filas.map(f => f.map(celda).join(";")).join("\r\n")], { type: "text/csv;charset=utf-8" });
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "contactos_sitio_web.csv"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }

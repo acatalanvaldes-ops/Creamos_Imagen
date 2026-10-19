@@ -21,6 +21,7 @@ module.exports = async function contacto(req, res) {
     nombre: String(b.nombre || "").slice(0, 200),
     rut: String(b.rut || "").slice(0, 20),
     correo: String(b.correo || "").slice(0, 200),
+    mensaje: String(b.mensaje || "").slice(0, 2000),
     web: String(b.web || "").slice(0, 200),
     huella
   };
