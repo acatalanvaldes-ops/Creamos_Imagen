@@ -35,6 +35,9 @@ const ACL_KEY = "accesos_ci_v1";
 // Contenido del sitio público (index.html). Sin regla en REGLAS: solo los
 // administradores lo guardan; cualquiera lo lee con accion=sitioPublico.
 const KEY_SITIO = "sitio_web_v1";
+// Formulario "Contáctanos" del sitio público: única escritura sin sesión.
+// Se lee y gestiona en el portal (Sitio web), solo administradores.
+const KEY_CONTACTOS = "contactos_web_v1";
 const SESION_TTL_MS = 24 * 60 * 60 * 1000; // igual que en las páginas
 const MODULOS = ["rendicion", "clientes", "costos", "cotizaciones", "dashboard", "calendario", "proveedores", "ventasci", "ventas", "rrhh", "marketing", "inventario", "finanzas"];
 
@@ -558,6 +561,7 @@ function accionGet(p) {
 function accionPost(b) {
   if (b.accion === "login") return accionLogin(b.credential);
   if (b.accion === "loginMicrosoft") return accionLoginMicrosoft(b);
+  if (b.accion === "contactoSitio") return accionContactoSitio(b);
   if (b.accion === "tiktokConectar") return accionTiktokConectar(b);
   if (b.accion === "tiktokDesconectar") return accionTiktokDesconectar(b);
   if (b.accion === "pagoProduccion" || b.accion === "anularPagoProduccion") return accionPagoProduccion(b);
@@ -1285,6 +1289,61 @@ function verificarCodigoMicrosoft(code, redirectUri) {
   if (email.indexOf("@") < 1) return { motivo: "la cuenta no informó correo" };
   if (Number(info.exp) * 1000 < Date.now()) return { motivo: "id_token vencido" };
   return { email: email, name: info.name || "" };
+}
+
+// ------------------------------------------------------------------
+// Contáctanos (sitio público)
+// ------------------------------------------------------------------
+// Sin sesión, así que se valida todo y se limita el abuso:
+//  - campo trampa "web" (invisible para personas): si viene lleno, se
+//    responde éxito sin guardar (robots);
+//  - nombre, RUT con dígito verificador y correo válidos;
+//  - máximo 5 envíos por hora por visitante (huella que manda api/contacto.js)
+//    y 60 por hora en total;
+//  - el mismo RUT y correo no se repiten en 30 minutos;
+//  - se guardan los últimos 2000 mensajes.
+function rutValido(rut) {
+  const r = String(rut || "").replace(/[^0-9kK]/g, "").toUpperCase();
+  if (r.length < 8 || r.length > 9) return null;
+  const cuerpo = r.slice(0, -1), dv = r.slice(-1);
+  let suma = 0, mult = 2;
+  for (let i = cuerpo.length - 1; i >= 0; i--) { suma += Number(cuerpo[i]) * mult; mult = mult === 7 ? 2 : mult + 1; }
+  const esperado = 11 - (suma % 11);
+  const dvOk = esperado === 11 ? "0" : esperado === 10 ? "K" : String(esperado);
+  if (dv !== dvOk) return null;
+  return cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "-" + dv;
+}
+function accionContactoSitio(b) {
+  if (String(b.web || "").trim()) return respuesta({ estado: "éxito" });
+  const nombre = String(b.nombre || "").replace(/\s+/g, " ").trim();
+  const correo = String(b.correo || "").trim().toLowerCase();
+  const rut = rutValido(b.rut);
+  if (nombre.length < 2 || nombre.length > 80) return error("Escribe tu nombre.");
+  if (!rut) return error("El RUT no es válido. Revisa el número y el dígito verificador.");
+  if (correo.length > 120 || !/^[^\s@<>"']+@[^\s@<>"']+\.[a-z]{2,}$/i.test(correo)) return error("El correo no es válido.");
+  const cache = CacheService.getScriptCache();
+  const hora = Utilities.formatDate(new Date(), "America/Santiago", "yyyyMMddHH");
+  const huella = String(b.huella || "").replace(/[^a-f0-9]/gi, "").slice(0, 32);
+  const kTotal = "ct_total_" + hora, kHuella = "ct_h_" + huella + "_" + hora;
+  const total = Number(cache.get(kTotal) || 0), deEste = huella ? Number(cache.get(kHuella) || 0) : 0;
+  if (total >= 60 || deEste >= 5) return error("Recibimos muchos mensajes en este momento. Inténtalo más tarde o escríbenos por WhatsApp.");
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(20000);
+    let lista = [];
+    try { lista = JSON.parse(leerValor(KEY_CONTACTOS) || "[]") || []; } catch (e) { lista = []; }
+    if (!Array.isArray(lista)) lista = [];
+    const ahora = Date.now();
+    const repetido = lista.some(function (c) { return c.rut === rut && c.correo === correo && ahora - Number(c.ts || 0) < 30 * 60000; });
+    if (!repetido) {
+      lista.push(neutralizar({ id: Utilities.getUuid(), ts: ahora, fecha: ahoraChileISO(), nombre: nombre, rut: rut, correo: correo, estado: "nuevo" }));
+      if (lista.length > 2000) lista = lista.slice(lista.length - 2000);
+      escribirValor(KEY_CONTACTOS, JSON.stringify(lista));
+    }
+  } finally { lock.releaseLock(); }
+  cache.put(kTotal, String(total + 1), 3700);
+  if (huella) cache.put(kHuella, String(deEste + 1), 3700);
+  return respuesta({ estado: "éxito" });
 }
 
 function accionLoginMicrosoft(b) {
