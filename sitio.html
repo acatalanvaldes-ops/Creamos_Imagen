@@ -85,6 +85,8 @@ function fijar(ruta, v){ const p = ruta.split("."); let o = S; p.slice(0, -1).fo
 const campo = (ruta, etiqueta, tipo, ph) => `<div class="fld"><label>${esc(etiqueta)}</label>${tipo === "area"
   ? `<textarea data-ruta="${ruta}" placeholder="${esc(ph || "")}">${esc(obtener(ruta))}</textarea>`
   : `<input data-ruta="${ruta}" type="${tipo || "text"}" value="${esc(obtener(ruta))}" placeholder="${esc(ph || "")}">`}</div>`;
+// Lista de textos editada como un párrafo por línea.
+const campoLista = (ruta, etiqueta, ph) => `<div class="fld"><label>${esc(etiqueta)}</label><textarea data-ruta="${ruta}" data-lista="1" style="min-height:${ph ? 64 : 130}px" placeholder="${esc(ph || "")}">${esc((obtener(ruta) || []).join("\n"))}</textarea></div>`;
 
 function render(){
   normalizarFotos();
@@ -127,10 +129,16 @@ function render(){
           <div class="fila">${campo("productos." + i + ".nombre", "Nombre")}<div class="fld"><label>Categoría</label><input list="cats" data-ruta="productos.${i}.categoria" value="${esc(p.categoria)}"></div></div>
           <div class="fila">${campo("productos." + i + ".precio", "Precio", "text", "Vacío = A cotizar. Ej: Desde $12.990")}<div class="fld" style="max-width:130px"><label>Color de fondo</label><input type="color" data-ruta="productos.${i}.color" value="${esc(colorSeguro(p.color))}" style="height:37px;padding:2px"></div></div>
           <div class="fila">${campo("productos." + i + ".texto", "Descripción", "area")}</div>
+          <div class="fila">${campoLista("productos." + i + ".valor", "Lo que hace único este producto (opcional, una idea por línea; se destaca en el visor)", "Ej: Nombre y número de cada jugador incluidos.")}</div>
         </div>
       </div></div>`;
     }).join("")}
     <div class="nota">La foto se reduce automáticamente. Si no hay foto, se muestra el color de fondo con "CI".</div></div>
+
+  <div class="card"><h2>Por qué elegirnos (visor de productos)</h2>
+    <div class="nota" style="margin-bottom:10px">Al hacer clic en la foto de un producto se abre el visor en grande. Junto a la foto aparece esta lista: lo que diferencia a Creamos Imagen de la competencia. Si un producto tiene su propio texto, va primero y destacado.</div>
+    <div class="fila">${campo("propuesta.titulo", "Título")}</div>
+    <div class="fila">${campoLista("propuesta.lista", "Razones (una por línea)")}</div></div>
 
   <div class="card"><h2>Cómo comprar <button class="btn small" onclick="agregar('comprar.pasos')">+ Agregar paso</button></h2>
     <div class="fila">${campo("comprar.etiqueta", "Etiqueta")}${campo("comprar.titulo", "Título")}</div>
@@ -145,7 +153,10 @@ function render(){
     <div class="fila">${campo("contacto.instagram", "Instagram (https://…)", "url")}${campo("contacto.tiktok", "TikTok (https://…)", "url")}${campo("contacto.facebook", "Facebook (https://…)", "url")}</div>
     <div class="nota">Sin WhatsApp, los botones "Cotizar" llevan a la sección de contacto. Los enlaces de redes deben empezar con https://</div></div>`;
 
-  document.querySelectorAll("[data-ruta]").forEach(el => el.addEventListener(el.type === "color" ? "change" : "input", () => { fijar(el.dataset.ruta, el.value); if (el.type === "color") render(); }));
+  document.querySelectorAll("[data-ruta]").forEach(el => el.addEventListener(el.type === "color" ? "change" : "input", () => {
+    fijar(el.dataset.ruta, el.dataset.lista ? el.value.split("\n").map(s => s.trim()).filter(Boolean) : el.value);
+    if (el.type === "color") render();
+  }));
   $("aviso-activo").onchange = e => { S.aviso.activo = e.target.checked; marcar(); };
 }
 
@@ -153,7 +164,7 @@ const NUEVOS = { "datos": () => ({ valor: "", texto: "" }), "comprar.pasos": () 
 function agregar(ruta){ obtener(ruta).push(NUEVOS[ruta]()); marcar(); render(); }
 function quitar(ruta, i){ const l = obtener(ruta); if (!confirm("¿Quitar este elemento?")) return; l.splice(i, 1); marcar(); render(); }
 function mover(i, d){ const l = S.productos, x = l.splice(i, 1)[0]; l.splice(i + d, 0, x); marcar(); render(); }
-function agregarProducto(){ S.productos.push({ id: "p" + Date.now().toString(36), visible: true, nombre: "", categoria: "", foto: "", fotos: [], precio: "", color: "#E6E2D9", texto: "" }); marcar(); render(); }
+function agregarProducto(){ S.productos.push({ id: "p" + Date.now().toString(36), visible: true, nombre: "", categoria: "", foto: "", fotos: [], valor: [], precio: "", color: "#E6E2D9", texto: "" }); marcar(); render(); }
 
 // Fotos: cada una se reduce a 800 px en JPEG (fondo blanco) para no pesar en la página.
 function reducirFoto(f){
@@ -179,7 +190,7 @@ async function subirFotos(i, input){
 }
 function quitarFoto(i, k){ if (!confirm("¿Quitar esta foto?")) return; S.productos[i].fotos.splice(k, 1); marcar(); render(); }
 // Normaliza: cada producto con lista "fotos" (la foto única antigua pasa a la lista).
-function normalizarFotos(){ S.productos.forEach(p => { p.fotos = Array.isArray(p.fotos) ? p.fotos.filter(f => fotoSegura(f)) : []; if (p.foto) { if (fotoSegura(p.foto)) p.fotos.unshift(p.foto); p.foto = ""; } }); }
+function normalizarFotos(){ S.productos.forEach(p => { p.valor = Array.isArray(p.valor) ? p.valor : []; p.fotos = Array.isArray(p.fotos) ? p.fotos.filter(f => fotoSegura(f)) : []; if (p.foto) { if (fotoSegura(p.foto)) p.fotos.unshift(p.foto); p.foto = ""; } }); }
 
 async function cargar(){
   try {

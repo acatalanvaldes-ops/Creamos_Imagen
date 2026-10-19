@@ -26,7 +26,7 @@
       bajada: "Todo se fabrica a pedido. Elige un producto y te enviamos la cotización con precio, tallas y plazo."
     },
     productos: [
-      { id: "p1", visible: true, nombre: "Camisetas deportivas", categoria: "Deportivo", foto: "", precio: "", color: "#F1AF13", texto: "Camisetas 100% sublimadas para fútbol, básquetbol y ligas. Nombre y número incluidos." },
+      { id: "p1", visible: true, valor: ["Nombre y número de cada jugador incluidos."],nombre: "Camisetas deportivas", categoria: "Deportivo", foto: "", precio: "", color: "#F1AF13", texto: "Camisetas 100% sublimadas para fútbol, básquetbol y ligas. Nombre y número incluidos." },
       { id: "p2", visible: true, nombre: "Conjuntos deportivos", categoria: "Deportivo", foto: "", precio: "", color: "#BCD0CA", texto: "Camiseta y short a juego con el diseño y los colores de tu equipo." },
       { id: "p3", visible: true, nombre: "Camisetas de arquero", categoria: "Deportivo", foto: "", precio: "", color: "#DA8C68", texto: "Manga larga, diseño diferenciado del resto del equipo." },
       { id: "p4", visible: true, nombre: "Pañuelos 45×45 cm", categoria: "Personalizado", foto: "", precio: "",
@@ -38,6 +38,18 @@
       { id: "p9", visible: true, nombre: "Mantas personalizadas", categoria: "Personalizado", foto: "", precio: "",
         fotos: Array.from({ length: 12 }, (_, i) => "assets/sitio/manta-" + (i + 1) + ".jpg"), color: "#F7D57A", texto: "Mantas sublimadas con diseños de tus grupos favoritos." }
     ],
+    // Texto diferenciador del visor de productos. Cada producto puede tener
+    // el suyo ("valor"); si no tiene, se muestra esta lista general.
+    propuesta: {
+      titulo: "Por qué elegir Creamos Imagen",
+      lista: [
+        "15 años sublimando: sabemos cómo se verá tu diseño antes de producirlo.",
+        "Diseño a tu medida incluido: creamos o adaptamos tu idea, sin plantillas genéricas.",
+        "Colores que duran: la sublimación tiñe la tela, no se agrieta ni se despega con el lavado.",
+        "Fabricamos en Santiago: tu pedido sale de nuestro taller y lo retiras en la tienda de Recoleta.",
+        "Producción en 15 a 20 días y te avisamos apenas esté listo."
+      ]
+    },
     comprar: {
       etiqueta: "Cómo comprar",
       titulo: "De la idea a tu equipo en 4 pasos",
