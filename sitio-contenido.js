@@ -28,7 +28,10 @@
     // Cada producto: "valor" = sus características (una por línea en el editor,
     // "Nombre: detalle"); se muestran en el visor al hacer clic en la foto.
     productos: [
-      { id: "p1", visible: true, valor: ["Nombre y número de cada jugador incluidos."],nombre: "Camisetas deportivas", categoria: "Deportivo", foto: "", precio: "", color: "#F1AF13", texto: "Camisetas 100% sublimadas para fútbol, básquetbol y ligas. Nombre y número incluidos." },
+      { id: "p1", visible: true,
+        valor: ["Tela ciré nacional: tela full deportiva, fabricada en Chile.", "Respirable: deja salir el calor y la camiseta se mantiene seca.", "Sin olor a humedad: la tela no retiene la humedad ni el mal olor.", "Nombre y número incluidos: cada jugador con su nombre y número."],
+        fotos: Array.from({ length: 7 }, (_, i) => "assets/sitio/camiseta-deportiva-" + (i + 1) + ".jpg"),
+        nombre: "Camisetas deportivas", categoria: "Deportivo", foto: "", precio: "", color: "#F1AF13", texto: "Camisetas 100% sublimadas para fútbol, básquetbol y ligas. Nombre y número incluidos." },
       { id: "p2", visible: true, nombre: "Conjuntos deportivos", categoria: "Deportivo", foto: "", precio: "", color: "#BCD0CA", texto: "Camiseta y short a juego con el diseño y los colores de tu equipo." },
       { id: "p3", visible: true, nombre: "Camisetas de arquero", categoria: "Deportivo", foto: "", precio: "", color: "#DA8C68", texto: "Manga larga, diseño diferenciado del resto del equipo." },
       { id: "p4", visible: true,
