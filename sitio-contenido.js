@@ -53,7 +53,11 @@
       { id: "p10", visible: true,
         valor: ["Gran formato a tu medida: 1,50 m de ancho y el largo que necesites, desde 3 m.", "Tela bistretch: elástica en ambos sentidos, ideal para tensar y colgar.", "Totalmente personalizado: tu escudo, colores, frases y diseño a medida."],
         nombre: "Lienzos", categoria: "Personalizado", foto: "", precio: "",
-        fotos: ["assets/sitio/lienzo-1.jpg", "assets/sitio/lienzo-2.jpg", "assets/sitio/lienzo-3.jpg", "assets/sitio/lienzo-4.jpg"], color: "#DA8C68", texto: "Lienzos de gran formato para clubes, hinchadas, eventos y celebraciones." }
+        fotos: ["assets/sitio/lienzo-1.jpg", "assets/sitio/lienzo-2.jpg", "assets/sitio/lienzo-3.jpg", "assets/sitio/lienzo-4.jpg"], color: "#DA8C68", texto: "Lienzos de gran formato para clubes, hinchadas, eventos y celebraciones." },
+      { id: "p11", visible: true,
+        valor: ["Medida 26 × 100 cm: formato alargado para alentar en estadios y conciertos.", "Tela franela fantasía: suave y liviana.", "Desde 25 unidades: diseño personalizado."],
+        nombre: "Banner", categoria: "Personalizado", foto: "", precio: "",
+        fotos: Array.from({ length: 6 }, (_, i) => "assets/sitio/banner-" + (i + 1) + ".jpg"), color: "#C9B6E4", texto: "Banners para alentar a tu equipo o a tu artista favorito." }
     ],
     comprar: {
       etiqueta: "Cómo comprar",
