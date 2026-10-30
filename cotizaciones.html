@@ -840,7 +840,7 @@ function renderTarifarioTable() {
   }
   wrap.innerHTML = `<div class="table-scroll"><table class="tbl"><thead><tr><th>Producto</th><th>Técnica</th><th>${nombresListas[0]}</th><th>${nombresListas[1]}</th><th>${nombresListas[2]}</th><th></th></tr></thead><tbody>` +
     tarifario.items.map((it, i) => `<tr>
-      <td><input type="text" value="${escAttr(it.producto)}" placeholder="Nombre del producto" oninput="tarifario.items[${i}].producto=this.value" onchange="tarifario.items[${i}].producto=tarifario.items[${i}].producto.trim(); this.value=tarifario.items[${i}].producto; guardarTarifarioLocal(); renderItemsTable()"></td>
+      <td style="min-width:220px"><input type="text" class="tf-producto" value="${escAttr(it.producto)}" placeholder="Escribe el nombre del producto" oninput="tarifario.items[${i}].producto=this.value" onchange="tarifario.items[${i}].producto=tarifario.items[${i}].producto.trim(); this.value=tarifario.items[${i}].producto; guardarTarifarioLocal(); renderItemsTable()"></td>
       <td><select onchange="tarifario.items[${i}].tecnica=this.value; guardarTarifarioLocal(); renderTarifarioTable()">` +
         TECNICAS_FIJAS.map(t => `<option value="${t}" ${it.tecnica === t ? 'selected' : ''}>${t}</option>`).join('') +
       `</select></td>
@@ -855,6 +855,10 @@ function agregarTarifaRow() {
   tarifario.items.push({ id: Date.now() + Math.random(), producto: '', tecnica: TECNICAS_FIJAS[0], precio0: 0, precio1: 0, precio2: 0 });
   guardarTarifarioLocal();
   renderTarifarioTable();
+  // La fila nueva queda al final: se muestra y se deja el cursor listo para escribir el nombre.
+  const campos = document.querySelectorAll("#tarifarioTableWrap .tf-producto");
+  const nuevo = campos[campos.length - 1];
+  if (nuevo) { nuevo.scrollIntoView({ block: "center", behavior: "smooth" }); nuevo.focus({ preventScroll: true }); }
 }
 
 function borrarTarifaRow(i) {
