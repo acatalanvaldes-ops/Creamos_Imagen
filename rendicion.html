@@ -107,6 +107,17 @@ tfoot .tot-row td{background:var(--accent-l);font-family:var(--mono);font-size:1
 .btn-dl{background:#217346;color:#fff;border:none;font-family:var(--sans);font-size:13px;font-weight:700;padding:10px 22px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:8px;}
 .brand-field-example{display:none!important}
 tr.fila-auto td{background:#F8FAFC;color:#334155;padding:8px 10px;font-size:13px}
+/* Montos del registro (Efectivo, Transfer., Crédito, Débito): caben hasta $999.999
+   sin cortarse, y los totales del día hasta $9.999.999. Bajo 960px la tabla se
+   desplaza de lado en vez de achicar las columnas. */
+#tbl-caja{min-width:960px}
+th.monto{padding-left:4px;padding-right:4px}
+td.monto{white-space:nowrap;text-overflow:clip;font-variant-numeric:tabular-nums}
+td.monto input{padding:7px 4px}
+td.monto input::-webkit-inner-spin-button,td.monto input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+td.monto input{-moz-appearance:textfield}
+tr.fila-auto td.monto{padding:8px 4px;font-size:12px}
+tfoot .tot-row td.monto{padding:9px 4px;font-size:12.5px;white-space:nowrap}
 </style>
   <link rel="stylesheet" href="brand/brand.css">
   <script src="brand/brand.js"></script>
@@ -186,13 +197,13 @@ tr.fila-auto td{background:#F8FAFC;color:#334155;padding:8px 10px;font-size:13px
           <button class="pill" onclick="setPill('origen:Empresa',this)">🏢 Otros</button>
         </div>
       </div>
-      <table>
-        <colgroup><col style="width:7%"><col style="width:13%"><col style="width:10%"><col style="width:11.5%"><col style="width:12.5%"><col style="width:7%"><col style="width:7%"><col style="width:7%"><col style="width:7%"><col style="width:11%"><col style="width:7%"></colgroup>
-        <thead><tr><th>Fecha</th><th>Cliente</th><th>Tipo de venta</th><th>Origen</th><th>Forma de pago</th><th style="text-align:right">Efectivo</th><th style="text-align:right">Transfer.</th><th style="text-align:right">Crédito</th><th style="text-align:right">Débito</th><th>Observaciones</th><th style="text-align:center"></th></tr></thead>
+      <table id="tbl-caja">
+        <colgroup><col style="width:7%"><col style="width:11%"><col style="width:9.5%"><col style="width:9.5%"><col style="width:11%"><col style="width:9%"><col style="width:9%"><col style="width:9%"><col style="width:9%"><col style="width:10%"><col style="width:6%"></colgroup>
+        <thead><tr><th>Fecha</th><th>Cliente</th><th>Tipo de venta</th><th>Origen</th><th>Forma de pago</th><th class="monto" style="text-align:right">Efectivo</th><th class="monto" style="text-align:right">Transfer.</th><th class="monto" style="text-align:right">Crédito</th><th class="monto" style="text-align:right">Débito</th><th>Observaciones</th><th style="text-align:center"></th></tr></thead>
         <tbody id="tbody">
           <tr class="empty-row"><td colspan="11">Cargando registros...</td></tr>
         </tbody>
-        <tfoot id="tfoot-dia"><tr class="tot-row"><td colspan="5">TOTAL DÍA</td><td class="tot-ef" id="tf-ef" style="text-align:right">$0</td><td class="tot-lc" id="tf-tr" style="text-align:right">$0</td><td class="tot-ef" id="tf-wpc" style="text-align:right;color:var(--amber)">$0</td><td class="tot-ef" id="tf-wpd" style="text-align:right;color:var(--amber)">$0</td><td colspan="2"></td></tr></tfoot>
+        <tfoot id="tfoot-dia"><tr class="tot-row"><td colspan="5">TOTAL DÍA</td><td class="tot-ef monto" id="tf-ef" style="text-align:right">$0</td><td class="tot-lc monto" id="tf-tr" style="text-align:right">$0</td><td class="tot-ef monto" id="tf-wpc" style="text-align:right;color:var(--amber)">$0</td><td class="tot-ef monto" id="tf-wpd" style="text-align:right;color:var(--amber)">$0</td><td colspan="2"></td></tr></tfoot>
       </table>
     </div>
   </div>
@@ -702,7 +713,7 @@ function renderTable(){
         tr.title = 'Registro automático desde ' + origenAuto + '. Para corregirlo, edítalo en ese módulo.';
         const v = x => x ? fmt(+x) : '';
         tr.innerHTML = `<td style="color:var(--muted);font-size:11px;padding-left:6px">${fechaCorta(curDate)}</td><td>${escCaja(row.cliente || '')}</td><td>${escCaja(row.tipo || '')}</td><td>${origenLabel(row.origen)}</td><td>${escCaja(row.pago || '')}</td>
-          <td style="text-align:right">${v(row.ef)}</td><td style="text-align:right">${v(row.tr)}</td><td style="text-align:right">${v(row.wpCredito)}</td><td style="text-align:right">${v(row.wpDebito)}</td>
+          <td class="monto" style="text-align:right">${v(row.ef)}</td><td class="monto" style="text-align:right">${v(row.tr)}</td><td class="monto" style="text-align:right">${v(row.wpCredito)}</td><td class="monto" style="text-align:right">${v(row.wpDebito)}</td>
           <td style="font-size:11px">${escCaja(row.obs || '')}</td><td style="text-align:center;white-space:nowrap"><a href="${modulo}" title="Abrir ${origenAuto}" style="text-decoration:none">🔒</a>${row.pagoRef ? ` <button class="btn-del" title="Eliminar este pago (también se quita de la producción)" onclick="eliminarPagoProduccion('${escCaja(row.pagoRef.anio)}','${escCaja(row.pagoRef.prodId)}','${escCaja(row.pagoRef.pagoId)}',this)">🗑️</button>` : ''}</td>`;
         tbody.appendChild(tr);
         return;
@@ -712,10 +723,10 @@ function renderTable(){
         <td><select onchange="upd('${curDate}',${ri},'tipo',this.value)">${TIPOS.map(t=>`<option value="${t}" ${row.tipo===t?'selected':''}>${t}</option>`).join('')}</select></td>
         <td><select onchange="upd('${curDate}',${ri},'origen',this.value)"><option value="Empresa" ${row.origen==='Empresa'?'selected':''}>Otros</option><option value="Local" ${row.origen==='Local'?'selected':''}>Sala de venta</option></select></td>
         <td><select onchange="upd('${curDate}',${ri},'pago',this.value)"><option value="Efectivo" ${row.pago==='Efectivo'?'selected':''}>Efectivo</option><option value="Transferencia" ${row.pago==='Transferencia'?'selected':''}>Transferencia</option><option value="Webpay" ${row.pago==='Webpay'?'selected':''}>Webpay</option></select></td>
-        <td class="ef-inp"><input type="number" placeholder="0" value="${row.ef||''}" oninput="upd('${curDate}',${ri},'ef',this.value)"></td>
-        <td><input type="number" placeholder="0" value="${row.tr||''}" oninput="upd('${curDate}',${ri},'tr',this.value)"></td>
-        <td><input type="number" value="${row.wpCredito!=null?row.wpCredito:(row.wp||'')}" oninput="upd('${curDate}',${ri},'wpCredito',this.value)"></td>
-        <td><input type="number" value="${row.wpDebito||''}" oninput="upd('${curDate}',${ri},'wpDebito',this.value)"></td>
+        <td class="ef-inp monto"><input type="number" placeholder="0" value="${row.ef||''}" oninput="upd('${curDate}',${ri},'ef',this.value)"></td>
+        <td class="monto"><input type="number" placeholder="0" value="${row.tr||''}" oninput="upd('${curDate}',${ri},'tr',this.value)"></td>
+        <td class="monto"><input type="number" value="${row.wpCredito!=null?row.wpCredito:(row.wp||'')}" oninput="upd('${curDate}',${ri},'wpCredito',this.value)"></td>
+        <td class="monto"><input type="number" value="${row.wpDebito||''}" oninput="upd('${curDate}',${ri},'wpDebito',this.value)"></td>
         <td><input type="text" placeholder="Anotaciones..." value="${row.obs||''}" oninput="upd('${curDate}',${ri},'obs',this.value)"></td>
         <td style="text-align:center"><button class="btn-del" onclick="delRow('${curDate}',${ri})" title="Borrar registro">🗑️</button></td>`;
       tbody.appendChild(tr);

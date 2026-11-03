@@ -378,10 +378,11 @@ async function refrescarSesion(sess) {
     var datos = await res.json();
     if (!datos || datos.estado !== "éxito") return;
     var cambio = datos.isAdmin !== sess.isAdmin || !!datos.esTrabajador !== !!sess.esTrabajador ||
-      (datos.modules || []).join() !== (sess.modules || []).join();
+      (datos.modules || []).join() !== (sess.modules || []).join() || !!datos.sinMontos !== !!sess.sinMontos;
     if (!cambio) return;
     sess.isAdmin = datos.isAdmin;
     sess.modules = datos.modules || [];
+    sess.sinMontos = !!datos.sinMontos;
     sess.esTrabajador = !!datos.esTrabajador;
   } catch (e) { return; }
   saveSession(sess);

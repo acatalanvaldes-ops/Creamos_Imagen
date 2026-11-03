@@ -180,6 +180,12 @@ function toggleModulo(email, modKey, checked) {
   guardarAcl();
 }
 
+function toggleSinMontos(email, checked) {
+  if (!state.acl[email]) state.acl[email] = { admin: false, modules: [] };
+  if (checked) state.acl[email].sinMontos = true; else delete state.acl[email].sinMontos;
+  guardarAcl();
+}
+
 function toggleAdmin(email, checked) {
   if (!state.acl[email]) state.acl[email] = { admin: false, modules: [] };
   state.acl[email].admin = checked;
@@ -237,6 +243,7 @@ function render() {
       '<td class="email-col">' + email + '</td>' +
       modCells +
       subCells +
+      '<td style="background:#FAF8F5;border-left:2px solid #E7E2D9;"><input type="checkbox" ' + (!hasAdmin && entry.sinMontos ? 'checked' : '') + ' ' + (hasAdmin ? 'disabled title="Los administradores siempre ven los montos"' : 'title="No ve valor total, abono, saldo ni pagos en Producciones"') + ' onchange="toggleSinMontos(\'' + email + '\',this.checked)"></td>' +
       '<td><input type="checkbox" ' + (entry.admin ? 'checked' : '') + ' onchange="toggleAdmin(\'' + email + '\',this.checked)" title="Acceso total a todos los módulos"></td>' +
       '<td><button class="icon-btn" onclick="eliminarPersona(\'' + email + '\')" title="Quitar acceso">🗑️</button></td>' +
     '</tr>';
@@ -244,14 +251,14 @@ function render() {
 
   var tableOrEmpty = emails.length === 0
     ? '<div class="empty-state">Todavía no le has dado acceso a nadie. Agrega un correo abajo.</div>'
-    : '<div style="overflow-x:auto"><table><thead><tr><th class="email-col">Correo</th>' + headCols + subHeadCols + '<th>Admin</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+    : '<div style="overflow-x:auto"><table><thead><tr><th class="email-col">Correo</th>' + headCols + subHeadCols + '<th style="background:#2C2926;border-left:2px solid var(--gold);color:#5EEAD4;" title="No ve valor total, abono, saldo ni pagos en Producciones">Sin montos</th><th>Admin</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>';
 
   var html =
     '<div class="topbar"><div class="access-brand-logo" aria-label="Creamos Imagen"></div></div>' +
     '<div class="content">' +
       '<div class="card">' +
         '<div class="card-title">Quién puede entrar, y a qué</div>' +
-        '<div class="help">Marca los módulos a los que cada correo puede entrar. <b>Admin</b> da acceso a todos los módulos. La columna especial <b>Nómina (Costos)</b> permite dar acceso a la pestaña confidencial de nóminas/gastos en Costos a usuarios específicos (el equipo de <b>RRHH</b> ya lo tiene habilitado de forma automática sin necesidad de ser Admin). Los cambios se guardan solos.</div>' +
+        '<div class="help">Marca los módulos a los que cada correo puede entrar. <b>Admin</b> da acceso a todos los módulos. La columna especial <b>Nómina (Costos)</b> permite dar acceso a la pestaña confidencial de nóminas/gastos en Costos a usuarios específicos (el equipo de <b>RRHH</b> ya lo tiene habilitado de forma automática sin necesidad de ser Admin). <b>Sin montos</b> oculta el valor total, abono, saldo y pagos en Producciones (por ejemplo, para diseñadores); la persona debe volver a abrir el menú para que se aplique en su pantalla. Los cambios se guardan solos.</div>' +
         '<div class="super-note">🔒 <b>' + SUPER_ADMIN_EMAIL + '</b> siempre tiene acceso total a todo, aunque no aparezca en esta lista (es la cuenta administradora principal, por seguridad).</div>' +
         tableOrEmpty +
         '<div class="add-row">' +

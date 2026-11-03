@@ -110,6 +110,9 @@
   .cantidad-total-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--accent)18; border: 1px solid var(--accent)44; border-radius: 2px; padding: 3px 10px; font-size: 0.7rem; color: var(--accent); font-weight: 500; letter-spacing: 1px; margin-top: 2px; }
   
   @media print { body::before { display: none; } .controls, .add-form, .toggle-form-btn, .month-nav { display: none !important; } }
+  /* Personas con "Sin montos" (Accesos): no ven valores, abonos, saldos ni pagos. */
+  .sin-montos .solo-montos { display: none !important; }
+  .sin-montos .fila-montos { grid-template-columns: auto !important; justify-content: end; }
 </style>
   <link rel="stylesheet" href="brand/brand.css">
   <style>
@@ -165,12 +168,12 @@
       <button class="tag-btn" id="fbtn-tag-Sublimación" onclick="setFilter('tag','Sublimación')"><span class="tag-dot" style="background:#a855f7"></span> Sublimación</button>
       <button class="tag-btn" id="fbtn-tag-Otros" onclick="setFilter('tag','Otros')"><span class="tag-dot" style="background:#64748b"></span> Otros</button>
       <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
-        <button class="toggle-form-btn" onclick="toggleRentabilidad()" style="border-color:#a855f7;color:#a855f7">📊 Rentabilidad</button>
-        <button class="toggle-form-btn" onclick="toggleCxc()" style="border-color:#22c55e;color:#22c55e">💰 Por cobrar</button>
+        <button class="toggle-form-btn solo-montos" onclick="toggleRentabilidad()" style="border-color:#a855f7;color:#a855f7">📊 Rentabilidad</button>
+        <button class="toggle-form-btn solo-montos" onclick="toggleCxc()" style="border-color:#22c55e;color:#22c55e">💰 Por cobrar</button>
         <button class="toggle-form-btn" onclick="toggleForm()"><span id="formBtnTxt">＋ Agregar producción</span></button>
       </div>
     </div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+    <div class="solo-montos" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
       <span class="controls-label">Estado:</span>
       <span style="font-size:0.6rem;color:var(--text3);letter-spacing:0.5px;margin-right:6px">(borde izquierdo en el calendario)</span>
       <button class="tag-btn" id="fbtn-estado-" onclick="setFilter('estado','')"><span class="tag-dot" style="background:#a09070"></span> Todos</button>
@@ -220,10 +223,10 @@
       </div>
     </div>
     <datalist id="listProductos"></datalist>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px">
-      <div class="form-group"><label>Valor Total ($)</label><input type="number" id="prodMonto" placeholder="0" min="0" oninput="calcSaldo()"></div>
-      <div class="form-group"><label>Abono ($)</label><input type="number" id="prodAbono" placeholder="0" min="0" oninput="calcSaldo()"></div>
-      <div class="form-group"><label>Saldo Pendiente ($)</label><input type="number" id="prodSaldo" placeholder="0" readonly style="opacity:0.6;cursor:not-allowed"></div>
+    <div class="fila-montos" style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px">
+      <div class="form-group solo-montos"><label>Valor Total ($)</label><input type="number" id="prodMonto" placeholder="0" min="0" oninput="calcSaldo()"></div>
+      <div class="form-group solo-montos"><label>Abono ($)</label><input type="number" id="prodAbono" placeholder="0" min="0" oninput="calcSaldo()"></div>
+      <div class="form-group solo-montos"><label>Saldo Pendiente ($)</label><input type="number" id="prodSaldo" placeholder="0" readonly style="opacity:0.6;cursor:not-allowed"></div>
       <div class="form-group"><label>&nbsp;</label><button class="btn-add" onclick="addProduction()">Guardar</button></div>
     </div>
   </div>
@@ -297,6 +300,10 @@
 <script>
 const API_URL = "/api/portal";
 const CLOUD_TOKEN = tokenSesion(); // sesión firmada por el servidor (ver sesion.js)
+// "Sin montos" (Accesos): el servidor no entrega valores, abonos, saldos ni
+// pagos, y al guardar conserva los reales; aquí solo se ocultan sus campos.
+const SIN_MONTOS = (() => { try { return !!JSON.parse(localStorage.getItem('cimagen_session')).sinMontos; } catch (e) { return false; } })();
+if (SIN_MONTOS) document.documentElement.classList.add('sin-montos');
 
 // El backend (Google Apps Script) a veces devuelve una falla transitoria —una
 // página de error en vez de JSON, o un HTTP no-OK— que se resuelve sola al
@@ -491,6 +498,7 @@ function categoriaDe(p) {
 function colorCategoria(p) { return CAT_COLORS[categoriaDe(p)]; }
 
 function estadoColor(p) {
+  if (SIN_MONTOS) return 'transparent';
   if (p.saldo > 0) return EST_COLORS.saldo;
   if (p.monto > 0 && p.saldo === 0) return EST_COLORS.pagado;
   if (p.abono > 0) return EST_COLORS.abono;
@@ -1290,7 +1298,7 @@ function lineaConsumo(lista, i, opciones, conCosto) {
   return `<div style="display:grid;grid-template-columns:3fr 1fr 1.4fr 30px;gap:6px;align-items:center;margin-bottom:6px">
     <select style="${est}" onchange="${conCosto ? 'consumosEdit' : 'obtenidosEdit'}[${i}].articuloId=this.value;renderConsumos()"><option value="">— Artículo —</option>${opciones.map(o => `<option value="${o.id}" ${o.id === x.articuloId ? 'selected' : ''}>${o.codigo} · ${o.nombre}</option>`).join('')}</select>
     <input type="number" min="0" step="any" style="${est}" value="${x.cantidad}" placeholder="Cant." oninput="${conCosto ? 'consumosEdit' : 'obtenidosEdit'}[${i}].cantidad=this.value;resumenConsumos()">
-    <span style="font-size:0.7rem;color:var(--text3)">${a ? (a.unidad || '') + (conCosto ? ' · ' + formatPesos(costoArticulo(a.id)) + ' c/u · stock ' + stockArticulo(a.id) : ' · stock ' + stockArticulo(a.id)) : ''}</span>
+    <span style="font-size:0.7rem;color:var(--text3)">${a ? (a.unidad || '') + (conCosto && !SIN_MONTOS ? ' · ' + formatPesos(costoArticulo(a.id)) + ' c/u · stock ' + stockArticulo(a.id) : ' · stock ' + stockArticulo(a.id)) : ''}</span>
     <button class="prod-delete" onclick="${conCosto ? 'consumosEdit' : 'obtenidosEdit'}.splice(${i},1);renderConsumos()">✕</button></div>`;
 }
 function renderConsumos() {
@@ -1300,6 +1308,7 @@ function renderConsumos() {
 }
 function resumenConsumos() {
   const p = productions.find(x => x.id === consumoId); if (!p) return;
+  if (SIN_MONTOS) { document.getElementById('csResumen').innerHTML = ''; return; }
   const costo = Math.round(consumosEdit.reduce((s, x) => s + (Number(x.cantidad) || 0) * costoArticulo(x.articuloId), 0));
   const neta = ventaNeta(p);
   document.getElementById('csResumen').innerHTML = `Costo de insumos: <b>${formatPesos(costo)}</b>` + (neta ? ` · Venta sin IVA: ${formatPesos(neta)} · Margen sobre insumos: <b style="color:${neta - costo >= 0 ? '#22c55e' : '#ef4444'}">${formatPesos(neta - costo)} (${Math.round((neta - costo) / neta * 100)}%)</b>` : '');
@@ -1628,12 +1637,12 @@ function renderTimeline() {
           <select onchange="cambiarEtapa(${p.id}, this.value)" title="Etapa de la producción" style="background:${(ETAPA_COLOR[p.etapa] || '#64748b')}22;border:1px solid ${ETAPA_COLOR[p.etapa] || 'var(--border)'};color:${ETAPA_COLOR[p.etapa] || 'var(--text3)'};border-radius:10px;font-family:'DM Mono',monospace;font-size:0.65rem;padding:2px 6px;outline:none">
             ${p.etapa ? '' : '<option value="" selected>Sin etapa</option>'}${ETAPAS.map(e => `<option value="${e}" ${p.etapa === e ? 'selected' : ''}>${e}</option>`).join('')}
           </select>
-          ${p.monto > 0 ? `<span style="font-size:0.7rem;color:${p.saldo > 0 ? EST_COLORS.saldo : EST_COLORS.pagado}">${p.saldo > 0 ? 'Saldo ' + formatPesos(p.saldo) : '✓ Pagado'}</span>` : ''}
-          ${costoInsumos(p) ? `<span style="font-size:0.7rem;color:#a855f7" title="Costo de los insumos anotados">Insumos ${formatPesos(costoInsumos(p))}${p.monto > 0 ? ' · margen ' + Math.round(margenPct(p)) + '%' : ''}</span>` : ''}
+          ${!SIN_MONTOS && p.monto > 0 ? `<span style="font-size:0.7rem;color:${p.saldo > 0 ? EST_COLORS.saldo : EST_COLORS.pagado}">${p.saldo > 0 ? 'Saldo ' + formatPesos(p.saldo) : '✓ Pagado'}</span>` : ''}
+          ${!SIN_MONTOS && costoInsumos(p) ? `<span style="font-size:0.7rem;color:#a855f7" title="Costo de los insumos anotados">Insumos ${formatPesos(costoInsumos(p))}${p.monto > 0 ? ' · margen ' + Math.round(margenPct(p)) + '%' : ''}</span>` : ''}
         </div></div>
       <div>${prendasHtml}</div><div style="font-size:0.85rem;color:var(--text2)">${p.diseñador || '—'}</div><div style="font-size:0.85rem;color:var(--text2)">${ingresoLabel}</div>
       <div style="font-size:0.85rem;color:${p.fechaEntrega ? 'var(--accent)' : 'var(--text3)'}">${entregaLabel}</div>
-      <div style="display:flex;gap:4px"><button class="prod-delete" style="color:#22c55e;border:1px solid #22c55e33" title="Pagos del cliente" onclick="abrirPagos(${p.id}, ${currentViewYear})">💲</button><button class="prod-delete" style="color:#a855f7;border:1px solid #a855f733" title="Insumos usados y merch obtenido" onclick="abrirConsumos(${p.id})">🧵</button><button class="prod-delete" style="color:var(--accent);border:1px solid var(--accent)22" onclick="editProduction(${p.id})">✏</button><button class="prod-delete" onclick="deleteProduction(${p.id})">✕</button></div></div>`;
+      <div style="display:flex;gap:4px"><button class="prod-delete solo-montos" style="color:#22c55e;border:1px solid #22c55e33" title="Pagos del cliente" onclick="abrirPagos(${p.id}, ${currentViewYear})">💲</button><button class="prod-delete" style="color:#a855f7;border:1px solid #a855f733" title="Insumos usados y merch obtenido" onclick="abrirConsumos(${p.id})">🧵</button><button class="prod-delete" style="color:var(--accent);border:1px solid var(--accent)22" onclick="editProduction(${p.id})">✏</button><button class="prod-delete" onclick="deleteProduction(${p.id})">✕</button></div></div>`;
   });
 
   if (totalPages > 1) {

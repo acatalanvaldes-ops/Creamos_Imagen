@@ -327,7 +327,62 @@ function permisosDe(email) {
   const entrada = acl[e] || null;
   const isAdmin = e === SUPER_ADMIN_EMAIL || !!(entrada && entrada.admin);
   const modules = isAdmin ? MODULOS.slice() : ((entrada && entrada.modules) || []).filter(function (m) { return MODULOS.indexOf(m) !== -1; });
-  return { email: e, isAdmin: isAdmin, modules: modules };
+  // "Sin montos" (casilla en Accesos): no ve valores, abonos, saldos ni pagos
+  // de Producciones. No aplica a administradores.
+  const sinMontos = !isAdmin && !!(entrada && entrada.sinMontos);
+  return { email: e, isAdmin: isAdmin, modules: modules, sinMontos: sinMontos };
+}
+
+// ------------------------------------------------------------------
+// Producciones sin montos
+// ------------------------------------------------------------------
+// A quien tiene "Sin montos" el servidor le entrega las producciones sin
+// estos campos, y al guardar los vuelve a poner desde lo guardado (una
+// producción nueva queda en $0): no puede verlos ni cambiarlos. Pagos de
+// producciones y cotizaciones (traen montos) le quedan bloqueados, y del
+// tarifario recibe solo los nombres de productos (para el autocompletado).
+const CAMPOS_MONTO_PROD = ["monto", "abono", "saldo", "pagos"];
+const LLAVES_CON_MONTOS = /^cotizaciones_ci_v1$/;
+function soloProductosTarifario(valor) {
+  if (!valor) return valor;
+  const t = JSON.parse(valor);
+  return JSON.stringify({ items: (Array.isArray(t.items) ? t.items : []).map(function (i) { return { producto: i.producto }; }) });
+}
+function anioProds(key) { const m = /^prods(\d{4})$/.exec(llaveBase(key)); return m ? m[1] : null; }
+
+function listaDeProds(obj) { return Array.isArray(obj) ? obj : (obj && Array.isArray(obj.producciones) ? obj.producciones : []); }
+
+function quitarMontosProds(valor) {
+  if (!valor) return valor;
+  const obj = JSON.parse(valor);
+  listaDeProds(obj).forEach(function (p) { CAMPOS_MONTO_PROD.forEach(function (c) { delete p[c]; }); });
+  return JSON.stringify(obj);
+}
+
+// Montos guardados por id. Al guardar en bloques (prods<AÑO> y luego
+// prods<AÑO>_sh1…), una producción puede pasar de un bloque a otro: se
+// recuerdan unos minutos para no perderla entre un bloque y el siguiente.
+function montosGuardados(anio) {
+  const cache = CacheService.getScriptCache(), llave = "montos-prods:" + anio;
+  let previos = {};
+  try { previos = JSON.parse(cache.get(llave) || "{}"); } catch (e) {}
+  const mapa = Object.assign({}, previos);
+  leerProducciones(anio).forEach(function (p) {
+    const m = {}; CAMPOS_MONTO_PROD.forEach(function (c) { if (p[c] !== undefined) m[c] = p[c]; });
+    mapa[String(p.id)] = m;
+  });
+  try { cache.put(llave, JSON.stringify(mapa), 600); } catch (e) {}
+  return mapa;
+}
+
+function restaurarMontosProds(key, valor) {
+  const obj = JSON.parse(valor);
+  const mapa = montosGuardados(anioProds(key));
+  listaDeProds(obj).forEach(function (p) {
+    CAMPOS_MONTO_PROD.forEach(function (c) { delete p[c]; });
+    Object.assign(p, mapa[String(p.id)] || { monto: 0, abono: 0, saldo: 0 });
+  });
+  return JSON.stringify(obj);
 }
 
 function trabajadorDeCorreo(email, trabajadores) {
@@ -470,7 +525,11 @@ function doGet(e) {
     const usuario = usuarioDe(p.token);
     if (!usuario) return error(motivoRechazo(p.token));
     if (!puede(usuario, p.key, false)) return error("SIN_PERMISO");
-    return respuesta({ estado: "éxito", valor: leerValor(p.key), version: versionDe(p.key) });
+    if (usuario.sinMontos && LLAVES_CON_MONTOS.test(llaveBase(p.key))) return error("SIN_PERMISO");
+    let valor = leerValor(p.key);
+    if (usuario.sinMontos && anioProds(p.key)) valor = quitarMontosProds(valor);
+    if (usuario.sinMontos && llaveBase(p.key) === "tarifario_ci_v1") valor = soloProductosTarifario(valor);
+    return respuesta({ estado: "éxito", valor: valor, version: versionDe(p.key) });
   } catch (err) {
     return error(err.toString());
   }
@@ -507,6 +566,9 @@ function doPost(e) {
     } else if (desactualizada) {
       return respuesta({ estado: "error", detalle: "CONFLICTO", version: versionDe(payload.key) });
     }
+    if (usuario.sinMontos && anioProds(payload.key)) {
+      try { valor = restaurarMontosProds(payload.key, valor); } catch (err) { return error("Datos inválidos para " + payload.key + "."); }
+    }
     valor = neutralizarValor(valor);
     const antes = leerValor(payload.key);
     const version = escribirValor(payload.key, valor);
@@ -538,7 +600,7 @@ function accionGet(p) {
     const email = leerToken(p.token);
     if (!email) return error(motivoRechazo(p.token));
     const pf = perfil(email);
-    return respuesta({ estado: "éxito", isAdmin: pf.isAdmin, modules: pf.modules, esTrabajador: pf.esTrabajador, modoEstricto: modoEstricto() });
+    return respuesta({ estado: "éxito", isAdmin: pf.isAdmin, modules: pf.modules, sinMontos: pf.sinMontos, esTrabajador: pf.esTrabajador, modoEstricto: modoEstricto() });
   }
   if (p.accion === "portal") return accionPortal(p.token, p.trabajadorId);
   if (p.accion === "portalDocs") return accionPortalDocs(p.token, p.trabajadorId);
@@ -602,7 +664,7 @@ function accionLogin(credential) {
   registrarBitacora(g.email, "inicio de sesión", "Google");
   return respuesta({
     estado: "éxito",
-      sesion: { token: crearToken(g.email), email: g.email, name: g.name || g.email, picture: g.picture, isAdmin: pf.isAdmin, modules: pf.modules, esTrabajador: pf.esTrabajador, ts: Date.now() }
+      sesion: { token: crearToken(g.email), email: g.email, name: g.name || g.email, picture: g.picture, isAdmin: pf.isAdmin, modules: pf.modules, sinMontos: pf.sinMontos, esTrabajador: pf.esTrabajador, ts: Date.now() }
   });
 }
 
@@ -946,7 +1008,7 @@ function leerProducciones(anio) {
 
 function accionPagoProduccion(b) {
   const u = usuarioDe(b.token);
-  if (!u || u.legado) return error(u ? "SIN_PERMISO" : motivoRechazo(b.token));
+  if (!u || u.legado || u.sinMontos) return error(u ? "SIN_PERMISO" : motivoRechazo(b.token));
   const anular = b.accion === "anularPagoProduccion";
   // Registrar pagos: Producciones. Anular: también Caja (borra la fila importada).
   const puede = u.isAdmin || u.modules.indexOf("calendario") !== -1 || (anular && u.modules.indexOf("rendicion") !== -1);
@@ -1389,7 +1451,7 @@ function accionLoginMicrosoft(b) {
   registrarBitacora(m.email, "inicio de sesión", "Microsoft");
   return respuesta({
     estado: "éxito",
-    sesion: { token: crearToken(m.email), email: m.email, name: m.name || m.email, picture: "", isAdmin: pf.isAdmin, modules: pf.modules, esTrabajador: pf.esTrabajador, ts: Date.now() }
+    sesion: { token: crearToken(m.email), email: m.email, name: m.name || m.email, picture: "", isAdmin: pf.isAdmin, modules: pf.modules, sinMontos: pf.sinMontos, esTrabajador: pf.esTrabajador, ts: Date.now() }
   });
 }
 
