@@ -16,7 +16,7 @@
   const normRut = s => String(s || '').replace(/[^0-9kK]/g, '').toUpperCase();
   const normNom = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\b(s\.?a\.?|spa|ltda\.?|limitada|sociedad anonima|eirl|s a)\b/g, '').replace(/[^a-z0-9]/g, '');
   const num = s => { const n = Number(String(s || '').trim().replace(',', '.')); return isFinite(n) ? n : 0; };
-  const fechaISO = s => { const m = String(s || '').match(/(\d{2})\/(\d{2})\/(\d{4})/); return m ? m[3] + '-' + m[2] + '-' + m[1] : ''; };
+  const fechaISO = s => { const m = String(s || '').match(/(\d{2})[\/-](\d{2})[\/-](\d{4})/); return m ? m[3] + '-' + m[2] + '-' + m[1] : ''; };
 
   function categoria(d) {
     const nom = d.razon.toUpperCase();
