@@ -176,6 +176,10 @@ table.tbl input:focus,table.tbl select:focus{border-bottom:2px solid var(--gold)
               <div class="fld"><label>Primer nombre de contacto</label><input type="text" id="cz-contacto-n1"></div><div class="fld"><label>Segundo nombre</label><input type="text" id="cz-contacto-n2"></div><div class="fld"><label>Primer apellido</label><input type="text" id="cz-contacto-a1"></div><div class="fld"><label>Segundo apellido</label><input type="text" id="cz-contacto-a2"></div>
               <div class="fld"><label>Teléfono de Contacto</label><div style="display:flex;gap:6px"><select id="cz-tel-cod-f" style="width:82px"><option>+56</option></select><input type="text" id="cz-telefono-f" inputmode="tel"></div></div>
             </div>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:4px">
+              <button type="button" class="act-btn small" id="btn-crear-cliente" onclick="crearClienteDesdeFortuito()">➕ Crear en Base de Clientes</button>
+              <span class="note" style="margin:0">Lo agrega al módulo Clientes y lo deja seleccionado en esta cotización.</span>
+            </div>
           </div>
         </div>
 
@@ -472,6 +476,45 @@ function datosClienteActuales() {
     contacto: ['cz-contacto-n1','cz-contacto-n2','cz-contacto-a1','cz-contacto-a2'].map(id=>document.getElementById(id).value.trim()).filter(Boolean).join(' '),
     direccion: document.getElementById('cz-direccion-f').value.trim()
   };
+}
+// Pasa el cliente fortuito a la Base de Clientes (acción del servidor que solo
+// agrega; si ya existe uno con ese RUT o razón social, usa el existente) y lo
+// deja seleccionado como cliente registrado en esta cotización.
+async function crearClienteDesdeFortuito() {
+  const d = datosClienteActuales();
+  if (!d) return;
+  if (!d.razonSocial) { alert('Completa al menos la Razón Social / Nombre del cliente.'); return; }
+  const btn = document.getElementById('btn-crear-cliente');
+  btn.disabled = true; btn.textContent = 'Creando…';
+  try {
+    const telefono = document.getElementById('cz-telefono-f').value.trim() ? d.telefono : '';
+    const cliente = { razonSocial: d.razonSocial, rut: d.rut, rutDv: d.rut ? d.rut.slice(-1) : '', telefono, contacto: d.contacto,
+      tipoVia: 'Calle', calle: d.direccion, direccion: d.direccion };
+    const res = await fetchConTimeout(API_URL, { method: 'POST', body: JSON.stringify({ accion: 'agregarCliente', token: CLOUD_TOKEN, cliente }) });
+    const json = await res.json();
+    if (json.estado === 'error') {
+      alert(json.detalle === 'Acción desconocida'
+        ? 'Falta actualizar el servidor (Apps Script) para usar este botón. Avísale al administrador.'
+        : json.detalle === 'SIN_PERMISO' ? 'No tienes permiso para agregar clientes.' : 'No se pudo crear el cliente: ' + json.detalle);
+      return;
+    }
+    const c = json.cliente;
+    if (!clientesData.some(x => String(x.id) === String(c.id))) clientesData.push(c);
+    localStorage.setItem(KEY_CLIENTES, JSON.stringify(clientesData));
+    document.querySelector('input[name="cz-clienteTipo"][value="registrado"]').checked = true;
+    onClienteTipoChange();
+    poblarSelectsCotizador();
+    document.getElementById('cz-clienteSelect').value = c.id;
+    onClienteRegistradoChange();
+    alert(json.existente
+      ? 'Ya existía en la Base de Clientes como "' + c.razonSocial + '". Quedó seleccionado en la cotización.'
+      : 'Cliente "' + c.razonSocial + '" creado en la Base de Clientes y seleccionado en la cotización.');
+  } catch (e) {
+    console.error('Error creando cliente', e);
+    alert('No se pudo conectar con la nube. Inténtalo de nuevo.');
+  } finally {
+    btn.disabled = false; btn.textContent = '➕ Crear en Base de Clientes';
+  }
 }
 function calcularDvCot(rut){let s=0,m=2;for(let i=rut.length-1;i>=0;i--){s+=Number(rut[i])*m;m=m===7?2:m+1;}const d=11-s%11;return d===11?'0':d===10?'K':String(d)}
 function czRutCalc(){const n=document.getElementById('cz-rut-f').value.replace(/\D/g,'');const d=n?calcularDvCot(n):'';document.getElementById('cz-rut-dv-f').value=d;document.getElementById('cz-rut-msg-f').textContent=d?'DV calculado automáticamente':''}

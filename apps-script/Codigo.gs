@@ -628,6 +628,7 @@ function accionPost(b) {
   if (b.accion === "tiktokDesconectar") return accionTiktokDesconectar(b);
   if (b.accion === "pagoProduccion" || b.accion === "anularPagoProduccion") return accionPagoProduccion(b);
   if (b.accion === "cajaGuardar") return accionCajaGuardar(b);
+  if (b.accion === "agregarCliente") return accionAgregarCliente(b);
   if (b.action === "listarMarcaciones" || b.action === "registrarMarcacion") return manejarMarcaciones(b);
   if (b.accion === "solicitarVac") return accionSolicitarVac(b);
   if (b.accion === "firmarVac") return accionFirmarVac(b);
@@ -1004,6 +1005,43 @@ function leerProducciones(anio) {
     lista = lista.concat(b.producciones);
   }
   return lista;
+}
+
+// Cotizaciones → Clientes: pasa un cliente fortuito a la Base de Clientes.
+// Solo agrega (nunca edita ni borra), por eso también lo puede usar quien
+// tiene Cotizaciones sin tener Clientes. Si ya existe un cliente con el mismo
+// RUT o la misma razón social, no se duplica: se devuelve el existente.
+const KEY_CLIENTES = "clientes_ci_v1";
+const CAMPOS_CLIENTE = ["razonSocial", "rut", "rutDv", "telefono", "contacto", "email", "tipoVia", "calle", "altura", "comuna", "region", "referencia", "direccion"];
+function accionAgregarCliente(b) {
+  const u = usuarioDe(b.token);
+  if (!u || u.legado) return error(u ? "SIN_PERMISO" : motivoRechazo(b.token));
+  if (!u.isAdmin && u.modules.indexOf("clientes") === -1 && u.modules.indexOf("cotizaciones") === -1) return error("SIN_PERMISO");
+  const datos = b.cliente || {};
+  const nuevo = { id: Date.now() };
+  CAMPOS_CLIENTE.forEach(function (k) { nuevo[k] = neutralizarTexto(String(datos[k] == null ? "" : datos[k]).trim().slice(0, 200)); });
+  if (!nuevo.razonSocial) return error("Falta la razón social.");
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(20000);
+    let clientes = leerJSON(KEY_CLIENTES);
+    if (!Array.isArray(clientes)) clientes = [];
+    const rutLimpio = function (r) { return String(r || "").replace(/[^0-9kK]/g, "").toUpperCase(); };
+    const nombre = function (s) { return String(s || "").trim().toLowerCase(); };
+    const existente = clientes.find(function (c) {
+      return (nuevo.rut && rutLimpio(c.rut) === rutLimpio(nuevo.rut)) || nombre(c.razonSocial) === nombre(nuevo.razonSocial);
+    });
+    if (existente) return respuesta({ estado: "éxito", existente: true, cliente: existente });
+    while (clientes.some(function (c) { return c.id === nuevo.id; })) nuevo.id++;
+    clientes.push(nuevo);
+    const antes = leerValor(KEY_CLIENTES);
+    const texto = JSON.stringify(clientes);
+    const version = escribirValor(KEY_CLIENTES, texto);
+    registrarBitacora(u.email, "agregar cliente (desde Cotizaciones)", KEY_CLIENTES, antes, texto);
+    return respuesta({ estado: "éxito", cliente: nuevo, version: version });
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function accionPagoProduccion(b) {
