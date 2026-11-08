@@ -46,7 +46,8 @@ input,select,button{font-family:inherit;outline:none}
 .imp-tbl .r{text-align:right}
 .imp-tbl tr.gris td{color:#A8A29E}
 .imp-b{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;white-space:nowrap}
-.imp-b.ok{background:#DCFCE7;color:#166534}.imp-b.ya{background:#F3F4F6;color:#6B7280}.imp-b.dup{background:#FEF3E2;color:#B45309}
+.imp-b.ok{background:#DCFCE7;color:#166534}.imp-b.ya{background:#F3F4F6;color:#6B7280}.imp-b.dup{background:#FEF3E2;color:#B45309}.imp-b.fer{background:#FEE2E2;color:#B91C1C}
+.imp-tbl tr.feriado td{background:#FEF2F2}
 .imp-vacio{padding:30px;text-align:center;color:#78716C;font-size:13px}
 .imp-pie{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:12px;font-size:12px}
 .act-btn{background:#fff;border:1.5px solid var(--border);color:var(--dark);padding:7px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
@@ -108,6 +109,7 @@ tfoot td{padding:11px 12px;font-weight:700;white-space:nowrap}
 <script src="sesion.js"></script>
 <script src="cargando.js"></script>
 <script src="hora-chile.js"></script>
+<script src="feriados-chile.js"></script>
 <script>
 (function(){
   var MODULE_KEY = 'ventas';
@@ -279,14 +281,25 @@ async function buscarEnCaja() {
         var dup = !ya && state.ventas.some(function (v) {
           return !v.origenCaja && v.fecha === fecha && normImp(v.cliente) === normImp(cliente) && Math.abs((+v.montoBase || 0) - neto) <= Math.max(50, neto * 0.02);
         });
+        // La vendedora no trabaja en feriados: una venta de la Caja en feriado
+        // probablemente no es de la sala (o está mal fechada), así que queda sin marcar.
+        var feriado = esFeriadoImp(fecha);
         filas.push({ fecha: fecha, cliente: cliente, tipo: r.tipo || '', producto: productoDeCaja(r.tipo), origen: origen, formaPago: c.formaPago, tipoWebpay: c.tipoWebpay,
-          total: total, neto: neto, obs: r.obs || '', firma: firma, ya: ya, dup: dup, sel: !ya && !dup });
+          total: total, neto: neto, obs: r.obs || '', firma: firma, ya: ya, dup: dup, feriado: feriado, sel: !ya && !dup && !feriado });
       });
     });
   });
   importCaja.filas = filas;
   renderImportCaja();
+  var diasFeriado = [];
+  filas.forEach(function (x) { if (x.feriado && !x.ya && diasFeriado.indexOf(x.fecha) === -1) diasFeriado.push(x.fecha); });
+  if (diasFeriado.length) {
+    alert('⚠ Atención: hay ventas en la Caja en día(s) feriado(s), cuando la vendedora no trabaja:\n\n' +
+      diasFeriado.map(function (f) { return '• ' + fDate(f) + ' (' + filas.filter(function (x) { return x.fecha === f && !x.ya; }).length + ' venta(s))'; }).join('\n') +
+      '\n\nQuedaron sin marcar y destacadas en rojo. Revisa si son de la sala o si la fecha está mal en la Caja; márcalas solo si corresponde traspasarlas.');
+  }
 }
+function esFeriadoImp(fecha) { return typeof FER !== 'undefined' && FER.indexOf(fecha) !== -1; }
 
 function renderImportCaja() {
   var cont = document.getElementById('imp-resultado');
@@ -301,7 +314,8 @@ function renderImportCaja() {
   cont.innerHTML = '<table class="imp-tbl"><thead><tr><th></th><th>Fecha</th><th>Cliente</th><th>Producto</th><th>Pago</th><th class="r">Total Caja</th><th class="r">Neto</th><th>Estado</th></tr></thead><tbody>' +
     f.map(function (x, i) {
       var est = x.ya ? '<span class="imp-b ya">Ya traspasada</span>' : x.dup ? '<span class="imp-b dup" title="Hay una venta parecida ingresada a mano ese día. Márcala solo si no es la misma.">¿Duplicada?</span>' : '<span class="imp-b ok">Nueva</span>';
-      return '<tr class="' + (x.ya ? 'gris' : '') + '"><td><input type="checkbox" ' + (x.sel ? 'checked ' : '') + (x.ya ? 'disabled ' : '') + 'onchange="importCaja.filas[' + i + '].sel=this.checked;resumenImportCaja()"></td>' +
+      if (x.feriado && !x.ya) est += ' <span class="imp-b fer" title="Ese día es feriado y la vendedora no trabaja. Márcala solo si corresponde a la sala.">Feriado</span>';
+      return '<tr class="' + (x.ya ? 'gris' : x.feriado ? 'feriado' : '') + '"><td><input type="checkbox" ' + (x.sel ? 'checked ' : '') + (x.ya ? 'disabled ' : '') + 'onchange="importCaja.filas[' + i + '].sel=this.checked;resumenImportCaja()"></td>' +
         '<td>' + fDate(x.fecha) + '</td><td>' + escImp(x.cliente) + (x.origen === 'Empresa' ? ' <small>(Otros)</small>' : '') + '</td>' +
         '<td>' + escImp(x.producto) + (x.producto !== x.tipo && x.tipo ? ' <small>(' + escImp(x.tipo) + ')</small>' : '') + '</td>' +
         '<td>' + escImp(x.formaPago + (x.tipoWebpay ? ' ' + x.tipoWebpay.toLowerCase() : '')) + '</td>' +
@@ -313,9 +327,10 @@ function resumenImportCaja() {
   var sel = importCaja.filas.filter(function (x) { return x.sel && !x.ya; });
   var ya = importCaja.filas.filter(function (x) { return x.ya; }).length;
   var dup = importCaja.filas.filter(function (x) { return x.dup; }).length;
+  var fer = importCaja.filas.filter(function (x) { return x.feriado && !x.ya; }).length;
   document.getElementById('imp-resumen').innerHTML = '<b>' + sel.length + '</b> venta(s) seleccionada(s) · Total Caja ' + fmt(sel.reduce(function (s, x) { return s + x.total; }, 0)) +
     ' · <b>Neto a traspasar ' + fmt(sel.reduce(function (s, x) { return s + x.neto; }, 0)) + '</b>' +
-    (ya ? ' · ' + ya + ' ya traspasada(s)' : '') + (dup ? ' · ' + dup + ' posible(s) duplicado(s) sin marcar' : '');
+    (ya ? ' · ' + ya + ' ya traspasada(s)' : '') + (dup ? ' · ' + dup + ' posible(s) duplicado(s) sin marcar' : '') + (fer ? ' · <span style="color:#B91C1C;font-weight:700">⚠ ' + fer + ' en feriado</span>' : '');
   var btn = document.getElementById('imp-btn');
   btn.disabled = !sel.length;
   btn.textContent = sel.length ? 'Traspasar ' + sel.length + ' venta(s)' : 'Traspasar';
