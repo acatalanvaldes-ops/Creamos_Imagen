@@ -864,7 +864,7 @@ function buildPreview(){
     }
   });
   const tEf=rows.reduce((s,r)=>s+(+r.ef||0),0), tTr=rows.reduce((s,r)=>s+(+r.tr||0),0), tWp=rows.reduce((s,r)=>s+wpCred(r),0), tWpd=rows.reduce((s,r)=>s+wpDeb(r),0);
-  html += `<tr style="font-weight:700;background:var(--accent-l)"><td colspan="5" style="text-align:right">TOTALES</td><td style="text-align:right">${fmt(tEf)}</td><td style="text-align:right">${fmt(tTr)}</td><td style="text-align:right">${fmt(tWp)}</td><td style="text-align:right">${fmt(tWpd)}</td><td></td></tr>`;
+  html += `<tr style="font-weight:700;background:var(--accent-l)"><td colspan="5" style="text-align:right">TOTALES</td><td style="text-align:right">${fmt(tEf)}</td><td style="text-align:right">${fmt(tTr)}</td><td style="text-align:right">${fmt(tWp)}</td><td style="text-align:right">${fmt(tWpd)}</td><td style="white-space:nowrap;font-size:12px">Total general: ${fmt(tEf+tTr+tWp+tWpd)}</td></tr>`;
   body.innerHTML = html;
 }
 
@@ -954,13 +954,14 @@ async function exportXLSX(){
   const tEf = rows.reduce((s,r)=>s+(+r.ef||0),0);
   const tTr = rows.reduce((s,r)=>s+(+r.tr||0),0);
   const tWp = rows.reduce((s,r)=>s+wpCred(r),0), tWpd=rows.reduce((s,r)=>s+wpDeb(r),0);
-  const totalRow = ws.addRow({ fecha:'', cliente:'', tipo:'', origen:'', pago:'TOTALES', ef:tEf, tr:tTr, wpCredito:tWp, wpDebito:tWpd, obs:'' });
+  const totalRow = ws.addRow({ fecha:'', cliente:'', tipo:'', origen:'', pago:'TOTALES', ef:tEf, tr:tTr, wpCredito:tWp, wpDebito:tWpd, obs:tEf+tTr+tWp+tWpd });
   totalRow.eachCell({ includeEmpty:true }, cell => {
     cell.font = { bold:true };
     cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFFFF3CC'} };
     cell.border = { top:{style:'double',color:{argb:'FF141414'}} };
   });
   moneyIdx.forEach(ci => { totalRow.getCell(ci).numFmt = '"$"#,##0'; });
+  totalRow.getCell(cols.length).numFmt = '"Total general: $"#,##0';
 
   ws.autoFilter = { from:{row:3,column:1}, to:{row:3,column:cols.length} };
 
