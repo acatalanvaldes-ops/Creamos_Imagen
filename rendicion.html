@@ -104,6 +104,7 @@ tfoot .tot-row td{background:var(--accent-l);font-family:var(--mono);font-size:1
 .ex-tbl{border-collapse:collapse;min-width:100%;font-size:11px;font-family:var(--mono)}
 .ex-tbl thead th{background:#217346;color:#fff;font-weight:600;padding:7px 14px;border:1px solid #185c37;}
 .ex-tbl tbody td{padding:5px 14px;border:1px solid #d0d0d0;}
+.ex-tbl tr.ex-subtot td{background:#E8F3EC;font-weight:700;border-bottom:2px solid #217346;white-space:nowrap}
 .btn-dl{background:#217346;color:#fff;border:none;font-family:var(--sans);font-size:13px;font-weight:700;padding:10px 22px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:8px;}
 .brand-field-example{display:none!important}
 tr.fila-auto td{background:#F8FAFC;color:#334155;padding:8px 10px;font-size:13px}
@@ -837,18 +838,30 @@ function applyPrevRangeBounds(){
 
 function fechaCorta(iso){ const [y,m,d]=iso.split('-'); return `${d}/${m}/${y}`; }
 
+function subtotalDia(rows, fecha){
+  const del = rows.filter(r => r.fecha === fecha);
+  const s = { n: del.length, ef: del.reduce((a,r)=>a+(+r.ef||0),0), tr: del.reduce((a,r)=>a+(+r.tr||0),0), wpc: del.reduce((a,r)=>a+wpCred(r),0), wpd: del.reduce((a,r)=>a+wpDeb(r),0) };
+  s.total = s.ef + s.tr + s.wpc + s.wpd;
+  return s;
+}
+
 function buildPreview(){
   const rows = getAllRowsSorted();
   const head = document.getElementById('ex-head');
   const body = document.getElementById('ex-body');
   head.innerHTML = '<tr><th>Fecha</th><th>Cliente</th><th>Tipo de Venta</th><th>Origen</th><th>Forma de Pago</th><th style="text-align:right">Efectivo</th><th style="text-align:right">Transferencia</th><th style="text-align:right">Crédito</th><th style="text-align:right">Débito</th><th>Observaciones</th></tr>';
   if(!rows.length){
-    body.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px">No hay registros ${textoFiltrosPrev()}.</td></tr>`;
+    body.innerHTML = `<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:20px">No hay registros ${textoFiltrosPrev()}.</td></tr>`;
     return;
   }
   let html='';
-  rows.forEach(r=>{
+  rows.forEach((r,i)=>{
     html += `<tr><td>${fechaCorta(r.fecha)}</td><td>${r.cliente||''}</td><td>${r.tipo||''}</td><td>${origenLabel(r.origen)}</td><td>${r.pago||''}</td><td style="text-align:right">${fmt(r.ef)}</td><td style="text-align:right">${fmt(r.tr)}</td><td style="text-align:right">${fmt(wpCred(r))}</td><td style="text-align:right">${fmt(wpDeb(r))}</td><td>${r.obs||''}</td></tr>`;
+    // Subtotal al cerrar cada día, para cuadrar la caja día a día.
+    if (!rows[i+1] || rows[i+1].fecha !== r.fecha) {
+      const s = subtotalDia(rows, r.fecha);
+      html += `<tr class="ex-subtot"><td colspan="5" style="text-align:right">Subtotal ${fechaCorta(r.fecha)} · ${s.n} mov.</td><td style="text-align:right">${fmt(s.ef)}</td><td style="text-align:right">${fmt(s.tr)}</td><td style="text-align:right">${fmt(s.wpc)}</td><td style="text-align:right">${fmt(s.wpd)}</td><td>Total día: ${fmt(s.total)}</td></tr>`;
+    }
   });
   const tEf=rows.reduce((s,r)=>s+(+r.ef||0),0), tTr=rows.reduce((s,r)=>s+(+r.tr||0),0), tWp=rows.reduce((s,r)=>s+wpCred(r),0), tWpd=rows.reduce((s,r)=>s+wpDeb(r),0);
   html += `<tr style="font-weight:700;background:var(--accent-l)"><td colspan="5" style="text-align:right">TOTALES</td><td style="text-align:right">${fmt(tEf)}</td><td style="text-align:right">${fmt(tTr)}</td><td style="text-align:right">${fmt(tWp)}</td><td style="text-align:right">${fmt(tWpd)}</td><td></td></tr>`;
@@ -924,6 +937,18 @@ async function exportXLSX(){
         left:{style:'thin',color:{argb:'FFDDD9D0'}}, right:{style:'thin',color:{argb:'FFDDD9D0'}}
       };
     });
+    if (!rows[idx+1] || rows[idx+1].fecha !== r.fecha) {
+      const s = subtotalDia(rows, r.fecha);
+      const sub = ws.addRow({ fecha:'', cliente:'', tipo:'', origen:'', pago:'Subtotal ' + fechaCorta(r.fecha) + ' · ' + s.n + ' mov.', ef:s.ef, tr:s.tr, wpCredito:s.wpc, wpDebito:s.wpd, obs:s.total });
+      sub.eachCell({ includeEmpty:true }, cell => {
+        cell.font = { bold:true };
+        cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFE8F3EC'} };
+        cell.border = { bottom:{style:'medium',color:{argb:'FF217346'}} };
+      });
+      moneyIdx.forEach(ci => { sub.getCell(ci).numFmt = '"$"#,##0'; });
+      sub.getCell(cols.length).numFmt = '"Total día: $"#,##0';
+      sub.getCell(5).alignment = { horizontal:'right' };
+    }
   });
 
   const tEf = rows.reduce((s,r)=>s+(+r.ef||0),0);
