@@ -275,6 +275,12 @@ function render() {
       '<div class="card"><div class="card-title">Recuperar Caja desde el historial</div>' +
         '<div class="help">Trae los registros de Caja desde una versión anterior de la planilla (la última antes de la fecha y hora indicadas) y los agrega a la Caja actual. No borra ni cambia nada de lo que hay hoy: solo agrega las filas que falten. Primero presiona <b>Ver qué se recupera</b> y revisa los totales.</div>' +
         '<div class="add-row" style="align-items:center">' +
+          '<label style="font-size:12.5px">Solo los días desde: <input type="date" id="rec-desde" style="background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:6px 10px"></label>' +
+          '<label style="font-size:12.5px">hasta: <input type="date" id="rec-hasta" style="background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:6px 10px"></label>' +
+          '<button class="act-btn" onclick="explorarCaja()" title="Revisa una versión por día y muestra cuántos registros del rango tenía cada una">🔎 Buscar en qué versión están</button>' +
+        '</div>' +
+        '<div id="rec-explorar"></div>' +
+        '<div class="add-row" style="align-items:center">' +
           '<label style="font-size:12.5px">Versión anterior a: <input type="datetime-local" id="rec-antes" value="2026-11-08T23:05" style="background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:6px 10px"></label>' +
           '<button class="act-btn" onclick="recuperarCaja(false)">🔍 Ver qué se recupera</button>' +
           '<button class="act-btn primary" id="rec-aplicar" onclick="recuperarCaja(true)" disabled>↺ Recuperar</button>' +
@@ -324,7 +330,7 @@ async function recuperarCaja(aplicar) {
   if (aplicar && !confirm('Se agregarán a la Caja las filas que se muestran. Lo que hay hoy en la Caja no se toca. ¿Continuar?')) return;
   cont.innerHTML = '<div class="empty-state">⏳ Leyendo el historial de la planilla… (puede tardar un minuto)</div>';
   try {
-    var res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ accion: 'recuperarCaja', antesDe: isoChile(antes), aplicar: !!aplicar, token: CLOUD_TOKEN }) });
+    var res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ accion: 'recuperarCaja', antesDe: isoChile(antes), desde: document.getElementById('rec-desde').value, hasta: document.getElementById('rec-hasta').value, aplicar: !!aplicar, token: CLOUD_TOKEN }) });
     var j = await res.json();
     if (j.estado === 'error') throw new Error(j.detalle === 'Acción desconocida' ? 'Falta actualizar el Apps Script.' : j.detalle);
     var meses = Object.keys(j.porMes || {}).sort();
@@ -338,6 +344,47 @@ async function recuperarCaja(aplicar) {
   } catch (e) {
     cont.innerHTML = '<div class="empty-state">No se pudo: ' + escB(e.message) + '</div>';
   }
+}
+// Busca, versión por versión (una por día), cuántos registros del rango tenía
+// la Caja. Trabaja por tandas: "Seguir buscando" continúa hacia atrás.
+var explorar = { filas: [], actual: null };
+async function explorarCaja(seguir) {
+  var desde = document.getElementById('rec-desde').value, hasta = document.getElementById('rec-hasta').value;
+  if (!desde || !hasta) { alert('Indica el rango de días a buscar (desde y hasta).'); return; }
+  if (!seguir) explorar = { filas: [], actual: null };
+  var cont = document.getElementById('rec-explorar');
+  var antesDeDia = seguir && explorar.filas.length ? explorar.filas[explorar.filas.length - 1].dia : '';
+  cont.innerHTML = tablaExplorar() + '<div class="empty-state">⏳ Revisando versiones… (hasta minuto y medio por tanda)</div>';
+  try {
+    var res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ accion: 'explorarCaja', desde: desde, hasta: hasta, antesDeDia: antesDeDia, token: CLOUD_TOKEN }) });
+    var j = await res.json();
+    if (j.estado === 'error') throw new Error(j.detalle === 'Acción desconocida' ? 'Falta actualizar el Apps Script.' : j.detalle);
+    explorar.actual = j.actual;
+    explorar.filas = explorar.filas.concat(j.versiones || []);
+    explorar.incompleto = j.incompleto;
+    cont.innerHTML = tablaExplorar();
+  } catch (e) {
+    cont.innerHTML = tablaExplorar() + '<div class="empty-state">No se pudo: ' + escB(e.message) + '</div>';
+  }
+}
+function tablaExplorar() {
+  if (!explorar.actual) return '';
+  var fmtP = function (n) { return '$' + Math.round(n || 0).toLocaleString('es-CL'); };
+  return '<div class="help" style="margin-top:10px">Hoy la Caja tiene <b>' + explorar.actual.filas + '</b> registro(s) en ese rango, por ' + fmtP(explorar.actual.monto) + '. Elige la versión con más registros y presiona <b>Usar</b>; después revisa con <b>Ver qué se recupera</b>.</div>' +
+    '<div style="max-height:320px;overflow-y:auto"><table><thead><tr><th>Versión (día)</th><th>Registros en el rango</th><th>Monto</th><th></th></tr></thead><tbody>' +
+    explorar.filas.map(function (v) {
+      var hora = new Date(v.version).toLocaleString('es-CL', { timeZone: 'America/Santiago' });
+      return '<tr><td>' + escB(hora) + '</td><td>' + (v.error ? 'Error: ' + escB(v.error) : v.sinCaja ? 'Sin Caja' : v.filas) + '</td><td>' + (v.error || v.sinCaja ? '' : fmtP(v.monto)) + '</td>' +
+        '<td>' + (v.filas ? '<button class="act-btn" onclick="usarVersion(\'' + v.version + '\')">Usar</button>' : '') + '</td></tr>';
+    }).join('') + '</tbody></table></div>' +
+    (explorar.incompleto ? '<div class="add-row"><button class="act-btn" onclick="explorarCaja(true)">⏬ Seguir buscando más atrás</button></div>' : '');
+}
+// Deja el campo "Versión anterior a" un minuto después de esa versión, para que se use justo esa.
+function usarVersion(iso) {
+  var d = new Date(new Date(iso).getTime() + 60000);
+  var p = {}; new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(d).forEach(function (x) { p[x.type] = x.value; });
+  document.getElementById('rec-antes').value = p.year + '-' + p.month + '-' + p.day + 'T' + p.hour + ':' + p.minute;
+  document.getElementById('rec-antes').scrollIntoView({ block: 'center' });
 }
 function escB(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function renderBitacora() {

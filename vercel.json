@@ -1,6 +1,7 @@
 {
   "functions": {
-    "api/descriptor.js": { "maxDuration": 120 }
+    "api/descriptor.js": { "maxDuration": 120 },
+    "api/portal.js": { "maxDuration": 120 }
   },
   "headers": [
     {
