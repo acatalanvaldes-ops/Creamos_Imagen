@@ -195,7 +195,13 @@ function contarRegistros(texto) {
     const v = JSON.parse(texto);
     if (Array.isArray(v)) return v.length;
     if (v && Array.isArray(v.producciones)) return v.producciones.length;
-    if (v && typeof v === "object" && typeof v.shardCount !== "number") return Object.keys(v).length;
+    if (v && typeof v === "object" && typeof v.shardCount !== "number") {
+      // Caja (y similares): {fecha: [filas]} se cuenta por filas, no por días,
+      // para que un borrado de filas se vea en rojo en la bitácora.
+      const valores = Object.keys(v).map(function (k) { return v[k]; });
+      if (valores.length && valores.every(Array.isArray)) return valores.reduce(function (s, a) { return s + a.length; }, 0);
+      return Object.keys(v).length;
+    }
   } catch (e) {}
   return "";
 }
@@ -774,6 +780,20 @@ function accionCajaGuardar(b) {
     let caja = {};
     try { caja = JSON.parse(antes || "{}") || {}; } catch (e) { return error("No se pudo leer Caja."); }
     const aplicados = [], conflictos = {}, detalle = [], guardadas = {};
+    // Vaciar varios días con registros en un solo guardado no es un uso normal
+    // (así se borró la Caja de mayo a noviembre el 08-11-2026): se rechaza
+    // todo el guardado, salvo para administradores.
+    if (!u.isAdmin) {
+      const vaciados = fechas.filter(function (f) {
+        const filas = (dias[f] || {}).filas;
+        const tenia = (Array.isArray(caja[f]) ? caja[f] : []).some(function (r) { return !esFilaAutomatica(r); });
+        return tenia && !(Array.isArray(filas) && filas.length);
+      });
+      if (vaciados.length > 3) {
+        registrarBitacora(u.email, "caja por días RECHAZADO", "Intentó vaciar " + vaciados.length + " días: " + vaciados.join(", "));
+        return error("BORRADO_MASIVO");
+      }
+    }
     fechas.forEach(function (f) {
       const d = dias[f] || {};
       const actual = Array.isArray(caja[f]) ? caja[f] : [];

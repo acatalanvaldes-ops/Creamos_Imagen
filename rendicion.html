@@ -164,7 +164,6 @@ tfoot .tot-row td.monto{padding:9px 4px;font-size:12.5px;white-space:nowrap}
     <button class="ttab"     onclick="showTab('prev',this)">📁 Vista Excel</button>
   </div>
   <div class="topbar-right">
-    <button class="btn-clear" onclick="clearAll()">🗑 Borrar datos</button>
     <button class="btn-xl"    onclick="exportXLSX()">⬇ Guardar Excel</button>
   </div>
 </div>
@@ -430,7 +429,7 @@ async function dispararGuardadoNube(){
   estadoGuardado('guardando');
   const enviados = {}, cuerpo = {};
   dias.forEach(f => { enviados[f] = textoManual(f); cuerpo[f] = { filas: JSON.parse(enviados[f]), base: BASE[f] !== undefined ? BASE[f] : '[]' }; });
-  let ok = false;
+  let ok = false, masivo = false;
   try {
     const res = await fetchConTimeout(API_URL, { method: 'POST', body: JSON.stringify({ accion: 'cajaGuardar', dias: cuerpo, token: CLOUD_TOKEN }) });
     const j = await res.json();
@@ -462,10 +461,11 @@ async function dispararGuardadoNube(){
   } catch (e) {
     console.error('No se pudo guardar Caja', e);
     if (/SIN_PERMISO/.test(e.message)) alert('No tienes permiso para modificar la Caja.');
+    if (/BORRADO_MASIVO/.test(e.message)) { masivo = true; alert('La nube rechazó el guardado: vaciaba la Caja de varios días a la vez. No se borró nada.\n\nSi necesitas borrar registros de varios días, pídeselo a un administrador. Recarga la página (F5) para volver a ver lo que está guardado.'); }
   } finally {
     _cloudSaveInFlight = false;
     if (ok && !diasPendientes().length) estadoGuardado('ok');
-    if (!ok) { estadoGuardado('error'); _reintento = setTimeout(dispararGuardadoNube, 8000); }
+    if (!ok) { estadoGuardado('error'); if (!masivo) _reintento = setTimeout(dispararGuardadoNube, 8000); }
     if (_cloudSaveQueued || (ok && diasPendientes().length)) { _cloudSaveQueued = false; setTimeout(dispararGuardadoNube, 300); }
   }
 }
@@ -591,15 +591,8 @@ function changeYear(y) {
   renderSumm();
 }
 
-function clearAll(){ 
-  if(!confirm('¿Borrar TODOS los registros del sistema? Esta acción también borrará tu historial pre-cargado.')) return; 
-  Object.keys(data).forEach(k=>{ data[k]=[]; }); 
-  localStorage.removeItem('rendicion2026_v2'); 
-  saveData(); // Limpia la nube también
-  buildAccordion(); 
-  if(curDate) renderContent(); 
-  renderSumm(); 
-}
+// El botón "Borrar datos" (vaciaba todos los días y lo guardaba en la nube) se
+// quitó: el 08-11-2026 borró la Caja de mayo a noviembre con un solo clic.
 
 function toggleMonthsMenu(){
   const menu=document.getElementById("months-col"), btn=document.getElementById("months-toggle");
