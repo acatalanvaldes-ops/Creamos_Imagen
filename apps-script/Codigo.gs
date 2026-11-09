@@ -635,6 +635,7 @@ function accionPost(b) {
   if (b.accion === "pagoProduccion" || b.accion === "anularPagoProduccion") return accionPagoProduccion(b);
   if (b.accion === "cajaGuardar") return accionCajaGuardar(b);
   if (b.accion === "agregarCliente") return accionAgregarCliente(b);
+  if (b.accion === "recuperarCaja") return accionRecuperarCaja(b);
   if (b.action === "listarMarcaciones" || b.action === "registrarMarcacion") return manejarMarcaciones(b);
   if (b.accion === "solicitarVac") return accionSolicitarVac(b);
   if (b.accion === "firmarVac") return accionFirmarVac(b);
@@ -817,6 +818,73 @@ function accionCajaGuardar(b) {
       registrarBitacora(u.email, "caja por días", "Días: " + aplicados.join(", ") + (detalle.length ? " · filas " + detalle.join(", ") : ""), antes, texto);
     }
     return respuesta({ estado: "éxito", aplicados: aplicados, conflictos: conflictos, guardadas: guardadas, version: version });
+  } finally { lock.releaseLock(); }
+}
+
+// RECUPERAR CAJA DESDE EL HISTORIAL DE VERSIONES DE LA PLANILLA
+// (solo administradores). Busca la última versión de la planilla anterior a
+// "antesDe", saca de ella la Caja y la junta con la actual: por cada día se
+// mantienen las filas de hoy y se agregan las de esa versión que falten. Las
+// filas automáticas (pagos de producciones) se dejan como están hoy.
+// Sin "aplicar" solo muestra qué se recuperaría, mes por mes.
+function cajaDeVersion(antesDe) {
+  const auth = { headers: { Authorization: "Bearer " + ScriptApp.getOAuthToken() }, muteHttpExceptions: true };
+  let elegida = null, pagina = "";
+  do {
+    const r = UrlFetchApp.fetch("https://www.googleapis.com/drive/v3/files/" + SHEET_ID + "/revisions?pageSize=200&fields=nextPageToken,revisions(id,modifiedTime,exportLinks)" + (pagina ? "&pageToken=" + encodeURIComponent(pagina) : ""), auth);
+    if (r.getResponseCode() !== 200) throw new Error("No se pudo leer el historial de versiones (" + r.getResponseCode() + "): " + r.getContentText().slice(0, 200));
+    const j = JSON.parse(r.getContentText());
+    (j.revisions || []).forEach(function (v) {
+      if (new Date(v.modifiedTime) < antesDe && (!elegida || new Date(v.modifiedTime) > new Date(elegida.modifiedTime))) elegida = v;
+    });
+    pagina = j.nextPageToken || "";
+  } while (pagina);
+  if (!elegida) throw new Error("No hay una versión de la planilla anterior a esa fecha.");
+  const link = elegida.exportLinks && elegida.exportLinks["text/csv"];
+  if (!link) throw new Error("Esa versión no se puede exportar.");
+  const csv = UrlFetchApp.fetch(link, auth);
+  if (csv.getResponseCode() !== 200) throw new Error("No se pudo descargar la versión (" + csv.getResponseCode() + ").");
+  const filas = Utilities.parseCsv(csv.getContentText("UTF-8"));
+  const fila = filas.find(function (f) { return f[0] === KEY_CAJA; });
+  if (!fila) throw new Error("La Caja no aparece en esa versión de la planilla.");
+  let texto = String(fila[1] || "");
+  for (let i = 2; i < fila.length && typeof fila[i] === "string" && fila[i].charAt(0) === CONTINUA; i++) texto += fila[i].slice(1);
+  return { version: elegida.modifiedTime, caja: JSON.parse(texto || "{}") || {} };
+}
+function accionRecuperarCaja(b) {
+  const u = usuarioDe(b.token);
+  if (!u || !u.isAdmin || u.legado) return error("SIN_PERMISO");
+  const antesDe = new Date(b.antesDe || "");
+  if (isNaN(antesDe.getTime())) return error("Fecha inválida.");
+  const vieja = cajaDeVersion(antesDe);
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(20000);
+    const antes = leerValor(KEY_CAJA);
+    const caja = JSON.parse(antes || "{}") || {};
+    const porMes = {};
+    let filasRec = 0;
+    Object.keys(vieja.caja).filter(function (f) { return /^\d{4}-\d{2}-\d{2}$/.test(f) && Array.isArray(vieja.caja[f]); }).forEach(function (f) {
+      const actual = Array.isArray(caja[f]) ? caja[f] : [];
+      const vistas = {};
+      actual.filter(function (r) { return !esFilaAutomatica(r); }).forEach(function (r) { vistas[JSON.stringify(r)] = true; });
+      const faltan = vieja.caja[f].filter(function (r) { return r && typeof r === "object" && !esFilaAutomatica(r) && !vistas[JSON.stringify(r)]; });
+      if (!faltan.length) return;
+      const manuales = actual.filter(function (r) { return !esFilaAutomatica(r); });
+      caja[f] = manuales.concat(faltan).concat(actual.filter(esFilaAutomatica));
+      filasRec += faltan.length;
+      const mes = f.slice(0, 7), m = porMes[mes] = porMes[mes] || { dias: 0, filas: 0, monto: 0 };
+      m.dias++; m.filas += faltan.length;
+      faltan.forEach(function (r) { m.monto += (Number(r.ef) || 0) + (Number(r.tr) || 0) + (Number(r.wpCredito != null && r.wpCredito !== "" ? r.wpCredito : r.wp) || 0) + (Number(r.wpDebito) || 0); });
+    });
+    const res = { estado: "éxito", versionPlanilla: vieja.version, filas: filasRec, porMes: porMes };
+    if (!b.aplicar || !filasRec) return respuesta(res);
+    const texto = JSON.stringify(caja);
+    const version = escribirValor(KEY_CAJA, texto);
+    PropertiesService.getScriptProperties().setProperty("vermanual:" + KEY_CAJA, version);
+    registrarBitacora(u.email, "recuperar caja", filasRec + " fila(s) recuperadas desde la versión de la planilla del " + vieja.version, antes, texto);
+    res.aplicado = true;
+    return respuesta(res);
   } finally { lock.releaseLock(); }
 }
 
