@@ -847,7 +847,13 @@ function revisionesPlanilla() {
 function cajaDeRevision(v) {
   const link = v.exportLinks && v.exportLinks["text/csv"];
   if (!link) throw new Error("Esa versión no se puede exportar.");
-  const csv = UrlFetchApp.fetch(link, authDrive());
+  // Google limita las descargas seguidas (429): se espera y se reintenta.
+  let csv;
+  for (let intento = 0; intento < 4; intento++) {
+    csv = UrlFetchApp.fetch(link, authDrive());
+    if (csv.getResponseCode() !== 429) break;
+    Utilities.sleep(4000 * (intento + 1));
+  }
   if (csv.getResponseCode() !== 200) throw new Error("No se pudo descargar la versión (" + csv.getResponseCode() + ").");
   const fila = Utilities.parseCsv(csv.getContentText("UTF-8")).find(function (f) { return f[0] === KEY_CAJA; });
   if (!fila) return null;
@@ -868,11 +874,16 @@ function fechaEnRango(f, desde, hasta) { return /^\d{4}-\d{2}-\d{2}$/.test(f) &&
 // Filas manuales y monto de la Caja dentro del rango.
 function resumenCaja(caja, desde, hasta) {
   let filas = 0, monto = 0;
+  const porMes = {};
   Object.keys(caja || {}).forEach(function (f) {
     if (!fechaEnRango(f, desde, hasta) || !Array.isArray(caja[f])) return;
-    caja[f].forEach(function (r) { if (r && !esFilaAutomatica(r)) { filas++; monto += montoFilaCaja(r); } });
+    caja[f].forEach(function (r) {
+      if (!r || esFilaAutomatica(r)) return;
+      filas++; monto += montoFilaCaja(r);
+      porMes[f.slice(0, 7)] = (porMes[f.slice(0, 7)] || 0) + 1;
+    });
   });
-  return { filas: filas, monto: monto };
+  return { filas: filas, monto: monto, porMes: porMes };
 }
 // Para encontrar en qué versión de la planilla están los registros de un
 // rango: revisa una versión por día (la última de cada día), de la más
@@ -896,6 +907,7 @@ function accionExplorarCaja(b) {
     catch (e) { r = { error: String(e.message || e) }; }
     r.version = v.modifiedTime; r.dia = dias[i];
     versiones.push(r);
+    Utilities.sleep(1500);
   }
   return respuesta({ estado: "éxito", actual: resumenCaja(leerJSON(KEY_CAJA) || {}, desde, hasta), versiones: versiones, incompleto: incompleto, totalDias: dias.length });
 }

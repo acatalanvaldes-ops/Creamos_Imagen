@@ -352,6 +352,8 @@ async function explorarCaja(seguir) {
   var desde = document.getElementById('rec-desde').value, hasta = document.getElementById('rec-hasta').value;
   if (!desde || !hasta) { alert('Indica el rango de días a buscar (desde y hasta).'); return; }
   if (!seguir) explorar = { filas: [], actual: null };
+  // Las versiones que dieron error al final se vuelven a intentar.
+  while (explorar.filas.length && explorar.filas[explorar.filas.length - 1].error) explorar.filas.pop();
   var cont = document.getElementById('rec-explorar');
   var antesDeDia = seguir && explorar.filas.length ? explorar.filas[explorar.filas.length - 1].dia : '';
   cont.innerHTML = tablaExplorar() + '<div class="empty-state">⏳ Revisando versiones… (hasta minuto y medio por tanda)</div>';
@@ -370,14 +372,18 @@ async function explorarCaja(seguir) {
 function tablaExplorar() {
   if (!explorar.actual) return '';
   var fmtP = function (n) { return '$' + Math.round(n || 0).toLocaleString('es-CL'); };
-  return '<div class="help" style="margin-top:10px">Hoy la Caja tiene <b>' + explorar.actual.filas + '</b> registro(s) en ese rango, por ' + fmtP(explorar.actual.monto) + '. Elige la versión con más registros y presiona <b>Usar</b>; después revisa con <b>Ver qué se recupera</b>.</div>' +
-    '<div style="max-height:320px;overflow-y:auto"><table><thead><tr><th>Versión (día)</th><th>Registros en el rango</th><th>Monto</th><th></th></tr></thead><tbody>' +
+  var meses = {};
+  [explorar.actual].concat(explorar.filas).forEach(function (v) { Object.keys(v.porMes || {}).forEach(function (m) { meses[m] = 1; }); });
+  meses = Object.keys(meses).sort();
+  var celdasMes = function (v) { return meses.map(function (m) { return '<td>' + (v.error || v.sinCaja ? '' : ((v.porMes || {})[m] || 0)) + '</td>'; }).join(''); };
+  return '<div class="help" style="margin-top:10px">Hoy la Caja tiene <b>' + explorar.actual.filas + '</b> registro(s) en ese rango, por ' + fmtP(explorar.actual.monto) + ' (' + meses.map(function (m) { return m + ': ' + ((explorar.actual.porMes || {})[m] || 0); }).join(' · ') + '). Elige la versión con más registros y presiona <b>Usar</b>; después revisa con <b>Ver qué se recupera</b>.</div>' +
+    '<div style="max-height:320px;overflow-y:auto"><table><thead><tr><th>Versión (día)</th><th>Registros en el rango</th>' + meses.map(function (m) { return '<th>' + m + '</th>'; }).join('') + '<th>Monto</th><th></th></tr></thead><tbody>' +
     explorar.filas.map(function (v) {
       var hora = new Date(v.version).toLocaleString('es-CL', { timeZone: 'America/Santiago' });
-      return '<tr><td>' + escB(hora) + '</td><td>' + (v.error ? 'Error: ' + escB(v.error) : v.sinCaja ? 'Sin Caja' : v.filas) + '</td><td>' + (v.error || v.sinCaja ? '' : fmtP(v.monto)) + '</td>' +
+      return '<tr><td>' + escB(hora) + '</td><td>' + (v.error ? 'Error: ' + escB(v.error) : v.sinCaja ? 'Sin Caja' : v.filas) + '</td>' + celdasMes(v) + '<td>' + (v.error || v.sinCaja ? '' : fmtP(v.monto)) + '</td>' +
         '<td>' + (v.filas ? '<button class="act-btn" onclick="usarVersion(\'' + v.version + '\')">Usar</button>' : '') + '</td></tr>';
     }).join('') + '</tbody></table></div>' +
-    (explorar.incompleto ? '<div class="add-row"><button class="act-btn" onclick="explorarCaja(true)">⏬ Seguir buscando más atrás</button></div>' : '');
+    (explorar.incompleto || (explorar.filas.length && explorar.filas[explorar.filas.length - 1].error) ? '<div class="add-row"><button class="act-btn" onclick="explorarCaja(true)">⏬ Seguir buscando más atrás</button></div>' : '');
 }
 // Deja el campo "Versión anterior a" un minuto después de esa versión, para que se use justo esa.
 function usarVersion(iso) {
