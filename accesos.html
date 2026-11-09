@@ -282,6 +282,7 @@ function render() {
         '<div id="rec-explorar"></div>' +
         '<div class="add-row" style="align-items:center">' +
           '<label style="font-size:12.5px">Versión anterior a: <input type="datetime-local" id="rec-antes" value="2026-11-08T23:05" style="background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:6px 10px"></label>' +
+          '<label style="font-size:12.5px">o desde una copia: <input type="url" id="rec-copia" placeholder="Enlace de la copia de la planilla (opcional)" style="background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;min-width:280px"></label>' +
           '<button class="act-btn" onclick="recuperarCaja(false)">🔍 Ver qué se recupera</button>' +
           '<button class="act-btn primary" id="rec-aplicar" onclick="recuperarCaja(true)" disabled>↺ Recuperar</button>' +
         '</div>' +
@@ -326,16 +327,17 @@ function isoChile(local) {
 async function recuperarCaja(aplicar) {
   var antes = document.getElementById('rec-antes').value;
   var cont = document.getElementById('rec-resultado');
-  if (!antes) { alert('Indica la fecha y hora.'); return; }
+  var copia = document.getElementById('rec-copia').value.trim();
+  if (!antes && !copia) { alert('Indica la fecha y hora, o el enlace de la copia.'); return; }
   if (aplicar && !confirm('Se agregarán a la Caja las filas que se muestran. Lo que hay hoy en la Caja no se toca. ¿Continuar?')) return;
   cont.innerHTML = '<div class="empty-state">⏳ Leyendo el historial de la planilla… (puede tardar un minuto)</div>';
   try {
-    var res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ accion: 'recuperarCaja', antesDe: isoChile(antes), desde: document.getElementById('rec-desde').value, hasta: document.getElementById('rec-hasta').value, aplicar: !!aplicar, token: CLOUD_TOKEN }) });
+    var res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ accion: 'recuperarCaja', antesDe: antes ? isoChile(antes) : '', archivo: copia, desde: document.getElementById('rec-desde').value, hasta: document.getElementById('rec-hasta').value, aplicar: !!aplicar, token: CLOUD_TOKEN }) });
     var j = await res.json();
     if (j.estado === 'error') throw new Error(j.detalle === 'Acción desconocida' ? 'Falta actualizar el Apps Script.' : j.detalle);
     var meses = Object.keys(j.porMes || {}).sort();
     var fmtP = function (n) { return '$' + Math.round(n).toLocaleString('es-CL'); };
-    var fecha = new Date(j.versionPlanilla).toLocaleString('es-CL', { timeZone: 'America/Santiago' });
+    var fecha = isNaN(new Date(j.versionPlanilla)) ? j.versionPlanilla : new Date(j.versionPlanilla).toLocaleString('es-CL', { timeZone: 'America/Santiago' });
     cont.innerHTML = '<div class="help" style="margin-top:10px">Versión de la planilla usada: <b>' + escB(fecha) + '</b>. ' +
       (j.aplicado ? '<b style="color:var(--teal,#0D7A6B)">✓ Se recuperaron ' + j.filas + ' fila(s).</b> Recarga Caja (F5) para verlas.' : (j.filas ? 'Se recuperarían <b>' + j.filas + '</b> fila(s):' : 'No falta nada: la Caja actual ya tiene todo lo de esa versión.')) + '</div>' +
       (meses.length ? '<table><thead><tr><th>Mes</th><th>Días</th><th>Filas</th><th>Monto</th></tr></thead><tbody>' +
@@ -390,6 +392,7 @@ function usarVersion(iso) {
   var d = new Date(new Date(iso).getTime() + 60000);
   var p = {}; new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(d).forEach(function (x) { p[x.type] = x.value; });
   document.getElementById('rec-antes').value = p.year + '-' + p.month + '-' + p.day + 'T' + p.hour + ':' + p.minute;
+  document.getElementById('rec-copia').value = '';
   document.getElementById('rec-antes').scrollIntoView({ block: 'center' });
 }
 function escB(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }

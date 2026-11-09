@@ -869,6 +869,14 @@ function cajaDeVersion(antesDe) {
   if (!caja) throw new Error("La Caja no aparece en esa versión de la planilla.");
   return { version: elegida.modifiedTime, caja: caja };
 }
+function cajaDeCopia(id) {
+  let ss;
+  try { ss = SpreadsheetApp.openById(id); } catch (e) { throw new Error("No se pudo abrir la copia: revisa el enlace y que esté en la misma cuenta de Google."); }
+  const sh = ss.getSheetByName(SHEET_NAME) || ss.getSheets()[0];
+  const fila = buscarFila(sh, KEY_CAJA);
+  if (fila === -1) throw new Error("La Caja no aparece en esa copia.");
+  return { version: "copia «" + ss.getName() + "»", caja: JSON.parse(leerFila(sh, fila) || "{}") || {} };
+}
 function montoFilaCaja(r) { return (Number(r.ef) || 0) + (Number(r.tr) || 0) + (Number(r.wpCredito != null && r.wpCredito !== "" ? r.wpCredito : r.wp) || 0) + (Number(r.wpDebito) || 0); }
 function fechaEnRango(f, desde, hasta) { return /^\d{4}-\d{2}-\d{2}$/.test(f) && (!desde || f >= desde) && (!hasta || f <= hasta); }
 // Filas manuales y monto de la Caja dentro del rango.
@@ -914,10 +922,19 @@ function accionExplorarCaja(b) {
 function accionRecuperarCaja(b) {
   const u = usuarioDe(b.token);
   if (!u || !u.isAdmin || u.legado) return error("SIN_PERMISO");
-  const antesDe = new Date(b.antesDe || "");
-  if (isNaN(antesDe.getTime())) return error("Fecha inválida.");
   const desde = String(b.desde || ""), hasta = String(b.hasta || "");
-  const vieja = cajaDeVersion(antesDe);
+  let vieja;
+  if (b.archivo) {
+    // Desde una copia de la planilla (Archivo → Historial de versiones → Crear una copia),
+    // para versiones más antiguas que las que entrega el historial por API.
+    const m = String(b.archivo).match(/[-\w]{25,}/);
+    if (!m) return error("Enlace de la copia inválido.");
+    vieja = cajaDeCopia(m[0]);
+  } else {
+    const antesDe = new Date(b.antesDe || "");
+    if (isNaN(antesDe.getTime())) return error("Fecha inválida.");
+    vieja = cajaDeVersion(antesDe);
+  }
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(20000);
