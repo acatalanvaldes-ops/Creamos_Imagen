@@ -234,6 +234,17 @@ function netoDeCaja(total, esWebpay, conRecargo) {
   if (esWebpay && conRecargo) t = t / (1 + COM_WP_PCT / 100);
   return Math.round(t / IVA);
 }
+// Total (con IVA) de una venta: el que traía la Caja al traspasarla; en ventas
+// traspasadas antes de guardar ese dato, se lee de su firma; en las ingresadas
+// a mano (netas), neto x 1,19.
+function totalDe(v) {
+  if (v.montoTotal != null && v.montoTotal !== '') return +v.montoTotal || 0;
+  if (v.origenCaja) {
+    var t = +String(v.origenCaja).split('#')[0].split('|').pop();
+    if (t > 0) return t;
+  }
+  return Math.round((+v.montoBase || 0) * IVA);
+}
 function productoDeCaja(tipo) {
   var p = CAJA_TIPO_A_PRODUCTO[tipo] || tipo || 'Otros';
   return PRODUCTOS.indexOf(p) !== -1 ? p : 'Otros';
@@ -260,7 +271,7 @@ async function buscarEnCaja() {
   try { caja = await loadFromCloudStrict('rendicion2026_v2') || {}; }
   catch (e) { importCaja.cargando = false; renderImportCaja(); alert('No se pudo leer la Caja desde la nube. Inténtalo de nuevo.'); return; }
   importCaja.cargando = false;
-  var importadas = new Set(state.ventas.filter(function (v) { return v.origenCaja; }).map(function (v) { return v.origenCaja; }));
+  var importadas = new Map(state.ventas.filter(function (v) { return v.origenCaja; }).map(function (v) { return [v.origenCaja, v]; }));
   var filas = [];
   Object.keys(caja).filter(function (f) { return /^\d{4}-\d{2}-\d{2}$/.test(f) && f >= desde && f <= hasta; }).sort().forEach(function (fecha) {
     var repetidas = {};
@@ -276,7 +287,8 @@ async function buscarEnCaja() {
         repetidas[base] = (repetidas[base] || 0) + 1;
         var firma = base + '#' + repetidas[base];
         var neto = netoDeCaja(total, c.formaPago === 'Webpay', conRecargo);
-        var ya = importadas.has(firma);
+        var previa = importadas.get(firma);
+        var ya = !!previa;
         // Posible duplicado: una venta ingresada a mano el mismo día, al mismo cliente y por un neto parecido.
         var dup = !ya && state.ventas.some(function (v) {
           return !v.origenCaja && v.fecha === fecha && normImp(v.cliente) === normImp(cliente) && Math.abs((+v.montoBase || 0) - neto) <= Math.max(50, neto * 0.02);
@@ -285,9 +297,24 @@ async function buscarEnCaja() {
         // probablemente no es de la sala (o está mal fechada), así que queda sin marcar.
         var feriado = esFeriadoImp(fecha);
         filas.push({ fecha: fecha, cliente: cliente, tipo: r.tipo || '', producto: productoDeCaja(r.tipo), origen: origen, formaPago: c.formaPago, tipoWebpay: c.tipoWebpay,
-          total: total, neto: neto, obs: r.obs || '', firma: firma, ya: ya, dup: dup, feriado: feriado, sel: !ya && !dup && !feriado });
+          total: total, neto: neto, obs: r.obs || '', firma: firma, ya: ya, dup: dup, feriado: feriado, sel: !ya && !dup && !feriado,
+          reemplazaId: previa ? previa.id : null, previa: previa || null });
       });
     });
+  });
+  // Ventas traspasadas antes cuya fila de la Caja cambió después (monto o
+  // producto corregido): ya no coinciden por firma, pero se reconocen por
+  // fecha, cliente y forma de pago, y se ofrecen para reemplazarlas.
+  var firmasCaja = new Set(filas.map(function (x) { return x.firma; }));
+  var huerfanas = state.ventas.filter(function (v) { return v.origenCaja && v.fecha >= desde && v.fecha <= hasta && !firmasCaja.has(v.origenCaja); });
+  filas.forEach(function (x) {
+    if (x.ya) return;
+    var i = huerfanas.findIndex(function (v) {
+      return v.fecha === x.fecha && normImp(v.cliente) === normImp(x.cliente) && v.formaPago === x.formaPago && (v.tipoWebpay || '') === (x.tipoWebpay || '');
+    });
+    if (i === -1) return;
+    var v = huerfanas.splice(i, 1)[0];
+    x.reemplazaId = v.id; x.previa = v; x.cambio = true; x.dup = false; x.sel = false;
   });
   importCaja.filas = filas;
   renderImportCaja();
@@ -313,9 +340,11 @@ function renderImportCaja() {
   }
   cont.innerHTML = '<table class="imp-tbl"><thead><tr><th></th><th>Fecha</th><th>Cliente</th><th>Producto</th><th>Pago</th><th class="r">Total Caja</th><th class="r">Neto</th><th>Estado</th></tr></thead><tbody>' +
     f.map(function (x, i) {
-      var est = x.ya ? '<span class="imp-b ya">Ya traspasada</span>' : x.dup ? '<span class="imp-b dup" title="Hay una venta parecida ingresada a mano ese día. Márcala solo si no es la misma.">¿Duplicada?</span>' : '<span class="imp-b ok">Nueva</span>';
+      var est = x.reemplazaId && x.sel ? '<span class="imp-b dup" title="Ya se traspasó antes: al traspasar, se reemplaza la venta anterior por estos datos.">↺ Se reemplazará</span>'
+        : x.cambio ? '<span class="imp-b ya" title="Se traspasó antes con otros datos (neto ' + fmt(x.previa.montoBase) + '). Márcala para reemplazarla.">Traspasada con otros datos</span>'
+        : x.ya ? '<span class="imp-b ya" title="Márcala para volver a traspasarla y reemplazar la anterior.">Ya traspasada</span>' : x.dup ? '<span class="imp-b dup" title="Hay una venta parecida ingresada a mano ese día. Márcala solo si no es la misma.">¿Duplicada?</span>' : '<span class="imp-b ok">Nueva</span>';
       if (x.feriado && !x.ya) est += ' <span class="imp-b fer" title="Ese día es feriado y la vendedora no trabaja. Márcala solo si corresponde a la sala.">Feriado</span>';
-      return '<tr class="' + (x.ya ? 'gris' : x.feriado ? 'feriado' : '') + '"><td><input type="checkbox" ' + (x.sel ? 'checked ' : '') + (x.ya ? 'disabled ' : '') + 'onchange="importCaja.filas[' + i + '].sel=this.checked;resumenImportCaja()"></td>' +
+      return '<tr class="' + (x.reemplazaId && !x.sel ? 'gris' : x.feriado ? 'feriado' : '') + '"><td><input type="checkbox" ' + (x.sel ? 'checked ' : '') + 'onchange="marcarImportCaja(' + i + ',this.checked)"></td>' +
         '<td>' + fDate(x.fecha) + '</td><td>' + escImp(x.cliente) + (x.origen === 'Empresa' ? ' <small>(Otros)</small>' : '') + '</td>' +
         '<td>' + escImp(x.producto) + (x.producto !== x.tipo && x.tipo ? ' <small>(' + escImp(x.tipo) + ')</small>' : '') + '</td>' +
         '<td>' + escImp(x.formaPago + (x.tipoWebpay ? ' ' + x.tipoWebpay.toLowerCase() : '')) + '</td>' +
@@ -323,13 +352,28 @@ function renderImportCaja() {
     }).join('') + '</tbody></table>';
   resumenImportCaja();
 }
+function marcarImportCaja(i, sel) {
+  var x = importCaja.filas[i];
+  if (sel && x.reemplazaId) {
+    var p = x.previa;
+    if (!confirm('⚠ Esta venta YA SE TRASPASÓ desde la Caja:\n\n' + fDate(p.fecha) + ' · ' + p.cliente + ' · ' + p.producto + ' · ' + p.formaPago +
+      '\nNeto actual en la sala: ' + fmt(p.montoBase) + '\nNeto según la Caja ahora: ' + fmt(x.neto) +
+      '\n\nSi la marcas, al traspasar se REEMPLAZARÁ la venta anterior por los datos de la Caja (se conservan la comisión % y la factura). ¿Marcarla?')) {
+      renderImportCaja(); return;
+    }
+  }
+  x.sel = sel;
+  renderImportCaja();
+}
 function resumenImportCaja() {
-  var sel = importCaja.filas.filter(function (x) { return x.sel && !x.ya; });
-  var ya = importCaja.filas.filter(function (x) { return x.ya; }).length;
+  var sel = importCaja.filas.filter(function (x) { return x.sel; });
+  var reemp = sel.filter(function (x) { return x.reemplazaId; }).length;
+  var ya = importCaja.filas.filter(function (x) { return x.reemplazaId && !x.sel; }).length;
   var dup = importCaja.filas.filter(function (x) { return x.dup; }).length;
   var fer = importCaja.filas.filter(function (x) { return x.feriado && !x.ya; }).length;
   document.getElementById('imp-resumen').innerHTML = '<b>' + sel.length + '</b> venta(s) seleccionada(s) · Total Caja ' + fmt(sel.reduce(function (s, x) { return s + x.total; }, 0)) +
     ' · <b>Neto a traspasar ' + fmt(sel.reduce(function (s, x) { return s + x.neto; }, 0)) + '</b>' +
+    (reemp ? ' · <span style="color:#92400E;font-weight:700">↺ ' + reemp + ' reemplazará(n) una ya traspasada</span>' : '') +
     (ya ? ' · ' + ya + ' ya traspasada(s)' : '') + (dup ? ' · ' + dup + ' posible(s) duplicado(s) sin marcar' : '') + (fer ? ' · <span style="color:#B91C1C;font-weight:700">⚠ ' + fer + ' en feriado</span>' : '');
   var btn = document.getElementById('imp-btn');
   btn.disabled = !sel.length;
@@ -337,23 +381,33 @@ function resumenImportCaja() {
 }
 
 function traspasarCaja() {
-  var sel = importCaja.filas.filter(function (x) { return x.sel && !x.ya; });
+  var sel = importCaja.filas.filter(function (x) { return x.sel; });
   if (!sel.length) return;
   var neto = sel.reduce(function (s, x) { return s + x.neto; }, 0);
-  if (!confirm('Se agregarán ' + sel.length + ' venta(s) a la Sala de venta por un total neto de ' + fmt(neto) + '.\n\nLa Caja no se modifica. ¿Continuar?')) return;
+  var reemp = sel.filter(function (x) { return x.reemplazaId; });
+  var nAgregar = sel.length - reemp.length;
+  var msg = (nAgregar ? 'Se agregarán ' + nAgregar + ' venta(s) nueva(s) a la Sala de venta.\n' : '') +
+    (reemp.length ? '\n⚠ ' + reemp.length + ' venta(s) YA SE HABÍAN TRASPASADO y serán REEMPLAZADAS por los datos actuales de la Caja:\n' +
+      reemp.slice(0, 12).map(function (x) { return '• ' + fDate(x.fecha) + ' · ' + x.cliente + ': neto ' + fmt(x.previa.montoBase) + ' → ' + fmt(x.neto); }).join('\n') +
+      (reemp.length > 12 ? '\n… y ' + (reemp.length - 12) + ' más' : '') + '\n' : '') +
+    '\nTotal neto traspasado: ' + fmt(neto) + '. La Caja no se modifica. ¿Continuar?';
+  if (!confirm(msg)) return;
   var base = Date.now();
-  var nuevas = sel.map(function (x, i) {
-    var v = { id: base + i, fecha: x.fecha, cliente: x.cliente, producto: x.producto, formaPago: x.formaPago, montoBase: x.neto,
-      comision: state.comDefPct, factura: false, origenCaja: x.firma };
+  var porId = {};
+  var nuevas = [];
+  sel.forEach(function (x, i) {
+    var previa = x.reemplazaId ? state.ventas.find(function (v) { return v.id === x.reemplazaId; }) : null;
+    var v = { id: previa ? previa.id : base + i, fecha: x.fecha, cliente: x.cliente, producto: x.producto, formaPago: x.formaPago, montoBase: x.neto, montoTotal: x.total,
+      comision: previa ? previa.comision : state.comDefPct, factura: previa ? !!previa.factura : false, origenCaja: x.firma };
     if (x.tipoWebpay) v.tipoWebpay = x.tipoWebpay;
-    return v;
+    editadasAqui.add(v.id);
+    if (previa) porId[v.id] = v; else nuevas.push(v);
   });
-  nuevas.forEach(function (v) { editadasAqui.add(v.id); });
-  state.ventas = state.ventas.concat(nuevas);
+  state.ventas = state.ventas.map(function (v) { return porId[v.id] || v; }).concat(nuevas);
   guardarDatos();
   cerrarImportCaja();
   render();
-  alert(nuevas.length + ' venta(s) traspasada(s) desde la Caja, por ' + fmt(neto) + ' neto.');
+  alert(sel.length + ' venta(s) traspasada(s) desde la Caja, por ' + fmt(neto) + ' neto' + (reemp.length ? ' (' + reemp.length + ' reemplazada(s)).' : '.'));
 }
 
 async function loadFromCloudStrict(key) {
@@ -785,6 +839,7 @@ function buildTabla(filt, cp) {
   var sorted = filt.slice().sort(function(a,b){ return b.fecha.localeCompare(a.fecha); });
   var tV = sorted.reduce(function(s,v){ return s+v.montoBase; },0);
   var tC = sorted.reduce(function(s,v){ return s+comF(v.montoBase,v.comision); },0);
+  var tT = sorted.reduce(function(s,v){ return s+totalDe(v); },0);
 
   var porDia = {};
   sorted.forEach(function(v){ if(!porDia[v.fecha]) porDia[v.fecha]=[]; porDia[v.fecha].push(v); });
@@ -795,6 +850,7 @@ function buildTabla(filt, cp) {
     var dC = vv.reduce(function(s,v){ return s+comF(v.montoBase,v.comision); },0);
     var hdr = '<tr class="day-hdr"><td colspan="4"><span style="font-size:13px;font-weight:700;color:#fff">'+fDate(dia)+'</span> <span style="font-size:10px;color:#666;margin-left:8px">'+vv.length+' venta'+(vv.length!==1?'s':'')+'</span></td>'+
       '<td style="padding:9px 12px;text-align:right;font-size:13px;font-weight:800;color:#86EFAC;background:#1C1917">'+fmt(dV)+'</td>'+
+      '<td style="padding:9px 12px;text-align:right;font-size:13px;font-weight:700;color:#93C5FD;background:#1C1917">'+fmt(vv.reduce(function(s,v){ return s+totalDe(v); },0))+'</td>'+
       '<td style="padding:9px 12px;text-align:right;font-size:12px;font-weight:700;color:#C8973A;background:#1C1917">'+fmt(dC)+'</td>'+
       '<td colspan="2" style="background:#1C1917"></td></tr>';
     var rows = vv.map(function(v) {
@@ -805,6 +861,7 @@ function buildTabla(filt, cp) {
         '<td style="padding:8px 12px"><span class="tag">'+v.producto+'</span></td>'+
         '<td style="padding:8px 12px"><span class="pill" style="background:'+pc.bg+';color:'+pc.txt+'">'+v.formaPago+'</span></td>'+
         '<td style="padding:8px 12px;text-align:right;font-size:13px;font-weight:600">'+fmt(v.montoBase)+'</td>'+
+        '<td style="padding:8px 12px;text-align:right;font-size:13px;color:var(--muted)">'+fmt(totalDe(v))+'</td>'+
         '<td style="padding:8px 12px;text-align:right;font-size:12px;font-weight:600;color:var(--gold)">'+fmt(co)+'</td>'+
         '<td style="padding:8px 12px;text-align:center">'+(v.factura?'<span class="pill" style="background:#F3E8FF;color:#6D28D9">Factura</span>':'<span style="color:#ddd">-</span>')+'</td>'+
         '<td style="padding:8px 7px;white-space:nowrap"><div style="display:flex;gap:4px">'+
@@ -816,10 +873,11 @@ function buildTabla(filt, cp) {
   }).join('');
 
   return '<div class="tbl-wrap"><table>'+
-    '<thead><tr><th></th><th>Cliente</th><th>Producto</th><th>Forma Pago</th><th style="text-align:right">Venta</th><th style="text-align:right">Comision ('+cp+'%)</th><th>Factura</th><th></th></tr></thead>'+
+    '<thead><tr><th></th><th>Cliente</th><th>Producto</th><th>Forma Pago</th><th style="text-align:right">Neto</th><th style="text-align:right">Total</th><th style="text-align:right">Comision ('+cp+'%)</th><th>Factura</th><th></th></tr></thead>'+
     '<tbody>'+tbody+'</tbody>'+
     '<tfoot><tr><td colspan="4" style="padding:11px 12px;font-size:9px;font-weight:700;color:#666;text-transform:uppercase">TOTAL - '+filt.length+' ventas</td>'+
       '<td style="padding:11px 12px;text-align:right;color:#86EFAC;font-size:14px;font-weight:800">'+fmt(tV)+'</td>'+
+      '<td style="padding:11px 12px;text-align:right;color:#93C5FD;font-size:14px;font-weight:800">'+fmt(tT)+'</td>'+
       '<td style="padding:11px 12px;text-align:right;color:#C8973A;font-size:14px;font-weight:800">'+fmt(tC)+'</td>'+
       '<td colspan="2"></td></tr></tfoot>'+
     '</table></div>';
@@ -968,7 +1026,7 @@ function buildVistaPDF(filt, cp) {
   var rows = sorted.map(function(v){
     var co = comF(v.montoBase,v.comision);
     return '<tr><td>'+fDate(v.fecha)+'</td><td>'+v.cliente+'</td><td>'+v.producto+'</td><td>'+v.formaPago+'</td>'+
-      '<td class="r">'+fmt(v.montoBase)+'</td><td class="r" style="color:var(--gold)">'+fmt(co)+'</td>'+
+      '<td class="r">'+fmt(v.montoBase)+'</td><td class="r">'+fmt(totalDe(v))+'</td><td class="r" style="color:var(--gold)">'+fmt(co)+'</td>'+
       '<td class="c">'+(v.factura?'Si':'-')+'</td></tr>';
   }).join('');
   return '<div class="fade" style="background:#E0DCDC;border-radius:12px;overflow:hidden">'+
@@ -987,10 +1045,11 @@ function buildVistaPDF(filt, cp) {
     '<div style="background:#F7F5F0;border:1px solid #E7E2D9;border-radius:6px;padding:10px 14px"><div style="font-size:9px;color:#888;text-transform:uppercase;margin-bottom:3px">Total Comision</div><div style="font-size:18px;font-weight:800;color:#C8973A">'+fmt(tC)+'</div></div>'+
     '</div>'+
     '<table style="width:100%;border-collapse:collapse;font-size:11px">'+
-    '<thead><tr style="background:#1C1917"><th style="padding:6px 8px;text-align:left;font-size:9px;color:#C8973A">Fecha</th><th style="padding:6px 8px;text-align:left;font-size:9px;color:#C8973A">Cliente</th><th style="padding:6px 8px;text-align:left;font-size:9px;color:#C8973A">Producto</th><th style="padding:6px 8px;text-align:left;font-size:9px;color:#C8973A">Forma Pago</th><th style="padding:6px 8px;text-align:right;font-size:9px;color:#C8973A">Venta</th><th style="padding:6px 8px;text-align:right;font-size:9px;color:#C8973A">Comision</th><th style="padding:6px 8px;text-align:center;font-size:9px;color:#C8973A">Fact.</th></tr></thead>'+
+    '<thead><tr style="background:#1C1917"><th style="padding:6px 8px;text-align:left;font-size:9px;color:#C8973A">Fecha</th><th style="padding:6px 8px;text-align:left;font-size:9px;color:#C8973A">Cliente</th><th style="padding:6px 8px;text-align:left;font-size:9px;color:#C8973A">Producto</th><th style="padding:6px 8px;text-align:left;font-size:9px;color:#C8973A">Forma Pago</th><th style="padding:6px 8px;text-align:right;font-size:9px;color:#C8973A">Neto</th><th style="padding:6px 8px;text-align:right;font-size:9px;color:#C8973A">Total</th><th style="padding:6px 8px;text-align:right;font-size:9px;color:#C8973A">Comision</th><th style="padding:6px 8px;text-align:center;font-size:9px;color:#C8973A">Fact.</th></tr></thead>'+
     '<tbody>'+rows+'</tbody>'+
     '<tfoot><tr style="background:#1C1917"><td colspan="4" style="padding:8px;font-size:9px;color:#666;font-weight:700;text-transform:uppercase">TOTALES</td>'+
     '<td style="padding:8px;text-align:right;font-weight:800;color:#86EFAC">'+fmt(tV)+'</td>'+
+    '<td style="padding:8px;text-align:right;font-weight:800;color:#93C5FD">'+fmt(filt.reduce(function(s,v){return s+totalDe(v);},0))+'</td>'+
     '<td style="padding:8px;text-align:right;font-weight:800;color:#C8973A">'+fmt(tC)+'</td><td></td></tr></tfoot>'+
     '</table>'+
     '<div style="margin-top:16px;text-align:right;font-size:9px;color:#aaa;border-top:1px solid #E7E2D9;padding-top:8px">SUBLIPRO - Informe generado automaticamente</div>'+
@@ -1012,6 +1071,7 @@ function buildVistaExcel(filt, cp, xlTab) {
       '<td style="padding:5px 10px;border-bottom:1px solid #F0EAE0"><span class="tag">'+v.producto+'</span></td>'+
       '<td style="padding:5px 10px;font-size:11px;border-bottom:1px solid #F0EAE0">'+v.formaPago+'</td>'+
       '<td style="padding:5px 10px;text-align:right;font-size:12px;font-weight:600;border-bottom:1px solid #F0EAE0">'+fmt(v.montoBase)+'</td>'+
+      '<td style="padding:5px 10px;text-align:right;font-size:12px;border-bottom:1px solid #F0EAE0">'+fmt(totalDe(v))+'</td>'+
       '<td style="padding:5px 10px;text-align:right;font-size:12px;font-weight:600;color:#C8973A;border-bottom:1px solid #F0EAE0">'+fmt(co)+'</td>'+
       '<td style="padding:5px 10px;text-align:center;font-size:11px;border-bottom:1px solid #F0EAE0">'+(v.factura?'Si':'-')+'</td></tr>';
   }).join('');
@@ -1021,10 +1081,11 @@ function buildVistaExcel(filt, cp, xlTab) {
   if (xlTab==='detalle') {
     content = '<div style="background:#1C1917;padding:10px 16px"><div style="font-size:13px;font-weight:800;color:#fff">SUBLIPRO - REGISTRO DE VENTAS</div></div>'+
       '<table style="width:100%;border-collapse:collapse;min-width:600px">'+
-      '<thead><tr style="background:#C8973A"><th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Fecha</th><th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Cliente</th><th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Producto</th><th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Forma Pago</th><th style="padding:8px 10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Venta</th><th style="padding:8px 10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Comision</th><th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Fact.</th></tr></thead>'+
+      '<thead><tr style="background:#C8973A"><th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Fecha</th><th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Cliente</th><th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Producto</th><th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Forma Pago</th><th style="padding:8px 10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Neto</th><th style="padding:8px 10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Total</th><th style="padding:8px 10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Comision</th><th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff">Fact.</th></tr></thead>'+
       '<tbody>'+rows+'</tbody>'+
       '<tfoot><tr style="background:#1C1917"><td colspan="4" style="padding:9px 10px;font-size:9px;font-weight:700;color:#666;text-transform:uppercase">TOTALES</td>'+
       '<td style="padding:9px 10px;text-align:right;font-size:13px;font-weight:800;color:#86EFAC">'+fmt(tV)+'</td>'+
+      '<td style="padding:9px 10px;text-align:right;font-size:13px;font-weight:800;color:#93C5FD">'+fmt(filt.reduce(function(s,v){return s+totalDe(v);},0))+'</td>'+
       '<td style="padding:9px 10px;text-align:right;font-size:13px;font-weight:800;color:#C8973A">'+fmt(tC)+'</td><td></td></tr></tfoot></table>';
   } else {
     content = '<div style="background:#1C1917;padding:10px 16px"><div style="font-size:13px;font-weight:800;color:#fff">RESUMEN</div></div>'+
@@ -1181,6 +1242,13 @@ function submitForm() {
     cantidadArticulo: f.articuloId ? (+f.cantidadArticulo || 1) : undefined
   };
   if (state.editId) {
+    // Una venta traspasada desde la Caja conserva su vínculo (para no
+    // duplicarla en otro traspaso) y su total, salvo que se cambie el neto.
+    var antes = state.ventas.find(function(x){ return x.id===state.editId; });
+    if (antes && antes.origenCaja) {
+      entry.origenCaja = antes.origenCaja;
+      if (+antes.montoBase === entry.montoBase) entry.montoTotal = totalDe(antes);
+    }
     state.ventas = state.ventas.map(function(x){ return x.id===state.editId ? entry : x; });
   } else {
     state.ventas = state.ventas.concat([entry]);
@@ -1289,13 +1357,13 @@ function calcComAuto() {
 // ============================================================
 function exportCSV() {
   var filt = getFiltradas();
-  var cols = ["Fecha","Cliente","Producto","Forma Pago","Venta","Comision %","Comision $","Factura"];
+  var cols = ["Fecha","Cliente","Producto","Forma Pago","Neto","Total","Comision %","Comision $","Factura"];
   var rows = filt.slice().sort(function(a,b){return a.fecha.localeCompare(b.fecha);}).map(function(v){
-    return [v.fecha,v.cliente,v.producto,v.formaPago,v.montoBase,v.comision+"%",comF(v.montoBase,v.comision),v.factura?"Si":"No"];
+    return [v.fecha,v.cliente,v.producto,v.formaPago,v.montoBase,totalDe(v),v.comision+"%",comF(v.montoBase,v.comision),v.factura?"Si":"No"];
   });
   var tV = filt.reduce(function(s,v){return s+v.montoBase;},0);
   var tC = filt.reduce(function(s,v){return s+comF(v.montoBase,v.comision);},0);
-  rows.push(["","","","TOTALES",tV,"",tC,""]);
+  rows.push(["","","","TOTALES",tV,filt.reduce(function(s,v){return s+totalDe(v);},0),"",tC,""]);
   var csv = [cols].concat(rows).map(function(r){ return r.join(","); }).join("\n");
   var a = document.createElement("a");
   a.href = "data:text/csv;charset=utf-8,\uFEFF"+encodeURIComponent(csv);
@@ -1321,7 +1389,7 @@ async function exportXLSX() {
 
   var cols = [
     { key:'fecha', width:13 }, { key:'cliente', width:26 }, { key:'producto', width:18 },
-    { key:'formaPago', width:16 }, { key:'venta', width:14 },
+    { key:'formaPago', width:16 }, { key:'venta', width:14 }, { key:'total', width:14 },
     { key:'comPct', width:12 }, { key:'comMonto', width:14 }, { key:'factura', width:10 },
   ];
   ws.columns = cols;
@@ -1335,7 +1403,7 @@ async function exportXLSX() {
   ws.getRow(1).height = 26;
   ws.getRow(2).height = 4;
 
-  var headers = ['Fecha','Cliente','Producto','Forma de Pago','Venta','Comisión %','Comisión $','Factura'];
+  var headers = ['Fecha','Cliente','Producto','Forma de Pago','Neto','Total','Comisión %','Comisión $','Factura'];
   var headerRow = ws.getRow(3);
   headers.forEach(function(h,i){ headerRow.getCell(i+1).value = h; });
   headerRow.eachCell(function(cell){
@@ -1345,7 +1413,7 @@ async function exportXLSX() {
   });
   headerRow.height = 20;
 
-  var moneyKeys = ['venta','comMonto'];
+  var moneyKeys = ['venta','total','comMonto'];
   var moneyIdx = moneyKeys.map(function(k){ return cols.findIndex(function(c){ return c.key===k; }) + 1; });
   var pctIdx = cols.findIndex(function(c){ return c.key==='comPct'; }) + 1;
 
@@ -1358,6 +1426,7 @@ async function exportXLSX() {
       producto: v.producto || '',
       formaPago: v.formaPago || '',
       venta: v.montoBase || 0,
+      total: totalDe(v),
       comPct: (v.comision||0) / 100,
       comMonto: co || 0,
       factura: v.factura ? 'Sí' : 'No'
@@ -1377,7 +1446,7 @@ async function exportXLSX() {
     });
   });
 
-  var totalRow = ws.addRow({ fecha:'', cliente:'', producto:'', formaPago:'TOTALES', venta:tV, comPct:'', comMonto:tC, factura:'' });
+  var totalRow = ws.addRow({ fecha:'', cliente:'', producto:'', formaPago:'TOTALES', venta:tV, total:filt.reduce(function(s,v){ return s+totalDe(v); },0), comPct:'', comMonto:tC, factura:'' });
   totalRow.eachCell({ includeEmpty:true }, function(cell){
     cell.font = { bold:true, color:{argb:'FFFFFFFF'} };
     cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF141414'} };
@@ -1406,7 +1475,7 @@ function exportPDF() {
   var tC = filt.reduce(function(s,v){return s+comF(v.montoBase,v.comision);},0);
   var rows = filt.slice().sort(function(a,b){return b.fecha.localeCompare(a.fecha);}).map(function(v){
     var co = comF(v.montoBase,v.comision);
-    return "<tr><td>"+fDate(v.fecha)+"</td><td>"+v.cliente+"</td><td>"+v.producto+"</td><td>"+v.formaPago+"</td><td style='text-align:right'>"+fmt(v.montoBase)+"</td><td style='text-align:right;color:#C8973A'>"+fmt(co)+"</td><td style='text-align:center'>"+(v.factura?"Si":"-")+"</td></tr>";
+    return "<tr><td>"+fDate(v.fecha)+"</td><td>"+v.cliente+"</td><td>"+v.producto+"</td><td>"+v.formaPago+"</td><td style='text-align:right'>"+fmt(v.montoBase)+"</td><td style='text-align:right'>"+fmt(totalDe(v))+"</td><td style='text-align:right;color:#C8973A'>"+fmt(co)+"</td><td style='text-align:center'>"+(v.factura?"Si":"-")+"</td></tr>";
   }).join("");
   var html_pdf = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>SUBLIPRO Ventas</title>"+
     "<style>body{font-family:Arial,sans-serif;padding:20px;font-size:12px}table{width:100%;border-collapse:collapse}"+
@@ -1423,10 +1492,11 @@ function exportPDF() {
     "<div class='kpi'><div class='l'>N Ventas</div><div class='v' style='color:#1E40AF'>"+filt.length+"</div></div>"+
     "<div class='kpi'><div class='l'>Total Ventas</div><div class='v' style='color:#166534'>"+fmt(tV)+"</div></div>"+
     "<div class='kpi'><div class='l'>Total Comision</div><div class='v' style='color:#C8973A'>"+fmt(tC)+"</div></div></div>"+
-    "<table><thead><tr><th>Fecha</th><th>Cliente</th><th>Producto</th><th>Forma Pago</th><th style='text-align:right'>Venta</th><th style='text-align:right'>Comision</th><th style='text-align:center'>Fact.</th></tr></thead>"+
+    "<table><thead><tr><th>Fecha</th><th>Cliente</th><th>Producto</th><th>Forma Pago</th><th style='text-align:right'>Neto</th><th style='text-align:right'>Total</th><th style='text-align:right'>Comision</th><th style='text-align:center'>Fact.</th></tr></thead>"+
     "<tbody>"+rows+"</tbody>"+
     "<tfoot><tr style='background:#1C1917'><td colspan='4' style='padding:8px;color:#666;font-weight:700'>TOTALES</td>"+
     "<td style='padding:8px;text-align:right;color:#86EFAC;font-weight:800'>"+fmt(tV)+"</td>"+
+    "<td style='padding:8px;text-align:right;color:#93C5FD;font-weight:800'>"+fmt(filt.reduce(function(s,v){return s+totalDe(v);},0))+"</td>"+
     "<td style='padding:8px;text-align:right;color:#C8973A;font-weight:800'>"+fmt(tC)+"</td><td></td></tr></tfoot></table>"+
     "<script>window.onload=function(){window.print();}<\/script></body></html>";
   var blob = new Blob([html_pdf], {type:"text/html;charset=utf-8"});
