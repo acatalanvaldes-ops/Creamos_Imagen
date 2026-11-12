@@ -449,8 +449,6 @@ var PC = {
 // ============================================================
 // LOGICA FINANCIERA
 // ============================================================
-function comWP(base, fp)     { return fp===WEBPAY ? Math.round(base*COM_WP_PCT/100) : 0; }
-function valCli(base, fp)    { return base + comWP(base, fp); }
 function comF(base, pct)     { return Math.round(base*pct/100); }
 function ingF(base, pct)     { return base - comF(base, pct); }
 function fmt(n)              { return n==null ? "" : "$"+Math.round(n).toLocaleString("es-CO"); }
@@ -669,8 +667,6 @@ function updateForm(k, v) {
 function updatePreview() {
   var base = +state.form.montoBase || 0;
   var pct  = +state.form.comision  || state.comDefPct;
-  var esWP = state.form.formaPago === WEBPAY;
-  var wp   = esWP ? comWP(base, state.form.formaPago) : 0;
   var co   = base ? comF(base, pct) : 0;
   var box  = document.getElementById("form-com-box");
   if (!box) return;
@@ -678,10 +674,8 @@ function updatePreview() {
   box.style.display = "block";
   var bV  = document.getElementById("fcb-venta");
   var bC  = document.getElementById("fcb-com");
-  var bWP = document.getElementById("fcb-wp");
   if (bV)  bV.textContent  = fmt(base);
   if (bC)  bC.textContent  = fmt(co)+" ("+pct+"%)";
-  if (bWP) { bWP.textContent = esWP ? fmt(wp)+" (2%)" : "No aplica"; bWP.style.color = esWP ? "#5EEAD4" : "#555"; }
 }
 
 // ============================================================
@@ -744,7 +738,6 @@ function goXl(el){ state.xlTab=el.getAttribute('data-xl'); render(); }
 
 function buildBanner(cp) {
   return '<div class="banner"><span>Config</span><span>Comision venta: <strong>'+cp+'%</strong></span>'+
-    '<span style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:3px 10px;color:#1E40AF;font-weight:700">Webpay: +'+COM_WP_PCT+'% comision tarjeta</span>'+
     '<button class="mod-btn" data-tab="config" onclick="goTab(this)">Modificar</button></div>';
 }
 
@@ -886,10 +879,6 @@ function buildConfig(cp) {
     '<div style="display:flex;align-items:center;gap:12px">'+
     '<input type="number" min="0" max="100" step="0.5" value="'+cp+'" style="width:90px;background:var(--bg);border:1.5px solid var(--gold);border-radius:8px;padding:10px;font-size:22px;font-weight:700;color:var(--dark);text-align:center" onchange="setState({comDefPct:+this.value});guardarDatos()">'+
     '<span style="font-size:13px;color:var(--muted)">Aplicada sobre el monto de venta</span></div></div>'+
-    '<div style="background:#EFF6FF;border:1.5px solid #1E40AF;border-radius:10px;padding:14px">'+
-    '<div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#1E40AF;margin-bottom:6px">Comision Tarjeta Webpay - '+COM_WP_PCT+'%</div>'+
-    '<div style="font-size:12px;color:#1E40AF">Se aplica automaticamente al seleccionar Webpay<br>'+
-    'Base $100.000 + 2% = <strong>Cliente paga $102.000</strong></div></div>'+
     '<div style="border-top:1px solid var(--border);padding-top:16px">'+
     '<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Almacenamiento</div>'+
     '<div style="background:#F7F5F0;border:1px solid var(--border);border-radius:8px;padding:10px 13px;font-size:12px;color:var(--muted);margin-bottom:8px">'+
@@ -990,7 +979,7 @@ function buildVistaPDF(filt, cp) {
     '<div style="background:#fff;width:100%;max-width:860px;padding:32px 36px;box-shadow:0 4px 24px rgba(0,0,0,.18)">'+
     '<div style="background:#1C1917;border-radius:6px;padding:16px 20px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">'+
     '<div><div style="font-size:18px;font-weight:800;color:#fff">SUBLIPRO - VENTAS</div>'+
-    '<div style="font-size:10px;color:#C8973A;margin-top:3px">Comision '+cp+'% - Webpay +'+COM_WP_PCT+'%</div></div>'+
+    '<div style="font-size:10px;color:#C8973A;margin-top:3px">Comision '+cp+'%</div></div>'+
     '<div style="text-align:right;font-size:10px;color:#C8973A">'+fechaChileTexto(null, null, "es-CO")+'</div></div>'+
     '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">'+
     '<div style="background:#F7F5F0;border:1px solid #E7E2D9;border-radius:6px;padding:10px 14px"><div style="font-size:9px;color:#888;text-transform:uppercase;margin-bottom:3px">N Ventas</div><div style="font-size:18px;font-weight:800;color:#1E40AF">'+filt.length+'</div></div>'+
@@ -1059,25 +1048,21 @@ function buildForm(form, editId, cp) {
   var base = +form.montoBase || 0;
   var pct  = +form.comision  || cp;
   var esWP = form.formaPago === WEBPAY;
-  var wp   = esWP ? comWP(base, form.formaPago) : 0;
   var co   = base ? comF(base, pct) : 0;
 
   var prodOpts = PRODUCTOS.map(function(p){ return '<option value="'+p+'" '+(form.producto===p?'selected':'')+'>'+p+'</option>'; }).join('');
   var fpOpts   = FORMAS_PAGO.map(function(f){ return '<option value="'+f+'" '+(form.formaPago===f?'selected':'')+'>'+f+'</option>'; }).join('');
 
   var wpAlert = esWP ? '<div class="span2" style="background:#EFF6FF;border:1.5px solid #1E40AF;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px">'+
-    '<div style="font-size:22px">Webpay</div><div style="flex:1">'+
-    '<div style="font-size:12px;font-weight:700;color:#1E40AF;margin-bottom:4px">Comision tarjeta Webpay: '+COM_WP_PCT+'%</div>'+
-    '<div style="font-size:12px">Precio base: <strong>'+fmt(base)+'</strong> + Comision tarjeta: <strong style="color:#1E40AF">'+fmt(wp)+'</strong> = Cliente paga: <strong>'+fmt(base+wp)+'</strong></div>'+
-    '<div style="font-size:12px;margin-top:8px">Tarjeta: <select data-field="tipoWebpay" onchange="ufld(this)" style="padding:4px 8px;border-radius:6px;border:1px solid #BFDBFE"><option '+(form.tipoWebpay!=='Débito'?'selected':'')+'>Crédito</option><option '+(form.tipoWebpay==='Débito'?'selected':'')+'>Débito</option></select></div>'+
+    '<div style="font-size:14px;font-weight:700;color:#1E40AF">Webpay</div><div style="flex:1">'+
+    '<div style="font-size:12px">Tarjeta: <select data-field="tipoWebpay" onchange="ufld(this)" style="padding:4px 8px;border-radius:6px;border:1px solid #BFDBFE"><option '+(form.tipoWebpay!=='Débito'?'selected':'')+'>Crédito</option><option '+(form.tipoWebpay==='Débito'?'selected':'')+'>Débito</option></select></div>'+
     '</div></div>' : '';
 
   var comBox = '<div id="form-com-box" class="span2" style="display:'+(base?'block':'none')+';background:#1C1917;border-radius:10px;padding:14px 18px">'+
     '<div style="font-size:9px;color:#5EEAD4;text-transform:uppercase;letter-spacing:.09em;font-weight:700;margin-bottom:10px">Resumen antes de guardar</div>'+
-    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">'+
+    '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">'+
     '<div style="background:#2C2926;border-radius:8px;padding:10px 12px;text-align:center"><div style="font-size:9px;color:#888;margin-bottom:4px;text-transform:uppercase">Venta</div><div id="fcb-venta" style="font-size:18px;font-weight:800;color:#86EFAC">'+fmt(base)+'</div></div>'+
     '<div style="background:#2C2926;border-radius:8px;padding:10px 12px;text-align:center"><div style="font-size:9px;color:#888;margin-bottom:4px;text-transform:uppercase">Comision</div><div id="fcb-com" style="font-size:18px;font-weight:800;color:#C8973A">'+fmt(co)+' ('+pct+'%)</div></div>'+
-    '<div style="background:#0C3530;border-radius:8px;padding:10px 12px;text-align:center;border:1.5px solid #0D7A6B"><div style="font-size:9px;color:#5EEAD4;margin-bottom:4px;text-transform:uppercase">Webpay 2%</div><div id="fcb-wp" style="font-size:18px;font-weight:800;color:'+(esWP?'#5EEAD4':'#555')+'">'+( esWP?fmt(wp)+' (2%)':'No aplica')+'</div></div>'+
     '</div></div>';
 
   return '<div class="modal-bg" id="modal-bg"><div class="modal fade">'+
@@ -1304,14 +1289,13 @@ function calcComAuto() {
 // ============================================================
 function exportCSV() {
   var filt = getFiltradas();
-  var cols = ["Fecha","Cliente","Producto","Forma Pago","Venta","Webpay 2%","Comision %","Comision $","Factura"];
+  var cols = ["Fecha","Cliente","Producto","Forma Pago","Venta","Comision %","Comision $","Factura"];
   var rows = filt.slice().sort(function(a,b){return a.fecha.localeCompare(b.fecha);}).map(function(v){
-    var wp = comWP(v.montoBase, v.formaPago);
-    return [v.fecha,v.cliente,v.producto,v.formaPago,v.montoBase,wp>0?wp:"",v.comision+"%",comF(v.montoBase,v.comision),v.factura?"Si":"No"];
+    return [v.fecha,v.cliente,v.producto,v.formaPago,v.montoBase,v.comision+"%",comF(v.montoBase,v.comision),v.factura?"Si":"No"];
   });
   var tV = filt.reduce(function(s,v){return s+v.montoBase;},0);
   var tC = filt.reduce(function(s,v){return s+comF(v.montoBase,v.comision);},0);
-  rows.push(["","","","TOTALES",tV,"","",tC,""]);
+  rows.push(["","","","TOTALES",tV,"",tC,""]);
   var csv = [cols].concat(rows).map(function(r){ return r.join(","); }).join("\n");
   var a = document.createElement("a");
   a.href = "data:text/csv;charset=utf-8,\uFEFF"+encodeURIComponent(csv);
@@ -1329,7 +1313,6 @@ async function exportXLSX() {
   var sorted = filt.slice().sort(function(a,b){ return a.fecha.localeCompare(b.fecha); });
   var tV  = filt.reduce(function(s,v){ return s+v.montoBase; }, 0);
   var tC  = filt.reduce(function(s,v){ return s+comF(v.montoBase,v.comision); }, 0);
-  var tWp = filt.reduce(function(s,v){ return s+comWP(v.montoBase,v.formaPago); }, 0);
 
   var wb = new ExcelJS.Workbook();
   wb.creator = 'Creamos Imagen';
@@ -1338,7 +1321,7 @@ async function exportXLSX() {
 
   var cols = [
     { key:'fecha', width:13 }, { key:'cliente', width:26 }, { key:'producto', width:18 },
-    { key:'formaPago', width:16 }, { key:'venta', width:14 }, { key:'wp', width:13 },
+    { key:'formaPago', width:16 }, { key:'venta', width:14 },
     { key:'comPct', width:12 }, { key:'comMonto', width:14 }, { key:'factura', width:10 },
   ];
   ws.columns = cols;
@@ -1352,7 +1335,7 @@ async function exportXLSX() {
   ws.getRow(1).height = 26;
   ws.getRow(2).height = 4;
 
-  var headers = ['Fecha','Cliente','Producto','Forma de Pago','Venta','Webpay 2%','Comisión %','Comisión $','Factura'];
+  var headers = ['Fecha','Cliente','Producto','Forma de Pago','Venta','Comisión %','Comisión $','Factura'];
   var headerRow = ws.getRow(3);
   headers.forEach(function(h,i){ headerRow.getCell(i+1).value = h; });
   headerRow.eachCell(function(cell){
@@ -1362,13 +1345,12 @@ async function exportXLSX() {
   });
   headerRow.height = 20;
 
-  var moneyKeys = ['venta','wp','comMonto'];
+  var moneyKeys = ['venta','comMonto'];
   var moneyIdx = moneyKeys.map(function(k){ return cols.findIndex(function(c){ return c.key===k; }) + 1; });
   var pctIdx = cols.findIndex(function(c){ return c.key==='comPct'; }) + 1;
 
   sorted.forEach(function(v, idx){
     var co = comF(v.montoBase, v.comision);
-    var wp = comWP(v.montoBase, v.formaPago);
     var dp = v.fecha.split('-');
     var row = ws.addRow({
       fecha: dp[2]+'/'+dp[1]+'/'+dp[0],
@@ -1376,7 +1358,6 @@ async function exportXLSX() {
       producto: v.producto || '',
       formaPago: v.formaPago || '',
       venta: v.montoBase || 0,
-      wp: wp || 0,
       comPct: (v.comision||0) / 100,
       comMonto: co || 0,
       factura: v.factura ? 'Sí' : 'No'
@@ -1396,7 +1377,7 @@ async function exportXLSX() {
     });
   });
 
-  var totalRow = ws.addRow({ fecha:'', cliente:'', producto:'', formaPago:'TOTALES', venta:tV, wp:tWp, comPct:'', comMonto:tC, factura:'' });
+  var totalRow = ws.addRow({ fecha:'', cliente:'', producto:'', formaPago:'TOTALES', venta:tV, comPct:'', comMonto:tC, factura:'' });
   totalRow.eachCell({ includeEmpty:true }, function(cell){
     cell.font = { bold:true, color:{argb:'FFFFFFFF'} };
     cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF141414'} };
@@ -1436,7 +1417,7 @@ function exportPDF() {
     ".kpi{background:#f5f5f5;padding:10px;border-radius:4px}.kpi .l{font-size:9px;color:#888;text-transform:uppercase}.kpi .v{font-size:16px;font-weight:800}"+
     "@media print{body{padding:0}}</style></head><body>"+
     "<div class='hdr'><div><img alt='Creamos Imagen' src='"+(window.CREAMOS_BRAND?window.CREAMOS_BRAND.logoWhite:'')+"' style='display:block;width:155px;height:42px;object-fit:contain;object-position:left center'><div style='font-size:12px;font-weight:700'>SUBLIPRO - VENTAS</div>"+
-    "<div style='color:#C8973A;font-size:10px'>Comision "+state.comDefPct+"% - Webpay +"+COM_WP_PCT+"%"+(rangoActivo() ? " - Rango: "+(state.rangoDesde?fDate(state.rangoDesde):"...")+" a "+(state.rangoHasta?fDate(state.rangoHasta):"...") : "")+"</div></div>"+
+    "<div style='color:#C8973A;font-size:10px'>Comision "+state.comDefPct+"%"+(rangoActivo() ? " - Rango: "+(state.rangoDesde?fDate(state.rangoDesde):"...")+" a "+(state.rangoHasta?fDate(state.rangoHasta):"...") : "")+"</div></div>"+
     "<div style='color:#C8973A;font-size:10px'>"+fechaChileTexto(null, null, "es-CO")+"</div></div>"+
     "<div class='kpis'>"+
     "<div class='kpi'><div class='l'>N Ventas</div><div class='v' style='color:#1E40AF'>"+filt.length+"</div></div>"+
