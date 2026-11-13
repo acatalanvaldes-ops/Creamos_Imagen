@@ -1134,7 +1134,9 @@ function buildForm(form, editId, cp) {
     '<div class="fld span2"><label>Cliente</label><input type="text" id="f-cliente" placeholder="Nombre del cliente" value="'+form.cliente+'" oninput="state.form.cliente=this.value"></div>'+
     '<div class="fld span2"><label>Producto</label><select data-field="producto"  onchange="ufld(this)">'+prodOpts+'</select></div>'+
     campoArticulo(form) +
-    '<div class="fld"><label>Monto ($)</label><input type="number" id="f-monto" placeholder="0" min="0" value="'+form.montoBase+'" oninput="state.form.montoBase=this.value;state.form.montoAuto=false;updatePreview()"></div>'+
+    '<div class="fld"><label>Neto ($) <span style="color:#aaa;font-weight:400;font-size:10px">sin IVA</span></label><input type="number" id="f-monto" placeholder="0" min="0" value="'+form.montoBase+'" oninput="state.form.montoAuto=false;cambiarNeto(this.value,true)"></div>'+
+    '<div class="fld"><label>Total ($) <span style="color:#aaa;font-weight:400;font-size:10px">con IVA</span></label><input type="number" id="f-total" placeholder="0" min="0" value="'+(form.montoTotal||'')+'" oninput="cambiarTotal(this.value)"></div>'+
+    '<div class="span2" style="font-size:11px;color:var(--muted);margin-top:-4px">Al escribir uno se calcula el otro con IVA 19%. Si corriges los dos (p. ej. Webpay con recargo), se guardan tal como los dejes.</div>'+
     '<div class="fld"><label>Comision (%) <span style="color:#aaa;font-weight:400;font-size:10px">def. '+cp+'%</span></label>'+
     '<input type="number" id="f-com" placeholder="'+cp+'" min="0" max="100" step="0.5" value="'+form.comision+'" oninput="state.form.comision=this.value;updatePreview()"></div>'+
     wpAlert +
@@ -1189,13 +1191,34 @@ function campoArticulo(form) {
   return '<div class="fld"><label>Artículo del inventario (opcional)</label><select onchange="elegirArticulo(this.value)">'+opts+'</select></div>'+
     '<div class="fld"><label>Cantidad del artículo</label><input type="number" min="1" id="f-cant-art" value="'+(form.cantidadArticulo||1)+'" '+(form.articuloId?'':'disabled')+' oninput="cambiarCantidadArticulo(this.value)"></div>';
 }
+// Neto y Total del formulario: escribir uno propone el otro (IVA 19%) hasta
+// que el otro se escriba a mano; desde ahí, cada uno queda como se dejó.
+function cambiarNeto(val, aMano) {
+  state.form.montoBase = val;
+  if (aMano) state.form.netoManual = true;
+  if (!state.form.totalManual) {
+    state.form.montoTotal = val === '' ? '' : String(Math.round((+val || 0) * IVA));
+    var ti = document.getElementById('f-total'); if (ti) ti.value = state.form.montoTotal;
+  }
+  updatePreview();
+}
+function cambiarTotal(val) {
+  state.form.montoTotal = val;
+  state.form.totalManual = true;
+  if (!state.form.netoManual) {
+    state.form.montoBase = val === '' ? '' : String(Math.round((+val || 0) / IVA));
+    state.form.montoAuto = false;
+    var mi = document.getElementById('f-monto'); if (mi) mi.value = state.form.montoBase;
+  }
+  updatePreview();
+}
 function precioArticulo(id) { var a = CATALOGO.find(function(x){ return x.id === id; }); return a ? a.precio : 0; }
 function elegirArticulo(id) {
   var mi = document.getElementById('f-monto'); if (mi) state.form.montoBase = mi.value;
   state.form.articuloId = id;
   state.form.cantidadArticulo = +state.form.cantidadArticulo || 1;
   // Se propone el precio del catálogo si el monto está vacío o lo había propuesto antes.
-  if (id && precioArticulo(id) && (!state.form.montoBase || state.form.montoAuto)) { state.form.montoBase = String(precioArticulo(id) * state.form.cantidadArticulo); state.form.montoAuto = true; }
+  if (id && precioArticulo(id) && (!state.form.montoBase || state.form.montoAuto)) { state.form.montoBase = String(precioArticulo(id) * state.form.cantidadArticulo); state.form.montoAuto = true; cambiarNeto(state.form.montoBase, false); }
   setState({});
 }
 function cambiarCantidadArticulo(v) {
@@ -1203,7 +1226,7 @@ function cambiarCantidadArticulo(v) {
   if (state.form.montoAuto && precioArticulo(state.form.articuloId)) {
     state.form.montoBase = String(precioArticulo(state.form.articuloId) * (+v || 1));
     var mi = document.getElementById('f-monto'); if (mi) mi.value = state.form.montoBase;
-    if (typeof updatePreview === 'function') updatePreview();
+    cambiarNeto(state.form.montoBase, false);
   }
 }
 cargarCatalogo();
@@ -1215,7 +1238,7 @@ function openForm() {
 
 function openEdit(id) {
   var v = state.ventas.find(function(x){return x.id===id;});
-  state.form = {fecha:v.fecha,cliente:v.cliente,producto:v.producto,formaPago:v.formaPago,montoBase:""+v.montoBase,comision:""+v.comision,factura:v.factura,tipoWebpay:v.tipoWebpay||"Crédito",articuloId:v.articuloId||"",cantidadArticulo:v.cantidadArticulo||1};
+  state.form = {fecha:v.fecha,cliente:v.cliente,producto:v.producto,formaPago:v.formaPago,montoBase:""+v.montoBase,montoTotal:""+totalDe(v),comision:""+v.comision,factura:v.factura,tipoWebpay:v.tipoWebpay||"Crédito",articuloId:v.articuloId||"",cantidadArticulo:v.cantidadArticulo||1};
   setState({showForm:true, editId:id});
 }
 
@@ -1224,10 +1247,13 @@ function submitForm() {
   var mi = document.getElementById('f-monto');
   var coi= document.getElementById('f-com');
   if (ci)  state.form.cliente   = ci.value;
+  var ti = document.getElementById('f-total');
   if (mi)  state.form.montoBase = mi.value;
+  if (ti)  state.form.montoTotal = ti.value;
   if (coi) state.form.comision  = coi.value;
   var f = state.form;
   if (!f.fecha || !f.cliente || !f.montoBase) return;
+  if (f.montoTotal !== '' && f.montoTotal != null && +f.montoTotal < +f.montoBase) { alert('El Total (con IVA) no puede ser menor que el Neto.'); return; }
   var entry = {
     id:        state.editId || Date.now(),
     fecha:     f.fecha,
@@ -1235,6 +1261,7 @@ function submitForm() {
     producto:  f.producto,
     formaPago: f.formaPago,
     montoBase: +f.montoBase,
+    montoTotal: (f.montoTotal !== '' && f.montoTotal != null) ? +f.montoTotal : Math.round(+f.montoBase * IVA),
     comision:  +f.comision || state.comDefPct,
     factura:   f.factura,
     tipoWebpay: f.formaPago === WEBPAY ? (f.tipoWebpay || "Crédito") : undefined,
@@ -1243,12 +1270,9 @@ function submitForm() {
   };
   if (state.editId) {
     // Una venta traspasada desde la Caja conserva su vínculo (para no
-    // duplicarla en otro traspaso) y su total, salvo que se cambie el neto.
+    // duplicarla en otro traspaso).
     var antes = state.ventas.find(function(x){ return x.id===state.editId; });
-    if (antes && antes.origenCaja) {
-      entry.origenCaja = antes.origenCaja;
-      if (+antes.montoBase === entry.montoBase) entry.montoTotal = totalDe(antes);
-    }
+    if (antes && antes.origenCaja) entry.origenCaja = antes.origenCaja;
     state.ventas = state.ventas.map(function(x){ return x.id===state.editId ? entry : x; });
   } else {
     state.ventas = state.ventas.concat([entry]);
